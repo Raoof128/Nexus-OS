@@ -3,7 +3,7 @@ import { apiFetch } from '../lib/apiClient'
 
 export function useSuggest() {
   const mutation = useMutation({
-    mutationFn: () => apiFetch('/books/suggest'),
+    mutationFn: () => apiFetch('/media/suggest'),
   })
 
   return {

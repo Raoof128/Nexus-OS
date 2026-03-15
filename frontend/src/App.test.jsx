@@ -11,14 +11,14 @@ vi.mock('./hooks/useAuth', () => ({
   })),
 }))
 
-vi.mock('./hooks/useBooks', () => ({
-  useBooks: vi.fn(() => ({
-    books: [],
+vi.mock('./hooks/useMedia', () => ({
+  useMedia: vi.fn(() => ({
+    items: [],
     loading: false,
     error: null,
-    addBook: vi.fn(),
-    updateBook: vi.fn(),
-    deleteBook: vi.fn(),
+    addMedia: vi.fn(),
+    updateMedia: vi.fn(),
+    deleteMedia: vi.fn(),
   })),
 }))
 
@@ -29,16 +29,14 @@ vi.mock('./lib/apiClient', () => ({
 }))
 
 const { useAuth } = await import('./hooks/useAuth')
-const { useBooks } = await import('./hooks/useBooks')
+const { useMedia } = await import('./hooks/useMedia')
 
 describe('App', () => {
-  it('renders the login panel with register and forgot links when signed out', () => {
+  it('renders the login panel when signed out', () => {
     render(<App />)
 
     expect(screen.getByText(/system login/i)).toBeTruthy()
     expect(screen.getByRole('button', { name: /authenticate/i })).toBeTruthy()
-    expect(screen.getByText(/create account/i)).toBeTruthy()
-    expect(screen.getByText(/forgot password/i)).toBeTruthy()
   })
 
   it('shows loading spinner when auth is loading', () => {
@@ -50,7 +48,6 @@ describe('App', () => {
     })
 
     render(<App />)
-
     expect(screen.getByText(/loading session/i)).toBeTruthy()
 
     useAuth.mockReturnValue({
@@ -61,7 +58,7 @@ describe('App', () => {
     })
   })
 
-  it('renders the kanban board when authenticated', () => {
+  it('renders media tabs and kanban when authenticated', () => {
     useAuth.mockReturnValue({
       session: { user: { id: 'u1', email: 'test@nexus.net' } },
       loading: false,
@@ -69,21 +66,23 @@ describe('App', () => {
       signOut: vi.fn(),
     })
 
-    useBooks.mockReturnValue({
-      books: [
-        { id: '1', title: 'Neuromancer', author: 'Gibson', status: 'Finished', genre: 'Cyberpunk', rating: 5 },
+    useMedia.mockReturnValue({
+      items: [
+        { id: '1', title: 'Neuromancer', creator: 'Gibson', status: 'Finished', type: 'book', genre: 'Cyberpunk', rating: 5 },
       ],
       loading: false,
       error: null,
-      addBook: vi.fn(),
-      updateBook: vi.fn(),
-      deleteBook: vi.fn(),
+      addMedia: vi.fn(),
+      updateMedia: vi.fn(),
+      deleteMedia: vi.fn(),
     })
 
     render(<App />)
 
     expect(screen.getByText('Neuromancer')).toBeTruthy()
-    expect(screen.getByText('// Finished')).toBeTruthy()
+    expect(screen.getByText('Books')).toBeTruthy()
+    expect(screen.getByText('Movies')).toBeTruthy()
+    expect(screen.getByText('Anime')).toBeTruthy()
 
     useAuth.mockReturnValue({
       session: null,
@@ -91,13 +90,13 @@ describe('App', () => {
       signIn: vi.fn().mockResolvedValue({ error: null }),
       signOut: vi.fn(),
     })
-    useBooks.mockReturnValue({
-      books: [],
+    useMedia.mockReturnValue({
+      items: [],
       loading: false,
       error: null,
-      addBook: vi.fn(),
-      updateBook: vi.fn(),
-      deleteBook: vi.fn(),
+      addMedia: vi.fn(),
+      updateMedia: vi.fn(),
+      deleteMedia: vi.fn(),
     })
   })
 
@@ -109,17 +108,16 @@ describe('App', () => {
       signOut: vi.fn(),
     })
 
-    useBooks.mockReturnValue({
-      books: [],
+    useMedia.mockReturnValue({
+      items: [],
       loading: false,
       error: 'Connection refused',
-      addBook: vi.fn(),
-      updateBook: vi.fn(),
-      deleteBook: vi.fn(),
+      addMedia: vi.fn(),
+      updateMedia: vi.fn(),
+      deleteMedia: vi.fn(),
     })
 
     render(<App />)
-
     expect(screen.getByRole('alert')).toBeTruthy()
     expect(screen.getByText(/connection refused/i)).toBeTruthy()
 
@@ -129,13 +127,13 @@ describe('App', () => {
       signIn: vi.fn().mockResolvedValue({ error: null }),
       signOut: vi.fn(),
     })
-    useBooks.mockReturnValue({
-      books: [],
+    useMedia.mockReturnValue({
+      items: [],
       loading: false,
       error: null,
-      addBook: vi.fn(),
-      updateBook: vi.fn(),
-      deleteBook: vi.fn(),
+      addMedia: vi.fn(),
+      updateMedia: vi.fn(),
+      deleteMedia: vi.fn(),
     })
   })
 })

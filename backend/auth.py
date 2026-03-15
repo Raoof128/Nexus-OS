@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
+from functools import lru_cache
 from typing import Any
 
 import jwt
+from jwt import PyJWKClient
 from litestar.connection import ASGIConnection
 from litestar.exceptions import NotAuthorizedException
 from litestar.middleware import MiddlewareProtocol
@@ -15,6 +18,8 @@ try:
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
 
+logger = logging.getLogger(__name__)
+
 PUBLIC_PATH_PREFIXES = (
     "/healthz",
     "/schema",
@@ -24,17 +29,57 @@ PUBLIC_PATH_PREFIXES = (
 )
 
 
-def decode_supabase_token(token: str) -> dict[str, Any]:
-    """Decode and validate a Supabase JWT."""
+@lru_cache(maxsize=1)
+def _get_jwks_client() -> PyJWKClient | None:
+    """Return a cached JWKS client for ES256 token verification."""
 
     settings = get_settings()
+    jwks_url = f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
+    try:
+        return PyJWKClient(jwks_url, cache_keys=True)
+    except Exception:  # pragma: no cover
+        logger.warning("Failed to initialize JWKS client from %s", jwks_url)
+        return None
+
+
+def decode_supabase_token(token: str) -> dict[str, Any]:
+    """Decode and validate a Supabase JWT (supports both HS256 and ES256)."""
+
+    settings = get_settings()
+    issuer = f"{settings.supabase_url.rstrip('/')}/auth/v1"
+    decode_options = {"require": ["exp", "iat", "sub", "aud"]}
+
+    # Peek at the header to determine algorithm
+    try:
+        header = jwt.get_unverified_header(token)
+    except jwt.DecodeError as exc:
+        raise jwt.InvalidTokenError("Malformed token header") from exc
+
+    alg = header.get("alg", "HS256")
+
+    if alg == "HS256":
+        return jwt.decode(
+            token,
+            settings.supabase_jwt_secret,
+            algorithms=["HS256"],
+            audience="authenticated",
+            issuer=issuer,
+            options=decode_options,
+        )
+
+    # ES256 / asymmetric — use the JWKS endpoint
+    jwks_client = _get_jwks_client()
+    if jwks_client is None:
+        raise jwt.InvalidTokenError("JWKS client unavailable for asymmetric token")
+
+    signing_key = jwks_client.get_signing_key_from_jwt(token)
     return jwt.decode(
         token,
-        settings.supabase_jwt_secret,
-        algorithms=["HS256"],
+        signing_key.key,
+        algorithms=["ES256"],
         audience="authenticated",
-        issuer=f"{settings.supabase_url.rstrip('/')}/auth/v1",
-        options={"require": ["exp", "iat", "sub", "aud"]},
+        issuer=issuer,
+        options=decode_options,
     )
 
 
@@ -43,7 +88,6 @@ class SupabaseAuthMiddleware(MiddlewareProtocol):
 
     def __init__(self, app: ASGIApp):
         self.app = app
-        self.jwt_secret = get_settings().supabase_jwt_secret
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http":

@@ -5,7 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-BookStatus = Literal["To Read", "Reading", "Finished"]
+MediaType = Literal["book", "movie", "anime"]
+MediaStatus = Literal["To Read", "Reading", "Finished", "To Watch", "Watching"]
 
 CONTROL_CHARS_PATTERN = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]")
 XSS_PATTERN = re.compile(
@@ -69,102 +70,87 @@ class ResetPasswordRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=128)
 
 
-class BookCreate(BaseModel):
-    """Incoming payload for a user-created book entry."""
+def _validate_text_field(value: str | None) -> str | None:
+    """Shared validator for identity/text fields."""
+
+    if value is None:
+        return value
+    normalized = _normalize_text(value)
+    if ANGLE_BRACKET_PATTERN.search(normalized):
+        raise ValueError("HTML tag delimiters are not allowed")
+    if XSS_PATTERN.search(normalized):
+        raise ValueError("HTML or script payloads are not allowed")
+    if INJECTION_PATTERN.search(normalized):
+        raise ValueError("Potential injection payload detected")
+    return normalized
+
+
+def _validate_takeaway_field(value: str | None) -> str | None:
+    """Shared validator for takeaway notes."""
+
+    if value is None:
+        return value
+    normalized = _normalize_text(value)
+    if XSS_PATTERN.search(normalized):
+        raise ValueError("HTML or script payloads are not allowed")
+    return normalized
+
+
+class MediaCreate(BaseModel):
+    """Incoming payload for a user-created media entry."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
+    type: MediaType = "book"
     title: str = Field(min_length=1, max_length=200, pattern=r"^[^<>]*$")
-    author: str = Field(min_length=1, max_length=100, pattern=r"^[^<>]*$")
+    creator: str = Field(min_length=1, max_length=100, pattern=r"^[^<>]*$")
     genre: str | None = Field(default=None, max_length=80, pattern=r"^[^<>]*$")
-    status: BookStatus = "To Read"
+    status: MediaStatus = "To Read"
     rating: int | None = Field(default=None, ge=1, le=5)
     takeaway: str | None = Field(default=None, max_length=2000)
+    sub_info: str | None = Field(default=None, max_length=100, pattern=r"^[^<>]*$")
 
-    @field_validator("title", "author", "genre", mode="before")
+    @field_validator("title", "creator", "genre", "sub_info", mode="before")
     @classmethod
     def validate_identity_fields(cls, value: str | None) -> str | None:
         """Reject payloads that resemble injection or XSS probes."""
-
-        if value is None:
-            return value
-
-        normalized = _normalize_text(value)
-        if ANGLE_BRACKET_PATTERN.search(normalized):
-            raise ValueError("HTML tag delimiters are not allowed")
-        if XSS_PATTERN.search(normalized):
-            raise ValueError("HTML or script payloads are not allowed")
-        if INJECTION_PATTERN.search(normalized):
-            raise ValueError("Potential injection payload detected")
-        return normalized
+        return _validate_text_field(value)
 
     @field_validator("takeaway", mode="before")
     @classmethod
     def validate_takeaway(cls, value: str | None) -> str | None:
         """Reject unsafe markup and normalize user-authored notes."""
-
-        if value is None:
-            return value
-
-        normalized = _normalize_text(value)
-        if XSS_PATTERN.search(normalized):
-            raise ValueError("HTML or script payloads are not allowed")
-        return normalized
+        return _validate_takeaway_field(value)
 
 
-class BookUpdate(BaseModel):
-    """Incoming payload for updating an existing book entry."""
+class MediaUpdate(BaseModel):
+    """Incoming payload for updating an existing media entry."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
     title: str | None = Field(
         default=None, min_length=1, max_length=200, pattern=r"^[^<>]*$"
     )
-    author: str | None = Field(
+    creator: str | None = Field(
         default=None, min_length=1, max_length=100, pattern=r"^[^<>]*$"
     )
     genre: str | None = Field(default=None, max_length=80, pattern=r"^[^<>]*$")
-    status: BookStatus | None = None
+    status: MediaStatus | None = None
     rating: int | None = Field(default=None, ge=1, le=5)
     takeaway: str | None = Field(default=None, max_length=2000)
+    sub_info: str | None = Field(default=None, max_length=100, pattern=r"^[^<>]*$")
 
-    @field_validator("title", "author", "genre", mode="before")
+    @field_validator("title", "creator", "genre", "sub_info", mode="before")
     @classmethod
     def validate_identity_fields(cls, value: str | None) -> str | None:
         """Reject payloads that resemble injection or XSS probes."""
-
-        if value is None:
-            return value
-
-        normalized = _normalize_text(value)
-        if ANGLE_BRACKET_PATTERN.search(normalized):
-            raise ValueError("HTML tag delimiters are not allowed")
-        if XSS_PATTERN.search(normalized):
-            raise ValueError("HTML or script payloads are not allowed")
-        if INJECTION_PATTERN.search(normalized):
-            raise ValueError("Potential injection payload detected")
-        return normalized
+        return _validate_text_field(value)
 
     @field_validator("takeaway", mode="before")
     @classmethod
     def validate_takeaway(cls, value: str | None) -> str | None:
         """Reject unsafe markup and normalize user-authored notes."""
-
-        if value is None:
-            return value
-
-        normalized = _normalize_text(value)
-        if XSS_PATTERN.search(normalized):
-            raise ValueError("HTML or script payloads are not allowed")
-        return normalized
-
-
-class BookResponse(BookCreate):
-    """Serialized book record returned from persistence."""
-
-    id: str
-    user_id: str
-    created_at: str
+        return _validate_takeaway_field(value)
 
 
 class SuggestionResponse(BaseModel):

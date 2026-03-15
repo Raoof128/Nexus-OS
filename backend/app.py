@@ -8,7 +8,7 @@ try:
     from .auth import SupabaseAuthMiddleware
     from .auth_controller import AuthController
     from .config import get_settings
-    from .controllers import BookController
+    from .controllers import MediaController
     from .health import healthcheck
     from .logging_config import configure_logging
     from .observability import configure_observability
@@ -17,7 +17,7 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
     from auth import SupabaseAuthMiddleware
     from auth_controller import AuthController
     from config import get_settings
-    from controllers import BookController
+    from controllers import MediaController
     from health import healthcheck
     from logging_config import configure_logging
     from observability import configure_observability
@@ -35,7 +35,7 @@ cors_config = CORSConfig(
 )
 
 app = Litestar(
-    route_handlers=[healthcheck, AuthController, BookController],
+    route_handlers=[healthcheck, AuthController, MediaController],
     middleware=[SecurityHeadersMiddleware, SupabaseAuthMiddleware],
     cors_config=cors_config,
     allowed_hosts=list(settings.allowed_hosts),

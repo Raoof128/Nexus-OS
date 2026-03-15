@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Loader2 } from 'lucide-react'
-import AddBookDialog from './components/features/AddBookDialog'
+import { BookOpen, Film, Loader2, Sparkles } from 'lucide-react'
+import AddMediaDialog from './components/features/AddBookDialog'
 import AuthPanel from './components/features/AuthPanel'
 import LazyAICmdPalette from './components/features/LazyAICmdPalette'
 import ResetPasswordPage from './components/features/ResetPasswordPage'
@@ -8,7 +8,10 @@ import BentoGrid from './components/layout/BentoGrid'
 import KanbanBoard from './components/features/KanbanBoard'
 import Navbar from './components/layout/Navbar'
 import { useAuth } from './hooks/useAuth'
-import { useBooks } from './hooks/useBooks'
+import { useMedia } from './hooks/useMedia'
+import { MEDIA_TYPES, MEDIA_CONFIG } from './lib/mediaConfig'
+
+const TAB_ICONS = { book: BookOpen, movie: Film, anime: Sparkles }
 
 function extractRecoveryTokens() {
   const hash = window.location.hash.substring(1)
@@ -46,7 +49,8 @@ function useRecoveryTokens() {
 
 function App() {
   const { session, loading: authLoading } = useAuth()
-  const { books, loading: dataLoading, error, addBook, updateBook, deleteBook } = useBooks(session)
+  const [activeType, setActiveType] = useState('book')
+  const { items, loading: dataLoading, error, addMedia, updateMedia, deleteMedia } = useMedia(session, activeType)
 
   const [recoveryTokens, clearRecoveryTokens] = useRecoveryTokens()
 
@@ -79,18 +83,18 @@ function App() {
           <div className="grid w-full max-w-6xl gap-8 lg:grid-cols-[1.2fr_0.8fr]">
             <section className="rounded-[2rem] border border-white/10 bg-black/40 p-10 shadow-2xl backdrop-blur-xl">
               <p className="mb-3 text-xs uppercase tracking-[0.4em] text-primary">
-                personal book vault
+                personal media vault
               </p>
               <h1 className="max-w-3xl text-4xl font-black uppercase tracking-tight text-white md:text-6xl">
-                One archive for the books you actually care about.
+                One archive for everything you actually care about.
               </h1>
               <p className="mt-6 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
-                Nexus Archive replaces scattered reading lists with one identity-driven
-                dashboard. Track what you finished, what you are reading now, what you
-                want to pick up next, and the notes that make your taste personal.
+                Nexus Archive replaces scattered lists with one identity-driven
+                dashboard. Track books, movies, and anime — what you finished,
+                what you are consuming now, and the notes that make your taste personal.
               </p>
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                {['Reading queue', 'Ratings', 'Takeaways'].map((item) => (
+                {['Books', 'Movies', 'Anime'].map((item) => (
                   <div
                     key={item}
                     className="rounded-2xl border border-white/10 bg-white/5 px-4 py-5 text-sm uppercase tracking-wider text-white"
@@ -114,8 +118,33 @@ function App() {
 
       <Navbar />
 
-      <main className="relative z-10 h-[calc(100vh-64px)] overflow-hidden">
-        {dataLoading && books.length === 0 ? (
+      {/* Media type tabs */}
+      <div className="relative z-10 border-b border-white/5 bg-black/30 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center gap-1 px-6 py-2">
+          {MEDIA_TYPES.map((type) => {
+            const Icon = TAB_ICONS[type]
+            const isActive = activeType === type
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setActiveType(type)}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2 font-mono text-xs uppercase tracking-wider transition-all ${
+                  isActive
+                    ? 'bg-primary/20 text-primary shadow-[0_0_10px_var(--color-primary)]'
+                    : 'text-muted-foreground hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <Icon size={14} />
+                {MEDIA_CONFIG[type].label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <main className="relative z-10 h-[calc(100vh-64px-48px)] overflow-hidden">
+        {dataLoading && items.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
             <span className="sr-only">Loading library</span>
@@ -129,14 +158,19 @@ function App() {
           </div>
         ) : (
           <BentoGrid>
-            <div className="col-span-1 h-[75vh] md:col-span-2 lg:col-span-3">
-              <KanbanBoard books={books} onUpdateBook={updateBook} onDeleteBook={deleteBook} />
+            <div className="col-span-1 h-[70vh] md:col-span-2 lg:col-span-3">
+              <KanbanBoard
+                items={items}
+                mediaType={activeType}
+                onUpdate={updateMedia}
+                onDelete={deleteMedia}
+              />
             </div>
           </BentoGrid>
         )}
       </main>
 
-      <AddBookDialog onAdd={addBook} />
+      <AddMediaDialog mediaType={activeType} onAdd={addMedia} />
       <LazyAICmdPalette />
     </div>
   )

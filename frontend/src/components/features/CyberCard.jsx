@@ -1,27 +1,35 @@
 import { motion as Motion } from 'framer-motion'
-import { BookOpen, ChevronRight, Trash2 } from 'lucide-react'
+import { BookOpen, ChevronRight, Film, Sparkles, Trash2 } from 'lucide-react'
+import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 
-const STATUS_FLOW = ['To Read', 'Reading', 'Finished']
-
-function nextStatus(current) {
-  const index = STATUS_FLOW.indexOf(current)
-  if (index === -1 || index >= STATUS_FLOW.length - 1) return null
-  return STATUS_FLOW[index + 1]
+const TYPE_ICONS = {
+  book: BookOpen,
+  movie: Film,
+  anime: Sparkles,
 }
 
-export default function CyberCard({ book, onUpdateBook, onDeleteBook }) {
-  const next = nextStatus(book.status)
+function nextStatus(current, mediaType) {
+  const statuses = MEDIA_CONFIG[mediaType]?.statuses || ['To Read', 'Reading', 'Finished']
+  const index = statuses.indexOf(current)
+  if (index === -1 || index >= statuses.length - 1) return null
+  return statuses[index + 1]
+}
+
+export default function CyberCard({ item, onUpdate, onDelete }) {
+  const mediaType = item.type || 'book'
+  const Icon = TYPE_ICONS[mediaType] || BookOpen
+  const next = nextStatus(item.status, mediaType)
 
   const handleAdvance = async (event) => {
     event.stopPropagation()
-    if (!next || !onUpdateBook) return
-    await onUpdateBook({ bookId: book.id, data: { status: next } })
+    if (!next || !onUpdate) return
+    await onUpdate({ mediaId: item.id, data: { status: next } })
   }
 
   const handleDelete = async (event) => {
     event.stopPropagation()
-    if (!onDeleteBook) return
-    await onDeleteBook(book.id)
+    if (!onDelete) return
+    await onDelete(item.id)
   }
 
   return (
@@ -34,28 +42,33 @@ export default function CyberCard({ book, onUpdateBook, onDeleteBook }) {
 
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex justify-between items-start mb-4">
-          <BookOpen className="h-6 w-6 text-primary drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+          <Icon className="h-6 w-6 text-primary drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
           <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-mono font-medium text-primary">
-            {book.status}
+            {item.status}
           </span>
         </div>
 
         <h3 className="mb-1 text-xl font-bold tracking-tight text-white group-hover:text-primary transition-colors">
-          {book.title}
+          {item.title}
         </h3>
         <p className="font-mono text-sm text-muted-foreground mb-4">
-          // {book.author}
+          // {item.creator}
         </p>
 
         <div className="mt-auto pt-4 border-t border-white/5 flex flex-wrap items-center gap-2">
-          {book.genre && (
+          {item.genre && (
             <span className="inline-flex items-center rounded-md bg-white/5 px-2 py-1 text-xs font-medium text-gray-300 ring-1 ring-inset ring-white/10">
-              {book.genre}
+              {item.genre}
             </span>
           )}
-          {book.rating && (
+          {item.rating && (
             <span className="inline-flex items-center rounded-md bg-white/5 px-2 py-1 text-xs font-medium text-yellow-500 ring-1 ring-inset ring-white/10">
-              ★ {book.rating}/5
+              ★ {item.rating}/5
+            </span>
+          )}
+          {item.sub_info && (
+            <span className="inline-flex items-center rounded-md bg-white/5 px-2 py-1 text-xs font-medium text-neutral-400 ring-1 ring-inset ring-white/10">
+              {item.sub_info}
             </span>
           )}
 
@@ -75,8 +88,8 @@ export default function CyberCard({ book, onUpdateBook, onDeleteBook }) {
               type="button"
               onClick={handleDelete}
               className="rounded-md bg-white/5 p-1.5 text-xs text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive"
-              title="Delete book"
-              aria-label="Delete book"
+              title="Delete"
+              aria-label="Delete"
             >
               <Trash2 size={14} />
             </button>

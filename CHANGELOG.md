@@ -2,6 +2,13 @@
 
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Unified Media Model — Books, Movies, Anime
+- **Summary:** Expanded from books-only to unified media engine with Postgres ENUM, `media` table, type-filtered API, tabbed Kanban UI, and ES256 JWT/PostgREST fixes.
+- **Files Changed:** Migration, database.sql, backend (app, controllers, schemas, services, auth), frontend (App, hooks, components, tests), test suite.
+- **Verification:** 25/25 backend tests, 4/4 frontend tests, lint/build clean. Migration applied.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Integration Audit — Recovery Token Fix and Env Alignment
 - **Summary:** Fixed critical password reset bug where refresh_token was not extracted from Supabase recovery URL. Added refresh_token to frontend extraction, backend schema, and reset endpoint. Added missing PASSWORD_RESET_REDIRECT_URL to env template. Fixed stale pyproject.toml description.
 - **Files Changed:** `frontend/src/App.jsx`, `frontend/src/components/features/ResetPasswordPage.jsx`, `backend/schemas.py`, `backend/auth_controller.py`, `backend/.env.example`, `pyproject.toml`.

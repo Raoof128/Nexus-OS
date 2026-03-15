@@ -1,32 +1,34 @@
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
-
-const STATUSES = ['To Read', 'Reading', 'Finished']
+import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 
 const inputClass =
   'w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50'
 
 const labelClass = 'mb-1 block text-xs font-semibold uppercase text-muted-foreground'
 
-export default function AddBookDialog({ onAdd }) {
+export default function AddMediaDialog({ mediaType, onAdd }) {
+  const config = MEDIA_CONFIG[mediaType]
   const [open, setOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
   const [title, setTitle] = useState('')
-  const [author, setAuthor] = useState('')
+  const [creator, setCreator] = useState('')
   const [genre, setGenre] = useState('')
-  const [status, setStatus] = useState('To Read')
+  const [status, setStatus] = useState(config.defaultStatus)
   const [rating, setRating] = useState('')
   const [takeaway, setTakeaway] = useState('')
+  const [subInfo, setSubInfo] = useState('')
 
   const reset = () => {
     setTitle('')
-    setAuthor('')
+    setCreator('')
     setGenre('')
-    setStatus('To Read')
+    setStatus(config.defaultStatus)
     setRating('')
     setTakeaway('')
+    setSubInfo('')
     setError(null)
   }
 
@@ -35,21 +37,22 @@ export default function AddBookDialog({ onAdd }) {
     setError(null)
     setSubmitting(true)
 
-    const bookData = {
+    const mediaData = {
       title: title.trim(),
-      author: author.trim(),
+      creator: creator.trim(),
       genre: genre.trim() || null,
       status,
       rating: rating ? Number(rating) : null,
       takeaway: takeaway.trim() || null,
+      sub_info: subInfo.trim() || null,
     }
 
     try {
-      await onAdd(bookData)
+      await onAdd(mediaData)
       reset()
       setOpen(false)
     } catch (submitError) {
-      setError(submitError.message || 'Failed to add book')
+      setError(submitError.message || 'Failed to add entry')
     } finally {
       setSubmitting(false)
     }
@@ -59,11 +62,11 @@ export default function AddBookDialog({ onAdd }) {
     return (
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => { reset(); setStatus(config.defaultStatus); setOpen(true) }}
         className="fixed bottom-6 left-6 z-50 flex items-center gap-2 rounded-full border border-primary bg-primary/20 px-4 py-2 font-mono text-xs text-primary shadow-[0_0_15px_var(--color-primary)] backdrop-blur-xl transition-all hover:bg-primary/40"
       >
         <Plus size={16} />
-        Add Book
+        Add {config.label.slice(0, -1)}
       </button>
     )
   }
@@ -84,7 +87,7 @@ export default function AddBookDialog({ onAdd }) {
         </button>
 
         <h2 className="mb-6 text-xl font-bold uppercase tracking-wider text-primary">
-          // Register New Entry
+          // Register New {config.label.slice(0, -1)}
         </h2>
 
         {error && (
@@ -105,21 +108,21 @@ export default function AddBookDialog({ onAdd }) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className={inputClass}
-              placeholder="Neuromancer"
+              placeholder={mediaType === 'book' ? 'Neuromancer' : mediaType === 'anime' ? 'Cowboy Bebop' : 'Blade Runner'}
               required
               maxLength={200}
             />
           </div>
 
           <div>
-            <label htmlFor="add-author" className={labelClass}>Author</label>
+            <label htmlFor="add-creator" className={labelClass}>{config.creatorLabel}</label>
             <input
-              id="add-author"
+              id="add-creator"
               type="text"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
+              value={creator}
+              onChange={(e) => setCreator(e.target.value)}
               className={inputClass}
-              placeholder="William Gibson"
+              placeholder={mediaType === 'book' ? 'William Gibson' : mediaType === 'anime' ? 'Sunrise' : 'Ridley Scott'}
               required
               maxLength={100}
             />
@@ -146,25 +149,39 @@ export default function AddBookDialog({ onAdd }) {
                 onChange={(e) => setStatus(e.target.value)}
                 className={inputClass}
               >
-                {STATUSES.map((s) => (
+                {config.statuses.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </div>
           </div>
 
-          <div>
-            <label htmlFor="add-rating" className={labelClass}>Rating (1-5)</label>
-            <input
-              id="add-rating"
-              type="number"
-              min="1"
-              max="5"
-              value={rating}
-              onChange={(e) => setRating(e.target.value)}
-              className={inputClass}
-              placeholder="Optional"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="add-rating" className={labelClass}>Rating (1-5)</label>
+              <input
+                id="add-rating"
+                type="number"
+                min="1"
+                max="5"
+                value={rating}
+                onChange={(e) => setRating(e.target.value)}
+                className={inputClass}
+                placeholder="Optional"
+              />
+            </div>
+            <div>
+              <label htmlFor="add-subinfo" className={labelClass}>{config.subInfoLabel}</label>
+              <input
+                id="add-subinfo"
+                type="text"
+                value={subInfo}
+                onChange={(e) => setSubInfo(e.target.value)}
+                className={inputClass}
+                placeholder="Optional"
+                maxLength={100}
+              />
+            </div>
           </div>
 
           <div>

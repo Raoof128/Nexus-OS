@@ -9,8 +9,9 @@ from time import monotonic
 
 import tiktoken
 from google import genai
+from postgrest import SyncPostgrestClient
+
 from supabase import Client, create_client
-from supabase.lib.client_options import ClientOptions
 
 try:
     from .config import get_settings
@@ -108,18 +109,17 @@ class SuggestionPayload:
     source: str = field(default="local")
 
 
-def create_supabase_user_client(access_token: str) -> Client:
-    """Return a Supabase client bound to the caller token so RLS is enforced."""
+def create_supabase_user_client(access_token: str) -> SyncPostgrestClient:
+    """Return a PostgREST client bound to the caller token so RLS is enforced."""
 
     settings = get_settings()
-    return create_client(
-        settings.supabase_url,
-        settings.supabase_auth_key,
-        options=ClientOptions(
-            auto_refresh_token=False,
-            persist_session=False,
-            headers={"Authorization": f"Bearer {access_token}"},
-        ),
+    rest_url = f"{settings.supabase_url.rstrip('/')}/rest/v1"
+    return SyncPostgrestClient(
+        rest_url,
+        headers={
+            "apikey": settings.supabase_auth_key,
+            "Authorization": f"Bearer {access_token}",
+        },
     )
 
 

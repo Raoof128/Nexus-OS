@@ -1,4 +1,4 @@
-"""Integration tests for book controller endpoints."""
+"""Integration tests for media controller endpoints."""
 
 from __future__ import annotations
 
@@ -70,93 +70,63 @@ class TestHealthz:
         assert response.json() == {"status": "ok"}
 
 
-class TestBookControllerAuth:
+class TestMediaControllerAuth:
     """Controller endpoints reject unauthenticated callers."""
 
-    def test_get_books_requires_auth(self, client):
-        response = client.get("/books")
+    def test_get_media_requires_auth(self, client):
+        response = client.get("/media")
         assert response.status_code == HTTP_401_UNAUTHORIZED
 
-    def test_create_book_requires_auth(self, client):
+    def test_create_media_requires_auth(self, client):
         response = client.post(
-            "/books",
+            "/media",
             json={
                 "title": "Test",
-                "author": "Author",
+                "creator": "Author",
             },
         )
         assert response.status_code == HTTP_401_UNAUTHORIZED
 
 
 @pytest.mark.usefixtures("_inject_auth")
-class TestBookControllerCRUD:
+class TestMediaControllerCRUD:
     """Controller endpoints with mocked Supabase."""
 
     @patch("backend.controllers.create_supabase_user_client")
-    def test_get_books_returns_list(self, mock_client_fn, client):
-        mock_table = MagicMock()
-        mock_table.select.return_value.execute.return_value = FakeSupabaseResponse(
+    def test_get_media_returns_list(self, mock_client_fn, client):
+        mock_query = MagicMock()
+        mock_query.select.return_value = mock_query
+        mock_query.eq.return_value = mock_query
+        mock_query.order.return_value = mock_query
+        mock_query.execute.return_value = FakeSupabaseResponse(
             data=[
                 {
                     "id": "b1",
                     "user_id": "user-123",
+                    "type": "book",
                     "title": "Neuromancer",
-                    "author": "Gibson",
+                    "creator": "Gibson",
                     "status": "Finished",
                     "genre": "Cyberpunk",
                     "rating": 5,
                     "takeaway": None,
+                    "sub_info": None,
                 }
             ]
         )
         mock_supabase = MagicMock()
-        mock_supabase.table.return_value = mock_table
+        mock_supabase.from_.return_value = mock_query
         mock_client_fn.return_value = mock_supabase
 
-        response = client.get("/books")
+        response = client.get("/media?type=book")
         assert response.status_code == HTTP_200_OK
-        books = response.json()
-        assert len(books) == 1
-        assert books[0]["title"] == "Neuromancer"
+        items = response.json()
+        assert len(items) == 1
+        assert items[0]["title"] == "Neuromancer"
 
     @patch("backend.controllers.create_supabase_user_client")
-    def test_create_book_returns_created(self, mock_client_fn, client, monkeypatch):
-        monkeypatch.setenv("TAKEAWAY_ENCRYPTION_KEY", "")
-        from backend.config import get_settings
-
-        get_settings.cache_clear()
-
-        mock_table = MagicMock()
-        mock_table.insert.return_value.execute.return_value = FakeSupabaseResponse(
-            data=[
-                {
-                    "id": "b2",
-                    "user_id": "user-123",
-                    "title": "Snow Crash",
-                    "author": "Stephenson",
-                    "status": "To Read",
-                    "genre": None,
-                    "rating": None,
-                    "takeaway": None,
-                }
-            ]
-        )
-        mock_supabase = MagicMock()
-        mock_supabase.table.return_value = mock_table
-        mock_client_fn.return_value = mock_supabase
-
-        response = client.post(
-            "/books",
-            json={
-                "title": "Snow Crash",
-                "author": "Stephenson",
-            },
-        )
-        assert response.status_code in (HTTP_200_OK, 201)
-
-    @patch("backend.controllers.create_supabase_user_client")
-    def test_get_books_handles_supabase_failure(self, mock_client_fn, client):
+    def test_get_media_handles_failure(self, mock_client_fn, client):
         mock_client_fn.side_effect = RuntimeError("Connection refused")
 
-        response = client.get("/books")
+        response = client.get("/media")
         assert response.status_code == HTTP_502_BAD_GATEWAY

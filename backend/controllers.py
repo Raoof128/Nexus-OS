@@ -1,28 +1,32 @@
-"""Book API controllers."""
+"""Media API controllers."""
 
 import logging
+from typing import Optional
 
 from litestar import Controller, Request, delete, get, post, put
 from litestar.exceptions import HTTPException
+from litestar.params import Parameter
 
 try:
     from .audit_logger import log_audit_event
     from .data_protection import encrypt_takeaway, hydrate_book_record
     from .rate_limit import enforce_suggest_rate_limit
-    from .schemas import BookCreate, BookUpdate, SuggestionResponse
+    from .schemas import MediaCreate, MediaUpdate, SuggestionResponse
     from .services import create_supabase_user_client, get_book_suggestion
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from audit_logger import log_audit_event
     from data_protection import encrypt_takeaway, hydrate_book_record
     from rate_limit import enforce_suggest_rate_limit
-    from schemas import BookCreate, BookUpdate, SuggestionResponse
+    from schemas import MediaCreate, MediaUpdate, SuggestionResponse
     from services import create_supabase_user_client, get_book_suggestion
 
 logger = logging.getLogger(__name__)
 
+VALID_MEDIA_TYPES = {"book", "movie", "anime"}
 
-def _get_user_books_client(request: Request):
-    """Return a caller-scoped Supabase client so Postgres enforces RLS."""
+
+def _get_user_client(request: Request):
+    """Return a caller-scoped PostgREST client so Postgres enforces RLS."""
 
     access_token = getattr(request.state, "access_token", None)
     if not access_token:
@@ -33,64 +37,70 @@ def _get_user_books_client(request: Request):
     return create_supabase_user_client(access_token)
 
 
-class BookController(Controller):
-    """Authenticated book endpoints."""
+class MediaController(Controller):
+    """Authenticated media endpoints."""
 
-    path = "/books"
+    path = "/media"
 
     @get()
-    async def get_books(self, request: Request) -> list[dict]:
-        """Return the authenticated user's books."""
+    async def get_media(
+        self,
+        request: Request,
+        type: Optional[str] = Parameter(query="type", default=None),
+    ) -> list[dict]:
+        """Return the authenticated user's media, optionally filtered by type."""
 
         user_id = request.state.user_id
         try:
-            response = (
-                _get_user_books_client(request).table("books").select("*").execute()
-            )
+            query = _get_user_client(request).from_("media").select("*")
+            if type and type in VALID_MEDIA_TYPES:
+                query = query.eq("type", type)
+            response = query.order("created_at", desc=True).execute()
         except Exception as exc:  # pragma: no cover - external dependency failure
-            logger.exception("Failed to fetch books for user %s", user_id)
+            logger.exception("Failed to fetch media for user %s", user_id)
             raise HTTPException(
-                status_code=502, detail="Failed to fetch books"
+                status_code=502, detail="Failed to fetch media"
             ) from exc
         return [hydrate_book_record(record) for record in (response.data or [])]
 
     @post()
-    async def create_book(self, data: BookCreate, request: Request) -> dict:
-        """Create a new book entry for the authenticated user."""
+    async def create_media(self, data: MediaCreate, request: Request) -> dict:
+        """Create a new media entry for the authenticated user."""
 
         user_id = request.state.user_id
-        book_data = data.model_dump()
-        book_data["user_id"] = user_id
-        book_data["takeaway"] = encrypt_takeaway(book_data.get("takeaway"))
+        media_data = data.model_dump()
+        media_data["user_id"] = user_id
+        media_data["takeaway"] = encrypt_takeaway(media_data.get("takeaway"))
         try:
             response = (
-                _get_user_books_client(request)
-                .table("books")
-                .insert(book_data)
-                .execute()
+                _get_user_client(request).from_("media").insert(media_data).execute()
             )
         except Exception as exc:  # pragma: no cover - external dependency failure
-            logger.exception("Failed to create book for user %s", user_id)
+            logger.exception("Failed to create media for user %s", user_id)
             raise HTTPException(
-                status_code=502, detail="Failed to create book"
+                status_code=502, detail="Failed to create media"
             ) from exc
 
         log_audit_event(
-            action="book.create",
+            action="media.create",
             user_id=user_id,
-            metadata={"status": book_data["status"], "title": book_data["title"]},
+            metadata={
+                "type": media_data["type"],
+                "status": media_data["status"],
+                "title": media_data["title"],
+            },
         )
-        created_book = response.data[0] if response.data else {}
-        return hydrate_book_record(created_book)
+        created = response.data[0] if response.data else {}
+        return hydrate_book_record(created)
 
-    @put("/{book_id:str}")
-    async def update_book(
+    @put("/{media_id:str}")
+    async def update_media(
         self,
-        book_id: str,
-        data: BookUpdate,
+        media_id: str,
+        data: MediaUpdate,
         request: Request,
     ) -> dict:
-        """Update an existing book entry for the authenticated user."""
+        """Update an existing media entry for the authenticated user."""
 
         user_id = request.state.user_id
         update_data = data.model_dump(exclude_none=True)
@@ -100,78 +110,78 @@ class BookController(Controller):
             raise HTTPException(status_code=422, detail="No fields to update")
         try:
             response = (
-                _get_user_books_client(request)
-                .table("books")
+                _get_user_client(request)
+                .from_("media")
                 .update(update_data)
-                .eq("id", book_id)
+                .eq("id", media_id)
                 .execute()
             )
         except Exception as exc:  # pragma: no cover - external dependency failure
-            logger.exception("Failed to update book %s for user %s", book_id, user_id)
+            logger.exception("Failed to update media %s for user %s", media_id, user_id)
             raise HTTPException(
-                status_code=502, detail="Failed to update book"
+                status_code=502, detail="Failed to update media"
             ) from exc
 
         if not response.data:
-            raise HTTPException(status_code=404, detail="Book not found")
+            raise HTTPException(status_code=404, detail="Media not found")
 
         log_audit_event(
-            action="book.update",
+            action="media.update",
             user_id=user_id,
-            metadata={"book_id": book_id},
+            metadata={"media_id": media_id},
         )
         return hydrate_book_record(response.data[0])
 
-    @delete("/{book_id:str}")
-    async def delete_book(self, book_id: str, request: Request) -> None:
-        """Delete a book entry for the authenticated user."""
+    @delete("/{media_id:str}")
+    async def delete_media(self, media_id: str, request: Request) -> None:
+        """Delete a media entry for the authenticated user."""
 
         user_id = request.state.user_id
         try:
-            _get_user_books_client(request).table("books").delete().eq(
-                "id", book_id
+            _get_user_client(request).from_("media").delete().eq(
+                "id", media_id
             ).execute()
         except Exception as exc:  # pragma: no cover - external dependency failure
-            logger.exception("Failed to delete book %s for user %s", book_id, user_id)
+            logger.exception("Failed to delete media %s for user %s", media_id, user_id)
             raise HTTPException(
-                status_code=502, detail="Failed to delete book"
+                status_code=502, detail="Failed to delete media"
             ) from exc
 
         log_audit_event(
-            action="book.delete",
+            action="media.delete",
             user_id=user_id,
-            metadata={"book_id": book_id},
+            metadata={"media_id": media_id},
         )
 
     @get("/suggest")
-    async def suggest_book(self, request: Request) -> SuggestionResponse:
+    async def suggest_media(self, request: Request) -> SuggestionResponse:
         """Return an AI-assisted recommendation based on the current library."""
 
         user_id = request.state.user_id
         enforce_suggest_rate_limit(user_id)
         try:
-            books = (
-                _get_user_books_client(request)
-                .table("books")
+            items = (
+                _get_user_client(request)
+                .from_("media")
                 .select("title, genre, rating")
                 .execute()
             )
         except Exception as exc:  # pragma: no cover - external dependency failure
             logger.exception(
-                "Failed to load books for suggestion request for user %s",
+                "Failed to load media for suggestion for user %s",
                 user_id,
             )
             raise HTTPException(
                 status_code=502,
-                detail="Failed to load books for suggestions",
+                detail="Failed to load media for suggestions",
             ) from exc
 
-        suggestion = get_book_suggestion(books.data or [])
+        suggestion = get_book_suggestion(items.data or [])
         log_audit_event(
-            action="book.suggest",
+            action="media.suggest",
             user_id=user_id,
             metadata={
-                "library_size": len(books.data or []),
+                "library_size": len(items.data or []),
                 "source": suggestion.source,
             },
         )

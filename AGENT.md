@@ -24,6 +24,31 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Unified Media Model — Books, Movies, Anime
+- **Summary:** Expanded from books-only to a unified media engine. Created Postgres ENUM `media_type`, renamed `books` → `media`, added `creator`/`sub_info` columns, migrated `author` data, recreated RLS policy, added composite index. Refactored backend to `MediaController` at `/media` with `?type=` filtering. Frontend now has media-type tabs (Books/Movies/Anime) with per-type status columns, dynamic icons, and type-aware AddMediaDialog. Fixed ES256 JWT support via JWKS client, switched to direct PostgREST client to bypass supabase-py v2.28 `ClientOptions` bug.
+- **Files Changed:**
+  - `supabase/migrations/20260315070031_unified_media_model.sql` — Migration: ENUM, rename, columns, RLS, index.
+  - `database.sql` — Updated canonical schema.
+  - `backend/app.py` — `BookController` → `MediaController`.
+  - `backend/controllers.py` — Rewritten as `MediaController` with type filtering.
+  - `backend/schemas.py` — `BookCreate`/`BookUpdate` → `MediaCreate`/`MediaUpdate` with `type`, `creator`, `sub_info`.
+  - `backend/services.py` — PostgREST direct client, removed `ClientOptions` dependency.
+  - `backend/auth.py` — Added ES256 JWKS support alongside HS256.
+  - `frontend/src/App.jsx` — Media type tabs, `useMedia` hook, `AddMediaDialog`.
+  - `frontend/src/hooks/useMedia.js` — New type-filtered media hook.
+  - `frontend/src/lib/mediaConfig.js` — New media type configuration constants.
+  - `frontend/src/components/features/AddBookDialog.jsx` — Rewritten as `AddMediaDialog`.
+  - `frontend/src/components/features/CyberCard.jsx` — Type-aware icons and `creator` field.
+  - `frontend/src/components/features/KanbanBoard.jsx` — Dynamic status columns per type.
+  - `frontend/src/hooks/useSuggest.js` — Updated to `/media/suggest`.
+  - `frontend/src/App.test.jsx` — Updated for media model.
+  - `tests/test_controllers.py` — Updated for `/media` endpoints.
+  - `tests/test_schemas.py` — Tests for book, movie, anime validation.
+- **Verification:** `ruff check` clean, `pytest` 25/25 pass, `npm run lint` clean, `npm run test` 4/4 pass, `npm run build` clean. Migration applied to live Supabase.
+- **Follow-ups:** None.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Integration Audit — Recovery Token Fix and Env Alignment
 - **Summary:** Full repo-wide integration audit traced every flow end-to-end and found three issues. Fixed the critical password reset bug where only the access_token was extracted from the Supabase recovery URL while the refresh_token was ignored, causing `set_session` to fail. Added `refresh_token` to the frontend extraction, the backend schema, and the reset endpoint. Added missing `PASSWORD_RESET_REDIRECT_URL` to the env template. Fixed stale pyproject.toml description.
 - **Files Changed:**
