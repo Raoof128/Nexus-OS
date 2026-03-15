@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import AddBookDialog from './components/features/AddBookDialog'
 import LazyAICmdPalette from './components/features/LazyAICmdPalette'
 import BentoGrid from './components/layout/BentoGrid'
 import KanbanBoard from './components/features/KanbanBoard'
@@ -9,7 +10,7 @@ import { useBooks } from './hooks/useBooks'
 
 function App() {
   const { session, loading: authLoading, signIn } = useAuth()
-  const { books, loading: dataLoading, error } = useBooks(session)
+  const { books, loading: dataLoading, error, addBook, updateBook, deleteBook } = useBooks(session)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -157,12 +158,13 @@ function App() {
         ) : (
           <BentoGrid>
             <div className="col-span-1 h-[75vh] md:col-span-2 lg:col-span-3">
-              <KanbanBoard books={books} />
+              <KanbanBoard books={books} onUpdateBook={updateBook} onDeleteBook={deleteBook} />
             </div>
           </BentoGrid>
         )}
       </main>
 
+      <AddBookDialog onAdd={addBook} />
       <LazyAICmdPalette />
     </div>
   )

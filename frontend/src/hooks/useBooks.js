@@ -49,8 +49,49 @@ export function useBooks(session) {
     },
   })
 
-  const suggestBookMutation = useMutation({
-    mutationFn: () => apiFetch('/books/suggest'),
+  const updateBookMutation = useMutation({
+    mutationFn: ({ bookId, data }) =>
+      apiFetch(`/books/${bookId}`, {
+        method: 'PUT',
+        body: data,
+      }),
+    onMutate: async ({ bookId, data }) => {
+      await queryClient.cancelQueries({ queryKey: booksQueryKey })
+      const previousBooks = queryClient.getQueryData(booksQueryKey) ?? []
+      queryClient.setQueryData(
+        booksQueryKey,
+        previousBooks.map((book) =>
+          book.id === bookId ? { ...book, ...data } : book,
+        ),
+      )
+      return { previousBooks }
+    },
+    onError: (_error, _variables, context) => {
+      queryClient.setQueryData(booksQueryKey, context?.previousBooks ?? [])
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: booksQueryKey })
+    },
+  })
+
+  const deleteBookMutation = useMutation({
+    mutationFn: (bookId) =>
+      apiFetch(`/books/${bookId}`, { method: 'DELETE' }),
+    onMutate: async (bookId) => {
+      await queryClient.cancelQueries({ queryKey: booksQueryKey })
+      const previousBooks = queryClient.getQueryData(booksQueryKey) ?? []
+      queryClient.setQueryData(
+        booksQueryKey,
+        previousBooks.filter((book) => book.id !== bookId),
+      )
+      return { previousBooks }
+    },
+    onError: (_error, _variables, context) => {
+      queryClient.setQueryData(booksQueryKey, context?.previousBooks ?? [])
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: booksQueryKey })
+    },
   })
 
   return {
@@ -60,8 +101,7 @@ export function useBooks(session) {
     error: booksQuery.error?.message ?? addBookMutation.error?.message ?? null,
     fetchBooks: booksQuery.refetch,
     addBook: addBookMutation.mutateAsync,
-    suggestBook: suggestBookMutation.mutateAsync,
-    suggestError: suggestBookMutation.error?.message ?? null,
-    suggesting: suggestBookMutation.isPending,
+    updateBook: updateBookMutation.mutateAsync,
+    deleteBook: deleteBookMutation.mutateAsync,
   }
 }

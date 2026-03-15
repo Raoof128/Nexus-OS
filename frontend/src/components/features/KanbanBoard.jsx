@@ -2,8 +2,7 @@ import CyberCard from './CyberCard'
 
 const STATUSES = ['To Read', 'Reading', 'Finished']
 
-export default function KanbanBoard({ books = [] }) {
-  // Group books by status
+export default function KanbanBoard({ books = [], onUpdateBook, onDeleteBook }) {
   const groupedBooks = STATUSES.map(status => ({
     status,
     items: books.filter(b => b.status === status),
@@ -27,7 +26,12 @@ export default function KanbanBoard({ books = [] }) {
 
           <div className="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar">
              {items.map(book => (
-               <CyberCard key={book.id || book.title} book={book} />
+               <CyberCard
+                 key={book.id || book.title}
+                 book={book}
+                 onUpdateBook={onUpdateBook}
+                 onDeleteBook={onDeleteBook}
+               />
              ))}
              {items.length === 0 && (
                <div className="border border-dashed border-white/10 rounded-xl p-8 text-center my-auto flex flex-col justify-center h-48 opacity-50">

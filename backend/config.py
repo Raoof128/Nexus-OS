@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from functools import lru_cache
-from secrets import token_urlsafe
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
@@ -128,7 +127,7 @@ def get_settings() -> BackendSettings:
         backend_sentry_traces_sample_rate=float(
             _get_env("BACKEND_SENTRY_TRACES_SAMPLE_RATE", "0.0") or "0.0"
         ),
-        audit_log_salt=_get_env("AUDIT_LOG_SALT") or token_urlsafe(32),
+        audit_log_salt=_require_env("AUDIT_LOG_SALT"),
         takeaway_encryption_key=_get_env("TAKEAWAY_ENCRYPTION_KEY"),
         access_cookie_name=_get_env("ACCESS_COOKIE_NAME", "nexus-access-token")
         or "nexus-access-token",

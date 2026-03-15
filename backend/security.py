@@ -25,6 +25,8 @@ def _build_csp(path: str) -> str:
         connect_sources.add(f"wss://{supabase_parsed.netloc}")
         connect_sources.add(f"https://{supabase_parsed.netloc}")
 
+    # 'unsafe-inline' is required for LiteStar's built-in Swagger UI on /schema
+    # paths.  These routes are non-sensitive and do not render user content.
     docs_policy = [
         "default-src 'self'",
         "base-uri 'self'",

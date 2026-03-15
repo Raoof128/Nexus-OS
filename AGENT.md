@@ -24,6 +24,34 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Production-Readiness Audit Fix — All 17 Findings Resolved
+- **Summary:** Resolved every finding from the Staff Principal audit across all five domains (Architecture, Performance, Security, UI/UX, DevOps). Fixed the Redis rate limiter race condition with an atomic Lua script, completed the CRUD loop with PUT/DELETE book endpoints and a full Add Book UI with status advancement and deletion on CyberCard, replaced the development server with production uvicorn in the Dockerfile with HEALTHCHECK, made AUDIT_LOG_SALT a required env var to prevent silent correlation breakage, aligned LLM few-shot examples with actual JSON serialization format, removed dead admin client code, added AbortController request timeouts to the frontend API client, added Redis to docker-compose, extracted a dedicated useSuggest hook to eliminate unnecessary books query in the AI palette, fixed the stale meta description to books-only, reduced initial auth load requests for logged-out visitors, documented CSP unsafe-inline rationale, documented threading.Lock choice in rate limiter, added controller integration tests with mocked Supabase, and expanded frontend tests to cover authenticated, loading, and error states.
+- **Files Changed:**
+  - `backend/rate_limit.py` — Atomic Lua script for Redis rate limiter; documented threading.Lock rationale in in-memory limiter.
+  - `backend/controllers.py` — Added PUT `/{book_id}` and DELETE `/{book_id}` endpoints with audit logging.
+  - `backend/schemas.py` — Added `BookUpdate` partial-update schema with full validation.
+  - `backend/config.py` — Made `AUDIT_LOG_SALT` a required env var; removed `secrets.token_urlsafe` import.
+  - `backend/services.py` — Aligned few-shot examples to JSON-in-XML format; removed unused `get_supabase_admin_client`.
+  - `backend/security.py` — Documented CSP `unsafe-inline` rationale for Swagger UI routes.
+  - `backend/Dockerfile` — Replaced `litestar run` with `uvicorn` (4 workers); added HEALTHCHECK instruction.
+  - `docker-compose.yml` — Added Redis service with `depends_on` for backend.
+  - `frontend/src/lib/apiClient.js` — Added AbortController with 30s timeout and user-friendly timeout error.
+  - `frontend/src/context/AuthContext.jsx` — Reduced initial auth requests from 3 to at most 2 for logged-out visitors.
+  - `frontend/src/hooks/useSuggest.js` — New dedicated suggestion-only hook extracted from useBooks.
+  - `frontend/src/hooks/useBooks.js` — Added `updateBook` and `deleteBook` mutations with optimistic updates.
+  - `frontend/src/components/features/AICmdPalette.jsx` — Switched from useBooks to useSuggest to avoid unnecessary books query.
+  - `frontend/src/components/features/AddBookDialog.jsx` — New cyberpunk-styled book creation dialog wired to addBook mutation.
+  - `frontend/src/components/features/CyberCard.jsx` — Added status advancement button and delete button on hover.
+  - `frontend/src/components/features/KanbanBoard.jsx` — Passed onUpdateBook and onDeleteBook props to CyberCard.
+  - `frontend/src/App.jsx` — Wired AddBookDialog, updateBook, and deleteBook into authenticated view.
+  - `frontend/src/App.test.jsx` — Added tests for loading state, authenticated Kanban render, and error state display.
+  - `frontend/index.html` — Fixed meta description from "anime, movies, and books" to books-only.
+  - `tests/test_controllers.py` — New controller integration tests: healthz, auth rejection, CRUD with mocked Supabase, error propagation.
+- **Verification:** Ran `python3 -m ruff check backend tests loadtests`, `python3 -m ruff format --check backend tests loadtests`, `python3 -m pytest` (24/24 pass), `python3 -m bandit -r backend -c bandit.yaml` (0 issues), `python3 -c "import backend.app"`, `npm run lint`, `npm run test` (4/4 pass), and `npm run build` (clean, all chunks under 500 kB).
+- **Follow-ups:** Validate `terraform plan` against live provider credentials and verify Redis-backed rate limiting plus container runtime behavior in deployed infrastructure.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Enterprise Audit Remediation Pass
 - **Summary:** Closed the highest-priority findings from the repo-first production audits. Enforced caller-scoped Supabase data access so RLS remains the hard authorization boundary, strengthened JWT validation, added auth endpoint throttling and upstream logout revocation, upgraded rate limiting to support Redis-backed multi-instance enforcement, forced RLS in SQL, tightened CSP behavior, made takeaway storage refuse plaintext writes, aligned Terraform auth settings, added frontend error-boundary and accessibility coverage, introduced frontend tests in CI, switched Locust to the real cookie-auth flow, and corrected books-only product/runtime documentation.
 - **Files Changed:**

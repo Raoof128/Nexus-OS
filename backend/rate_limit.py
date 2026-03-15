@@ -23,6 +23,9 @@ class SlidingWindowRateLimiter:
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self._entries: dict[str, deque[float]] = defaultdict(deque)
+        # threading.Lock is intentional: hold time is sub-microsecond (deque ops
+        # only).  asyncio.Lock would add coroutine scheduling overhead that
+        # exceeds the critical section.
         self._lock = Lock()
 
     def enforce(self, key: str) -> None:
@@ -45,6 +48,26 @@ class SlidingWindowRateLimiter:
             entries.append(now)
 
 
+# Lua script for atomic check-then-add so rejected requests never consume a
+# rate-limit slot.  Runs inside Redis as a single transaction.
+_LUA_SLIDING_WINDOW = """
+local key = KEYS[1]
+local now = tonumber(ARGV[1])
+local window_start = tonumber(ARGV[2])
+local max_requests = tonumber(ARGV[3])
+local window_seconds = tonumber(ARGV[4])
+
+redis.call('ZREMRANGEBYSCORE', key, 0, window_start)
+local current = redis.call('ZCARD', key)
+if current >= max_requests then
+    return 1
+end
+redis.call('ZADD', key, now, tostring(now))
+redis.call('EXPIRE', key, window_seconds)
+return 0
+"""
+
+
 class RedisSlidingWindowRateLimiter:
     """Track requests in Redis so rate limits survive multiple app instances."""
 
@@ -59,16 +82,21 @@ class RedisSlidingWindowRateLimiter:
         self.window_seconds = window_seconds
 
     def enforce(self, key: str) -> None:
+        """Atomically check and record a request, rejecting over-limit traffic."""
+
         now = time()
         window_start = now - self.window_seconds
         redis_key = f"rate-limit:{key}"
-        pipeline = self.redis_client.pipeline()
-        pipeline.zremrangebyscore(redis_key, 0, window_start)
-        pipeline.zcard(redis_key)
-        pipeline.zadd(redis_key, {f"{now:.6f}": now})
-        pipeline.expire(redis_key, self.window_seconds)
-        _, current_count, _, _ = pipeline.execute()
-        if current_count >= self.max_requests:
+        blocked = self.redis_client.eval(
+            _LUA_SLIDING_WINDOW,
+            1,
+            redis_key,
+            now,
+            window_start,
+            self.max_requests,
+            self.window_seconds,
+        )
+        if blocked:
             raise HTTPException(
                 status_code=429,
                 detail="Rate limit exceeded. Try again later.",

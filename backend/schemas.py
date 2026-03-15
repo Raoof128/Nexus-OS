@@ -91,6 +91,53 @@ class BookCreate(BaseModel):
         return normalized
 
 
+class BookUpdate(BaseModel):
+    """Incoming payload for updating an existing book entry."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    title: str | None = Field(
+        default=None, min_length=1, max_length=200, pattern=r"^[^<>]*$"
+    )
+    author: str | None = Field(
+        default=None, min_length=1, max_length=100, pattern=r"^[^<>]*$"
+    )
+    genre: str | None = Field(default=None, max_length=80, pattern=r"^[^<>]*$")
+    status: BookStatus | None = None
+    rating: int | None = Field(default=None, ge=1, le=5)
+    takeaway: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("title", "author", "genre", mode="before")
+    @classmethod
+    def validate_identity_fields(cls, value: str | None) -> str | None:
+        """Reject payloads that resemble injection or XSS probes."""
+
+        if value is None:
+            return value
+
+        normalized = _normalize_text(value)
+        if ANGLE_BRACKET_PATTERN.search(normalized):
+            raise ValueError("HTML tag delimiters are not allowed")
+        if XSS_PATTERN.search(normalized):
+            raise ValueError("HTML or script payloads are not allowed")
+        if INJECTION_PATTERN.search(normalized):
+            raise ValueError("Potential injection payload detected")
+        return normalized
+
+    @field_validator("takeaway", mode="before")
+    @classmethod
+    def validate_takeaway(cls, value: str | None) -> str | None:
+        """Reject unsafe markup and normalize user-authored notes."""
+
+        if value is None:
+            return value
+
+        normalized = _normalize_text(value)
+        if XSS_PATTERN.search(normalized):
+            raise ValueError("HTML or script payloads are not allowed")
+        return normalized
+
+
 class BookResponse(BookCreate):
     """Serialized book record returned from persistence."""
 

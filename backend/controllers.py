@@ -2,20 +2,20 @@
 
 import logging
 
-from litestar import Controller, Request, get, post
+from litestar import Controller, Request, delete, get, post, put
 from litestar.exceptions import HTTPException
 
 try:
     from .audit_logger import log_audit_event
     from .data_protection import encrypt_takeaway, hydrate_book_record
     from .rate_limit import enforce_suggest_rate_limit
-    from .schemas import BookCreate, SuggestionResponse
+    from .schemas import BookCreate, BookUpdate, SuggestionResponse
     from .services import create_supabase_user_client, get_book_suggestion
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from audit_logger import log_audit_event
     from data_protection import encrypt_takeaway, hydrate_book_record
     from rate_limit import enforce_suggest_rate_limit
-    from schemas import BookCreate, SuggestionResponse
+    from schemas import BookCreate, BookUpdate, SuggestionResponse
     from services import create_supabase_user_client, get_book_suggestion
 
 logger = logging.getLogger(__name__)
@@ -82,6 +82,66 @@ class BookController(Controller):
         )
         created_book = response.data[0] if response.data else {}
         return hydrate_book_record(created_book)
+
+    @put("/{book_id:str}")
+    async def update_book(
+        self,
+        book_id: str,
+        data: BookUpdate,
+        request: Request,
+    ) -> dict:
+        """Update an existing book entry for the authenticated user."""
+
+        user_id = request.state.user_id
+        update_data = data.model_dump(exclude_none=True)
+        if "takeaway" in update_data:
+            update_data["takeaway"] = encrypt_takeaway(update_data["takeaway"])
+        if not update_data:
+            raise HTTPException(status_code=422, detail="No fields to update")
+        try:
+            response = (
+                _get_user_books_client(request)
+                .table("books")
+                .update(update_data)
+                .eq("id", book_id)
+                .execute()
+            )
+        except Exception as exc:  # pragma: no cover - external dependency failure
+            logger.exception("Failed to update book %s for user %s", book_id, user_id)
+            raise HTTPException(
+                status_code=502, detail="Failed to update book"
+            ) from exc
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Book not found")
+
+        log_audit_event(
+            action="book.update",
+            user_id=user_id,
+            metadata={"book_id": book_id},
+        )
+        return hydrate_book_record(response.data[0])
+
+    @delete("/{book_id:str}")
+    async def delete_book(self, book_id: str, request: Request) -> None:
+        """Delete a book entry for the authenticated user."""
+
+        user_id = request.state.user_id
+        try:
+            _get_user_books_client(request).table("books").delete().eq(
+                "id", book_id
+            ).execute()
+        except Exception as exc:  # pragma: no cover - external dependency failure
+            logger.exception("Failed to delete book %s for user %s", book_id, user_id)
+            raise HTTPException(
+                status_code=502, detail="Failed to delete book"
+            ) from exc
+
+        log_audit_event(
+            action="book.delete",
+            user_id=user_id,
+            metadata={"book_id": book_id},
+        )
 
     @get("/suggest")
     async def suggest_book(self, request: Request) -> SuggestionResponse:

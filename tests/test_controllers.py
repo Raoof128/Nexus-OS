@@ -1,0 +1,162 @@
+"""Integration tests for book controller endpoints."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from unittest.mock import MagicMock, patch
+
+import pytest
+from litestar.status_codes import (
+    HTTP_200_OK,
+    HTTP_401_UNAUTHORIZED,
+    HTTP_502_BAD_GATEWAY,
+)
+from litestar.testing import TestClient
+
+from backend.app import app
+
+
+@dataclass
+class FakeSupabaseResponse:
+    """Minimal Supabase response stub for controller tests."""
+
+    data: list[dict] | None = None
+
+
+def _fake_jwt_payload(user_id: str = "user-123") -> dict:
+    """Return a plausible JWT payload for test scope injection."""
+
+    return {
+        "sub": user_id,
+        "email": "test@nexus.net",
+        "exp": 9999999999,
+        "iat": 1000000000,
+        "aud": "authenticated",
+    }
+
+
+@pytest.fixture()
+def client():
+    """LiteStar test client with a hostname that passes allowed_hosts."""
+
+    with TestClient(app=app, base_url="http://localhost:8000") as tc:
+        yield tc
+
+
+@pytest.fixture()
+def _inject_auth(monkeypatch):
+    """Patch the auth middleware to inject a valid user without a real JWT."""
+
+    from backend import auth as auth_mod
+
+    async def _bypass(self, scope, receive, send):
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            if not path.startswith(("/healthz", "/schema", "/auth")):
+                scope.setdefault("state", {})["user_id"] = "user-123"
+                scope["state"]["auth_payload"] = _fake_jwt_payload()
+                scope["state"]["access_token"] = "fake-access-token"
+        await self.app(scope, receive, send)
+
+    monkeypatch.setattr(auth_mod.SupabaseAuthMiddleware, "__call__", _bypass)
+
+
+class TestHealthz:
+    """Health probe does not require authentication."""
+
+    def test_healthz_returns_ok(self, client):
+        response = client.get("/healthz")
+        assert response.status_code == HTTP_200_OK
+        assert response.json() == {"status": "ok"}
+
+
+class TestBookControllerAuth:
+    """Controller endpoints reject unauthenticated callers."""
+
+    def test_get_books_requires_auth(self, client):
+        response = client.get("/books")
+        assert response.status_code == HTTP_401_UNAUTHORIZED
+
+    def test_create_book_requires_auth(self, client):
+        response = client.post(
+            "/books",
+            json={
+                "title": "Test",
+                "author": "Author",
+            },
+        )
+        assert response.status_code == HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.usefixtures("_inject_auth")
+class TestBookControllerCRUD:
+    """Controller endpoints with mocked Supabase."""
+
+    @patch("backend.controllers.create_supabase_user_client")
+    def test_get_books_returns_list(self, mock_client_fn, client):
+        mock_table = MagicMock()
+        mock_table.select.return_value.execute.return_value = FakeSupabaseResponse(
+            data=[
+                {
+                    "id": "b1",
+                    "user_id": "user-123",
+                    "title": "Neuromancer",
+                    "author": "Gibson",
+                    "status": "Finished",
+                    "genre": "Cyberpunk",
+                    "rating": 5,
+                    "takeaway": None,
+                }
+            ]
+        )
+        mock_supabase = MagicMock()
+        mock_supabase.table.return_value = mock_table
+        mock_client_fn.return_value = mock_supabase
+
+        response = client.get("/books")
+        assert response.status_code == HTTP_200_OK
+        books = response.json()
+        assert len(books) == 1
+        assert books[0]["title"] == "Neuromancer"
+
+    @patch("backend.controllers.create_supabase_user_client")
+    def test_create_book_returns_created(self, mock_client_fn, client, monkeypatch):
+        monkeypatch.setenv("TAKEAWAY_ENCRYPTION_KEY", "")
+        from backend.config import get_settings
+
+        get_settings.cache_clear()
+
+        mock_table = MagicMock()
+        mock_table.insert.return_value.execute.return_value = FakeSupabaseResponse(
+            data=[
+                {
+                    "id": "b2",
+                    "user_id": "user-123",
+                    "title": "Snow Crash",
+                    "author": "Stephenson",
+                    "status": "To Read",
+                    "genre": None,
+                    "rating": None,
+                    "takeaway": None,
+                }
+            ]
+        )
+        mock_supabase = MagicMock()
+        mock_supabase.table.return_value = mock_table
+        mock_client_fn.return_value = mock_supabase
+
+        response = client.post(
+            "/books",
+            json={
+                "title": "Snow Crash",
+                "author": "Stephenson",
+            },
+        )
+        assert response.status_code in (HTTP_200_OK, 201)
+
+    @patch("backend.controllers.create_supabase_user_client")
+    def test_get_books_handles_supabase_failure(self, mock_client_fn, client):
+        mock_client_fn.side_effect = RuntimeError("Connection refused")
+
+        response = client.get("/books")
+        assert response.status_code == HTTP_502_BAD_GATEWAY

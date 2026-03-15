@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { Command } from 'cmdk'
 import { Sparkles, Terminal } from 'lucide-react'
-import { useAuth } from '../../hooks/useAuth'
-import { useBooks } from '../../hooks/useBooks'
+import { useSuggest } from '../../hooks/useSuggest'
 
 export default function AICmdPalette({ open, onOpenChange }) {
   const [suggestion, setSuggestion] = useState(null)
-  const { session } = useAuth()
-  const { suggestBook, suggestError, suggesting } = useBooks(session)
+  const { suggestBook, suggestError, suggesting } = useSuggest()
 
   const handleSuggest = async () => {
     const response = await suggestBook()

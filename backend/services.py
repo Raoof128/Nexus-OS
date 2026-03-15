@@ -40,28 +40,29 @@ LOCAL_SUGGESTION_MATRIX = {
     ),
 }
 
-FEW_SHOT_EXAMPLES = """
-Example 1
-Library:
-<trusted_library_context>
-  <book><title>Neuromancer</title><genre>Cyberpunk</genre><rating>5</rating></book>
-  <book><title>Snow Crash</title><genre>Cyberpunk</genre><rating>4</rating></book>
-</trusted_library_context>
-Output:
-Title: Altered Carbon
-Reasoning: Maintains the fast, neon noir energy while adding a sharper detective spine.
-
-Example 2
-Library:
-<trusted_library_context>
-  <book><title>Perfect Blue</title><genre>Psychological</genre><rating>5</rating></book>
-  <book><title>Paprika</title><genre>Psychological</genre><rating>4</rating></book>
-</trusted_library_context>
-Output:
-Title: House of Leaves
-Reasoning: Matches your taste for disorientation, paranoia,
-and layered psychological tension.
-""".strip()
+FEW_SHOT_EXAMPLES = (  # noqa: E501 - prompt text must stay verbatim
+    "Example 1\n"
+    "Library:\n"
+    '<trusted_library_context>{"books":[{"title":"Neuromancer","genre":"Cyberpunk",'
+    '"rating":"5"},{"title":"Snow Crash","genre":"Cyberpunk","rating":"4"}]}'
+    "</trusted_library_context>\n"
+    "Output:\n"
+    "Title: Altered Carbon\n"
+    "Reasoning: Maintains the fast, neon noir energy while adding a sharper"
+    " detective spine.\n"
+    "\n"
+    "Example 2\n"
+    "Library:\n"
+    "<trusted_library_context>"
+    '{"books":[{"title":"Perfect Blue","genre":"Psychological",'
+    '"rating":"5"},{"title":"Paprika","genre":"Psychological",'
+    '"rating":"4"}]}'
+    "</trusted_library_context>\n"
+    "Output:\n"
+    "Title: House of Leaves\n"
+    "Reasoning: Matches your taste for disorientation, paranoia,\n"
+    "and layered psychological tension."
+)
 
 
 @dataclass
@@ -105,14 +106,6 @@ class SuggestionPayload:
     suggestion: str
     reasoning: str
     source: str = field(default="local")
-
-
-@lru_cache(maxsize=1)
-def get_supabase_admin_client() -> Client:
-    """Return a shared Supabase client for trusted admin-only operations."""
-
-    settings = get_settings()
-    return create_client(settings.supabase_url, settings.supabase_key)
 
 
 def create_supabase_user_client(access_token: str) -> Client:

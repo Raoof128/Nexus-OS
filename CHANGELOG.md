@@ -2,6 +2,34 @@
 
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Production-Readiness Audit Fix — All 17 Findings Resolved
+- **Summary:** Resolved every finding from the Staff Principal audit across all five domains (Architecture, Performance, Security, UI/UX, DevOps). Fixed the Redis rate limiter race condition with an atomic Lua script, completed the CRUD loop with PUT/DELETE book endpoints and a full Add Book UI with status advancement and deletion on CyberCard, replaced the development server with production uvicorn in the Dockerfile with HEALTHCHECK, made AUDIT_LOG_SALT a required env var to prevent silent correlation breakage, aligned LLM few-shot examples with actual JSON serialization format, removed dead admin client code, added AbortController request timeouts to the frontend API client, added Redis to docker-compose, extracted a dedicated useSuggest hook to eliminate unnecessary books query in the AI palette, fixed the stale meta description to books-only, reduced initial auth load requests for logged-out visitors, documented CSP unsafe-inline rationale, documented threading.Lock choice in rate limiter, added controller integration tests with mocked Supabase, and expanded frontend tests to cover authenticated, loading, and error states.
+- **Files Changed:**
+  - `backend/rate_limit.py` — Atomic Lua script for Redis rate limiter; documented threading.Lock rationale.
+  - `backend/controllers.py` — Added PUT and DELETE book endpoints with audit logging.
+  - `backend/schemas.py` — Added `BookUpdate` partial-update schema.
+  - `backend/config.py` — Made `AUDIT_LOG_SALT` required; removed `token_urlsafe` import.
+  - `backend/services.py` — Aligned few-shot examples; removed unused `get_supabase_admin_client`.
+  - `backend/security.py` — Documented CSP `unsafe-inline` rationale.
+  - `backend/Dockerfile` — Production `uvicorn` with workers and HEALTHCHECK.
+  - `docker-compose.yml` — Added Redis service.
+  - `frontend/src/lib/apiClient.js` — Added 30s AbortController timeout.
+  - `frontend/src/context/AuthContext.jsx` — Reduced initial auth requests for logged-out visitors.
+  - `frontend/src/hooks/useSuggest.js` — New suggestion-only hook.
+  - `frontend/src/hooks/useBooks.js` — Added updateBook and deleteBook mutations.
+  - `frontend/src/components/features/AICmdPalette.jsx` — Switched to useSuggest hook.
+  - `frontend/src/components/features/AddBookDialog.jsx` — New book creation dialog.
+  - `frontend/src/components/features/CyberCard.jsx` — Status advance and delete buttons.
+  - `frontend/src/components/features/KanbanBoard.jsx` — Passed update/delete props.
+  - `frontend/src/App.jsx` — Wired AddBookDialog and CRUD actions.
+  - `frontend/src/App.test.jsx` — Added loading, authenticated, and error state tests.
+  - `frontend/index.html` — Fixed meta description to books-only.
+  - `tests/test_controllers.py` — New controller integration tests.
+- **Verification:** `ruff check` clean, `ruff format --check` clean, `pytest` 24/24 pass, `bandit` 0 issues, `npm run lint` clean, `npm run test` 4/4 pass, `npm run build` clean.
+- **Follow-ups:** Validate `terraform plan` against live credentials and verify Redis + container behavior in deployed infrastructure.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Enterprise Audit Remediation Pass
 - **Summary:** Closed the highest-priority findings from the repo-first production audits. Enforced caller-scoped Supabase data access so RLS remains the hard authorization boundary, strengthened JWT validation, added auth endpoint throttling and upstream logout revocation, upgraded rate limiting to support Redis-backed multi-instance enforcement, forced RLS in SQL, tightened CSP behavior, made takeaway storage refuse plaintext writes, aligned Terraform auth settings, added frontend error-boundary and accessibility coverage, introduced frontend tests in CI, switched Locust to the real cookie-auth flow, and corrected books-only product/runtime documentation.
 - **Files Changed:**

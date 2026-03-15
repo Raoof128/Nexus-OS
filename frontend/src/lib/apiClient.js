@@ -4,6 +4,8 @@ if (!API_URL) {
   throw new Error('Missing required environment variable: VITE_API_URL')
 }
 
+const REQUEST_TIMEOUT_MS = 30_000
+
 let refreshPromise = null
 
 async function extractError(response) {
@@ -16,26 +18,39 @@ async function extractError(response) {
 }
 
 async function request(path, { method = 'GET', body, headers = {} } = {}, retry = true) {
-  const response = await fetch(`${API_URL}${path}`, {
-    method,
-    credentials: 'include',
-    headers: {
-      ...(body ? { 'Content-Type': 'application/json' } : {}),
-      ...headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
-  if (response.status === 401 && retry && !path.startsWith('/auth/')) {
-    await refreshSession()
-    return request(path, { method, body, headers }, false)
+  try {
+    const response = await fetch(`${API_URL}${path}`, {
+      method,
+      credentials: 'include',
+      signal: controller.signal,
+      headers: {
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+        ...headers,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    })
+
+    if (response.status === 401 && retry && !path.startsWith('/auth/')) {
+      await refreshSession()
+      return request(path, { method, body, headers }, false)
+    }
+
+    if (!response.ok) {
+      throw new Error(await extractError(response))
+    }
+
+    return response.json()
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out. Please try again.')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
   }
-
-  if (!response.ok) {
-    throw new Error(await extractError(response))
-  }
-
-  return response.json()
 }
 
 export async function refreshSession() {

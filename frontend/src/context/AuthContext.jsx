@@ -6,8 +6,12 @@ async function loadCurrentSession() {
   try {
     return await authFetch('/auth/session')
   } catch {
-    await refreshSession()
-    return await authFetch('/auth/session')
+    try {
+      await refreshSession()
+      return await authFetch('/auth/session')
+    } catch {
+      return null
+    }
   }
 }
 
@@ -22,11 +26,6 @@ export function AuthProvider({ children }) {
       .then((currentSession) => {
         if (active) {
           setSession(currentSession)
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setSession(null)
         }
       })
       .finally(() => {
