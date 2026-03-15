@@ -12,13 +12,13 @@ try:
     from .data_protection import encrypt_takeaway, hydrate_book_record
     from .rate_limit import enforce_suggest_rate_limit
     from .schemas import MediaCreate, MediaUpdate, SuggestionResponse
-    from .services import create_supabase_user_client, get_book_suggestion
+    from .services import create_supabase_user_client, get_media_suggestion
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from audit_logger import log_audit_event
     from data_protection import encrypt_takeaway, hydrate_book_record
     from rate_limit import enforce_suggest_rate_limit
     from schemas import MediaCreate, MediaUpdate, SuggestionResponse
-    from services import create_supabase_user_client, get_book_suggestion
+    from services import create_supabase_user_client, get_media_suggestion
 
 logger = logging.getLogger(__name__)
 
@@ -154,18 +154,24 @@ class MediaController(Controller):
         )
 
     @get("/suggest")
-    async def suggest_media(self, request: Request) -> SuggestionResponse:
-        """Return an AI-assisted recommendation based on the current library."""
+    async def suggest_media(
+        self,
+        request: Request,
+        type: Optional[str] = Parameter(query="type", default="book"),
+    ) -> SuggestionResponse:
+        """Return an AI-assisted recommendation for the given media type."""
 
         user_id = request.state.user_id
+        media_type = type if type in VALID_MEDIA_TYPES else "book"
         enforce_suggest_rate_limit(user_id)
         try:
-            items = (
+            query = (
                 _get_user_client(request)
                 .from_("media")
-                .select("title, genre, rating")
-                .execute()
+                .select("title, genre, rating, type, creator")
             )
+            query = query.eq("type", media_type)
+            items = query.execute()
         except Exception as exc:  # pragma: no cover - external dependency failure
             logger.exception(
                 "Failed to load media for suggestion for user %s",
@@ -176,11 +182,12 @@ class MediaController(Controller):
                 detail="Failed to load media for suggestions",
             ) from exc
 
-        suggestion = get_book_suggestion(items.data or [])
+        suggestion = get_media_suggestion(items.data or [], media_type)
         log_audit_event(
             action="media.suggest",
             user_id=user_id,
             metadata={
+                "type": media_type,
                 "library_size": len(items.data or []),
                 "source": suggestion.source,
             },

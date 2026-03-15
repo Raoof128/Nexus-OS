@@ -53,18 +53,24 @@ def sanitize_llm_text(value: str | None) -> str:
     return json.dumps(sanitized, ensure_ascii=True)[1:-1]
 
 
-def serialize_book_context_for_llm(book_context: list[dict[str, Any]]) -> str:
+def serialize_media_context_for_llm(
+    media_context: list[dict[str, Any]],
+) -> str:
     """Wrap model input in strict XML delimiters to resist prompt injection."""
 
-    payload = {"books": []}
-    for book in book_context:
-        payload["books"].append(
-            {
-                "title": sanitize_llm_text(str(book.get("title") or "Unknown")),
-                "genre": sanitize_llm_text(str(book.get("genre") or "Unknown")),
-                "rating": sanitize_llm_text(str(book.get("rating") or "unrated")),
-            }
-        )
+    items = []
+    for item in media_context:
+        entry = {
+            "title": sanitize_llm_text(str(item.get("title") or "Unknown")),
+            "genre": sanitize_llm_text(str(item.get("genre") or "Unknown")),
+            "rating": sanitize_llm_text(str(item.get("rating") or "unrated")),
+        }
+        if item.get("type"):
+            entry["type"] = sanitize_llm_text(str(item["type"]))
+        if item.get("creator"):
+            entry["creator"] = sanitize_llm_text(str(item["creator"]))
+        items.append(entry)
+    payload = {"media": items}
     return (
         "<trusted_library_context>"
         + json.dumps(payload, ensure_ascii=True, separators=(",", ":"))

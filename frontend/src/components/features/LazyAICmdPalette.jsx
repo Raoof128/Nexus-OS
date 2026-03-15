@@ -12,7 +12,7 @@ function LoadingDialog() {
   )
 }
 
-export default function LazyAICmdPalette() {
+export default function LazyAICmdPalette({ mediaType = 'book' }) {
   const [open, setOpen] = useState(false)
   const [shouldLoad, setShouldLoad] = useState(false)
 
@@ -54,7 +54,7 @@ export default function LazyAICmdPalette() {
 
       {shouldLoad ? (
         <Suspense fallback={<LoadingDialog />}>
-          <AICmdPalette open={open} onOpenChange={setOpen} />
+          <AICmdPalette open={open} onOpenChange={setOpen} mediaType={mediaType} />
         </Suspense>
       ) : null}
     </>

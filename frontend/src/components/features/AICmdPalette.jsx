@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Command } from 'cmdk'
 import { Sparkles, Terminal } from 'lucide-react'
 import { useSuggest } from '../../hooks/useSuggest'
+import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 
-export default function AICmdPalette({ open, onOpenChange }) {
+export default function AICmdPalette({ open, onOpenChange, mediaType = 'book' }) {
   const [suggestion, setSuggestion] = useState(null)
-  const { suggestBook, suggestError, suggesting } = useSuggest()
+  const config = MEDIA_CONFIG[mediaType]
+  const { suggestBook, suggestError, suggesting } = useSuggest(mediaType)
 
   const handleSuggest = async () => {
     const response = await suggestBook()
@@ -41,14 +43,14 @@ export default function AICmdPalette({ open, onOpenChange }) {
         </Command.Empty>
 
         <Command.Group
-          heading="Gemini 3.1 Operations"
+          heading="Gemini AI Operations"
           className="mb-2 font-mono text-xs text-neutral-400"
         >
           <Command.Item
             onSelect={handleSuggest}
             className="my-1 flex cursor-pointer items-center gap-3 rounded-md px-4 py-3 text-sm text-white transition-all hover:bg-white/5 hover:text-primary aria-selected:bg-white/10 aria-selected:text-primary"
           >
-            Run Intelligence Matrix // Suggest a Book
+            Run Intelligence Matrix // Suggest {config?.singular || 'Media'}
           </Command.Item>
         </Command.Group>
 

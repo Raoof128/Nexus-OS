@@ -183,7 +183,7 @@ function App() {
       />
 
       <AddMediaDialog mediaType={activeType} onAdd={addMedia} />
-      <LazyAICmdPalette />
+      <LazyAICmdPalette mediaType={activeType} />
     </div>
   )
 }

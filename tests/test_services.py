@@ -4,36 +4,64 @@ from backend.services import (
     SuggestionPayload,
     build_local_suggestion,
     parse_gemini_response,
-    prune_book_context,
+    prune_media_context,
 )
 
 
-def test_prune_book_context_preserves_high_value_books() -> None:
+def test_prune_media_context_preserves_high_value_items() -> None:
     """Context pruning should keep the best-rated items first."""
 
-    books = [
+    items = [
         {"title": "Low Priority", "genre": "Fantasy", "rating": 1},
         {"title": "High Priority", "genre": "Cyberpunk", "rating": 5},
     ]
 
-    pruned = prune_book_context(books)
+    pruned = prune_media_context(items)
 
     assert pruned[0]["title"] == "High Priority"
 
 
-def test_build_local_suggestion_uses_genre_signal() -> None:
-    """Fallback suggestions should remain relevant to the library genre."""
+def test_build_local_suggestion_book_genre() -> None:
+    """Book fallback suggestions should match genre signal."""
 
     suggestion = build_local_suggestion(
-        [{"title": "Neuromancer", "genre": "Cyberpunk", "rating": 5}]
+        [{"title": "Neuromancer", "genre": "Cyberpunk", "rating": 5}],
+        media_type="book",
     )
 
     assert suggestion == SuggestionPayload(
         suggestion="Altered Carbon",
-        reasoning=(
-            "Local fallback active. Keeps the neon-noir atmosphere while broadening"
-            " the detective angle."
-        ),
+        reasoning="Local fallback active. Neon-noir detective energy.",
+        source="local",
+    )
+
+
+def test_build_local_suggestion_movie_genre() -> None:
+    """Movie fallback suggestions should match genre signal."""
+
+    suggestion = build_local_suggestion(
+        [{"title": "Hereditary", "genre": "Horror", "rating": 5}],
+        media_type="movie",
+    )
+
+    assert suggestion == SuggestionPayload(
+        suggestion="Midsommar",
+        reasoning=("Local fallback active. Daylight horror that subverts the genre."),
+        source="local",
+    )
+
+
+def test_build_local_suggestion_anime_default() -> None:
+    """Anime fallback should return default when no genre matches."""
+
+    suggestion = build_local_suggestion(
+        [{"title": "Something", "genre": "Slice of Life"}],
+        media_type="anime",
+    )
+
+    assert suggestion == SuggestionPayload(
+        suggestion="Cowboy Bebop",
+        reasoning=("Local fallback active. Genre-defining space western."),
         source="local",
     )
 

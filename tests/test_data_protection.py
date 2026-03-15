@@ -7,7 +7,7 @@ from backend.data_protection import (
     decrypt_takeaway,
     encrypt_takeaway,
     sanitize_llm_text,
-    serialize_book_context_for_llm,
+    serialize_media_context_for_llm,
 )
 
 
@@ -23,15 +23,16 @@ def test_sanitize_llm_text_redacts_prompt_injection_and_pii() -> None:
     assert "```" not in sanitized
 
 
-def test_serialize_book_context_uses_xml_delimiters() -> None:
+def test_serialize_media_context_uses_xml_delimiters() -> None:
     """LLM context should be wrapped in explicit trusted delimiters."""
 
-    payload = serialize_book_context_for_llm(
-        [{"title": "Neuromancer", "genre": "Cyberpunk", "rating": 5}]
+    payload = serialize_media_context_for_llm(
+        [{"title": "Neuromancer", "genre": "Cyberpunk", "rating": 5, "type": "book"}]
     )
 
     assert payload.startswith("<trusted_library_context>")
     assert '"title":"Neuromancer"' in payload
+    assert '"type":"book"' in payload
     assert payload.endswith("</trusted_library_context>")
 
 
