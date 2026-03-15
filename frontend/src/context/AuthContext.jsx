@@ -6,12 +6,17 @@ async function loadCurrentSession() {
   try {
     return await authFetch('/auth/session')
   } catch {
+    // Only attempt refresh if session failed (user might have a valid refresh cookie)
     try {
-      await refreshSession()
-      return await authFetch('/auth/session')
+      const refreshResult = await refreshSession()
+      // Refresh succeeded — we now have fresh cookies, fetch session
+      if (refreshResult) {
+        return await authFetch('/auth/session')
+      }
     } catch {
-      return null
+      // No valid session or refresh token — user is logged out
     }
+    return null
   }
 }
 

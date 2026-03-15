@@ -22,6 +22,10 @@ export default function AICmdPalette({ open, onOpenChange }) {
       className="fixed left-1/2 top-1/2 z-[100] w-full max-w-[640px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border border-white/10 bg-zinc-950/90 p-4 font-mono shadow-2xl backdrop-blur-xl"
       overlayClassName="fixed inset-0 z-[99] bg-black/50 backdrop-blur-sm"
     >
+      {/* Visually hidden a11y elements for Radix Dialog */}
+      <span className="sr-only" role="heading" aria-level="2">AI Command Menu</span>
+      <p className="sr-only">Search commands or request AI-powered media suggestions.</p>
+
       <div className="mb-4 flex border-b border-white/10 pb-4">
         <Terminal className="mr-3 text-primary" />
         <Command.Input
