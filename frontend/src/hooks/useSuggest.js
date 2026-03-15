@@ -7,7 +7,7 @@ export function useSuggest(mediaType = 'book') {
   })
 
   return {
-    suggestBook: mutation.mutateAsync,
+    suggest: mutation.mutateAsync,
     suggestError: mutation.error?.message ?? null,
     suggesting: mutation.isPending,
   }

@@ -8,7 +8,7 @@ export default function Navbar() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-3">
           {/* Neon logo mark */}
-          <div className="relative h-5 w-5">
+          <div className="relative h-5 w-5" aria-hidden="true">
             <div className="absolute inset-0 rounded bg-primary/80 blur-sm" />
             <div className="relative h-full w-full rounded bg-primary shadow-[0_0_12px_var(--color-primary)]" />
           </div>
@@ -29,6 +29,7 @@ export default function Navbar() {
               </span>
             </div>
             <button
+              type="button"
               onClick={signOut}
               className="heading-ui rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-all hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive sm:px-4"
             >

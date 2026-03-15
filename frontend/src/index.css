@@ -41,7 +41,7 @@
     --secondary: 240 5% 12%;
     --secondary-foreground: 0 0% 95%;
     --muted: 240 5% 12%;
-    --muted-foreground: 220 10% 50%;
+    --muted-foreground: 220 10% 60%;
     --accent: 330 85% 60%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 70% 45%;
@@ -82,7 +82,6 @@
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--neon-cyan) / 0.25) transparent;
-  -webkit-overflow-scrolling: touch;
 }
 
 /* ── Ambient background orbs ─────────────────────────────── */
@@ -92,6 +91,7 @@
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
+  contain: strict;
 }
 .ambient-orbs::before,
 .ambient-orbs::after {
@@ -100,6 +100,7 @@
   border-radius: 50%;
   filter: blur(120px);
   opacity: 0.12;
+  will-change: transform;
   animation: float-orb 20s ease-in-out infinite;
 }
 .ambient-orbs::before {
@@ -131,6 +132,7 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
+  contain: strict;
   background: repeating-linear-gradient(
     0deg,
     transparent,
@@ -157,6 +159,8 @@
     transparent 60%,
     hsl(var(--neon-magenta) / 0.3)
   );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
   pointer-events: none;
@@ -197,8 +201,15 @@
 /* ── Glass panel base ────────────────────────────────────── */
 .glass-panel {
   background: hsl(var(--card) / 0.6);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
   backdrop-filter: blur(20px) saturate(150%);
   border: 1px solid hsl(var(--foreground) / 0.06);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-panel {
+    background: hsl(var(--card) / 0.92);
+  }
 }
 
 /* ── Heading typography ──────────────────────────────────── */
@@ -211,4 +222,29 @@
 .heading-ui {
   font-family: var(--font-ui);
   letter-spacing: 0.04em;
+}
+
+/* ── Reduced motion ──────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-orbs::before,
+  .ambient-orbs::after {
+    animation: none;
+  }
+  .neon-pulse {
+    animation: none;
+  }
+  .glitch-hover:hover {
+    animation: none;
+    text-shadow: none;
+  }
+  .scanlines {
+    display: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

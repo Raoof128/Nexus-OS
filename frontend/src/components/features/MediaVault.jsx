@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { ArrowLeft, BookOpen, Film, Search, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, ChevronRight, Film, Search, Sparkles, Trash2 } from 'lucide-react'
 import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 
 const TYPE_ICONS = { book: BookOpen, movie: Film, anime: Sparkles }
@@ -56,7 +56,7 @@ export default function MediaVault({ items, mediaType, filterStatus, onBack, onU
           </button>
           <div className="flex items-center gap-2">
             <Icon size={18} className="text-primary" />
-            <h2 className="font-mono text-lg font-bold uppercase tracking-wider text-white">
+            <h2 className="heading-display text-sm font-bold text-white sm:text-lg">
               // {filterStatus || 'All'} — {config?.label}
             </h2>
             <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-xs text-muted-foreground">
@@ -73,13 +73,14 @@ export default function MediaVault({ items, mediaType, filterStatus, onBack, onU
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search vault..."
+            aria-label="Search vault"
             className="w-full rounded-lg border border-white/10 bg-black/40 py-2 pl-9 pr-3 font-mono text-xs text-white placeholder:text-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50"
           />
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border border-white/5 bg-black/20 backdrop-blur-md">
+      <div className="neon-border overflow-hidden rounded-xl glass-panel">
         {/* Table header */}
         <div className="hidden border-b border-white/5 bg-white/[0.02] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground sm:grid sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]">
           <span>Title</span>
@@ -137,7 +138,7 @@ export default function MediaVault({ items, mediaType, filterStatus, onBack, onU
               </div>
 
               {/* Actions */}
-              <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                 <button
                   type="button"
                   onClick={(e) => handleAdvance(e, item)}
@@ -145,7 +146,7 @@ export default function MediaVault({ items, mediaType, filterStatus, onBack, onU
                   title="Advance status"
                   aria-label="Advance status"
                 >
-                  <ArrowLeft size={12} className="rotate-180" />
+                  <ChevronRight size={12} />
                 </button>
                 <button
                   type="button"

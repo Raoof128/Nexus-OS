@@ -4,9 +4,9 @@ import { authFetch } from '../../lib/apiClient'
 import Navbar from '../layout/Navbar'
 
 const inputClass =
-  'w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50'
+  'w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-2.5 text-sm text-white transition-all placeholder:text-muted-foreground/30 focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20'
 
-const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground'
+const labelClass = 'mb-1.5 block heading-ui text-xs font-semibold uppercase tracking-wider text-muted-foreground'
 
 export default function ResetPasswordPage({ accessToken, refreshToken, onComplete }) {
   const [password, setPassword] = useState('')
@@ -16,13 +16,15 @@ export default function ResetPasswordPage({ accessToken, refreshToken, onComplet
 
   if (!accessToken) {
     return (
-      <div className="relative flex min-h-screen flex-col overflow-hidden bg-background font-mono text-foreground">
-        <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+      <div className="relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground">
+        <div className="ambient-orbs" />
+        <div className="scanlines" />
+        <div className="absolute inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-cyan)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-cyan)/0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
         <Navbar />
-        <main className="z-10 flex flex-1 items-center justify-center p-6">
-          <div className="max-w-md rounded-[2rem] border border-white/10 bg-black/60 p-10 text-center shadow-2xl backdrop-blur-xl">
-            <ShieldCheck className="mx-auto mb-4 h-12 w-12 text-destructive" />
-            <h2 className="mb-2 text-xl font-bold uppercase tracking-wider text-white">
+        <main className="relative z-10 flex flex-1 items-center justify-center p-6">
+          <div className="neon-border glass-panel max-w-md rounded-2xl p-10 text-center shadow-2xl">
+            <ShieldCheck className="mx-auto mb-4 h-12 w-12 text-destructive" aria-hidden="true" />
+            <h2 className="heading-display mb-2 text-lg font-bold text-white">
               Session Expired
             </h2>
             <p className="mb-6 text-sm text-muted-foreground">
@@ -31,7 +33,7 @@ export default function ResetPasswordPage({ accessToken, refreshToken, onComplet
             <button
               type="button"
               onClick={onComplete}
-              className="w-full rounded-md bg-primary py-3 text-sm font-bold uppercase text-primary-foreground shadow-[0_0_15px_var(--color-primary)] transition-all hover:bg-primary/90"
+              className="heading-ui w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             >
               Back to Login
             </button>
@@ -68,20 +70,17 @@ export default function ResetPasswordPage({ accessToken, refreshToken, onComplet
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background font-mono text-foreground">
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground">
+      <div className="ambient-orbs" />
+      <div className="scanlines" />
+      <div className="absolute inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-cyan)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-cyan)/0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
       <Navbar />
-      <main className="z-10 flex flex-1 items-center justify-center p-6">
+      <main className="relative z-10 flex flex-1 items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-md">
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/60 p-8 shadow-2xl backdrop-blur-xl">
-            <div className="absolute -inset-1 -z-10 bg-primary/40 opacity-20 blur-2xl" />
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px overflow-hidden">
-              <div className="h-full w-full animate-pulse bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
-            </div>
-
+          <div className="neon-border glass-panel overflow-hidden rounded-2xl p-6 shadow-2xl sm:p-8">
             <div className="mb-1 flex items-center gap-2 text-primary">
-              <KeyRound size={18} />
-              <h2 className="text-2xl font-bold uppercase tracking-wider text-white">
+              <KeyRound size={18} aria-hidden="true" />
+              <h2 className="heading-display text-lg font-bold text-white sm:text-xl">
                 New Passkey
               </h2>
             </div>
@@ -92,7 +91,7 @@ export default function ResetPasswordPage({ accessToken, refreshToken, onComplet
             {error && (
               <div
                 role="alert"
-                className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm font-bold uppercase tracking-wider text-destructive"
+                className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
               >
                 {error}
               </div>
@@ -121,7 +120,7 @@ export default function ResetPasswordPage({ accessToken, refreshToken, onComplet
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   className={inputClass}
-                  placeholder="••••••••"
+                  placeholder="Repeat password"
                   minLength={8}
                   required
                 />
@@ -129,7 +128,7 @@ export default function ResetPasswordPage({ accessToken, refreshToken, onComplet
               <button
                 type="submit"
                 disabled={submitting}
-                className="mt-4 w-full rounded-md bg-primary py-3 text-sm font-bold uppercase text-primary-foreground shadow-[0_0_15px_var(--color-primary)] transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_var(--color-primary)] focus:outline-none disabled:opacity-50"
+                className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
               >
                 {submitting ? 'Encrypting...' : 'Set New Passkey'}
               </button>

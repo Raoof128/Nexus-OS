@@ -36,7 +36,7 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/[0.04] p-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 ring-1 ring-primary/20">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 ring-1 ring-primary/20" aria-hidden="true">
             <MessageCircle size={12} className="text-primary" />
           </div>
           <span className="heading-display text-xs font-bold text-white">
@@ -46,11 +46,11 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
         <button
           type="button"
           onClick={() => setShowCreate(!showCreate)}
-          className="rounded-lg bg-primary/10 p-1.5 text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_10px_hsl(var(--neon-cyan)/0.15)]"
+          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20"
           title="New chat"
           aria-label="New chat"
         >
-          <Plus size={12} />
+          <Plus size={14} />
         </button>
       </div>
 
@@ -61,7 +61,8 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
             type="text"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="nexus:// session name..."
+            placeholder="Session name..."
+            aria-label="Session title"
             className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 heading-ui text-xs text-white placeholder:text-muted-foreground/30 focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20"
             maxLength={200}
             autoFocus
@@ -69,7 +70,8 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
           <select
             value={newCategory}
             onChange={(e) => setNewCategory(e.target.value)}
-            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 heading-ui text-xs text-white focus:border-primary/30 focus:outline-none"
+            aria-label="Session category"
+            className="w-full appearance-none rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 heading-ui text-xs text-white focus:border-primary/30 focus:outline-none"
           >
             {CATEGORIES.map((cat) => (
               <option key={cat} value={cat}>{CATEGORY_CONFIG[cat].label}</option>
@@ -77,7 +79,7 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
           </select>
           <button
             type="submit"
-            className="heading-ui w-full rounded-lg bg-primary/15 py-2 text-[10px] font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25"
+            className="heading-ui w-full rounded-lg bg-primary/15 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25"
           >
             Initialize Session
           </button>
@@ -92,32 +94,40 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
           const { label, icon: Icon, color } = CATEGORY_CONFIG[cat]
           return (
             <div key={cat}>
-              <div className={`mb-1.5 flex items-center gap-1.5 px-2 heading-display text-[9px] tracking-[0.2em] ${color} opacity-60`}>
-                <Icon size={9} />
+              <div className={`mb-1.5 flex items-center gap-1.5 px-2 heading-ui text-[10px] tracking-wider ${color} opacity-80`}>
+                <Icon size={10} aria-hidden="true" />
                 {label}
               </div>
               <div className="space-y-0.5">
                 {items.map((session) => (
-                  <button
+                  <div
                     key={session.id}
-                    type="button"
-                    onClick={() => onSelect(session.id)}
-                    className={`group flex w-full items-center justify-between rounded-lg px-3 py-2 text-left transition-all ${
+                    className={`group relative flex items-center rounded-lg transition-all ${
                       activeSessionId === session.id
-                        ? 'bg-primary/10 text-primary ring-1 ring-primary/15'
-                        : 'text-muted-foreground hover:bg-white/[0.03] hover:text-white'
+                        ? 'bg-primary/10 ring-1 ring-primary/15'
+                        : 'hover:bg-white/[0.03]'
                     }`}
                   >
-                    <span className="truncate heading-ui text-[11px]">{session.title}</span>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); onDelete(session.id) }}
-                      className="ml-1 shrink-0 rounded p-0.5 opacity-0 transition-all group-hover:opacity-100 hover:text-destructive"
-                      aria-label="Delete session"
+                      onClick={() => onSelect(session.id)}
+                      className={`flex-1 truncate px-3 py-2.5 text-left heading-ui text-[11px] ${
+                        activeSessionId === session.id
+                          ? 'text-primary'
+                          : 'text-muted-foreground hover:text-white'
+                      }`}
+                    >
+                      {session.title}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(session.id)}
+                      className="mr-1 shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 hover:text-destructive"
+                      aria-label={`Delete ${session.title}`}
                     >
                       <Trash2 size={10} />
                     </button>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -125,9 +135,9 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
         })}
 
         {sessions.length === 0 && (
-          <div className="flex flex-col items-center gap-3 py-10 opacity-30">
-            <MessageCircle size={24} className="text-muted-foreground" />
-            <p className="heading-ui text-[10px] text-muted-foreground">No sessions</p>
+          <div className="flex flex-col items-center gap-3 py-10">
+            <MessageCircle size={24} className="text-muted-foreground/40" />
+            <p className="heading-ui text-[10px] text-muted-foreground/50">No sessions</p>
           </div>
         )}
       </div>

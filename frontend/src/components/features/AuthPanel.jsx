@@ -126,11 +126,12 @@ export default function AuthPanel() {
 
       <div
         ref={panelRef}
-        className="flex transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+        className="flex transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
         style={{ transform: `translateX(-${offset * 100}%)` }}
       >
         {/* ═══ LOGIN PANEL ═══ */}
-        <div className="w-full shrink-0 p-8">
+        <div className="w-full shrink-0 p-5 sm:p-8" {...(active !== 'login' ? { inert: '' } : {})}>
+
           <div className="mb-1 flex items-center gap-2 text-primary">
             <LogIn size={18} />
             <h2 className="heading-display text-xl font-bold text-white sm:text-2xl">
@@ -171,7 +172,7 @@ export default function AuthPanel() {
             <button
               type="submit"
               disabled={submitting}
-              className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus:outline-none disabled:opacity-50 disabled:animate-none"
+              className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
             >
               {submitting ? 'Connecting...' : 'Authenticate'}
             </button>
@@ -188,7 +189,7 @@ export default function AuthPanel() {
         </div>
 
         {/* ═══ REGISTER PANEL ═══ */}
-        <div className="w-full shrink-0 p-8">
+        <div className="w-full shrink-0 p-5 sm:p-8" {...(active !== 'register' ? { inert: '' } : {})}>
           <button
             type="button"
             onClick={() => slideTo('login')}
@@ -252,7 +253,7 @@ export default function AuthPanel() {
             <button
               type="submit"
               disabled={submitting}
-              className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus:outline-none disabled:opacity-50 disabled:animate-none"
+              className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
             >
               {submitting ? 'Initializing...' : 'Create Archive'}
             </button>
@@ -260,7 +261,7 @@ export default function AuthPanel() {
         </div>
 
         {/* ═══ FORGOT PASSWORD PANEL ═══ */}
-        <div className="w-full shrink-0 p-8">
+        <div className="w-full shrink-0 p-5 sm:p-8" {...(active !== 'forgot' ? { inert: '' } : {})}>
           <button
             type="button"
             onClick={() => slideTo('login')}
@@ -298,7 +299,7 @@ export default function AuthPanel() {
             <button
               type="submit"
               disabled={submitting}
-              className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus:outline-none disabled:opacity-50 disabled:animate-none"
+              className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
             >
               {submitting ? 'Transmitting...' : 'Send Recovery Link'}
             </button>

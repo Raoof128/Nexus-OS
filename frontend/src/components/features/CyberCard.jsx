@@ -45,13 +45,13 @@ export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
 
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex justify-between items-start mb-3">
-          <Icon className="h-5 w-5 text-primary drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] sm:h-6 sm:w-6" />
+          <Icon className="h-5 w-5 text-primary drop-shadow-[0_0_8px_hsl(var(--neon-cyan)/0.8)] sm:h-6 sm:w-6" aria-hidden="true" />
           <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-mono font-medium text-primary sm:text-xs">
             {item.status}
           </span>
         </div>
 
-        <h3 className="heading-ui mb-1 text-base font-bold tracking-tight text-white transition-colors group-hover:text-primary sm:text-lg lg:text-xl">
+        <h3 className="heading-ui mb-1 text-base font-bold tracking-tight text-white transition-colors group-hover:text-primary line-clamp-2 sm:text-lg">
           {item.title}
         </h3>
         <p className="font-mono text-xs text-muted-foreground mb-3 sm:text-sm">
@@ -60,7 +60,7 @@ export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
 
         <div className="mt-auto pt-3 border-t border-white/5 flex flex-wrap items-center gap-1.5 sm:gap-2">
           {item.genre && (
-            <span className="inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-gray-300 ring-1 ring-inset ring-white/10 sm:px-2 sm:py-1 sm:text-xs">
+            <span className="inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-white/10 sm:px-2 sm:py-1 sm:text-xs">
               {item.genre}
             </span>
           )}
@@ -70,7 +70,7 @@ export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
             </span>
           )}
 
-          <div className="ml-auto flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="ml-auto flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
             {next && (
               <button
                 type="button"

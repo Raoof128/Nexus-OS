@@ -64,7 +64,10 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
           <div className="fixed inset-0 z-[81] flex items-center justify-center p-4 sm:p-6">
             <Motion.div
               layoutId={`card-${item.id}`}
-              className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-[0_0_60px_rgba(56,189,248,0.08)] backdrop-blur-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="detail-modal-title"
+              className="neon-border relative w-full max-w-lg max-h-[90dvh] overflow-y-auto custom-scrollbar rounded-2xl glass-panel shadow-[0_0_60px_rgba(56,189,248,0.08)]"
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
             >
               {/* Neon top border */}
@@ -80,7 +83,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
                     <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/70">
                       {config?.label || 'Media'} // Deep Dive
                     </p>
-                    <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+                    <h2 id="detail-modal-title" className="heading-display text-lg font-bold text-white sm:text-xl">
                       {sanitize(item.title)}
                     </h2>
                   </div>

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Loader2, Plus, X } from 'lucide-react'
 import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 
 const inputClass =
@@ -32,6 +32,15 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
     setError(null)
   }
 
+  useEffect(() => {
+    if (!open) return
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('keydown', handleEsc)
+    return () => document.removeEventListener('keydown', handleEsc)
+  }, [open])
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError(null)
@@ -63,7 +72,7 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
       <button
         type="button"
         onClick={() => { reset(); setStatus(config.defaultStatus); setOpen(true) }}
-        className="fixed bottom-20 left-4 z-50 flex items-center gap-2 rounded-full border border-primary bg-primary/20 px-3 py-2 font-mono text-[11px] text-primary shadow-[0_0_15px_var(--color-primary)] backdrop-blur-xl transition-all hover:bg-primary/40 sm:bottom-6 sm:left-6 sm:px-4 sm:text-xs"
+        className="neon-pulse fixed bottom-6 left-4 z-50 flex items-center gap-2 rounded-xl glass-panel px-3 py-2.5 heading-ui text-[11px] font-semibold text-primary transition-all hover:bg-primary/15 sm:left-6 sm:px-4 sm:text-xs"
       >
         <Plus size={14} />
         Add {config.singular}
@@ -72,10 +81,17 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+      onClick={() => { reset(); setOpen(false) }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-media-title"
+    >
       <form
         onSubmit={handleSubmit}
-        className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-zinc-950/95 p-6 font-mono shadow-2xl backdrop-blur-xl"
+        onClick={(e) => e.stopPropagation()}
+        className="neon-border relative w-full max-w-lg max-h-[90dvh] overflow-y-auto custom-scrollbar rounded-2xl glass-panel p-6 shadow-2xl"
       >
         <button
           type="button"
@@ -86,8 +102,8 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
           <X size={18} />
         </button>
 
-        <h2 className="mb-6 text-xl font-bold uppercase tracking-wider text-primary">
-          // Register New {config.singular}
+        <h2 id="add-media-title" className="heading-display mb-6 text-lg font-bold text-primary sm:text-xl">
+          <span aria-hidden="true">// </span>Register New {config.singular}
         </h2>
 
         {error && (
@@ -200,9 +216,14 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
           <button
             type="submit"
             disabled={submitting}
-            className="mt-2 w-full rounded-md bg-primary py-3 text-sm font-bold uppercase text-primary-foreground shadow-[0_0_15px_var(--color-primary)] transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_var(--color-primary)] focus:outline-none disabled:opacity-50"
+            className="heading-ui mt-2 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
           >
-            {submitting ? 'Uploading...' : 'Commit to Archive'}
+            {submitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 size={14} className="animate-spin" />
+                Uploading...
+              </span>
+            ) : 'Commit to Archive'}
           </button>
         </div>
       </form>

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, LayoutGroup, motion as Motion } from 'framer-motion'
 import { BookOpen, Film, Loader2, MessageCircle, Sparkles } from 'lucide-react'
-import AddMediaDialog from './components/features/AddBookDialog'
+import AddMediaDialog from './components/features/AddMediaDialog'
 import AuthPanel from './components/features/AuthPanel'
 import ChatLayout from './components/features/ChatLayout'
 import LazyAICmdPalette from './components/features/LazyAICmdPalette'
@@ -76,7 +76,7 @@ function App() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-background" role="status">
         <div className="ambient-orbs" />
         <div className="scanlines" />
         <Loader2 className="relative z-10 h-10 w-10 animate-spin text-primary" aria-hidden="true" />

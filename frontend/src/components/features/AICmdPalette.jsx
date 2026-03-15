@@ -7,10 +7,10 @@ import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 export default function AICmdPalette({ open, onOpenChange, mediaType = 'book' }) {
   const [result, setResult] = useState(null)
   const config = MEDIA_CONFIG[mediaType]
-  const { suggestBook, suggestError, suggesting } = useSuggest(mediaType)
+  const { suggest, suggestError, suggesting } = useSuggest(mediaType)
 
   const handleSuggest = async () => {
-    const response = await suggestBook()
+    const response = await suggest()
     if (response) {
       setResult(response)
     }

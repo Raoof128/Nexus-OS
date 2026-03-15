@@ -17,17 +17,18 @@ export default function KanbanBoard({ items = [], mediaType = 'book', onUpdate, 
   })
 
   return (
-    <div className="grid h-full auto-rows-min grid-cols-1 gap-4 sm:gap-6 md:grid-cols-3">
+    <div className="grid h-full auto-rows-min grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
       {grouped.map(({ status, items: columnItems, total, hasMore }) => (
         <div
           key={status}
-          className="neon-border flex flex-col gap-3 rounded-xl glass-panel p-3 relative sm:gap-4 sm:p-4 md:max-h-[calc(100vh-200px)]"
+          className="neon-border flex flex-col gap-3 rounded-xl glass-panel p-3 relative sm:gap-4 sm:p-4 sm:max-h-[calc(100vh-200px)]"
         >
            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent shadow-[0_0_10px_var(--color-primary)]"></div>
 
           <button
             type="button"
             onClick={() => onHeaderClick?.(status, mediaType)}
+            aria-label={`${status} — open vault`}
             className="flex items-center justify-between px-2 pt-2 text-left transition-colors hover:opacity-80"
           >
             <h2 className="heading-display text-xs font-bold text-white sm:text-sm">

@@ -21,7 +21,7 @@ export default function ChatLayout() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-112px)] overflow-hidden">
+    <div className="flex h-[calc(100dvh-112px)] overflow-hidden">
       {/* Desktop sidebar */}
       <div className="hidden w-[280px] shrink-0 sm:block">
         <ChatSidebar
@@ -48,7 +48,7 @@ export default function ChatLayout() {
             <button
               type="button"
               onClick={() => setActiveSessionId(null)}
-              className="flex items-center gap-1.5 border-b border-white/[0.04] bg-white/[0.01] px-4 py-2.5 heading-ui text-xs text-muted-foreground transition-colors hover:text-white"
+              className="flex min-h-[44px] items-center gap-1.5 border-b border-white/[0.04] bg-white/[0.01] px-4 heading-ui text-xs text-muted-foreground transition-colors hover:text-white"
             >
               <ArrowLeft size={12} />
               Sessions
