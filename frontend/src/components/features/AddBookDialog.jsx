@@ -63,10 +63,10 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
       <button
         type="button"
         onClick={() => { reset(); setStatus(config.defaultStatus); setOpen(true) }}
-        className="fixed bottom-6 left-6 z-50 flex items-center gap-2 rounded-full border border-primary bg-primary/20 px-4 py-2 font-mono text-xs text-primary shadow-[0_0_15px_var(--color-primary)] backdrop-blur-xl transition-all hover:bg-primary/40"
+        className="fixed bottom-20 left-4 z-50 flex items-center gap-2 rounded-full border border-primary bg-primary/20 px-3 py-2 font-mono text-[11px] text-primary shadow-[0_0_15px_var(--color-primary)] backdrop-blur-xl transition-all hover:bg-primary/40 sm:bottom-6 sm:left-6 sm:px-4 sm:text-xs"
       >
-        <Plus size={16} />
-        Add {config.label.slice(0, -1)}
+        <Plus size={14} />
+        Add {config.singular}
       </button>
     )
   }
@@ -87,7 +87,7 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
         </button>
 
         <h2 className="mb-6 text-xl font-bold uppercase tracking-wider text-primary">
-          // Register New {config.label.slice(0, -1)}
+          // Register New {config.singular}
         </h2>
 
         {error && (

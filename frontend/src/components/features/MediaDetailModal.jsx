@@ -65,7 +65,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
             <Motion.div
               layoutId={`card-${item.id}`}
               className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 shadow-[0_0_60px_rgba(56,189,248,0.08)] backdrop-blur-2xl"
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
             >
               {/* Neon top border */}
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent shadow-[0_0_15px_var(--color-primary)]" />
@@ -80,12 +80,9 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
                     <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/70">
                       {config?.label || 'Media'} // Deep Dive
                     </p>
-                    <Motion.h2
-                      layoutId={`title-${item.id}`}
-                      className="text-xl font-bold tracking-tight text-white sm:text-2xl"
-                    >
+                    <h2 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
                       {sanitize(item.title)}
-                    </Motion.h2>
+                    </h2>
                   </div>
                 </div>
                 <button

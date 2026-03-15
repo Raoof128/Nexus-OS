@@ -37,7 +37,7 @@ export default function LazyAICmdPalette() {
     <>
       <button
         type="button"
-        className="fixed bottom-6 right-6 z-50 flex cursor-pointer items-center gap-2 rounded-full border border-primary bg-primary/20 px-4 py-2 font-mono text-xs text-primary shadow-[0_0_15px_var(--color-primary)] backdrop-blur-xl transition-all hover:bg-primary/40 hover:animate-pulse"
+        className="fixed bottom-20 right-4 z-50 flex cursor-pointer items-center gap-2 rounded-full border border-primary bg-primary/20 px-3 py-2 font-mono text-[11px] text-primary shadow-[0_0_15px_var(--color-primary)] backdrop-blur-xl transition-all hover:bg-primary/40 hover:animate-pulse sm:bottom-6 sm:right-6 sm:px-4 sm:text-xs"
         onMouseEnter={() => {
           setShouldLoad(true)
           void loadAICmdPalette()

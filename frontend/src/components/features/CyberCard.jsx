@@ -36,8 +36,9 @@ export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
     <Motion.div
       layoutId={`card-${item.id}`}
       onClick={() => onSelect?.(item)}
-      whileHover={{ y: -4, scale: 1.015 }}
-      className="group relative cursor-pointer overflow-hidden rounded-xl border border-white/10 bg-black/40 p-4 backdrop-blur-xl transition-all sm:p-6"
+      layout="position"
+      transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+      className="group relative cursor-pointer overflow-hidden rounded-xl border border-white/10 bg-black/40 p-4 backdrop-blur-xl hover:-translate-y-1 hover:border-primary/30 sm:p-6"
     >
       {/* Neon glowing artifact behind */}
       <div className="absolute -inset-1 z-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/5 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
@@ -50,12 +51,9 @@ export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
           </span>
         </div>
 
-        <Motion.h3
-          layoutId={`title-${item.id}`}
-          className="mb-1 text-base font-bold tracking-tight text-white group-hover:text-primary transition-colors sm:text-lg lg:text-xl"
-        >
+        <h3 className="mb-1 text-base font-bold tracking-tight text-white transition-colors group-hover:text-primary sm:text-lg lg:text-xl">
           {item.title}
-        </Motion.h3>
+        </h3>
         <p className="font-mono text-xs text-muted-foreground mb-3 sm:text-sm">
           // {item.creator}
         </p>
