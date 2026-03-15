@@ -1,82 +1,83 @@
 # API Reference
 
-## Authentication
-
-All book endpoints require:
-
-```http
-Authorization: Bearer <supabase_access_token>
-```
-
-Public operational routes:
+## Public Endpoints
 
 - `GET /healthz`
 - `GET /schema/swagger`
 - `GET /schema/openapi.json`
+- `POST /auth/login`
+- `POST /auth/refresh`
+- `POST /auth/logout`
+- `GET /auth/session`
 
-## Endpoints
+## Authentication Model
 
-### `GET /healthz`
+Protected routes use server-managed `HttpOnly` cookies:
 
-Returns a simple uptime response:
+- access cookie: short-lived, default 15 minutes
+- refresh cookie: longer-lived, used only for rotation
 
-```json
-{
-  "status": "ok"
-}
-```
+The browser never reads the Supabase access token directly.
 
-### `GET /books`
+## Auth Endpoints
 
-Returns all book entries for the authenticated user.
-
-Response:
-
-```json
-[
-  {
-    "id": "7d2d7d5a-2f0e-4bf0-bf34-c6f0d570f1db",
-    "user_id": "9ef4d4d6-57bb-4b9e-82c1-5df5d356b5b5",
-    "title": "Neuromancer",
-    "author": "William Gibson",
-    "genre": "Cyberpunk",
-    "status": "Finished",
-    "rating": 5,
-    "takeaway": "Classic genre-defining atmosphere.",
-    "created_at": "2026-03-15T10:00:00Z"
-  }
-]
-```
-
-### `POST /books`
-
-Creates a new book entry.
+### `POST /auth/login`
 
 Request body:
 
 ```json
 {
-  "title": "Akira",
-  "author": "Katsuhiro Otomo",
-  "genre": "Sci-Fi",
-  "status": "Reading",
-  "rating": 4,
-  "takeaway": "Dense worldbuilding and striking art."
+  "email": "runner@nexus.net",
+  "password": "correct horse battery staple"
 }
 ```
 
+Response:
+
+```json
+{
+  "user": {
+    "id": "9ef4d4d6-57bb-4b9e-82c1-5df5d356b5b5",
+    "email": "runner@nexus.net"
+  },
+  "expires_at": 1773544458
+}
+```
+
+### `POST /auth/refresh`
+
+Refreshes the cookie-backed session and rotates the short-lived access token.
+
+### `POST /auth/logout`
+
+Clears the auth cookies.
+
+### `GET /auth/session`
+
+Returns the current user snapshot derived from the access cookie.
+
+## Book Endpoints
+
+### `GET /books`
+
+Returns all book entries for the authenticated user.
+
+### `POST /books`
+
+Creates a new book entry.
+
 Validation rules:
 
-- `title`: 1-255 chars, strips excess whitespace, rejects XSS and injection probes
-- `author`: 1-255 chars, rejects XSS and injection probes
-- `genre`: optional, max 100 chars, rejects XSS and injection probes
+- `title`: 1-200 chars, rejects angle brackets, XSS, and injection probes
+- `author`: 1-100 chars, rejects angle brackets, XSS, and injection probes
+- `genre`: optional, max 80 chars, rejects angle brackets, XSS, and injection probes
 - `status`: `To Read`, `Reading`, or `Finished`
 - `rating`: optional, integer from 1 to 5
 - `takeaway`: optional, max 2000 chars, rejects embedded script markup
 
 ### `GET /books/suggest`
 
-Returns a recommendation derived from the user library. When Gemini is unavailable, the endpoint degrades to a deterministic local fallback instead of returning a server error.
+Returns a recommendation derived from the user library. This route is rate-limited to protect quota and degrades to a deterministic local fallback when Gemini is unavailable.
 
 Response:
 
@@ -87,8 +88,3 @@ Response:
   "source": "gemini"
 }
 ```
-
-Possible `source` values:
-
-- `gemini`
-- `local`

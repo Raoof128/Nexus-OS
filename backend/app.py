@@ -6,6 +6,7 @@ from litestar.openapi.config import OpenAPIConfig
 
 try:
     from .auth import SupabaseAuthMiddleware
+    from .auth_controller import AuthController
     from .config import get_settings
     from .controllers import BookController
     from .health import healthcheck
@@ -14,6 +15,7 @@ try:
     from .security import SecurityHeadersMiddleware
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from auth import SupabaseAuthMiddleware
+    from auth_controller import AuthController
     from config import get_settings
     from controllers import BookController
     from health import healthcheck
@@ -33,16 +35,17 @@ cors_config = CORSConfig(
 )
 
 app = Litestar(
-    route_handlers=[healthcheck, BookController],
+    route_handlers=[healthcheck, AuthController, BookController],
     middleware=[SecurityHeadersMiddleware, SupabaseAuthMiddleware],
     cors_config=cors_config,
     allowed_hosts=list(settings.allowed_hosts),
     openapi_config=OpenAPIConfig(
         title="Nexus Archive API",
-        version="0.2.0",
+        version="0.3.0",
         description=(
             "Authenticated API for the Nexus cyberpunk book library, including"
-            " health probes and AI-assisted recommendation workflows."
+            " cookie-backed auth, health probes, and AI-assisted recommendation"
+            " workflows."
         ),
         path="/schema",
         use_handler_docstrings=True,

@@ -3,7 +3,7 @@
 import re
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 BookStatus = Literal["To Read", "Reading", "Finished"]
 
@@ -16,6 +16,7 @@ INJECTION_PATTERN = re.compile(
     r"(\bunion\s+select\b|\bdrop\s+table\b|'\s*or\s+'?\d+'?\s*=\s*'?\d+'?|\$where\b|\bdb\.)",
     re.IGNORECASE,
 )
+ANGLE_BRACKET_PATTERN = re.compile(r"[<>]")
 
 
 def _normalize_text(value: str) -> str:
@@ -26,14 +27,35 @@ def _normalize_text(value: str) -> str:
     return " ".join(value.split())
 
 
+class LoginRequest(BaseModel):
+    """Login request submitted by the frontend."""
+
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+
+
+class SessionUser(BaseModel):
+    """Minimal user identity returned to the frontend."""
+
+    id: str
+    email: EmailStr | None = None
+
+
+class AuthSessionResponse(BaseModel):
+    """Frontend-safe session snapshot."""
+
+    user: SessionUser
+    expires_at: int | None = None
+
+
 class BookCreate(BaseModel):
     """Incoming payload for a user-created book entry."""
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    title: str = Field(min_length=1, max_length=255)
-    author: str = Field(min_length=1, max_length=255)
-    genre: str | None = Field(default=None, max_length=100)
+    title: str = Field(min_length=1, max_length=200, pattern=r"^[^<>]*$")
+    author: str = Field(min_length=1, max_length=100, pattern=r"^[^<>]*$")
+    genre: str | None = Field(default=None, max_length=80, pattern=r"^[^<>]*$")
     status: BookStatus = "To Read"
     rating: int | None = Field(default=None, ge=1, le=5)
     takeaway: str | None = Field(default=None, max_length=2000)
@@ -47,6 +69,8 @@ class BookCreate(BaseModel):
             return value
 
         normalized = _normalize_text(value)
+        if ANGLE_BRACKET_PATTERN.search(normalized):
+            raise ValueError("HTML tag delimiters are not allowed")
         if XSS_PATTERN.search(normalized):
             raise ValueError("HTML or script payloads are not allowed")
         if INJECTION_PATTERN.search(normalized):

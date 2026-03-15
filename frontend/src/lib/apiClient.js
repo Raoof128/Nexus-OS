@@ -4,6 +4,8 @@ if (!API_URL) {
   throw new Error('Missing required environment variable: VITE_API_URL')
 }
 
+let refreshPromise = null
+
 async function extractError(response) {
   try {
     const payload = await response.json()
@@ -13,23 +15,43 @@ async function extractError(response) {
   }
 }
 
-export async function apiFetch(path, { session, method = 'GET', body } = {}) {
-  if (!session?.access_token) {
-    throw new Error('Missing authenticated session')
-  }
-
+async function request(path, { method = 'GET', body, headers = {} } = {}, retry = true) {
   const response = await fetch(`${API_URL}${path}`, {
     method,
+    credentials: 'include',
     headers: {
-      Authorization: `Bearer ${session.access_token}`,
       ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
   })
+
+  if (response.status === 401 && retry && !path.startsWith('/auth/')) {
+    await refreshSession()
+    return request(path, { method, body, headers }, false)
+  }
 
   if (!response.ok) {
     throw new Error(await extractError(response))
   }
 
   return response.json()
+}
+
+export async function refreshSession() {
+  if (!refreshPromise) {
+    refreshPromise = request('/auth/refresh', { method: 'POST' }, false).finally(() => {
+      refreshPromise = null
+    })
+  }
+
+  return refreshPromise
+}
+
+export function authFetch(path, options) {
+  return request(path, options, false)
+}
+
+export function apiFetch(path, options) {
+  return request(path, options, true)
 }

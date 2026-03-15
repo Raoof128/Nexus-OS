@@ -8,20 +8,19 @@ function getBooksQueryKey(session) {
 export function useBooks(session) {
   const queryClient = useQueryClient()
   const booksQueryKey = getBooksQueryKey(session)
-  const isAuthenticated = Boolean(session?.access_token)
+  const isAuthenticated = Boolean(session?.user?.id)
 
   const booksQuery = useQuery({
     queryKey: booksQueryKey,
     enabled: isAuthenticated,
     staleTime: 60_000,
     retry: 1,
-    queryFn: () => apiFetch('/books', { session }),
+    queryFn: () => apiFetch('/books'),
   })
 
   const addBookMutation = useMutation({
     mutationFn: (bookData) =>
       apiFetch('/books', {
-        session,
         method: 'POST',
         body: bookData,
       }),
@@ -51,17 +50,14 @@ export function useBooks(session) {
   })
 
   const suggestBookMutation = useMutation({
-    mutationFn: () => apiFetch('/books/suggest', { session }),
+    mutationFn: () => apiFetch('/books/suggest'),
   })
 
   return {
     books: booksQuery.data ?? [],
     loading:
       booksQuery.isPending || booksQuery.isFetching || addBookMutation.isPending,
-    error:
-      booksQuery.error?.message ??
-      addBookMutation.error?.message ??
-      null,
+    error: booksQuery.error?.message ?? addBookMutation.error?.message ?? null,
     fetchBooks: booksQuery.refetch,
     addBook: addBookMutation.mutateAsync,
     suggestBook: suggestBookMutation.mutateAsync,

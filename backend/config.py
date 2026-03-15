@@ -24,6 +24,7 @@ class BackendSettings:
 
     supabase_url: str
     supabase_key: str
+    supabase_auth_key: str
     supabase_jwt_secret: str
     gemini_api_key: str | None = None
     environment: str = "development"
@@ -34,6 +35,15 @@ class BackendSettings:
     backend_sentry_dsn: str | None = None
     backend_sentry_traces_sample_rate: float = 0.0
     audit_log_salt: str = "nexus-audit-salt"
+    takeaway_encryption_key: str | None = None
+    access_cookie_name: str = "nexus-access-token"
+    refresh_cookie_name: str = "nexus-refresh-token"
+    access_cookie_max_age: int = 900
+    refresh_cookie_max_age: int = 60 * 60 * 24 * 7
+    cookie_domain: str | None = None
+    cookie_secure: bool = False
+    suggest_rate_limit_requests: int = 5
+    suggest_rate_limit_window_seconds: int = 60
     allowed_origins: tuple[str, ...] = ()
     allowed_hosts: tuple[str, ...] = ()
 
@@ -57,6 +67,15 @@ def _require_env(name: str) -> str:
             f"Missing required environment variable: {name}"
         )
     return value
+
+
+def _parse_bool_env(name: str, default: bool) -> bool:
+    """Parse a boolean-like environment variable."""
+
+    value = _get_env(name)
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "on"}
 
 
 def _parse_csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
@@ -84,10 +103,12 @@ def get_settings() -> BackendSettings:
     """Load and cache backend settings."""
 
     allowed_origins = _parse_csv_env("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS)
+    supabase_key = _require_env("SUPABASE_KEY")
 
     return BackendSettings(
         supabase_url=_require_env("SUPABASE_URL"),
-        supabase_key=_require_env("SUPABASE_KEY"),
+        supabase_key=supabase_key,
+        supabase_auth_key=_get_env("SUPABASE_AUTH_KEY", supabase_key) or supabase_key,
         supabase_jwt_secret=_require_env("SUPABASE_JWT_SECRET"),
         gemini_api_key=_get_env("GEMINI_API_KEY"),
         environment=_get_env("APP_ENV", "development") or "development",
@@ -107,6 +128,27 @@ def get_settings() -> BackendSettings:
         ),
         audit_log_salt=_get_env("AUDIT_LOG_SALT", "nexus-audit-salt")
         or "nexus-audit-salt",
+        takeaway_encryption_key=_get_env("TAKEAWAY_ENCRYPTION_KEY"),
+        access_cookie_name=_get_env("ACCESS_COOKIE_NAME", "nexus-access-token")
+        or "nexus-access-token",
+        refresh_cookie_name=_get_env("REFRESH_COOKIE_NAME", "nexus-refresh-token")
+        or "nexus-refresh-token",
+        access_cookie_max_age=int(_get_env("ACCESS_COOKIE_MAX_AGE", "900") or "900"),
+        refresh_cookie_max_age=int(
+            _get_env("REFRESH_COOKIE_MAX_AGE", str(60 * 60 * 24 * 7))
+            or str(60 * 60 * 24 * 7)
+        ),
+        cookie_domain=_get_env("COOKIE_DOMAIN"),
+        cookie_secure=_parse_bool_env(
+            "COOKIE_SECURE",
+            (_get_env("APP_ENV", "development") or "development") != "development",
+        ),
+        suggest_rate_limit_requests=int(
+            _get_env("SUGGEST_RATE_LIMIT_REQUESTS", "5") or "5"
+        ),
+        suggest_rate_limit_window_seconds=int(
+            _get_env("SUGGEST_RATE_LIMIT_WINDOW_SECONDS", "60") or "60"
+        ),
         allowed_origins=allowed_origins,
         allowed_hosts=_derive_allowed_hosts(allowed_origins),
     )

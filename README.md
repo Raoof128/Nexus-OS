@@ -2,18 +2,16 @@
 
 Nexus Archive is a cyberpunk-styled personal media vault for tracking anime, movies, and books in one place. It combines a React frontend, a Litestar API, and Supabase-backed identity and persistence so a user can manage watchlists, reading queues, ratings, takeaways, and AI-assisted recommendations from a single interface.
 
-## What Changed in This Upgrade
+## Security Upgrade Highlights
 
-This repository now includes the operational and security layer that was previously missing:
+This repository now includes a stronger defensive posture:
 
-- hardened backend request validation with Pydantic v2 field validators
-- secure response headers, explicit allowed-host handling, and public health/schema routes
-- structured audit logging for book creation and AI suggestion activity
-- Gemini few-shot prompting with context pruning and a circuit-breaker fallback path
-- TanStack Query server-state caching with optimistic create mutations
-- lazy-loaded AI command palette to reduce initial frontend bundle pressure
-- optional Sentry bootstrap for frontend and backend error tracking
-- Docker, Terraform scaffolding, devcontainer metadata, and Locust load tests
+- backend-managed `HttpOnly` auth cookies instead of frontend-readable Supabase tokens
+- strict cookie refresh flow with short-lived access tokens and silent rotation
+- AI prompt isolation with XML delimiters, string scrubbing, and PII masking
+- server-side rate limiting for `/books/suggest`
+- optional field-level encryption for `takeaway` notes
+- Bandit, pip-audit, npm audit, and secret scanning in CI
 
 ## Stack
 
@@ -21,7 +19,7 @@ This repository now includes the operational and security layer that was previou
 - Backend: Python 3.12, Litestar, Supabase Python client, PyJWT, Tiktoken
 - Database/Auth: Supabase PostgreSQL with Row Level Security
 - Observability: Sentry, structured audit logs, health probes
-- Tooling: ESLint, Ruff, pytest, Locust, Docker, Terraform, GitHub Actions
+- Tooling: ESLint, Ruff, pytest, Bandit, pip-audit, Locust, Docker, Terraform, GitHub Actions
 
 ## Repository Layout
 
@@ -70,11 +68,12 @@ docker compose up --build backend
 
 ## Core Runtime Guarantees
 
+- `POST /auth/login` issues `HttpOnly`, `SameSite=Strict` cookies.
+- `POST /auth/refresh` silently rotates short-lived access tokens.
 - `GET /healthz` is available for uptime checks.
 - `GET /schema/swagger` exposes live API docs without requiring auth.
-- `GET /books/suggest` gracefully degrades to a local recommendation when Gemini is unavailable.
-- Book creation and suggestion requests emit audit events with hashed user identifiers.
-- Frontend book queries are cached and refetched through TanStack Query rather than manual `useEffect` fetch loops.
+- `GET /books/suggest` is rate-limited and degrades to a local recommendation when Gemini is unavailable.
+- `takeaway` notes can be encrypted at the application layer when `TAKEAWAY_ENCRYPTION_KEY` is configured.
 
 ## Quality Gates
 
@@ -82,6 +81,7 @@ docker compose up --build backend
 make lint
 make test
 make build-frontend
+make security
 make load-test
 make docker-backend
 make terraform-fmt
@@ -101,7 +101,7 @@ make terraform-fmt
 - `infra/terraform/` contains the reviewed starting point for Supabase and Vercel-managed infrastructure.
 - `backend/Dockerfile` is the canonical backend runtime image.
 - Sentry DSNs are optional and only activate telemetry when configured.
-- Supabase must enforce RLS policies before public deployment.
+- Supabase must enforce RLS, short JWT lifetime, and PITR before public deployment.
 
 ## License
 

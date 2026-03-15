@@ -24,16 +24,20 @@ def test_get_settings_reads_expected_values(monkeypatch: pytest.MonkeyPatch) -> 
     get_settings.cache_clear()
     monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
     monkeypatch.setenv("SUPABASE_KEY", "service-key")
+    monkeypatch.setenv("SUPABASE_AUTH_KEY", "anon-key")
     monkeypatch.setenv("SUPABASE_JWT_SECRET", "jwt-secret")
     monkeypatch.setenv("GEMINI_API_KEY", "gemini-key")
     monkeypatch.setenv("ALLOWED_ORIGINS", "https://nexus.app,https://preview.nexus.app")
+    monkeypatch.setenv("COOKIE_SECURE", "true")
 
     settings = get_settings()
 
     assert settings.supabase_url == "https://example.supabase.co"
     assert settings.supabase_key == "service-key"
+    assert settings.supabase_auth_key == "anon-key"
     assert settings.supabase_jwt_secret == "jwt-secret"
     assert settings.gemini_api_key == "gemini-key"
+    assert settings.cookie_secure is True
     assert settings.allowed_origins == (
         "https://nexus.app",
         "https://preview.nexus.app",

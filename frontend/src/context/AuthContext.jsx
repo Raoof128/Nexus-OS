@@ -1,41 +1,71 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
+import { authFetch, refreshSession } from '../lib/apiClient'
 import { AuthContext } from './auth-context'
+
+async function loadCurrentSession() {
+  try {
+    return await authFetch('/auth/session')
+  } catch {
+    await refreshSession()
+    return await authFetch('/auth/session')
+  }
+}
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let mounted = true
+    let active = true
 
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      if (!mounted) {
-        return
-      }
-      setSession(currentSession)
-      setLoading(false)
-    })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, currentSession) => {
-      setSession(currentSession)
-      setLoading(false)
-    })
+    loadCurrentSession()
+      .then((currentSession) => {
+        if (active) {
+          setSession(currentSession)
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setSession(null)
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false)
+        }
+      })
 
     return () => {
-      mounted = false
-      subscription.unsubscribe()
+      active = false
     }
   }, [])
+
+  const signIn = async (email, password) => {
+    try {
+      const authenticatedSession = await authFetch('/auth/login', {
+        method: 'POST',
+        body: { email, password },
+      })
+      setSession(authenticatedSession)
+      return { data: authenticatedSession, error: null }
+    } catch (error) {
+      return { data: null, error }
+    }
+  }
+
+  const signOut = async () => {
+    try {
+      await authFetch('/auth/logout', { method: 'POST' })
+    } finally {
+      setSession(null)
+    }
+  }
 
   const value = {
     session,
     loading,
-    signIn: (email, password) =>
-      supabase.auth.signInWithPassword({ email, password }),
-    signOut: () => supabase.auth.signOut(),
+    signIn,
+    signOut,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

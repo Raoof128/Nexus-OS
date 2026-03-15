@@ -6,20 +6,19 @@ Nexus Archive is a split frontend/backend application backed by Supabase:
 
 ```mermaid
 flowchart LR
-  U["User"] --> F["React Frontend"]
+  U["User Browser"] --> F["React Frontend"]
   F --> Q["TanStack Query Cache"]
   Q --> A["Litestar API"]
-  F --> S["Supabase Auth"]
+  A --> C["HttpOnly Cookie Session Layer"]
+  C --> S["Supabase Auth"]
   A --> D["Supabase Postgres"]
   A --> G["Gemini Recommendation API"]
   A --> O["Audit Logs + Sentry"]
-  I["Terraform + Docker"] --> A
-  I --> F
 ```
 
 ## Frontend Responsibilities
 
-- authenticate users with Supabase
+- authenticate through backend-issued secure cookies
 - cache server state with TanStack Query
 - render the personal media dashboard
 - lazy-load the AI command palette on demand
@@ -27,12 +26,14 @@ flowchart LR
 
 ## Backend Responsibilities
 
-- validate Supabase JWT bearer tokens
-- exempt health and schema routes from auth
+- terminate auth at the server boundary and keep tokens out of browser storage
+- validate Supabase JWT bearer tokens and cookie tokens
 - enforce request schema validation with strict sanitization rules
+- encrypt sensitive takeaway notes when configured
 - isolate Supabase and Gemini calls behind service functions
 - emit audit records for sensitive actions
 - degrade gracefully to deterministic local suggestions when Gemini fails
+- enforce rate limits on the expensive suggestion endpoint
 
 ## AI Recommendation Flow
 
@@ -43,10 +44,12 @@ sequenceDiagram
   participant Gemini
 
   Browser->>API: GET /books/suggest
-  API->>API: Load books + prune context
+  API->>API: Enforce per-user rate limit
+  API->>API: Load books + scrub prompt input
+  API->>API: Wrap context in strict XML delimiters
   API->>API: Check circuit breaker
   alt Gemini available
-    API->>Gemini: Few-shot prompt with pruned context
+    API->>Gemini: Few-shot prompt with sanitized context
     Gemini-->>API: Title + reasoning
     API->>API: Record success + audit event
     API-->>Browser: suggestion, reasoning, source=gemini
@@ -60,17 +63,9 @@ sequenceDiagram
 ## Trust Boundaries
 
 - Browser to API
-- Browser to Supabase Auth
-- API to Supabase
+- API to Supabase Auth
+- API to Supabase Postgres
 - API to Gemini
 - CI/CD to Terraform-managed infrastructure
 
 Every boundary validates configuration and input before use.
-
-## Operational Notes
-
-- CORS is restricted to configured frontend origins.
-- Allowed hosts are derived from allowed origins.
-- Backend returns secure defaults such as CSP, HSTS, `X-Frame-Options`, and `X-Content-Type-Options`.
-- `GET /healthz` supports uptime checks and container orchestration probes.
-- `GET /schema/swagger` exposes live API docs for stakeholder review and integration work.

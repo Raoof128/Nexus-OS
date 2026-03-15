@@ -10,7 +10,6 @@ export default defineConfig({
         manualChunks: {
           observability: ['@sentry/react'],
           query: ['@tanstack/react-query'],
-          supabase: ['@supabase/supabase-js'],
           ui: ['framer-motion', 'lucide-react'],
         },
       },

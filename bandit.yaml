@@ -1,0 +1,8 @@
+exclude_dirs:
+  - tests
+  - loadtests
+  - backend/venv
+  - backend/__pycache__
+  - .venv
+skips:
+  - B104

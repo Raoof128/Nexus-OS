@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- 1. Create the books table
 CREATE TABLE books (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

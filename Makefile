@@ -1,4 +1,4 @@
-.PHONY: lint test build-frontend load-test docker-backend terraform-fmt
+.PHONY: lint test build-frontend load-test docker-backend terraform-fmt security
 
 lint:
 	cd frontend && npm run lint
@@ -19,3 +19,8 @@ docker-backend:
 
 terraform-fmt:
 	terraform -chdir=infra/terraform fmt -check -recursive
+
+security:
+	python3 -m bandit -r backend -c bandit.yaml
+	python3 -m pip_audit
+	cd frontend && npm audit --audit-level=high

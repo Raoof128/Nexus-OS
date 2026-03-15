@@ -1,5 +1,9 @@
 """Authentication middleware for Supabase JWT validation."""
 
+from __future__ import annotations
+
+from typing import Any
+
 import jwt
 from litestar.connection import ASGIConnection
 from litestar.exceptions import NotAuthorizedException
@@ -15,7 +19,20 @@ PUBLIC_PATH_PREFIXES = (
     "/healthz",
     "/schema",
     "/schema/",
+    "/auth",
+    "/auth/",
 )
+
+
+def decode_supabase_token(token: str) -> dict[str, Any]:
+    """Decode and validate a Supabase JWT."""
+
+    return jwt.decode(
+        token,
+        get_settings().supabase_jwt_secret,
+        algorithms=["HS256"],
+        audience="authenticated",
+    )
 
 
 class SupabaseAuthMiddleware(MiddlewareProtocol):
@@ -35,22 +52,22 @@ class SupabaseAuthMiddleware(MiddlewareProtocol):
 
             connection = ASGIConnection(scope)
             auth_header = connection.headers.get("Authorization")
+            token = None
+            if auth_header and auth_header.startswith("Bearer "):
+                token = auth_header.split(" ", 1)[1]
+            else:
+                token = connection.cookies.get(get_settings().access_cookie_name)
 
-            if not auth_header or not auth_header.startswith("Bearer "):
-                raise NotAuthorizedException("Missing or invalid authorization header")
+            if not token:
+                raise NotAuthorizedException("Missing or invalid authorization token")
 
-            token = auth_header.split(" ")[1]
             try:
-                payload = jwt.decode(
-                    token,
-                    self.jwt_secret,
-                    algorithms=["HS256"],
-                    audience="authenticated",
-                )
+                payload = decode_supabase_token(token)
                 user_id = payload.get("sub")
                 if not user_id:
                     raise NotAuthorizedException("Invalid token subject")
                 scope.setdefault("state", {})["user_id"] = user_id
+                scope["state"]["auth_payload"] = payload
             except jwt.ExpiredSignatureError as exc:
                 raise NotAuthorizedException("Token expired") from exc
             except jwt.InvalidTokenError as exc:

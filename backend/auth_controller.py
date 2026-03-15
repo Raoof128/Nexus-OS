@@ -1,0 +1,153 @@
+"""Cookie-backed authentication endpoints."""
+
+from __future__ import annotations
+
+import logging
+
+from litestar import Controller, Request, Response, get, post
+from litestar.exceptions import HTTPException
+
+try:
+    from .auth import decode_supabase_token
+    from .config import get_settings
+    from .schemas import AuthSessionResponse, LoginRequest, SessionUser
+    from .services import create_supabase_auth_client
+except ImportError:  # pragma: no cover - supports backend cwd execution
+    from auth import decode_supabase_token
+    from config import get_settings
+    from schemas import AuthSessionResponse, LoginRequest, SessionUser
+    from services import create_supabase_auth_client
+
+logger = logging.getLogger(__name__)
+
+
+def _build_session_response(access_token: str) -> AuthSessionResponse:
+    """Derive a frontend-safe session snapshot from a Supabase access token."""
+
+    payload = decode_supabase_token(access_token)
+    return AuthSessionResponse(
+        user=SessionUser(
+            id=payload.get("sub", ""),
+            email=payload.get("email"),
+        ),
+        expires_at=payload.get("exp"),
+    )
+
+
+def _attach_auth_cookies(
+    response: Response, access_token: str, refresh_token: str
+) -> None:
+    """Set the secure session cookies returned to the browser."""
+
+    settings = get_settings()
+    cookie_options = {
+        "domain": settings.cookie_domain,
+        "path": "/",
+        "secure": settings.cookie_secure,
+        "httponly": True,
+        "samesite": "strict",
+    }
+    response.set_cookie(
+        settings.access_cookie_name,
+        access_token,
+        max_age=settings.access_cookie_max_age,
+        **cookie_options,
+    )
+    response.set_cookie(
+        settings.refresh_cookie_name,
+        refresh_token,
+        max_age=settings.refresh_cookie_max_age,
+        **cookie_options,
+    )
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    """Expire both auth cookies."""
+
+    settings = get_settings()
+    cookie_options = {
+        "domain": settings.cookie_domain,
+        "path": "/",
+        "secure": settings.cookie_secure,
+        "httponly": True,
+        "samesite": "strict",
+    }
+    response.set_cookie(settings.access_cookie_name, "", max_age=0, **cookie_options)
+    response.set_cookie(settings.refresh_cookie_name, "", max_age=0, **cookie_options)
+
+
+class AuthController(Controller):
+    """Authentication endpoints that keep tokens out of browser storage."""
+
+    path = "/auth"
+
+    @post("/login")
+    async def login(self, data: LoginRequest) -> Response:
+        """Authenticate with Supabase and set secure session cookies."""
+
+        try:
+            auth_response = create_supabase_auth_client().auth.sign_in_with_password(
+                {"email": data.email, "password": data.password}
+            )
+        except Exception as exc:  # pragma: no cover - upstream auth failure
+            logger.exception("Supabase sign-in failed for %s", data.email)
+            raise HTTPException(status_code=401, detail="Invalid credentials") from exc
+
+        if not auth_response.session:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        payload = _build_session_response(auth_response.session.access_token)
+        response = Response(content=payload.model_dump())
+        _attach_auth_cookies(
+            response,
+            access_token=auth_response.session.access_token,
+            refresh_token=auth_response.session.refresh_token,
+        )
+        return response
+
+    @post("/refresh")
+    async def refresh(self, request: Request) -> Response:
+        """Rotate the session using the refresh token cookie."""
+
+        refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
+        if not refresh_token:
+            raise HTTPException(status_code=401, detail="Missing refresh token")
+
+        try:
+            auth_response = create_supabase_auth_client().auth.refresh_session(
+                refresh_token
+            )
+        except Exception as exc:  # pragma: no cover - upstream auth failure
+            logger.exception("Supabase token refresh failed")
+            raise HTTPException(
+                status_code=401, detail="Session refresh failed"
+            ) from exc
+
+        if not auth_response.session:
+            raise HTTPException(status_code=401, detail="Session refresh failed")
+
+        payload = _build_session_response(auth_response.session.access_token)
+        response = Response(content=payload.model_dump())
+        _attach_auth_cookies(
+            response,
+            access_token=auth_response.session.access_token,
+            refresh_token=auth_response.session.refresh_token,
+        )
+        return response
+
+    @post("/logout")
+    async def logout(self) -> Response:
+        """Clear authentication cookies on the client."""
+
+        response = Response(content={"ok": True})
+        _clear_auth_cookies(response)
+        return response
+
+    @get("/session")
+    async def session(self, request: Request) -> AuthSessionResponse:
+        """Return a frontend-safe session snapshot from the access cookie."""
+
+        access_token = request.cookies.get(get_settings().access_cookie_name)
+        if not access_token:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        return _build_session_response(access_token)

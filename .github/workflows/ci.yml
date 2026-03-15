@@ -23,6 +23,10 @@ jobs:
           python -m ruff format --check backend tests loadtests
       - name: Test backend
         run: python -m pytest
+      - name: Run Bandit
+        run: python -m bandit -r backend -c bandit.yaml
+      - name: Run pip-audit
+        run: python -m pip_audit
 
   frontend:
     runs-on: ubuntu-latest
@@ -30,8 +34,6 @@ jobs:
       run:
         working-directory: frontend
     env:
-      VITE_SUPABASE_URL: https://example.supabase.co
-      VITE_SUPABASE_ANON_KEY: example-anon-key
       VITE_API_URL: http://127.0.0.1:8000
       VITE_SENTRY_DSN: https://public@example.ingest.sentry.io/1
       VITE_SENTRY_TRACES_SAMPLE_RATE: "0"
@@ -48,6 +50,16 @@ jobs:
         run: npm run lint
       - name: Build frontend
         run: npm run build
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   operations:
     runs-on: ubuntu-latest

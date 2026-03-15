@@ -159,3 +159,33 @@
   - `tests/test_config.py`, `tests/test_schemas.py`, `tests/test_services.py` - Added coverage for config parsing, sanitization, and fallback suggestion logic.
 - **Verification:** Ran `python3 -m pip install -e '.[dev]'`, `npm install` in `frontend/`, `python3 -m ruff check backend tests loadtests`, `python3 -m ruff format --check backend tests loadtests`, `SUPABASE_URL=https://example.supabase.co SUPABASE_KEY=test-key SUPABASE_JWT_SECRET=test-secret python3 -m pytest`, `SUPABASE_URL=https://example.supabase.co SUPABASE_KEY=test-key SUPABASE_JWT_SECRET=test-secret python3 -c "import backend.app"`, `npm run lint`, and `VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_ANON_KEY=example-anon-key VITE_API_URL=http://127.0.0.1:8000 VITE_SENTRY_DSN=https://public@example.ingest.sentry.io/1 VITE_SENTRY_TRACES_SAMPLE_RATE=0 npm run build`. `terraform fmt` could not run locally because Terraform is not installed, and `docker build` could not complete because the Docker daemon was unavailable.
 - **Follow-ups:** Run `terraform init/plan` with live provider credentials and re-run the container build once Docker is running to fully validate external tooling paths.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Zero-Trust Auth and Adversarial Security Hardening
+- **Summary:** Reworked the app around backend-managed `HttpOnly` cookies so Supabase access tokens are no longer exposed to browser storage. Added cookie-backed auth endpoints and refresh rotation, server-side token validation from cookies or bearer headers, LLM prompt scrubbing with strict XML delimiters and PII masking, application-layer takeaway encryption hooks, per-user sliding-window rate limiting for `/books/suggest`, deeper schema constraints, and CI security scanners for SAST, SCA, and secret detection. Updated docs to describe the new zero-trust model and production checklist.
+- **Files Changed:**
+  - `backend/auth.py` - Added cookie token support and shared JWT decode helper.
+  - `backend/auth_controller.py` - Added login, refresh, logout, and session endpoints that issue `HttpOnly` cookies.
+  - `backend/config.py` - Added cookie, auth-key, rate-limit, and encryption settings.
+  - `backend/controllers.py` - Added takeaway encryption/decryption handling and suggest rate limiting.
+  - `backend/data_protection.py` - Added LLM input scrubbing, PII masking, XML serialization, and takeaway encryption helpers.
+  - `backend/rate_limit.py` - Added in-memory sliding-window limiter for the suggestion endpoint.
+  - `backend/services.py` - Added prompt isolation and sanitized XML context generation for Gemini.
+  - `backend/schemas.py` - Added login/session schemas and tighter field constraints.
+  - `backend/app.py` - Registered the auth controller.
+  - `database.sql` - Enabled `pgcrypto` extension for deeper data-protection readiness.
+  - `frontend/src/context/AuthContext.jsx` - Replaced Supabase browser-session handling with backend cookie session handling.
+  - `frontend/src/lib/apiClient.js` - Added `credentials: include` requests and silent refresh retry logic.
+  - `frontend/src/hooks/useBooks.js` - Removed direct access-token dependency from API calls.
+  - `frontend/src/lib/supabaseClient.js` - Removed browser-managed Supabase client session storage.
+  - `frontend/package.json` / `frontend/package-lock.json` - Removed `@supabase/supabase-js` from the browser bundle.
+  - `frontend/vite.config.js` - Removed the obsolete Supabase chunk split.
+  - `pyproject.toml` - Added `cryptography`, `email-validator`, `bandit`, and `pip-audit`.
+  - `bandit.yaml` - Added repository SAST configuration and excluded runtime artifacts.
+  - `.github/workflows/ci.yml` - Added Bandit, pip-audit, npm audit, and gitleaks jobs.
+  - `backend/.env.example` / `frontend/.env.example` - Added zero-trust auth and encryption configuration templates.
+  - `README.md`, `docs/architecture.md`, `docs/api-reference.md`, `docs/usage-examples.md`, `docs/operations.md`, `SECURITY.md` - Documented cookie auth, prompt-injection defenses, rate limits, and PITR/encryption guidance.
+  - `tests/test_config.py`, `tests/test_data_protection.py`, `tests/test_rate_limit.py` - Added coverage for new security controls.
+- **Verification:** Ran `python3 -m pip install -e '.[dev]'`, `npm install` in `frontend/`, `python3 -m ruff check backend tests loadtests`, `python3 -m ruff format --check backend tests loadtests`, `SUPABASE_URL=https://example.supabase.co SUPABASE_KEY=test-key SUPABASE_AUTH_KEY=test-auth-key SUPABASE_JWT_SECRET=test-secret python3 -m pytest`, `python3 -m bandit -r backend -c bandit.yaml -x backend/venv,backend/__pycache__`, `npm run lint`, `VITE_API_URL=http://127.0.0.1:8000 VITE_SENTRY_DSN=https://public@example.ingest.sentry.io/1 VITE_SENTRY_TRACES_SAMPLE_RATE=0 npm run build`, `npm audit --audit-level=high`, and an isolated `pip-audit` run in a temporary virtual environment after upgrading that venv-local `pip`. Also confirmed `SUPABASE_URL=https://example.supabase.co SUPABASE_KEY=test-key SUPABASE_AUTH_KEY=test-auth-key SUPABASE_JWT_SECRET=test-secret python3 -c "import backend.app"` succeeds.
+- **Follow-ups:** Configure Supabase project JWT lifetime to 15 minutes, enable PITR in the hosted project, provide a stable production `TAKEAWAY_ENCRYPTION_KEY`, and decide whether logout should also revoke refresh tokens server-side.
