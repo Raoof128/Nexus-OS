@@ -11,13 +11,23 @@ try:
     from .audit_logger import log_audit_event
     from .data_protection import encrypt_takeaway, hydrate_book_record
     from .rate_limit import enforce_suggest_rate_limit
-    from .schemas import MediaCreate, MediaUpdate, SuggestionResponse
+    from .schemas import (
+        MediaCreate,
+        MediaUpdate,
+        SuggestionItem,
+        SuggestionResponse,
+    )
     from .services import create_supabase_user_client, get_media_suggestion
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from audit_logger import log_audit_event
     from data_protection import encrypt_takeaway, hydrate_book_record
     from rate_limit import enforce_suggest_rate_limit
-    from schemas import MediaCreate, MediaUpdate, SuggestionResponse
+    from schemas import (
+        MediaCreate,
+        MediaUpdate,
+        SuggestionItem,
+        SuggestionResponse,
+    )
     from services import create_supabase_user_client, get_media_suggestion
 
 logger = logging.getLogger(__name__)
@@ -47,15 +57,22 @@ class MediaController(Controller):
         self,
         request: Request,
         type: Optional[str] = Parameter(query="type", default=None),
+        page: int = Parameter(query="page", default=1, ge=1),
+        limit: int = Parameter(query="limit", default=200, ge=1, le=500),
     ) -> list[dict]:
-        """Return the authenticated user's media, optionally filtered by type."""
+        """Return the authenticated user's media with pagination."""
 
         user_id = request.state.user_id
+        offset = (page - 1) * limit
         try:
             query = _get_user_client(request).from_("media").select("*")
             if type and type in VALID_MEDIA_TYPES:
                 query = query.eq("type", type)
-            response = query.order("created_at", desc=True).execute()
+            response = (
+                query.order("created_at", desc=True)
+                .range(offset, offset + limit - 1)
+                .execute()
+            )
         except Exception as exc:  # pragma: no cover - external dependency failure
             logger.exception("Failed to fetch media for user %s", user_id)
             raise HTTPException(
@@ -193,7 +210,14 @@ class MediaController(Controller):
             },
         )
         return SuggestionResponse(
-            suggestion=suggestion.suggestion,
-            reasoning=suggestion.reasoning,
+            suggestions=[
+                SuggestionItem(
+                    title=s.title,
+                    creator=s.creator,
+                    genre=s.genre,
+                    pitch=s.pitch,
+                )
+                for s in suggestion.suggestions
+            ],
             source=suggestion.source,
         )

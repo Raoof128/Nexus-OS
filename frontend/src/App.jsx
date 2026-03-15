@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { LayoutGroup } from 'framer-motion'
+import { AnimatePresence, LayoutGroup, motion as Motion } from 'framer-motion'
 import { BookOpen, Film, Loader2, Sparkles } from 'lucide-react'
 import AddMediaDialog from './components/features/AddBookDialog'
 import AuthPanel from './components/features/AuthPanel'
 import LazyAICmdPalette from './components/features/LazyAICmdPalette'
 import MediaDetailModal from './components/features/MediaDetailModal'
+import MediaVault from './components/features/MediaVault'
 import ResetPasswordPage from './components/features/ResetPasswordPage'
 import KanbanBoard from './components/features/KanbanBoard'
 import Navbar from './components/layout/Navbar'
@@ -53,8 +54,13 @@ function App() {
   const [activeType, setActiveType] = useState('book')
   const { items, loading: dataLoading, error, addMedia, updateMedia, deleteMedia } = useMedia(session, activeType)
   const [selectedItem, setSelectedItem] = useState(null)
+  const [vaultState, setVaultState] = useState(null) // { status, type }
 
   const [recoveryTokens, clearRecoveryTokens] = useRecoveryTokens()
+
+  const openVault = (status, type) => {
+    setVaultState({ status, type })
+  }
 
   if (recoveryTokens) {
     return (
@@ -120,7 +126,7 @@ function App() {
 
       <Navbar />
 
-      {/* Media type tabs — sticky below nav */}
+      {/* Media type tabs */}
       <div className="sticky top-16 z-20 border-b border-white/5 bg-black/80 backdrop-blur-lg">
         <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-2 sm:px-6">
           {MEDIA_TYPES.map((type) => {
@@ -130,7 +136,7 @@ function App() {
               <button
                 key={type}
                 type="button"
-                onClick={() => setActiveType(type)}
+                onClick={() => { setActiveType(type); setVaultState(null) }}
                 className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-mono text-[11px] uppercase tracking-wider transition-all sm:px-4 sm:text-xs ${
                   isActive
                     ? 'bg-primary/20 text-primary shadow-[0_0_10px_var(--color-primary)]'
@@ -145,7 +151,7 @@ function App() {
         </div>
       </div>
 
-      {/* Scrollable main content */}
+      {/* Main content */}
       <main className="relative z-10 flex-1 overflow-y-auto custom-scrollbar">
         {dataLoading && items.length === 0 ? (
           <div className="flex h-64 items-center justify-center">
@@ -160,17 +166,47 @@ function App() {
             Critical API Error: {error}
           </div>
         ) : (
-          <div className="mx-auto max-w-7xl p-4 sm:p-6">
-            <LayoutGroup>
-              <KanbanBoard
-                items={items}
-                mediaType={activeType}
-                onUpdate={updateMedia}
-                onDelete={deleteMedia}
-                onSelect={setSelectedItem}
-              />
-            </LayoutGroup>
-          </div>
+          <AnimatePresence mode="wait">
+            {vaultState ? (
+              <Motion.div
+                key="vault"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.25 }}
+              >
+                <MediaVault
+                  items={items}
+                  mediaType={activeType}
+                  filterStatus={vaultState.status}
+                  onBack={() => setVaultState(null)}
+                  onUpdate={updateMedia}
+                  onDelete={deleteMedia}
+                  onSelect={setSelectedItem}
+                />
+              </Motion.div>
+            ) : (
+              <Motion.div
+                key="overview"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.25 }}
+                className="mx-auto max-w-7xl p-4 sm:p-6"
+              >
+                <LayoutGroup>
+                  <KanbanBoard
+                    items={items}
+                    mediaType={activeType}
+                    onUpdate={updateMedia}
+                    onDelete={deleteMedia}
+                    onSelect={setSelectedItem}
+                    onHeaderClick={openVault}
+                  />
+                </LayoutGroup>
+              </Motion.div>
+            )}
+          </AnimatePresence>
         )}
       </main>
 

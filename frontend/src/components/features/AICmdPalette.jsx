@@ -5,26 +5,25 @@ import { useSuggest } from '../../hooks/useSuggest'
 import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 
 export default function AICmdPalette({ open, onOpenChange, mediaType = 'book' }) {
-  const [suggestion, setSuggestion] = useState(null)
+  const [result, setResult] = useState(null)
   const config = MEDIA_CONFIG[mediaType]
   const { suggestBook, suggestError, suggesting } = useSuggest(mediaType)
 
   const handleSuggest = async () => {
     const response = await suggestBook()
     if (response) {
-      setSuggestion(response)
+      setResult(response)
     }
   }
 
   return (
     <Command.Dialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(v) => { if (!v) setResult(null); onOpenChange(v) }}
       label="Global AI Command Menu"
       className="fixed left-1/2 top-1/2 z-[100] w-full max-w-[640px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border border-white/10 bg-zinc-950/90 p-4 font-mono shadow-2xl backdrop-blur-xl"
       overlayClassName="fixed inset-0 z-[99] bg-black/50 backdrop-blur-sm"
     >
-      {/* Visually hidden a11y elements for Radix Dialog */}
       <span className="sr-only" role="heading" aria-level="2">AI Command Menu</span>
       <p className="sr-only">Search commands or request AI-powered media suggestions.</p>
 
@@ -37,7 +36,7 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book' })
         />
       </div>
 
-      <Command.List className="h-full max-h-[300px] overflow-y-auto">
+      <Command.List className="h-full max-h-[400px] overflow-y-auto custom-scrollbar">
         <Command.Empty className="py-6 text-center font-mono text-sm text-neutral-500">
           No commands found.
         </Command.Empty>
@@ -66,19 +65,44 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book' })
           </div>
         )}
 
-        {suggestion && (
-          <div className="mt-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <h4 className="flex items-center gap-2 text-lg font-bold capitalize text-primary">
-                <Sparkles size={18} /> {suggestion.suggestion}
-              </h4>
-              <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-[0.3em] text-neutral-400">
-                {suggestion.source === 'local' ? 'Local Fallback' : 'Gemini Live'}
+        {result && result.suggestions && (
+          <div className="mt-3 space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/70">
+                Recommendations
+              </p>
+              <span className="rounded-full border border-white/10 px-3 py-0.5 text-[10px] uppercase tracking-[0.3em] text-neutral-400">
+                {result.source === 'local' ? 'Local Fallback' : 'Gemini Live'}
               </span>
             </div>
-            <p className="text-sm leading-relaxed text-neutral-400">
-              {suggestion.reasoning}
-            </p>
+            {result.suggestions.map((s, i) => (
+              <div
+                key={`${s.title}-${i}`}
+                className="rounded-lg border border-primary/20 bg-primary/5 p-4"
+              >
+                <div className="mb-1 flex items-start justify-between gap-2">
+                  <h4 className="flex items-center gap-2 text-base font-bold text-primary">
+                    <Sparkles size={14} className="shrink-0" />
+                    {s.title}
+                  </h4>
+                  {s.genre && (
+                    <span className="shrink-0 rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-neutral-400 ring-1 ring-white/10">
+                      {s.genre}
+                    </span>
+                  )}
+                </div>
+                {s.creator && (
+                  <p className="mb-1 font-mono text-[11px] text-muted-foreground">
+                    {config?.creatorLabel}: {s.creator}
+                  </p>
+                )}
+                {s.pitch && (
+                  <p className="text-sm leading-relaxed text-neutral-300">
+                    {s.pitch}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </Command.List>

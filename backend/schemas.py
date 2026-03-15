@@ -153,9 +153,17 @@ class MediaUpdate(BaseModel):
         return _validate_takeaway_field(value)
 
 
+class SuggestionItem(BaseModel):
+    """A single media recommendation."""
+
+    title: str
+    creator: str = ""
+    genre: str = ""
+    pitch: str = ""
+
+
 class SuggestionResponse(BaseModel):
     """Recommendation response returned from the suggestion endpoint."""
 
-    suggestion: str
-    reasoning: str
+    suggestions: list[SuggestionItem]
     source: Literal["gemini", "local"]

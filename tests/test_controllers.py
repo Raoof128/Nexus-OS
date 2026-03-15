@@ -98,6 +98,7 @@ class TestMediaControllerCRUD:
         mock_query.select.return_value = mock_query
         mock_query.eq.return_value = mock_query
         mock_query.order.return_value = mock_query
+        mock_query.range.return_value = mock_query
         mock_query.execute.return_value = FakeSupabaseResponse(
             data=[
                 {
