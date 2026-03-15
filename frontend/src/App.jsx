@@ -38,56 +38,91 @@ function App() {
 
   if (!session) {
     return (
-      <div className="flex min-h-screen flex-col bg-background font-mono text-foreground relative overflow-hidden">
-        {/* Neon Cyber Grid background mock */}
+      <div className="relative flex min-h-screen flex-col overflow-hidden bg-background font-mono text-foreground">
         <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-        
+
         <Navbar />
-        <main className="flex-1 z-10 flex items-center justify-center p-6">
-          <form 
-            onSubmit={handleLogin} 
-            className="w-full max-w-sm rounded-2xl border border-white/10 bg-black/60 p-8 shadow-2xl backdrop-blur-xl relative"
-          >
-            <div className="absolute -inset-1 blur-2xl opacity-20 bg-primary/50 animate-pulse z-[-1]" />
-            <h2 className="mb-6 text-2xl font-bold uppercase tracking-wider text-white">System Login</h2>
-            
-            {authError && (
-              <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive font-bold uppercase tracking-wider">
-                {authError}
+        <main className="z-10 flex flex-1 items-center justify-center p-6">
+          <div className="grid w-full max-w-6xl gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+            <section className="rounded-[2rem] border border-white/10 bg-black/40 p-10 shadow-2xl backdrop-blur-xl">
+              <p className="mb-3 text-xs uppercase tracking-[0.4em] text-primary">
+                personal media vault
+              </p>
+              <h1 className="max-w-3xl text-4xl font-black uppercase tracking-tight text-white md:text-6xl">
+                One archive for your anime, movies, and books.
+              </h1>
+              <p className="mt-6 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
+                Nexus Archive is built to replace scattered watchlists and reading lists
+                with one identity-driven dashboard. Track what you finished, what you
+                are watching now, what you want to read next, and the notes that make
+                your taste personal.
+              </p>
+              <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                {['Anime tracking', 'Movie watchlists', 'Book notes'].map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-5 text-sm uppercase tracking-wider text-white"
+                  >
+                    {item}
+                  </div>
+                ))}
               </div>
-            )}
-            
-            <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-xs font-semibold text-muted-foreground uppercase">Identity // Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white placeholder:text-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-                  placeholder="runner@nexus.net"
-                  required
-                />
+            </section>
+
+            <form
+              onSubmit={handleLogin}
+              className="relative w-full rounded-[2rem] border border-white/10 bg-black/60 p-8 shadow-2xl backdrop-blur-xl"
+            >
+              <div className="absolute -inset-1 -z-10 bg-primary/40 opacity-20 blur-2xl" />
+              <h2 className="mb-2 text-2xl font-bold uppercase tracking-wider text-white">
+                System Login
+              </h2>
+              <p className="mb-6 text-sm text-muted-foreground">
+                Authenticate to load your private catalog and recommendation engine.
+              </p>
+
+              {authError && (
+                <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm font-bold uppercase tracking-wider text-destructive">
+                  {authError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase text-muted-foreground">
+                    Identity // Email
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    placeholder="runner@nexus.net"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase text-muted-foreground">
+                    Passkey // Secret
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="mt-6 w-full rounded-md bg-primary py-3 text-sm font-bold uppercase text-primary-foreground shadow-[0_0_15px_var(--color-primary)] transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_var(--color-primary)] focus:outline-none"
+                >
+                  Authenticate
+                </button>
               </div>
-              <div>
-                <label className="mb-2 block text-xs font-semibold text-muted-foreground uppercase">Passkey // Secret</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="mt-6 w-full rounded-md bg-primary py-3 text-sm font-bold uppercase shadow-[0_0_15px_var(--color-primary)] transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_var(--color-primary)] text-primary-foreground focus:outline-none"
-              >
-                Authenticate
-              </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </main>
       </div>
     )
@@ -95,23 +130,21 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background font-mono text-foreground">
-       {/* Background noise texture or grid can go here */}
-       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#4f4f4f10_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f10_1px,transparent_1px)] bg-[size:30px_30px] opacity-50 pointer-events-none"></div>
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(to_right,#4f4f4f10_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f10_1px,transparent_1px)] bg-[size:30px_30px] opacity-50"></div>
 
       <Navbar />
-      
+
       <main className="relative z-10 h-[calc(100vh-64px)] overflow-hidden">
         {dataLoading && books.length === 0 ? (
-           <div className="flex h-full items-center justify-center">
-             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-           </div>
+          <div className="flex h-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
         ) : error ? (
-           <div className="p-10 text-destructive bg-destructive/10 border-b border-destructive text-center uppercase font-bold tracking-widest">
-             Critical API Error: {error}
-           </div>
+          <div className="border-b border-destructive bg-destructive/10 p-10 text-center font-bold uppercase tracking-widest text-destructive">
+            Critical API Error: {error}
+          </div>
         ) : (
           <BentoGrid>
-            {/* The Kanban spans across the bento grid */}
             <div className="col-span-1 md:col-span-2 lg:col-span-3 h-[75vh]">
               <KanbanBoard books={books} />
             </div>

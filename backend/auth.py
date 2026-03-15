@@ -1,9 +1,9 @@
 """Authentication middleware for Supabase JWT validation."""
 
 import jwt
-from litestar.middleware import MiddlewareProtocol
 from litestar.connection import ASGIConnection
 from litestar.exceptions import NotAuthorizedException
+from litestar.middleware import MiddlewareProtocol
 from litestar.types import ASGIApp, Receive, Scope, Send
 
 try:
@@ -11,7 +11,10 @@ try:
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
 
+
 class SupabaseAuthMiddleware(MiddlewareProtocol):
+    """Validate Supabase JWTs and inject the authenticated user ID."""
+
     def __init__(self, app: ASGIApp):
         self.app = app
         self.jwt_secret = get_settings().supabase_jwt_secret
@@ -35,9 +38,9 @@ class SupabaseAuthMiddleware(MiddlewareProtocol):
                 )
                 # Inject the user_id into the request state
                 scope["state"]["user_id"] = payload.get("sub")
-            except jwt.ExpiredSignatureError:
-                raise NotAuthorizedException("Token expired")
-            except jwt.InvalidTokenError:
-                raise NotAuthorizedException("Invalid token")
+            except jwt.ExpiredSignatureError as exc:
+                raise NotAuthorizedException("Token expired") from exc
+            except jwt.InvalidTokenError as exc:
+                raise NotAuthorizedException("Invalid token") from exc
 
         await self.app(scope, receive, send)

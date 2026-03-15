@@ -2,6 +2,50 @@
 
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Production Repository Audit and Polish
+- **Summary:** Completed a production-grade repository pass across docs, tooling, backend structure, validation, tests, CI, and frontend state handling. Added professional governance documents, architecture and API references, Python project configuration, automated tests, GitHub Actions CI, shared frontend auth context, stricter API env handling, and database indexing/constraint improvements.
+- **Files Changed:**
+  - `.gitignore` - Added governance file ignores per request plus Python cache and egg-info ignores.
+  - `.editorconfig` - Standardized whitespace and indentation rules.
+  - `.pre-commit-config.yaml` - Added pre-commit hooks for Ruff and basic file hygiene.
+  - `README.md` - Added full project overview, setup, quality gates, and documentation index.
+  - `LICENSE` - Added MIT license.
+  - `CONTRIBUTING.md` - Added contribution workflow and expectations.
+  - `CODE_OF_CONDUCT.md` - Added collaboration standards.
+  - `SECURITY.md` - Added security reporting and handling policy.
+  - `Makefile` - Added common lint, test, and build commands.
+  - `pyproject.toml` - Added Python packaging, Ruff, and pytest configuration.
+  - `.github/workflows/ci.yml` - Added backend and frontend CI.
+  - `docs/architecture.md` - Added architecture overview.
+  - `docs/api-reference.md` - Added API documentation.
+  - `docs/usage-examples.md` - Added product and env usage examples.
+  - `backend/logging_config.py` - Added centralized backend logging setup.
+  - `backend/services.py` - Added service-layer integration helpers for Supabase and Gemini.
+  - `backend/app.py` - Wired centralized logging.
+  - `backend/auth.py` - Improved middleware documentation and exception chaining.
+  - `backend/controllers.py` - Separated service usage, improved docstrings, and tightened failure handling.
+  - `backend/config.py` - Extended typed settings to include allowed origins.
+  - `backend/schemas.py` - Added clearer schema docstrings.
+  - `database.sql` - Added status constraint and index for user-centric lookups.
+  - `tests/test_config.py` - Added configuration validation tests.
+  - `tests/test_schemas.py` - Added request schema validation tests.
+  - `frontend/src/context/AuthContext.jsx` - Added shared auth provider.
+  - `frontend/src/context/auth-context.js` - Added shared auth context access helper.
+  - `frontend/src/hooks/useAuth.js` - Converted hook to shared context access.
+  - `frontend/src/hooks/useBooks.js` - Removed API fallback and reset errors per request.
+  - `frontend/src/main.jsx` - Mounted app under shared auth provider.
+  - `frontend/src/App.jsx` - Reworked landing/login presentation and clarified product messaging.
+  - `frontend/src/components/layout/Navbar.jsx` - Kept auth display bound to shared session state.
+  - `frontend/src/components/features/AICmdPalette.jsx` - Replaced clickable div with button and cleaned command copy.
+  - `frontend/package.json` - Added project metadata, `check` script, and aligned Vite versions.
+  - `frontend/package-lock.json` - Regenerated dependency lockfile for compatible frontend tooling.
+  - `frontend/index.html` - Added product title and description metadata.
+  - `frontend/README.md` - Replaced template text with workspace-specific guidance.
+- **Verification:** Ran `python3 -m pip install -e '.[dev]'`, `npm install` in `frontend/`, `python3 -m ruff check backend tests`, `python3 -m ruff format --check backend tests`, `python3 -m pytest`, `npm run lint`, and `VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_ANON_KEY=example-anon-key VITE_API_URL=http://127.0.0.1:8000 npm run build`.
+- **Follow-ups:** The frontend production bundle still exceeds Vite’s 500 kB warning threshold; next improvement should split the command palette and related heavy UI into lazy-loaded chunks.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Post-Verification Polish
 - **Summary:** Normalized controller formatting after verification so the backend remediation remains clean and presentation-ready.
 - **Files Changed:**

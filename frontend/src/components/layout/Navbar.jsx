@@ -16,7 +16,7 @@ export default function Navbar() {
         
         {session ? (
           <div className="flex items-center gap-4">
-            <span className="font-mono text-xs text-muted-foreground hidden sm:inline-block">
+            <span className="hidden font-mono text-xs text-muted-foreground sm:inline-block">
               {session.user.email}
             </span>
             <button

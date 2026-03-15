@@ -1,6 +1,10 @@
 import { useState, useCallback } from 'react'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+const API_URL = import.meta.env.VITE_API_URL
+
+if (!API_URL) {
+  throw new Error('Missing required environment variable: VITE_API_URL')
+}
 
 export function useBooks(session) {
   const [books, setBooks] = useState([])
@@ -10,6 +14,7 @@ export function useBooks(session) {
   const fetchBooks = useCallback(async () => {
     if (!session?.access_token) return
     setLoading(true)
+    setError(null)
     try {
       const response = await fetch(`${API_URL}/books`, {
         headers: {
@@ -28,6 +33,7 @@ export function useBooks(session) {
 
   const addBook = async (bookData) => {
     if (!session?.access_token) return null
+    setError(null)
     try {
       const response = await fetch(`${API_URL}/books`, {
         method: 'POST',
@@ -49,6 +55,7 @@ export function useBooks(session) {
 
   const suggestBook = async () => {
     if (!session?.access_token) return null
+    setError(null)
     try {
       const response = await fetch(`${API_URL}/books/suggest`, {
         headers: {

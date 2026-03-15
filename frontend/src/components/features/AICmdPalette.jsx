@@ -34,13 +34,14 @@ export default function AICmdPalette() {
 
   return (
     <>
-      <div 
-         className="cursor-pointer text-xs font-mono fixed bottom-6 right-6 z-50 rounded-full bg-primary/20 hover:bg-primary/40 text-primary border border-primary px-4 py-2 flex items-center gap-2 backdrop-blur-xl shadow-[0_0_15px_var(--color-primary)] transition-all animate-none hover:animate-pulse"
-         onClick={() => setOpen(true)}
+      <button
+        type="button"
+        className="fixed bottom-6 right-6 z-50 flex cursor-pointer items-center gap-2 rounded-full border border-primary bg-primary/20 px-4 py-2 font-mono text-xs text-primary shadow-[0_0_15px_var(--color-primary)] backdrop-blur-xl transition-all hover:bg-primary/40 hover:animate-pulse"
+        onClick={() => setOpen(true)}
       >
         <Sparkles size={16} />
         Activate AI_CMD <span>[ Cmd + K ]</span>
-      </div>
+      </button>
 
       <Command.Dialog 
         open={open} 
@@ -66,7 +67,7 @@ export default function AICmdPalette() {
                 onSelect={handleSuggest}
                 className="flex items-center gap-3 px-4 py-3 rounded-md cursor-pointer hover:bg-white/5 hover:text-primary transition-all aria-selected:bg-white/10 aria-selected:text-primary text-white text-sm my-1"
             >
-              🚀 Run Intelligence Matrix // Suggest a Book
+              Run Intelligence Matrix // Suggest a Book
             </Command.Item>
           </Command.Group>
 

@@ -11,6 +11,12 @@ CREATE TABLE books (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+ALTER TABLE books
+  ADD CONSTRAINT books_status_check
+  CHECK (status IN ('To Read', 'Reading', 'Finished'));
+
+CREATE INDEX books_user_id_created_at_idx ON books (user_id, created_at DESC);
+
 -- 2. Enable Row Level Security (RLS)
 ALTER TABLE books ENABLE ROW LEVEL SECURITY;
 

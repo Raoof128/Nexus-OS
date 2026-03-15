@@ -20,6 +20,10 @@ class BackendSettings:
     supabase_key: str
     supabase_jwt_secret: str
     gemini_api_key: str | None = None
+    allowed_origins: tuple[str, ...] = (
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    )
 
 
 def _require_env(name: str) -> str:

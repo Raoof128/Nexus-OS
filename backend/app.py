@@ -6,16 +6,20 @@ from litestar.config.cors import CORSConfig
 try:
     from .auth import SupabaseAuthMiddleware
     from .controllers import BookController
+    from .logging_config import configure_logging
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from auth import SupabaseAuthMiddleware
     from controllers import BookController
+    from logging_config import configure_logging
+
+configure_logging()
 
 # Explicitly configure CORS. No allow_origins=["*"] nonsense.
 cors_config = CORSConfig(
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"]
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app = Litestar(

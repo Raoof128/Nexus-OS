@@ -1,5 +1,10 @@
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
 
 .DS_Store
 .idea/
@@ -7,6 +12,8 @@ __pycache__/
 
 .env
 .env.local
+AGENT.md
+CHANGELOG.md
 
 backend/.env
 backend/venv/
