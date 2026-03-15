@@ -1,28 +1,56 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import AddBookDialog from './components/features/AddBookDialog'
+import AuthPanel from './components/features/AuthPanel'
 import LazyAICmdPalette from './components/features/LazyAICmdPalette'
+import ResetPasswordPage from './components/features/ResetPasswordPage'
 import BentoGrid from './components/layout/BentoGrid'
 import KanbanBoard from './components/features/KanbanBoard'
 import Navbar from './components/layout/Navbar'
 import { useAuth } from './hooks/useAuth'
 import { useBooks } from './hooks/useBooks'
 
+function extractRecoveryToken() {
+  const hash = window.location.hash.substring(1)
+  const hashParams = new URLSearchParams(hash)
+  if (hashParams.get('type') === 'recovery' && hashParams.get('access_token')) {
+    return hashParams.get('access_token')
+  }
+
+  const searchParams = new URLSearchParams(window.location.search)
+  if (searchParams.get('type') === 'recovery' && searchParams.get('access_token')) {
+    return searchParams.get('access_token')
+  }
+
+  return null
+}
+
+function useRecoveryToken() {
+  const [cleared, setCleared] = useState(false)
+  const token = useMemo(() => {
+    if (cleared) return null
+    const found = extractRecoveryToken()
+    if (found) {
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+    return found
+  }, [cleared])
+  return [token, () => setCleared(true)]
+}
+
 function App() {
-  const { session, loading: authLoading, signIn } = useAuth()
+  const { session, loading: authLoading } = useAuth()
   const { books, loading: dataLoading, error, addBook, updateBook, deleteBook } = useBooks(session)
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [authError, setAuthError] = useState(null)
+  const [recoveryToken, clearRecoveryToken] = useRecoveryToken()
 
-  const handleLogin = async (event) => {
-    event.preventDefault()
-    setAuthError(null)
-    const { error: signInError } = await signIn(email, password)
-    if (signInError) {
-      setAuthError(signInError.message)
-    }
+  if (recoveryToken) {
+    return (
+      <ResetPasswordPage
+        accessToken={recoveryToken}
+        onComplete={clearRecoveryToken}
+      />
+    )
   }
 
   if (authLoading) {
@@ -66,70 +94,7 @@ function App() {
               </div>
             </section>
 
-            <form
-              onSubmit={handleLogin}
-              className="relative w-full rounded-[2rem] border border-white/10 bg-black/60 p-8 shadow-2xl backdrop-blur-xl"
-            >
-              <div className="absolute -inset-1 -z-10 bg-primary/40 opacity-20 blur-2xl" />
-              <h2 className="mb-2 text-2xl font-bold uppercase tracking-wider text-white">
-                System Login
-              </h2>
-              <p className="mb-6 text-sm text-muted-foreground">
-                Authenticate to load your private catalog and recommendation engine.
-              </p>
-
-              {authError && (
-                <div
-                  role="alert"
-                  className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm font-bold uppercase tracking-wider text-destructive"
-                >
-                  {authError}
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="mb-2 block text-xs font-semibold uppercase text-muted-foreground"
-                  >
-                    Identity // Email
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50"
-                    placeholder="runner@nexus.net"
-                    required
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="password"
-                    className="mb-2 block text-xs font-semibold uppercase text-muted-foreground"
-                  >
-                    Passkey // Secret
-                  </label>
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="mt-6 w-full rounded-md bg-primary py-3 text-sm font-bold uppercase text-primary-foreground shadow-[0_0_15px_var(--color-primary)] transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_var(--color-primary)] focus:outline-none"
-                >
-                  Authenticate
-                </button>
-              </div>
-            </form>
+            <AuthPanel />
           </div>
         </main>
       </div>

@@ -22,16 +22,23 @@ vi.mock('./hooks/useBooks', () => ({
   })),
 }))
 
+vi.mock('./lib/apiClient', () => ({
+  authFetch: vi.fn().mockResolvedValue({ ok: true }),
+  apiFetch: vi.fn().mockResolvedValue([]),
+  refreshSession: vi.fn().mockResolvedValue({}),
+}))
+
 const { useAuth } = await import('./hooks/useAuth')
 const { useBooks } = await import('./hooks/useBooks')
 
 describe('App', () => {
-  it('renders an accessible login form when signed out', () => {
+  it('renders the login panel with register and forgot links when signed out', () => {
     render(<App />)
 
-    expect(screen.getByLabelText(/identity \/\/ email/i)).toBeTruthy()
-    expect(screen.getByLabelText(/passkey \/\/ secret/i)).toBeTruthy()
+    expect(screen.getByText(/system login/i)).toBeTruthy()
     expect(screen.getByRole('button', { name: /authenticate/i })).toBeTruthy()
+    expect(screen.getByText(/create account/i)).toBeTruthy()
+    expect(screen.getByText(/forgot password/i)).toBeTruthy()
   })
 
   it('shows loading spinner when auth is loading', () => {

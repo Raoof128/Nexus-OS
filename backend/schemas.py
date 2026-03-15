@@ -48,6 +48,26 @@ class AuthSessionResponse(BaseModel):
     expires_at: int | None = None
 
 
+class RegisterRequest(BaseModel):
+    """Registration request submitted by the frontend."""
+
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Forgot password request — email only."""
+
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Password reset request with the recovery token."""
+
+    access_token: str = Field(min_length=1)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class BookCreate(BaseModel):
     """Incoming payload for a user-created book entry."""
 

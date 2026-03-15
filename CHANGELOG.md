@@ -2,6 +2,16 @@
 
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Auth Sliding Panels — Register, Forgot Password, Reset Password
+- **Summary:** Added registration, forgot password, and password reset flows with direction-aware sliding panel transitions. Three new backend endpoints proxy Supabase auth with rate limiting and HttpOnly cookies. Frontend AuthPanel slides between login/register/forgot forms preserving state. Recovery token detection from URL hash and search params with expired-session fallback. Email enumeration prevented on forgot-password.
+- **Files Changed:**
+  - `backend/auth_controller.py`, `backend/schemas.py`, `backend/config.py` — New auth endpoints and schemas.
+  - `frontend/src/components/features/AuthPanel.jsx`, `frontend/src/components/features/ResetPasswordPage.jsx` — New components.
+  - `frontend/src/App.jsx`, `frontend/src/App.test.jsx` — Wired AuthPanel and recovery token detection.
+- **Verification:** All backend/frontend lint, tests, and build pass.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Production-Readiness Audit Fix — All 17 Findings Resolved
 - **Summary:** Resolved every finding from the Staff Principal audit across all five domains (Architecture, Performance, Security, UI/UX, DevOps). Fixed the Redis rate limiter race condition with an atomic Lua script, completed the CRUD loop with PUT/DELETE book endpoints and a full Add Book UI with status advancement and deletion on CyberCard, replaced the development server with production uvicorn in the Dockerfile with HEALTHCHECK, made AUDIT_LOG_SALT a required env var to prevent silent correlation breakage, aligned LLM few-shot examples with actual JSON serialization format, removed dead admin client code, added AbortController request timeouts to the frontend API client, added Redis to docker-compose, extracted a dedicated useSuggest hook to eliminate unnecessary books query in the AI palette, fixed the stale meta description to books-only, reduced initial auth load requests for logged-out visitors, documented CSP unsafe-inline rationale, documented threading.Lock choice in rate limiter, added controller integration tests with mocked Supabase, and expanded frontend tests to cover authenticated, loading, and error states.
 - **Files Changed:**

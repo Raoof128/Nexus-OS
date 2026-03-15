@@ -24,6 +24,23 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Auth Sliding Panels — Register, Forgot Password, Reset Password
+- **Summary:** Added registration, forgot password, and password reset flows with direction-aware sliding panel transitions. Backend endpoints proxy Supabase auth operations through rate-limited, cookie-backed controllers. Frontend uses a three-panel CSS `translateX` slider with persistent form state across slides. Password reset detects recovery tokens from both URL hash and search params, with an expired-session fallback. Always-success response on forgot-password to prevent email enumeration. Post-reset flow logs in the user with fresh session cookies.
+- **Files Changed:**
+  - `backend/auth_controller.py` — Added `/auth/register`, `/auth/forgot-password`, `/auth/reset-password` endpoints.
+  - `backend/schemas.py` — Added `RegisterRequest`, `ForgotPasswordRequest`, `ResetPasswordRequest` schemas.
+  - `backend/config.py` — Added `password_reset_redirect_url` setting.
+  - `frontend/src/components/features/AuthPanel.jsx` — New sliding panel container with login, register, and forgot forms.
+  - `frontend/src/components/features/ResetPasswordPage.jsx` — New standalone reset password view with expired-token handling.
+  - `frontend/src/App.jsx` — Replaced inline login form with AuthPanel, added recovery token detection from hash/params.
+  - `frontend/src/App.test.jsx` — Updated test assertions for new AuthPanel structure.
+  - `docs/plans/2026-03-15-auth-sliding-panels-design.md` — Design document.
+  - `backend/.env` — Added `PASSWORD_RESET_REDIRECT_URL`.
+- **Verification:** `ruff check` clean, `ruff format --check` clean, `pytest` 24/24 pass, `npm run lint` clean, `npm run test` 4/4 pass, `npm run build` clean.
+- **Follow-ups:** Configure `PASSWORD_RESET_REDIRECT_URL` for production domain. Consider email confirmation requirement toggle.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Production-Readiness Audit Fix — All 17 Findings Resolved
 - **Summary:** Resolved every finding from the Staff Principal audit across all five domains (Architecture, Performance, Security, UI/UX, DevOps). Fixed the Redis rate limiter race condition with an atomic Lua script, completed the CRUD loop with PUT/DELETE book endpoints and a full Add Book UI with status advancement and deletion on CyberCard, replaced the development server with production uvicorn in the Dockerfile with HEALTHCHECK, made AUDIT_LOG_SALT a required env var to prevent silent correlation breakage, aligned LLM few-shot examples with actual JSON serialization format, removed dead admin client code, added AbortController request timeouts to the frontend API client, added Redis to docker-compose, extracted a dedicated useSuggest hook to eliminate unnecessary books query in the AI palette, fixed the stale meta description to books-only, reduced initial auth load requests for logged-out visitors, documented CSP unsafe-inline rationale, documented threading.Lock choice in rate limiter, added controller integration tests with mocked Supabase, and expanded frontend tests to cover authenticated, loading, and error states.
 - **Files Changed:**

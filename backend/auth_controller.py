@@ -11,13 +11,27 @@ try:
     from .auth import decode_supabase_token
     from .config import get_settings
     from .rate_limit import enforce_auth_rate_limit
-    from .schemas import AuthSessionResponse, LoginRequest, SessionUser
+    from .schemas import (
+        AuthSessionResponse,
+        ForgotPasswordRequest,
+        LoginRequest,
+        RegisterRequest,
+        ResetPasswordRequest,
+        SessionUser,
+    )
     from .services import create_supabase_auth_client
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from auth import decode_supabase_token
     from config import get_settings
     from rate_limit import enforce_auth_rate_limit
-    from schemas import AuthSessionResponse, LoginRequest, SessionUser
+    from schemas import (
+        AuthSessionResponse,
+        ForgotPasswordRequest,
+        LoginRequest,
+        RegisterRequest,
+        ResetPasswordRequest,
+        SessionUser,
+    )
     from services import create_supabase_auth_client
 
 logger = logging.getLogger(__name__)
@@ -166,6 +180,103 @@ class AuthController(Controller):
                 )
         response = Response(content={"ok": True})
         _clear_auth_cookies(response)
+        return response
+
+    @post("/register")
+    async def register(self, data: RegisterRequest, request: Request) -> Response:
+        """Create a new account and set secure session cookies."""
+
+        enforce_auth_rate_limit(f"register:{_client_ip(request)}")
+        try:
+            auth_response = create_supabase_auth_client().auth.sign_up(
+                {"email": data.email, "password": data.password}
+            )
+        except Exception as exc:  # pragma: no cover - upstream auth failure
+            logger.exception("Supabase sign-up failed for %s", data.email)
+            raise HTTPException(status_code=400, detail="Registration failed") from exc
+
+        if not auth_response.session:
+            return Response(
+                content={"ok": True, "message": "Check your email to confirm"},
+                status_code=200,
+            )
+
+        payload = _build_session_response(auth_response.session.access_token)
+        response = Response(content=payload.model_dump())
+        _attach_auth_cookies(
+            response,
+            access_token=auth_response.session.access_token,
+            refresh_token=auth_response.session.refresh_token,
+        )
+        return response
+
+    @post("/forgot-password")
+    async def forgot_password(
+        self, data: ForgotPasswordRequest, request: Request
+    ) -> dict:
+        """Send a password reset email. Always succeeds to block enumeration."""
+
+        enforce_auth_rate_limit(f"forgot:{_client_ip(request)}")
+        settings = get_settings()
+        redirect_url = settings.password_reset_redirect_url
+        try:
+            create_supabase_auth_client().auth.reset_password_email(
+                data.email,
+                options={"redirect_to": redirect_url} if redirect_url else {},
+            )
+        except Exception:  # pragma: no cover - upstream auth failure
+            logger.warning("Supabase password reset request failed", exc_info=True)
+        return {"ok": True, "message": "If that email exists, check your inbox"}
+
+    @post("/reset-password")
+    async def reset_password(
+        self, data: ResetPasswordRequest, request: Request
+    ) -> Response:
+        """Set a new password using the recovery access token."""
+
+        enforce_auth_rate_limit(f"reset:{_client_ip(request)}")
+        try:
+            client = create_supabase_auth_client()
+            client.auth.set_session(data.access_token, data.access_token)
+            user_response = client.auth.update_user({"password": data.new_password})
+        except Exception as exc:  # pragma: no cover - upstream auth failure
+            logger.exception("Password reset failed")
+            raise HTTPException(
+                status_code=400,
+                detail="Password reset failed. The link may have expired.",
+            ) from exc
+
+        if not user_response or not user_response.user:
+            raise HTTPException(
+                status_code=400,
+                detail="Password reset failed. The link may have expired.",
+            )
+
+        try:
+            login_response = client.auth.sign_in_with_password(
+                {
+                    "email": user_response.user.email,
+                    "password": data.new_password,
+                }
+            )
+        except Exception as exc:  # pragma: no cover - upstream auth failure
+            logger.exception("Post-reset sign-in failed")
+            raise HTTPException(
+                status_code=400, detail="Password updated but login failed"
+            ) from exc
+
+        if not login_response.session:
+            raise HTTPException(
+                status_code=400, detail="Password updated but login failed"
+            )
+
+        payload = _build_session_response(login_response.session.access_token)
+        response = Response(content=payload.model_dump())
+        _attach_auth_cookies(
+            response,
+            access_token=login_response.session.access_token,
+            refresh_token=login_response.session.refresh_token,
+        )
         return response
 
     @get("/session")
