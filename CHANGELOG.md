@@ -2,6 +2,13 @@
 
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Responsive Dashboard + Deep Dive Detail Modal
+- **Summary:** Full mobile-first responsive refactor. Added shared-element detail modal with Framer Motion layoutId, XSS-safe rendering, Esc close, cyberpunk scrollbar. Fixed dashboard scrollability.
+- **Files Changed:** MediaDetailModal.jsx (new), CyberCard.jsx, KanbanBoard.jsx, App.jsx, index.css, App.test.jsx.
+- **Verification:** Lint, test, build all clean.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Unified Media Model — Books, Movies, Anime
 - **Summary:** Expanded from books-only to unified media engine with Postgres ENUM, `media` table, type-filtered API, tabbed Kanban UI, and ES256 JWT/PostgREST fixes.
 - **Files Changed:** Migration, database.sql, backend (app, controllers, schemas, services, auth), frontend (App, hooks, components, tests), test suite.

@@ -24,6 +24,20 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Responsive Dashboard + Deep Dive Detail Modal
+- **Summary:** Refactored the media dashboard for full mobile-first responsiveness with smooth momentum scrolling. Added a "Deep Dive" detail modal using Framer Motion `layoutId` for shared element transitions — clicking any CyberCard expands it into a centered modal with backdrop blur showing all fields (title, creator, genre, rating, status, sub_info, takeaway). Implemented Esc key close, XSS-safe string rendering via `textContent` sanitization, and cyberpunk neon scrollbar styling. Fixed layout from `overflow-hidden` to proper flex scroll container so the Kanban is fully scrollable without breaking the sticky navbar/tabs.
+- **Files Changed:**
+  - `frontend/src/components/features/MediaDetailModal.jsx` — New shared-element detail modal with AnimatePresence, star ratings, metadata grid, action buttons.
+  - `frontend/src/components/features/CyberCard.jsx` — Added `layoutId`, `onClick` → `onSelect`, responsive padding/text sizes.
+  - `frontend/src/components/features/KanbanBoard.jsx` — Responsive grid, scrollable columns with max-height, passes `onSelect`.
+  - `frontend/src/App.jsx` — `selectedItem` state, `LayoutGroup` wrapper, sticky tabs, flex scroll layout, removed BentoGrid wrapper.
+  - `frontend/src/index.css` — Custom cyberpunk scrollbar styles with webkit + Firefox support.
+  - `frontend/src/App.test.jsx` — Updated for new component structure.
+- **Verification:** `npm run lint` clean, `npm run test` 4/4 pass, `npm run build` clean.
+- **Follow-ups:** None.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Unified Media Model — Books, Movies, Anime
 - **Summary:** Expanded from books-only to a unified media engine. Created Postgres ENUM `media_type`, renamed `books` → `media`, added `creator`/`sub_info` columns, migrated `author` data, recreated RLS policy, added composite index. Refactored backend to `MediaController` at `/media` with `?type=` filtering. Frontend now has media-type tabs (Books/Movies/Anime) with per-type status columns, dynamic icons, and type-aware AddMediaDialog. Fixed ES256 JWT support via JWKS client, switched to direct PostgREST client to bypass supabase-py v2.28 `ClientOptions` bug.
 - **Files Changed:**
