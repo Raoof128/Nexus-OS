@@ -33,7 +33,12 @@ variable "vercel_project_name" {
   default     = "nexus-archive"
 }
 
-variable "frontend_api_url" {
+variable "frontend_origin" {
+  description = "Public frontend origin used for auth redirects."
+  type        = string
+}
+
+variable "backend_api_url" {
   description = "Backend API base URL exposed to the frontend."
   type        = string
 }

@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import * as Sentry from '@sentry/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
@@ -12,9 +13,11 @@ initializeSentry()
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <Sentry.ErrorBoundary fallback={<p role="alert">Unexpected application error.</p>}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </Sentry.ErrorBoundary>
     </QueryClientProvider>
   </StrictMode>,
 )

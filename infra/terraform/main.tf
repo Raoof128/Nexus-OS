@@ -21,9 +21,9 @@ resource "supabase_settings" "nexus" {
   })
 
   auth = jsonencode({
-    site_url                 = var.frontend_api_url
-    additional_redirect_urls = [var.frontend_api_url]
-    jwt_expiry               = 3600
+    site_url                 = var.frontend_origin
+    additional_redirect_urls = [var.frontend_origin]
+    jwt_expiry               = 900
   })
 }
 
@@ -35,7 +35,7 @@ resource "vercel_project" "frontend" {
 resource "vercel_project_environment_variable" "frontend_api_url" {
   project_id = vercel_project.frontend.id
   key        = "VITE_API_URL"
-  value      = var.frontend_api_url
+  value      = var.backend_api_url
   target     = ["production", "preview"]
   type       = "encrypted"
 }

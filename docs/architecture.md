@@ -2,7 +2,7 @@
 
 ## System Summary
 
-Nexus Archive is a split frontend/backend application backed by Supabase:
+Nexus Archive is a split frontend/backend book-tracking application backed by Supabase:
 
 ```mermaid
 flowchart LR
@@ -20,7 +20,7 @@ flowchart LR
 
 - authenticate through backend-issued secure cookies
 - cache server state with TanStack Query
-- render the personal media dashboard
+- render the personal library dashboard
 - lazy-load the AI command palette on demand
 - emit frontend telemetry to Sentry when configured
 

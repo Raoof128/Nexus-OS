@@ -27,11 +27,14 @@ PUBLIC_PATH_PREFIXES = (
 def decode_supabase_token(token: str) -> dict[str, Any]:
     """Decode and validate a Supabase JWT."""
 
+    settings = get_settings()
     return jwt.decode(
         token,
-        get_settings().supabase_jwt_secret,
+        settings.supabase_jwt_secret,
         algorithms=["HS256"],
         audience="authenticated",
+        issuer=f"{settings.supabase_url.rstrip('/')}/auth/v1",
+        options={"require": ["exp", "iat", "sub", "aud"]},
     )
 
 
@@ -68,6 +71,7 @@ class SupabaseAuthMiddleware(MiddlewareProtocol):
                     raise NotAuthorizedException("Invalid token subject")
                 scope.setdefault("state", {})["user_id"] = user_id
                 scope["state"]["auth_payload"] = payload
+                scope["state"]["access_token"] = token
             except jwt.ExpiredSignatureError as exc:
                 raise NotAuthorizedException("Token expired") from exc
             except jwt.InvalidTokenError as exc:

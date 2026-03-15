@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from secrets import token_urlsafe
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
@@ -44,6 +45,9 @@ class BackendSettings:
     cookie_secure: bool = False
     suggest_rate_limit_requests: int = 5
     suggest_rate_limit_window_seconds: int = 60
+    auth_rate_limit_requests: int = 10
+    auth_rate_limit_window_seconds: int = 60
+    redis_url: str | None = None
     allowed_origins: tuple[str, ...] = ()
     allowed_hosts: tuple[str, ...] = ()
 
@@ -103,12 +107,10 @@ def get_settings() -> BackendSettings:
     """Load and cache backend settings."""
 
     allowed_origins = _parse_csv_env("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS)
-    supabase_key = _require_env("SUPABASE_KEY")
-
     return BackendSettings(
         supabase_url=_require_env("SUPABASE_URL"),
-        supabase_key=supabase_key,
-        supabase_auth_key=_get_env("SUPABASE_AUTH_KEY", supabase_key) or supabase_key,
+        supabase_key=_require_env("SUPABASE_KEY"),
+        supabase_auth_key=_require_env("SUPABASE_AUTH_KEY"),
         supabase_jwt_secret=_require_env("SUPABASE_JWT_SECRET"),
         gemini_api_key=_get_env("GEMINI_API_KEY"),
         environment=_get_env("APP_ENV", "development") or "development",
@@ -126,8 +128,7 @@ def get_settings() -> BackendSettings:
         backend_sentry_traces_sample_rate=float(
             _get_env("BACKEND_SENTRY_TRACES_SAMPLE_RATE", "0.0") or "0.0"
         ),
-        audit_log_salt=_get_env("AUDIT_LOG_SALT", "nexus-audit-salt")
-        or "nexus-audit-salt",
+        audit_log_salt=_get_env("AUDIT_LOG_SALT") or token_urlsafe(32),
         takeaway_encryption_key=_get_env("TAKEAWAY_ENCRYPTION_KEY"),
         access_cookie_name=_get_env("ACCESS_COOKIE_NAME", "nexus-access-token")
         or "nexus-access-token",
@@ -149,6 +150,13 @@ def get_settings() -> BackendSettings:
         suggest_rate_limit_window_seconds=int(
             _get_env("SUGGEST_RATE_LIMIT_WINDOW_SECONDS", "60") or "60"
         ),
+        auth_rate_limit_requests=int(
+            _get_env("AUTH_RATE_LIMIT_REQUESTS", "10") or "10"
+        ),
+        auth_rate_limit_window_seconds=int(
+            _get_env("AUTH_RATE_LIMIT_WINDOW_SECONDS", "60") or "60"
+        ),
+        redis_url=_get_env("REDIS_URL"),
         allowed_origins=allowed_origins,
         allowed_hosts=_derive_allowed_hosts(allowed_origins),
     )

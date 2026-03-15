@@ -23,6 +23,8 @@ The browser never reads the Supabase access token directly.
 
 ### `POST /auth/login`
 
+Rate-limited by client IP and email to reduce brute-force attempts.
+
 Request body:
 
 ```json
@@ -47,10 +49,11 @@ Response:
 ### `POST /auth/refresh`
 
 Refreshes the cookie-backed session and rotates the short-lived access token.
+This endpoint is rate-limited by client IP.
 
 ### `POST /auth/logout`
 
-Clears the auth cookies.
+Revokes the upstream Supabase session when possible and clears the auth cookies.
 
 ### `GET /auth/session`
 

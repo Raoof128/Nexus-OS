@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -49,25 +50,26 @@ def sanitize_llm_text(value: str | None) -> str:
     sanitized = _normalize_text(value)
     sanitized = PROMPT_ATTACK_PATTERN.sub("[redacted-instruction]", sanitized)
     sanitized = mask_sensitive_text(sanitized)
-    return sanitized.replace("<", "").replace(">", "")
+    return json.dumps(sanitized, ensure_ascii=True)[1:-1]
 
 
 def serialize_book_context_for_llm(book_context: list[dict[str, Any]]) -> str:
     """Wrap model input in strict XML delimiters to resist prompt injection."""
 
-    entries = []
+    payload = {"books": []}
     for book in book_context:
-        title = sanitize_llm_text(str(book.get("title") or "Unknown"))
-        genre = sanitize_llm_text(str(book.get("genre") or "Unknown"))
-        rating = sanitize_llm_text(str(book.get("rating") or "unrated"))
-        entries.append(
-            "<book>"
-            f"<title>{title}</title>"
-            f"<genre>{genre}</genre>"
-            f"<rating>{rating}</rating>"
-            "</book>"
+        payload["books"].append(
+            {
+                "title": sanitize_llm_text(str(book.get("title") or "Unknown")),
+                "genre": sanitize_llm_text(str(book.get("genre") or "Unknown")),
+                "rating": sanitize_llm_text(str(book.get("rating") or "unrated")),
+            }
         )
-    return "<trusted_library_context>" + "".join(entries) + "</trusted_library_context>"
+    return (
+        "<trusted_library_context>"
+        + json.dumps(payload, ensure_ascii=True, separators=(",", ":"))
+        + "</trusted_library_context>"
+    )
 
 
 def get_takeaway_cipher() -> Fernet | None:
@@ -87,7 +89,9 @@ def encrypt_takeaway(takeaway: str | None) -> str | None:
 
     cipher = get_takeaway_cipher()
     if cipher is None:
-        return takeaway
+        raise RuntimeError(
+            "TAKEAWAY_ENCRYPTION_KEY must be configured before storing takeaways"
+        )
 
     token = cipher.encrypt(takeaway.encode("utf-8")).decode("utf-8")
     return f"{ENCRYPTED_PREFIX}{token}"

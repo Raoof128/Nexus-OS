@@ -13,7 +13,7 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
 
 
-def _build_csp() -> str:
+def _build_csp(path: str) -> str:
     """Build a CSP that protects API/docs routes without blocking built-in docs."""
 
     settings = get_settings()
@@ -25,23 +25,31 @@ def _build_csp() -> str:
         connect_sources.add(f"wss://{supabase_parsed.netloc}")
         connect_sources.add(f"https://{supabase_parsed.netloc}")
 
-    return "; ".join(
-        [
-            "default-src 'self'",
-            "base-uri 'self'",
-            "frame-ancestors 'none'",
-            "img-src 'self' data: https:",
-            "font-src 'self' data:",
-            "style-src 'self' 'unsafe-inline'",
-            "script-src 'self' 'unsafe-inline'",
-            f"connect-src {' '.join(sorted(connect_sources))}",
-            "form-action 'self'",
-        ]
-    )
+    docs_policy = [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "frame-ancestors 'none'",
+        "img-src 'self' data: https:",
+        "font-src 'self' data:",
+        "style-src 'self' 'unsafe-inline'",
+        "script-src 'self' 'unsafe-inline'",
+        f"connect-src {' '.join(sorted(connect_sources))}",
+        "form-action 'self'",
+    ]
+    api_policy = [
+        "default-src 'none'",
+        "base-uri 'none'",
+        "frame-ancestors 'none'",
+        "img-src 'self' data:",
+        "style-src 'self'",
+        "script-src 'self'",
+        f"connect-src {' '.join(sorted(connect_sources))}",
+        "form-action 'none'",
+    ]
+    return "; ".join(docs_policy if path.startswith("/schema") else api_policy)
 
 
 SECURITY_HEADERS = (
-    ("content-security-policy", _build_csp),
     ("referrer-policy", lambda: "strict-origin-when-cross-origin"),
     ("strict-transport-security", lambda: "max-age=31536000; includeSubDomains"),
     ("x-content-type-options", lambda: "nosniff"),
@@ -60,6 +68,13 @@ class SecurityHeadersMiddleware(MiddlewareProtocol):
         async def send_with_headers(message: Message) -> None:
             if message["type"] == "http.response.start":
                 headers = message.setdefault("headers", [])
+                path = scope.get("path", "")
+                headers.append(
+                    (
+                        b"content-security-policy",
+                        _build_csp(path).encode("latin-1"),
+                    )
+                )
                 for key, value_factory in SECURITY_HEADERS:
                     headers.append(
                         (key.encode("latin-1"), value_factory().encode("latin-1"))

@@ -10,15 +10,26 @@ from litestar.exceptions import HTTPException
 try:
     from .auth import decode_supabase_token
     from .config import get_settings
+    from .rate_limit import enforce_auth_rate_limit
     from .schemas import AuthSessionResponse, LoginRequest, SessionUser
     from .services import create_supabase_auth_client
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from auth import decode_supabase_token
     from config import get_settings
+    from rate_limit import enforce_auth_rate_limit
     from schemas import AuthSessionResponse, LoginRequest, SessionUser
     from services import create_supabase_auth_client
 
 logger = logging.getLogger(__name__)
+
+
+def _client_ip(request: Request) -> str:
+    """Return the nearest client IP for auth abuse controls."""
+
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    if forwarded_for:
+        return forwarded_for.split(",", 1)[0].strip()
+    return request.client.host if request.client else "unknown"
 
 
 def _build_session_response(access_token: str) -> AuthSessionResponse:
@@ -82,9 +93,10 @@ class AuthController(Controller):
     path = "/auth"
 
     @post("/login")
-    async def login(self, data: LoginRequest) -> Response:
+    async def login(self, data: LoginRequest, request: Request) -> Response:
         """Authenticate with Supabase and set secure session cookies."""
 
+        enforce_auth_rate_limit(f"login:{_client_ip(request)}:{data.email.lower()}")
         try:
             auth_response = create_supabase_auth_client().auth.sign_in_with_password(
                 {"email": data.email, "password": data.password}
@@ -109,6 +121,7 @@ class AuthController(Controller):
     async def refresh(self, request: Request) -> Response:
         """Rotate the session using the refresh token cookie."""
 
+        enforce_auth_rate_limit(f"refresh:{_client_ip(request)}")
         refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
         if not refresh_token:
             raise HTTPException(status_code=401, detail="Missing refresh token")
@@ -136,9 +149,21 @@ class AuthController(Controller):
         return response
 
     @post("/logout")
-    async def logout(self) -> Response:
+    async def logout(self, request: Request) -> Response:
         """Clear authentication cookies on the client."""
 
+        access_token = request.cookies.get(get_settings().access_cookie_name)
+        refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
+        if access_token and refresh_token:
+            try:
+                client = create_supabase_auth_client()
+                client.auth.set_session(access_token, refresh_token)
+                client.auth.sign_out()
+            except Exception:  # pragma: no cover - upstream auth failure
+                logger.warning(
+                    "Supabase session revocation failed during logout",
+                    exc_info=True,
+                )
         response = Response(content={"ok": True})
         _clear_auth_cookies(response)
         return response

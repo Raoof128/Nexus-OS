@@ -19,7 +19,8 @@ terraform plan \
   -var="supabase_access_token=..." \
   -var="supabase_organization_id=..." \
   -var="supabase_database_password=..." \
-  -var="frontend_api_url=https://api.nexus.example"
+  -var="frontend_origin=https://nexus.example" \
+  -var="backend_api_url=https://api.nexus.example"
 ```
 
 Review provider credentials and resource arguments against your live account conventions before `terraform apply`.

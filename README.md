@@ -1,6 +1,6 @@
 # Nexus Archive
 
-Nexus Archive is a cyberpunk-styled personal media vault for tracking anime, movies, and books in one place. It combines a React frontend, a Litestar API, and Supabase-backed identity and persistence so a user can manage watchlists, reading queues, ratings, takeaways, and AI-assisted recommendations from a single interface.
+Nexus Archive is a cyberpunk-styled personal book vault. It combines a React frontend, a Litestar API, and Supabase-backed identity and persistence so a user can manage reading queues, ratings, takeaways, and AI-assisted recommendations from a single interface.
 
 ## Security Upgrade Highlights
 
@@ -10,7 +10,7 @@ This repository now includes a stronger defensive posture:
 - strict cookie refresh flow with short-lived access tokens and silent rotation
 - AI prompt isolation with XML delimiters, string scrubbing, and PII masking
 - server-side rate limiting for `/books/suggest`
-- optional field-level encryption for `takeaway` notes
+- encrypted `takeaway` persistence when `TAKEAWAY_ENCRYPTION_KEY` is configured
 - Bandit, pip-audit, npm audit, and secret scanning in CI
 
 ## Stack
@@ -73,7 +73,7 @@ docker compose up --build backend
 - `GET /healthz` is available for uptime checks.
 - `GET /schema/swagger` exposes live API docs without requiring auth.
 - `GET /books/suggest` is rate-limited and degrades to a local recommendation when Gemini is unavailable.
-- `takeaway` notes can be encrypted at the application layer when `TAKEAWAY_ENCRYPTION_KEY` is configured.
+- `takeaway` notes are stored encrypted when `TAKEAWAY_ENCRYPTION_KEY` is configured.
 
 ## Quality Gates
 
@@ -102,6 +102,7 @@ make terraform-fmt
 - `backend/Dockerfile` is the canonical backend runtime image.
 - Sentry DSNs are optional and only activate telemetry when configured.
 - Supabase must enforce RLS, short JWT lifetime, and PITR before public deployment.
+- Production should provide a non-default `AUDIT_LOG_SALT`, `TAKEAWAY_ENCRYPTION_KEY`, and `REDIS_URL`.
 
 ## License
 

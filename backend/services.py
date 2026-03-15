@@ -10,6 +10,7 @@ from time import monotonic
 import tiktoken
 from google import genai
 from supabase import Client, create_client
+from supabase.lib.client_options import ClientOptions
 
 try:
     from .config import get_settings
@@ -107,11 +108,26 @@ class SuggestionPayload:
 
 
 @lru_cache(maxsize=1)
-def get_supabase_client() -> Client:
-    """Return a shared Supabase client built from validated settings."""
+def get_supabase_admin_client() -> Client:
+    """Return a shared Supabase client for trusted admin-only operations."""
 
     settings = get_settings()
     return create_client(settings.supabase_url, settings.supabase_key)
+
+
+def create_supabase_user_client(access_token: str) -> Client:
+    """Return a Supabase client bound to the caller token so RLS is enforced."""
+
+    settings = get_settings()
+    return create_client(
+        settings.supabase_url,
+        settings.supabase_auth_key,
+        options=ClientOptions(
+            auto_refresh_token=False,
+            persist_session=False,
+            headers={"Authorization": f"Bearer {access_token}"},
+        ),
+    )
 
 
 def create_supabase_auth_client() -> Client:

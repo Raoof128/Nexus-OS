@@ -27,7 +27,8 @@ function App() {
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden="true" />
+        <span className="sr-only">Loading session</span>
       </div>
     )
   }
@@ -42,19 +43,18 @@ function App() {
           <div className="grid w-full max-w-6xl gap-8 lg:grid-cols-[1.2fr_0.8fr]">
             <section className="rounded-[2rem] border border-white/10 bg-black/40 p-10 shadow-2xl backdrop-blur-xl">
               <p className="mb-3 text-xs uppercase tracking-[0.4em] text-primary">
-                personal media vault
+                personal book vault
               </p>
               <h1 className="max-w-3xl text-4xl font-black uppercase tracking-tight text-white md:text-6xl">
-                One archive for your anime, movies, and books.
+                One archive for the books you actually care about.
               </h1>
               <p className="mt-6 max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
-                Nexus Archive is built to replace scattered watchlists and reading lists
-                with one identity-driven dashboard. Track what you finished, what you
-                are watching now, what you want to read next, and the notes that make
-                your taste personal.
+                Nexus Archive replaces scattered reading lists with one identity-driven
+                dashboard. Track what you finished, what you are reading now, what you
+                want to pick up next, and the notes that make your taste personal.
               </p>
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
-                {['Anime tracking', 'Movie watchlists', 'Book notes'].map((item) => (
+                {['Reading queue', 'Ratings', 'Takeaways'].map((item) => (
                   <div
                     key={item}
                     className="rounded-2xl border border-white/10 bg-white/5 px-4 py-5 text-sm uppercase tracking-wider text-white"
@@ -78,17 +78,24 @@ function App() {
               </p>
 
               {authError && (
-                <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm font-bold uppercase tracking-wider text-destructive">
+                <div
+                  role="alert"
+                  className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm font-bold uppercase tracking-wider text-destructive"
+                >
                   {authError}
                 </div>
               )}
 
               <div className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase text-muted-foreground">
+                  <label
+                    htmlFor="email"
+                    className="mb-2 block text-xs font-semibold uppercase text-muted-foreground"
+                  >
                     Identity // Email
                   </label>
                   <input
+                    id="email"
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
@@ -98,10 +105,14 @@ function App() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase text-muted-foreground">
+                  <label
+                    htmlFor="password"
+                    className="mb-2 block text-xs font-semibold uppercase text-muted-foreground"
+                  >
                     Passkey // Secret
                   </label>
                   <input
+                    id="password"
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -133,10 +144,14 @@ function App() {
       <main className="relative z-10 h-[calc(100vh-64px)] overflow-hidden">
         {dataLoading && books.length === 0 ? (
           <div className="flex h-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
+            <span className="sr-only">Loading library</span>
           </div>
         ) : error ? (
-          <div className="border-b border-destructive bg-destructive/10 p-10 text-center font-bold uppercase tracking-widest text-destructive">
+          <div
+            role="alert"
+            className="border-b border-destructive bg-destructive/10 p-10 text-center font-bold uppercase tracking-widest text-destructive"
+          >
             Critical API Error: {error}
           </div>
         ) : (

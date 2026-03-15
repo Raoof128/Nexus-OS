@@ -10,15 +10,27 @@ try:
     from .data_protection import encrypt_takeaway, hydrate_book_record
     from .rate_limit import enforce_suggest_rate_limit
     from .schemas import BookCreate, SuggestionResponse
-    from .services import get_book_suggestion, get_supabase_client
+    from .services import create_supabase_user_client, get_book_suggestion
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from audit_logger import log_audit_event
     from data_protection import encrypt_takeaway, hydrate_book_record
     from rate_limit import enforce_suggest_rate_limit
     from schemas import BookCreate, SuggestionResponse
-    from services import get_book_suggestion, get_supabase_client
+    from services import create_supabase_user_client, get_book_suggestion
 
 logger = logging.getLogger(__name__)
+
+
+def _get_user_books_client(request: Request):
+    """Return a caller-scoped Supabase client so Postgres enforces RLS."""
+
+    access_token = getattr(request.state, "access_token", None)
+    if not access_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing or invalid authorization token",
+        )
+    return create_supabase_user_client(access_token)
 
 
 class BookController(Controller):
@@ -33,11 +45,7 @@ class BookController(Controller):
         user_id = request.state.user_id
         try:
             response = (
-                get_supabase_client()
-                .table("books")
-                .select("*")
-                .eq("user_id", user_id)
-                .execute()
+                _get_user_books_client(request).table("books").select("*").execute()
             )
         except Exception as exc:  # pragma: no cover - external dependency failure
             logger.exception("Failed to fetch books for user %s", user_id)
@@ -55,7 +63,12 @@ class BookController(Controller):
         book_data["user_id"] = user_id
         book_data["takeaway"] = encrypt_takeaway(book_data.get("takeaway"))
         try:
-            response = get_supabase_client().table("books").insert(book_data).execute()
+            response = (
+                _get_user_books_client(request)
+                .table("books")
+                .insert(book_data)
+                .execute()
+            )
         except Exception as exc:  # pragma: no cover - external dependency failure
             logger.exception("Failed to create book for user %s", user_id)
             raise HTTPException(
@@ -78,10 +91,9 @@ class BookController(Controller):
         enforce_suggest_rate_limit(user_id)
         try:
             books = (
-                get_supabase_client()
+                _get_user_books_client(request)
                 .table("books")
                 .select("title, genre, rating")
-                .eq("user_id", user_id)
                 .execute()
             )
         except Exception as exc:  # pragma: no cover - external dependency failure

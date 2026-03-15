@@ -2,6 +2,21 @@
 
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Enterprise Audit Remediation Pass
+- **Summary:** Closed the highest-priority findings from the repo-first production audits. Enforced caller-scoped Supabase data access so RLS remains the hard authorization boundary, strengthened JWT validation, added auth endpoint throttling and upstream logout revocation, upgraded rate limiting to support Redis-backed multi-instance enforcement, forced RLS in SQL, tightened CSP behavior, made takeaway storage refuse plaintext writes, aligned Terraform auth settings, added frontend error-boundary and accessibility coverage, introduced frontend tests in CI, switched Locust to the real cookie-auth flow, and corrected books-only product/runtime documentation.
+- **Files Changed:**
+  - `backend/services.py`, `backend/controllers.py`, `backend/auth.py`, `backend/auth_controller.py`, `backend/config.py`, `backend/rate_limit.py`, `backend/security.py`, `backend/data_protection.py`, `backend/.env.example`, `backend/Dockerfile` - Hardened auth, RLS enforcement, rate limiting, secure headers, encryption behavior, env settings, and container runtime privileges.
+  - `database.sql` - Forced row-level security for defense in depth.
+  - `tests/conftest.py`, `tests/test_config.py`, `tests/test_data_protection.py` - Stabilized config-backed tests for clean-environment execution.
+  - `.github/workflows/ci.yml`, `pyproject.toml`, `loadtests/locustfile.py` - Added backend test env seeding, frontend test execution, Redis dependency support, and realistic login-based load testing.
+  - `infra/terraform/main.tf`, `infra/terraform/variables.tf`, `infra/terraform/README.md` - Split frontend origin from backend API URL and reduced JWT lifetime to 15 minutes.
+  - `frontend/package.json`, `frontend/package-lock.json`, `frontend/vite.config.js`, `frontend/src/App.test.jsx`, `frontend/src/main.jsx`, `frontend/src/App.jsx` - Added frontend test tooling, error containment, accessible login states, and books-only UX copy.
+  - `README.md`, `docs/api-reference.md`, `docs/architecture.md`, `docs/operations.md`, `docs/usage-examples.md` - Updated repository guidance to match the hardened runtime and actual shipped scope.
+- **Verification:** Ran `python3 -m pip install -e '.[dev]'`, `npm install` in `frontend/`, `python3 -m ruff check backend tests loadtests`, `python3 -m ruff format --check backend tests loadtests`, `python3 -m pytest`, `python3 -m bandit -r backend -c bandit.yaml`, `SUPABASE_URL=https://example.supabase.co SUPABASE_KEY=test-key SUPABASE_AUTH_KEY=test-auth-key SUPABASE_JWT_SECRET=test-secret AUDIT_LOG_SALT=test-salt TAKEAWAY_ENCRYPTION_KEY=$(python3 - <<'PY'\nfrom cryptography.fernet import Fernet\nprint(Fernet.generate_key().decode())\nPY\n) python3 -c "import backend.app"`, `npm run lint`, `npm run test`, and `npm run build`.
+- **Follow-ups:** Validate `terraform plan` against live provider credentials and verify Redis-backed rate limiting plus container runtime behavior in deployed infrastructure.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Production Repository Audit and Polish
 - **Summary:** Completed a production-grade repository pass across docs, tooling, backend structure, validation, tests, CI, and frontend state handling. Added professional governance documents, architecture and API references, Python project configuration, automated tests, GitHub Actions CI, shared frontend auth context, stricter API env handling, and database indexing/constraint improvements.
 - **Files Changed:**

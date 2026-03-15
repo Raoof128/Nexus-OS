@@ -17,10 +17,12 @@ SUPABASE_AUTH_KEY=your-anon-or-auth-key
 SUPABASE_JWT_SECRET=your-jwt-secret
 GEMINI_API_KEY=optional-key
 ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+AUDIT_LOG_SALT=replace-me-with-a-long-random-secret
 ACCESS_COOKIE_MAX_AGE=900
 REFRESH_COOKIE_MAX_AGE=604800
 COOKIE_SECURE=false
-TAKEAWAY_ENCRYPTION_KEY=
+TAKEAWAY_ENCRYPTION_KEY=replace-me-with-a-fernet-key
+REDIS_URL=redis://localhost:6379/0
 ```
 
 ## Login Example
@@ -43,6 +45,7 @@ curl http://127.0.0.1:8000/books/suggest \
 
 ```bash
 export LOCUST_HOST=http://127.0.0.1:8000
-export LOCUST_BEARER_TOKEN=<supabase_access_token>
+export LOCUST_EMAIL=runner@nexus.net
+export LOCUST_PASSWORD=correct-horse-battery-staple
 make load-test
 ```

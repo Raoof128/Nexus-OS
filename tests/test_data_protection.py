@@ -31,8 +31,8 @@ def test_serialize_book_context_uses_xml_delimiters() -> None:
     )
 
     assert payload.startswith("<trusted_library_context>")
-    assert "<book>" in payload
-    assert "<title>Neuromancer</title>" in payload
+    assert '"title":"Neuromancer"' in payload
+    assert payload.endswith("</trusted_library_context>")
 
 
 def test_encrypt_takeaway_round_trips(monkeypatch) -> None:

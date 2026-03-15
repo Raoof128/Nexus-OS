@@ -21,6 +21,7 @@ CREATE INDEX books_user_id_created_at_idx ON books (user_id, created_at DESC);
 
 -- 2. Enable Row Level Security (RLS)
 ALTER TABLE books ENABLE ROW LEVEL SECURITY;
+ALTER TABLE books FORCE ROW LEVEL SECURITY;
 
 -- 3. Create absolute CRUD policies
 CREATE POLICY "Users can manage their own books"

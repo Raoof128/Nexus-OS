@@ -12,6 +12,7 @@ def test_get_settings_requires_env(monkeypatch: pytest.MonkeyPatch) -> None:
     get_settings.cache_clear()
     monkeypatch.delenv("SUPABASE_URL", raising=False)
     monkeypatch.delenv("SUPABASE_KEY", raising=False)
+    monkeypatch.delenv("SUPABASE_AUTH_KEY", raising=False)
     monkeypatch.delenv("SUPABASE_JWT_SECRET", raising=False)
 
     with pytest.raises(ImproperlyConfiguredException):
@@ -26,6 +27,7 @@ def test_get_settings_reads_expected_values(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setenv("SUPABASE_KEY", "service-key")
     monkeypatch.setenv("SUPABASE_AUTH_KEY", "anon-key")
     monkeypatch.setenv("SUPABASE_JWT_SECRET", "jwt-secret")
+    monkeypatch.setenv("AUDIT_LOG_SALT", "audit-salt")
     monkeypatch.setenv("GEMINI_API_KEY", "gemini-key")
     monkeypatch.setenv("ALLOWED_ORIGINS", "https://nexus.app,https://preview.nexus.app")
     monkeypatch.setenv("COOKIE_SECURE", "true")
@@ -36,6 +38,7 @@ def test_get_settings_reads_expected_values(monkeypatch: pytest.MonkeyPatch) -> 
     assert settings.supabase_key == "service-key"
     assert settings.supabase_auth_key == "anon-key"
     assert settings.supabase_jwt_secret == "jwt-secret"
+    assert settings.audit_log_salt == "audit-salt"
     assert settings.gemini_api_key == "gemini-key"
     assert settings.cookie_secure is True
     assert settings.allowed_origins == (
