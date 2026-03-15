@@ -2,6 +2,13 @@
 
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Integration Audit — Recovery Token Fix and Env Alignment
+- **Summary:** Fixed critical password reset bug where refresh_token was not extracted from Supabase recovery URL. Added refresh_token to frontend extraction, backend schema, and reset endpoint. Added missing PASSWORD_RESET_REDIRECT_URL to env template. Fixed stale pyproject.toml description.
+- **Files Changed:** `frontend/src/App.jsx`, `frontend/src/components/features/ResetPasswordPage.jsx`, `backend/schemas.py`, `backend/auth_controller.py`, `backend/.env.example`, `pyproject.toml`.
+- **Verification:** All lint, tests, and build pass.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Auth Sliding Panels — Register, Forgot Password, Reset Password
 - **Summary:** Added registration, forgot password, and password reset flows with direction-aware sliding panel transitions. Three new backend endpoints proxy Supabase auth with rate limiting and HttpOnly cookies. Frontend AuthPanel slides between login/register/forgot forms preserving state. Recovery token detection from URL hash and search params with expired-session fallback. Email enumeration prevented on forgot-password.
 - **Files Changed:**

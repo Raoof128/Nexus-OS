@@ -10,45 +10,52 @@ import Navbar from './components/layout/Navbar'
 import { useAuth } from './hooks/useAuth'
 import { useBooks } from './hooks/useBooks'
 
-function extractRecoveryToken() {
+function extractRecoveryTokens() {
   const hash = window.location.hash.substring(1)
   const hashParams = new URLSearchParams(hash)
   if (hashParams.get('type') === 'recovery' && hashParams.get('access_token')) {
-    return hashParams.get('access_token')
+    return {
+      accessToken: hashParams.get('access_token'),
+      refreshToken: hashParams.get('refresh_token') || '',
+    }
   }
 
   const searchParams = new URLSearchParams(window.location.search)
   if (searchParams.get('type') === 'recovery' && searchParams.get('access_token')) {
-    return searchParams.get('access_token')
+    return {
+      accessToken: searchParams.get('access_token'),
+      refreshToken: searchParams.get('refresh_token') || '',
+    }
   }
 
   return null
 }
 
-function useRecoveryToken() {
+function useRecoveryTokens() {
   const [cleared, setCleared] = useState(false)
-  const token = useMemo(() => {
+  const tokens = useMemo(() => {
     if (cleared) return null
-    const found = extractRecoveryToken()
+    const found = extractRecoveryTokens()
     if (found) {
       window.history.replaceState(null, '', window.location.pathname)
     }
     return found
   }, [cleared])
-  return [token, () => setCleared(true)]
+  return [tokens, () => setCleared(true)]
 }
 
 function App() {
   const { session, loading: authLoading } = useAuth()
   const { books, loading: dataLoading, error, addBook, updateBook, deleteBook } = useBooks(session)
 
-  const [recoveryToken, clearRecoveryToken] = useRecoveryToken()
+  const [recoveryTokens, clearRecoveryTokens] = useRecoveryTokens()
 
-  if (recoveryToken) {
+  if (recoveryTokens) {
     return (
       <ResetPasswordPage
-        accessToken={recoveryToken}
-        onComplete={clearRecoveryToken}
+        accessToken={recoveryTokens.accessToken}
+        refreshToken={recoveryTokens.refreshToken}
+        onComplete={clearRecoveryTokens}
       />
     )
   }

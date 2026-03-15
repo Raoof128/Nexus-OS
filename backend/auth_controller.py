@@ -237,7 +237,8 @@ class AuthController(Controller):
         enforce_auth_rate_limit(f"reset:{_client_ip(request)}")
         try:
             client = create_supabase_auth_client()
-            client.auth.set_session(data.access_token, data.access_token)
+            refresh = data.refresh_token or data.access_token
+            client.auth.set_session(data.access_token, refresh)
             user_response = client.auth.update_user({"password": data.new_password})
         except Exception as exc:  # pragma: no cover - upstream auth failure
             logger.exception("Password reset failed")

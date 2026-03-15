@@ -8,7 +8,7 @@ const inputClass =
 
 const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground'
 
-export default function ResetPasswordPage({ accessToken, onComplete }) {
+export default function ResetPasswordPage({ accessToken, refreshToken, onComplete }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState(null)
@@ -54,7 +54,11 @@ export default function ResetPasswordPage({ accessToken, onComplete }) {
     try {
       await authFetch('/auth/reset-password', {
         method: 'POST',
-        body: { access_token: accessToken, new_password: password },
+        body: {
+          access_token: accessToken,
+          refresh_token: refreshToken || '',
+          new_password: password,
+        },
       })
       window.location.href = '/'
     } catch (resetError) {

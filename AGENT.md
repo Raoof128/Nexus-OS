@@ -24,6 +24,20 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Integration Audit — Recovery Token Fix and Env Alignment
+- **Summary:** Full repo-wide integration audit traced every flow end-to-end and found three issues. Fixed the critical password reset bug where only the access_token was extracted from the Supabase recovery URL while the refresh_token was ignored, causing `set_session` to fail. Added `refresh_token` to the frontend extraction, the backend schema, and the reset endpoint. Added missing `PASSWORD_RESET_REDIRECT_URL` to the env template. Fixed stale pyproject.toml description.
+- **Files Changed:**
+  - `frontend/src/App.jsx` — Extract both `access_token` and `refresh_token` from recovery URL hash/params.
+  - `frontend/src/components/features/ResetPasswordPage.jsx` — Send `refresh_token` to backend reset endpoint.
+  - `backend/schemas.py` — Added `refresh_token` field to `ResetPasswordRequest`.
+  - `backend/auth_controller.py` — Use correct `refresh_token` in `set_session` call.
+  - `backend/.env.example` — Added `PASSWORD_RESET_REDIRECT_URL` template entry.
+  - `pyproject.toml` — Fixed description to books-only.
+- **Verification:** `ruff check` clean, `ruff format --check` clean, `pytest` 24/24 pass, `npm run lint` clean, `npm run test` 4/4 pass, `npm run build` clean.
+- **Follow-ups:** None — all integration paths verified end-to-end.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Auth Sliding Panels — Register, Forgot Password, Reset Password
 - **Summary:** Added registration, forgot password, and password reset flows with direction-aware sliding panel transitions. Backend endpoints proxy Supabase auth operations through rate-limited, cookie-backed controllers. Frontend uses a three-panel CSS `translateX` slider with persistent form state across slides. Password reset detects recovery tokens from both URL hash and search params, with an expired-session fallback. Always-success response on forgot-password to prevent email enumeration. Post-reset flow logs in the user with fresh session cookies.
 - **Files Changed:**
