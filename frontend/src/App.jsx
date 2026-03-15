@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, LayoutGroup, motion as Motion } from 'framer-motion'
-import { BookOpen, Film, Loader2, Sparkles } from 'lucide-react'
+import { BookOpen, Film, Loader2, MessageCircle, Sparkles } from 'lucide-react'
 import AddMediaDialog from './components/features/AddBookDialog'
 import AuthPanel from './components/features/AuthPanel'
+import ChatLayout from './components/features/ChatLayout'
 import LazyAICmdPalette from './components/features/LazyAICmdPalette'
 import MediaDetailModal from './components/features/MediaDetailModal'
 import MediaVault from './components/features/MediaVault'
@@ -13,7 +14,7 @@ import { useAuth } from './hooks/useAuth'
 import { useMedia } from './hooks/useMedia'
 import { MEDIA_TYPES, MEDIA_CONFIG } from './lib/mediaConfig'
 
-const TAB_ICONS = { book: BookOpen, movie: Film, anime: Sparkles }
+const TAB_ICONS = { book: BookOpen, movie: Film, anime: Sparkles, chat: MessageCircle }
 
 function extractRecoveryTokens() {
   const hash = window.location.hash.substring(1)
@@ -52,6 +53,7 @@ function useRecoveryTokens() {
 function App() {
   const { session, loading: authLoading } = useAuth()
   const [activeType, setActiveType] = useState('book')
+  const [activeView, setActiveView] = useState('media') // 'media' | 'chat'
   const { items, loading: dataLoading, error, addMedia, updateMedia, deleteMedia } = useMedia(session, activeType)
   const [selectedItem, setSelectedItem] = useState(null)
   const [vaultState, setVaultState] = useState(null) // { status, type }
@@ -126,17 +128,17 @@ function App() {
 
       <Navbar />
 
-      {/* Media type tabs */}
+      {/* Navigation tabs */}
       <div className="sticky top-16 z-20 border-b border-white/5 bg-black/80 backdrop-blur-lg">
         <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-2 sm:px-6">
           {MEDIA_TYPES.map((type) => {
             const Icon = TAB_ICONS[type]
-            const isActive = activeType === type
+            const isActive = activeView === 'media' && activeType === type
             return (
               <button
                 key={type}
                 type="button"
-                onClick={() => { setActiveType(type); setVaultState(null) }}
+                onClick={() => { setActiveType(type); setActiveView('media'); setVaultState(null) }}
                 className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-mono text-[11px] uppercase tracking-wider transition-all sm:px-4 sm:text-xs ${
                   isActive
                     ? 'bg-primary/20 text-primary shadow-[0_0_10px_var(--color-primary)]'
@@ -148,12 +150,29 @@ function App() {
               </button>
             )
           })}
+
+          <div className="mx-2 h-4 w-px bg-white/10" />
+
+          <button
+            type="button"
+            onClick={() => setActiveView('chat')}
+            className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-mono text-[11px] uppercase tracking-wider transition-all sm:px-4 sm:text-xs ${
+              activeView === 'chat'
+                ? 'bg-primary/20 text-primary shadow-[0_0_10px_var(--color-primary)]'
+                : 'text-muted-foreground hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <MessageCircle size={14} />
+            AI Chat
+          </button>
         </div>
       </div>
 
       {/* Main content */}
       <main className="relative z-10 flex-1 overflow-y-auto custom-scrollbar">
-        {dataLoading && items.length === 0 ? (
+        {activeView === 'chat' ? (
+          <ChatLayout />
+        ) : dataLoading && items.length === 0 ? (
           <div className="flex h-64 items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
             <span className="sr-only">Loading library</span>

@@ -7,6 +7,7 @@ from litestar.openapi.config import OpenAPIConfig
 try:
     from .auth import SupabaseAuthMiddleware
     from .auth_controller import AuthController
+    from .chat_controller import ChatController
     from .config import get_settings
     from .controllers import MediaController
     from .health import healthcheck
@@ -16,6 +17,7 @@ try:
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from auth import SupabaseAuthMiddleware
     from auth_controller import AuthController
+    from chat_controller import ChatController
     from config import get_settings
     from controllers import MediaController
     from health import healthcheck
@@ -35,7 +37,7 @@ cors_config = CORSConfig(
 )
 
 app = Litestar(
-    route_handlers=[healthcheck, AuthController, MediaController],
+    route_handlers=[healthcheck, AuthController, ChatController, MediaController],
     middleware=[SecurityHeadersMiddleware, SupabaseAuthMiddleware],
     cors_config=cors_config,
     allowed_hosts=list(settings.allowed_hosts),

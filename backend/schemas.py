@@ -153,6 +153,38 @@ class MediaUpdate(BaseModel):
         return _validate_takeaway_field(value)
 
 
+ChatCategory = Literal["books", "movies", "anime", "general"]
+
+
+class ChatSessionCreate(BaseModel):
+    """Create a new chat session."""
+
+    title: str = Field(min_length=1, max_length=200)
+    category: ChatCategory = "general"
+
+
+class ChatSessionResponse(BaseModel):
+    """Chat session returned from the API."""
+
+    id: str
+    title: str
+    category: ChatCategory
+    created_at: str
+
+
+class ChatMessageRequest(BaseModel):
+    """User message sent to the AI chat."""
+
+    content: str = Field(min_length=1, max_length=4000)
+
+
+class ChatMessageResponse(BaseModel):
+    """AI response returned from the chat endpoint."""
+
+    role: str
+    content: str
+
+
 class SuggestionItem(BaseModel):
     """A single media recommendation."""
 

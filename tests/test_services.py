@@ -1,8 +1,6 @@
 """Tests for recommendation service resilience helpers."""
 
 from backend.services import (
-    SuggestionItem,
-    SuggestionPayload,
     build_local_suggestion,
     parse_gemini_json_response,
     prune_media_context,
@@ -61,7 +59,10 @@ def test_build_local_suggestion_anime_default() -> None:
 def test_parse_gemini_json_response_valid_array() -> None:
     """Valid JSON array from Gemini should parse into SuggestionItems."""
 
-    raw = '[{"title":"Snow Crash","creator":"Stephenson","genre":"Cyberpunk","pitch":"Neon madness."}]'
+    raw = (
+        '[{"title":"Snow Crash","creator":"Stephenson",'
+        '"genre":"Cyberpunk","pitch":"Neon madness."}]'
+    )
     items = parse_gemini_json_response(raw)
 
     assert len(items) == 1
@@ -73,7 +74,12 @@ def test_parse_gemini_json_response_valid_array() -> None:
 def test_parse_gemini_json_response_with_backticks() -> None:
     """JSON wrapped in markdown backticks should still parse."""
 
-    raw = '```json\n[{"title":"Akira","creator":"Otomo","genre":"Sci-Fi","pitch":"Neo-Tokyo explodes."}]\n```'
+    raw = (
+        "```json\n"
+        '[{"title":"Akira","creator":"Otomo",'
+        '"genre":"Sci-Fi","pitch":"Neo-Tokyo explodes."}]'
+        "\n```"
+    )
     items = parse_gemini_json_response(raw)
 
     assert len(items) == 1
