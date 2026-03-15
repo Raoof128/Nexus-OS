@@ -120,8 +120,8 @@ export default function AuthPanel() {
   const offset = PANELS[active]
 
   return (
-    <div className="relative w-full overflow-hidden rounded-[2rem] border border-white/10 bg-black/60 shadow-2xl backdrop-blur-xl">
-      <div className="absolute -inset-1 -z-10 bg-primary/40 opacity-20 blur-2xl" />
+    <div className="neon-border relative w-full overflow-hidden rounded-2xl glass-panel shadow-2xl sm:rounded-[2rem]">
+      <div className="absolute -inset-1 -z-10 bg-primary/30 opacity-15 blur-3xl" />
       <GlitchLine />
 
       <div
@@ -133,7 +133,7 @@ export default function AuthPanel() {
         <div className="w-full shrink-0 p-8">
           <div className="mb-1 flex items-center gap-2 text-primary">
             <LogIn size={18} />
-            <h2 className="text-2xl font-bold uppercase tracking-wider text-white">
+            <h2 className="heading-display text-xl font-bold text-white sm:text-2xl">
               System Login
             </h2>
           </div>
@@ -171,7 +171,7 @@ export default function AuthPanel() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-4 w-full rounded-md bg-primary py-3 text-sm font-bold uppercase text-primary-foreground shadow-[0_0_15px_var(--color-primary)] transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_var(--color-primary)] focus:outline-none disabled:opacity-50"
+              className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus:outline-none disabled:opacity-50 disabled:animate-none"
             >
               {submitting ? 'Connecting...' : 'Authenticate'}
             </button>
@@ -199,7 +199,7 @@ export default function AuthPanel() {
 
           <div className="mb-1 flex items-center gap-2 text-primary">
             <UserPlus size={18} />
-            <h2 className="text-2xl font-bold uppercase tracking-wider text-white">
+            <h2 className="heading-display text-xl font-bold text-white sm:text-2xl">
               New Identity
             </h2>
           </div>
@@ -252,7 +252,7 @@ export default function AuthPanel() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-4 w-full rounded-md bg-primary py-3 text-sm font-bold uppercase text-primary-foreground shadow-[0_0_15px_var(--color-primary)] transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_var(--color-primary)] focus:outline-none disabled:opacity-50"
+              className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus:outline-none disabled:opacity-50 disabled:animate-none"
             >
               {submitting ? 'Initializing...' : 'Create Archive'}
             </button>
@@ -271,7 +271,7 @@ export default function AuthPanel() {
 
           <div className="mb-1 flex items-center gap-2 text-primary">
             <KeyRound size={18} />
-            <h2 className="text-2xl font-bold uppercase tracking-wider text-white">
+            <h2 className="heading-display text-xl font-bold text-white sm:text-2xl">
               Reset Passkey
             </h2>
           </div>
@@ -298,7 +298,7 @@ export default function AuthPanel() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-4 w-full rounded-md bg-primary py-3 text-sm font-bold uppercase text-primary-foreground shadow-[0_0_15px_var(--color-primary)] transition-all hover:bg-primary/90 hover:shadow-[0_0_25px_var(--color-primary)] focus:outline-none disabled:opacity-50"
+              className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus:outline-none disabled:opacity-50 disabled:animate-none"
             >
               {submitting ? 'Transmitting...' : 'Send Recovery Link'}
             </button>

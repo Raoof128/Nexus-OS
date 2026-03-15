@@ -21,7 +21,7 @@ export default function KanbanBoard({ items = [], mediaType = 'book', onUpdate, 
       {grouped.map(({ status, items: columnItems, total, hasMore }) => (
         <div
           key={status}
-          className="flex flex-col gap-3 rounded-xl border border-white/5 bg-black/20 p-3 relative backdrop-blur-md sm:gap-4 sm:p-4 md:max-h-[calc(100vh-200px)]"
+          className="neon-border flex flex-col gap-3 rounded-xl glass-panel p-3 relative sm:gap-4 sm:p-4 md:max-h-[calc(100vh-200px)]"
         >
            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent shadow-[0_0_10px_var(--color-primary)]"></div>
 
@@ -30,7 +30,7 @@ export default function KanbanBoard({ items = [], mediaType = 'book', onUpdate, 
             onClick={() => onHeaderClick?.(status, mediaType)}
             className="flex items-center justify-between px-2 pt-2 text-left transition-colors hover:opacity-80"
           >
-            <h2 className="font-mono text-sm font-semibold tracking-widest text-white uppercase sm:text-lg">
+            <h2 className="heading-display text-xs font-bold text-white sm:text-sm">
               // {status}
             </h2>
             <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-white/10 text-[10px] font-bold font-mono sm:h-6 sm:w-6 sm:text-xs">

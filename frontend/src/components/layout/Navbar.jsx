@@ -4,31 +4,41 @@ export default function Navbar() {
   const { session, signOut } = useAuth()
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/50 backdrop-blur-md">
-      <div className="container mx-auto flex h-16 items-center justify-between px-6">
-        <div className="flex items-center gap-2">
-          {/* Cyberpunk logo placeholder */}
-          <div className="h-4 w-4 rounded-sm bg-primary shadow-[0_0_10px_var(--color-primary)]"></div>
-          <span className="font-mono text-lg font-bold uppercase tracking-wider text-primary">
-            Nexus // Archive
+    <nav className="sticky top-0 z-50 w-full border-b border-white/[0.06] glass-panel">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
+        <div className="flex items-center gap-3">
+          {/* Neon logo mark */}
+          <div className="relative h-5 w-5">
+            <div className="absolute inset-0 rounded bg-primary/80 blur-sm" />
+            <div className="relative h-full w-full rounded bg-primary shadow-[0_0_12px_var(--color-primary)]" />
+          </div>
+          <span className="heading-display text-base font-bold text-primary glitch-hover sm:text-lg">
+            Nexus
+          </span>
+          <span className="hidden text-xs text-muted-foreground sm:inline heading-ui">
+            // Archive
           </span>
         </div>
-        
+
         {session ? (
-          <div className="flex items-center gap-4">
-            <span className="hidden font-mono text-xs text-muted-foreground sm:inline-block">
-              {session.user.email}
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-2 sm:flex">
+              <div className="h-1.5 w-1.5 rounded-full bg-green-400 shadow-[0_0_6px_theme(colors.green.400)]" />
+              <span className="text-xs text-muted-foreground">
+                {session.user.email}
+              </span>
+            </div>
             <button
               onClick={signOut}
-              className="rounded-md border border-white/10 px-4 py-2 font-mono text-sm uppercase transition-colors hover:bg-white/5 hover:text-white"
+              className="heading-ui rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-all hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive sm:px-4"
             >
               Disconnect
             </button>
           </div>
         ) : (
-          <div className="flex items-center gap-4 font-mono text-sm">
-            <span className="animate-pulse text-muted-foreground">Awaiting Authentication...</span>
+          <div className="flex items-center gap-2 heading-ui text-xs">
+            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary shadow-[0_0_6px_var(--color-primary)]" />
+            <span className="text-muted-foreground">Awaiting Auth...</span>
           </div>
         )}
       </div>
