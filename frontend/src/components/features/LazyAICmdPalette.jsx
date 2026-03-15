@@ -1,13 +1,16 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { Loader2, Sparkles } from 'lucide-react'
+import { Loader2, Zap } from 'lucide-react'
 
 const loadAICmdPalette = () => import('./AICmdPalette')
 const AICmdPalette = lazy(loadAICmdPalette)
 
 function LoadingDialog() {
   return (
-    <div className="fixed left-1/2 top-1/2 z-[100] flex w-full max-w-md -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border border-white/10 bg-zinc-950/95 p-8 shadow-2xl backdrop-blur-xl">
-      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+    <div className="neon-border fixed left-1/2 top-1/2 z-[100] flex w-full max-w-md -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl glass-panel p-10 shadow-[0_0_60px_hsl(var(--neon-cyan)/0.08)]">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <span className="heading-display text-[10px] tracking-[0.3em] text-primary/50">Loading Module</span>
+      </div>
     </div>
   )
 }
@@ -37,7 +40,7 @@ export default function LazyAICmdPalette({ mediaType = 'book' }) {
     <>
       <button
         type="button"
-        className="fixed bottom-20 right-4 z-50 flex cursor-pointer items-center gap-2 rounded-full border border-primary bg-primary/20 px-3 py-2 font-mono text-[11px] text-primary shadow-[0_0_15px_var(--color-primary)] backdrop-blur-xl transition-all hover:bg-primary/40 hover:animate-pulse sm:bottom-6 sm:right-6 sm:px-4 sm:text-xs"
+        className="neon-pulse fixed bottom-20 right-4 z-50 flex cursor-pointer items-center gap-2 rounded-xl glass-panel px-3 py-2.5 heading-ui text-[11px] font-semibold text-primary transition-all hover:bg-primary/15 sm:bottom-6 sm:right-6 sm:px-4 sm:text-xs"
         onMouseEnter={() => {
           setShouldLoad(true)
           void loadAICmdPalette()
@@ -48,8 +51,11 @@ export default function LazyAICmdPalette({ mediaType = 'book' }) {
         }}
         onClick={openPalette}
       >
-        <Sparkles size={16} />
-        Activate AI_CMD <span>[ Cmd + K ]</span>
+        <Zap size={14} className="text-primary" />
+        <span className="hidden sm:inline">AI_CMD</span>
+        <kbd className="rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-[9px] text-muted-foreground">
+          ⌘K
+        </kbd>
       </button>
 
       {shouldLoad ? (
