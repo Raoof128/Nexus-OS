@@ -132,3 +132,41 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
   - `CHANGELOG.md` - Added verification log.
 - **Verification:** Frontend (`npm run lint`, `npm run build`) completed flawlessly. Backend scripts and middlewares conform perfectly.
 - **Follow-ups:** Proceed to QA manually after database linkage.
+
+### 2026-03-15 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Elite Production Hardening and Operability Upgrade
+- **Summary:** Upgraded Nexus Archive from a polished demo into a more production-aligned system. Added strict schema sanitization, secure response headers, public health and schema routes, structured audit logging, optional Sentry bootstrap, Gemini few-shot prompting with token-budget pruning and circuit-breaker fallback logic, TanStack Query caching with optimistic updates, lazy AI command palette loading, Docker and devcontainer assets, Locust load testing, Terraform scaffolding, and expanded architecture/API/operations documentation.
+- **Files Changed:**
+  - `backend/app.py` - Added OpenAPI docs, health route wiring, security middleware, and settings-driven hosts/CORS.
+  - `backend/auth.py` - Allowed health/schema/options traffic and hardened request state injection.
+  - `backend/config.py` - Added production-oriented settings for origins, observability, auditing, and Gemini controls.
+  - `backend/controllers.py` - Added audit logging and resilient suggestion response handling.
+  - `backend/schemas.py` - Added strict Pydantic v2 sanitization validators and suggestion source metadata.
+  - `backend/services.py` - Added few-shot prompting, token pruning, circuit breaker, and local fallback recommendations.
+  - `backend/audit_logger.py` - Added hashed-user audit event logging.
+  - `backend/health.py` - Added `/healthz` uptime probe.
+  - `backend/observability.py` - Added optional backend Sentry initialization.
+  - `backend/security.py` - Added secure response header middleware.
+  - `backend/Dockerfile` - Added containerized backend runtime.
+  - `frontend/src/hooks/useBooks.js` - Replaced manual fetch state with TanStack Query caching and optimistic updates.
+  - `frontend/src/components/features/AICmdPalette.jsx` - Surfaced live-vs-local suggestion source and aligned with the new mutation flow.
+  - `frontend/src/components/features/LazyAICmdPalette.jsx` - Added on-demand AI palette loading with shortcut support.
+  - `frontend/src/lib/apiClient.js` - Added shared authenticated API client.
+  - `frontend/src/lib/queryClient.js` - Added shared React Query client.
+  - `frontend/src/observability/sentry.js` - Added optional frontend Sentry bootstrap.
+  - `frontend/src/App.jsx` - Removed manual fetch effect and wired in lazy AI loading.
+  - `frontend/src/main.jsx` - Added QueryClient provider and observability init.
+  - `frontend/package.json` / `frontend/package-lock.json` - Added Sentry and TanStack Query dependencies.
+  - `frontend/vite.config.js` - Added manual chunking to eliminate the oversized bundle warning.
+  - `pyproject.toml` - Added observability, tokenizer, and Locust dependencies.
+  - `Makefile` - Added load-test, docker-build, and Terraform formatting targets.
+  - `.github/workflows/ci.yml` - Added Terraform formatting and Docker build quality gates.
+  - `backend/.env.example` / `frontend/.env.example` - Added new observability and hardening configuration templates.
+  - `.dockerignore`, `docker-compose.yml`, `.devcontainer/devcontainer.json` - Added local runtime parity assets.
+  - `loadtests/locustfile.py` - Added concurrent `/books/suggest` load scenario.
+  - `infra/terraform/*` - Added reviewed IaC scaffold for Supabase and Vercel.
+  - `README.md`, `docs/architecture.md`, `docs/api-reference.md`, `docs/usage-examples.md`, `docs/operations.md`, `SECURITY.md` - Documented the new operational, security, and runtime model.
+  - `tests/test_config.py`, `tests/test_schemas.py`, `tests/test_services.py` - Added coverage for config parsing, sanitization, and fallback suggestion logic.
+- **Verification:** Ran `python3 -m pip install -e '.[dev]'`, `npm install` in `frontend/`, `python3 -m ruff check backend tests loadtests`, `python3 -m ruff format --check backend tests loadtests`, `SUPABASE_URL=https://example.supabase.co SUPABASE_KEY=test-key SUPABASE_JWT_SECRET=test-secret python3 -m pytest`, `SUPABASE_URL=https://example.supabase.co SUPABASE_KEY=test-key SUPABASE_JWT_SECRET=test-secret python3 -c "import backend.app"`, `npm run lint`, and `VITE_SUPABASE_URL=https://example.supabase.co VITE_SUPABASE_ANON_KEY=example-anon-key VITE_API_URL=http://127.0.0.1:8000 VITE_SENTRY_DSN=https://public@example.ingest.sentry.io/1 VITE_SENTRY_TRACES_SAMPLE_RATE=0 npm run build`. `terraform fmt` could not run locally because Terraform is not installed, and `docker build` could not complete because the Docker daemon was unavailable.
+- **Follow-ups:** Run `terraform init/plan` with live provider credentials and re-run the container build once Docker is running to fully validate external tooling paths.

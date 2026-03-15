@@ -1,31 +1,27 @@
-import { useState, useEffect } from 'react'
-import { useAuth } from './hooks/useAuth'
-import { useBooks } from './hooks/useBooks'
-import Navbar from './components/layout/Navbar'
+import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import LazyAICmdPalette from './components/features/LazyAICmdPalette'
 import BentoGrid from './components/layout/BentoGrid'
 import KanbanBoard from './components/features/KanbanBoard'
-import AICmdPalette from './components/features/AICmdPalette'
-import { Loader2 } from 'lucide-react'
+import Navbar from './components/layout/Navbar'
+import { useAuth } from './hooks/useAuth'
+import { useBooks } from './hooks/useBooks'
 
 function App() {
   const { session, loading: authLoading, signIn } = useAuth()
-  const { books, loading: dataLoading, error, fetchBooks } = useBooks(session)
+  const { books, loading: dataLoading, error } = useBooks(session)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState(null)
 
-  useEffect(() => {
-    if (session) {
-      fetchBooks()
-    }
-  }, [session, fetchBooks])
-
-  const handleLogin = async (e) => {
-    e.preventDefault()
+  const handleLogin = async (event) => {
+    event.preventDefault()
     setAuthError(null)
-    const { error } = await signIn(email, password)
-    if (error) setAuthError(error.message)
+    const { error: signInError } = await signIn(email, password)
+    if (signInError) {
+      setAuthError(signInError.message)
+    }
   }
 
   if (authLoading) {
@@ -95,7 +91,7 @@ function App() {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(event) => setEmail(event.target.value)}
                     className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50"
                     placeholder="runner@nexus.net"
                     required
@@ -108,7 +104,7 @@ function App() {
                   <input
                     type="password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(event) => setPassword(event.target.value)}
                     className="w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50"
                     placeholder="••••••••"
                     required
@@ -145,14 +141,14 @@ function App() {
           </div>
         ) : (
           <BentoGrid>
-            <div className="col-span-1 md:col-span-2 lg:col-span-3 h-[75vh]">
+            <div className="col-span-1 h-[75vh] md:col-span-2 lg:col-span-3">
               <KanbanBoard books={books} />
             </div>
           </BentoGrid>
         )}
       </main>
 
-      <AICmdPalette />
+      <LazyAICmdPalette />
     </div>
   )
 }

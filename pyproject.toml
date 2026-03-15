@@ -4,28 +4,29 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nexus-archive"
-version = "0.1.0"
+version = "0.2.0"
 description = "Personal anime, movie, and book archive with a Litestar API."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [
-  { name = "Raoof" }
-]
+authors = [{ name = "Raoof" }]
 dependencies = [
+  "google-genai>=1.22.0",
   "litestar>=2.17.0",
   "pydantic>=2.11.0",
   "pyjwt>=2.10.0",
   "python-dotenv>=1.0.1",
+  "sentry-sdk>=2.27.0",
   "supabase>=2.15.3",
-  "google-genai>=1.22.0"
+  "tiktoken>=0.9.0",
 ]
 
 [project.optional-dependencies]
 dev = [
   "httpx>=0.28.1",
+  "locust>=2.37.10",
   "pytest>=8.3.5",
-  "ruff>=0.11.13"
+  "ruff>=0.11.13",
 ]
 
 [tool.setuptools]

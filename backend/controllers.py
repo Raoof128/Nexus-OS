@@ -6,19 +6,13 @@ from litestar import Controller, Request, get, post
 from litestar.exceptions import HTTPException
 
 try:
+    from .audit_logger import log_audit_event
     from .schemas import BookCreate, SuggestionResponse
-    from .services import (
-        build_book_suggestion_reasoning,
-        get_genai_client,
-        get_supabase_client,
-    )
+    from .services import get_book_suggestion, get_supabase_client
 except ImportError:  # pragma: no cover - supports backend cwd execution
+    from audit_logger import log_audit_event
     from schemas import BookCreate, SuggestionResponse
-    from services import (
-        build_book_suggestion_reasoning,
-        get_genai_client,
-        get_supabase_client,
-    )
+    from services import get_book_suggestion, get_supabase_client
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +58,15 @@ class BookController(Controller):
                 status_code=502,
                 detail="Failed to create book",
             ) from exc
+
+        log_audit_event(
+            action="book.create",
+            user_id=user_id,
+            metadata={
+                "status": book_data["status"],
+                "title": book_data["title"],
+            },
+        )
         return response.data[0] if response.data else {}
 
     @get("/suggest")
@@ -89,17 +92,17 @@ class BookController(Controller):
                 detail="Failed to load books for suggestions",
             ) from exc
 
-        if get_genai_client() is None:
-            return SuggestionResponse(
-                suggestion="Neuromancer",
-                reasoning=build_book_suggestion_reasoning(books.data or []),
-            )
-
-        reasoning = build_book_suggestion_reasoning(books.data or [])
-        suggestion, _, explanation = reasoning.partition(":")
-        suggestion_value = suggestion.strip() or "Recommended title"
-        reasoning_value = explanation.strip() or reasoning
+        suggestion = get_book_suggestion(books.data or [])
+        log_audit_event(
+            action="book.suggest",
+            user_id=user_id,
+            metadata={
+                "library_size": len(books.data or []),
+                "source": suggestion.source,
+            },
+        )
         return SuggestionResponse(
-            suggestion=suggestion_value,
-            reasoning=reasoning_value,
+            suggestion=suggestion.suggestion,
+            reasoning=suggestion.reasoning,
+            source=suggestion.source,
         )

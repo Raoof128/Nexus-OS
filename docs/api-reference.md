@@ -2,13 +2,29 @@
 
 ## Authentication
 
-All backend endpoints require:
+All book endpoints require:
 
 ```http
 Authorization: Bearer <supabase_access_token>
 ```
 
+Public operational routes:
+
+- `GET /healthz`
+- `GET /schema/swagger`
+- `GET /schema/openapi.json`
+
 ## Endpoints
+
+### `GET /healthz`
+
+Returns a simple uptime response:
+
+```json
+{
+  "status": "ok"
+}
+```
 
 ### `GET /books`
 
@@ -51,22 +67,28 @@ Request body:
 
 Validation rules:
 
-- `title`: 1-255 chars
-- `author`: 1-255 chars
-- `genre`: optional, max 100 chars
+- `title`: 1-255 chars, strips excess whitespace, rejects XSS and injection probes
+- `author`: 1-255 chars, rejects XSS and injection probes
+- `genre`: optional, max 100 chars, rejects XSS and injection probes
 - `status`: `To Read`, `Reading`, or `Finished`
 - `rating`: optional, integer from 1 to 5
-- `takeaway`: optional, max 2000 chars
+- `takeaway`: optional, max 2000 chars, rejects embedded script markup
 
 ### `GET /books/suggest`
 
-Returns an AI-assisted recommendation derived from the user book list.
+Returns a recommendation derived from the user library. When Gemini is unavailable, the endpoint degrades to a deterministic local fallback instead of returning a server error.
 
 Response:
 
 ```json
 {
   "suggestion": "Snow Crash",
-  "reasoning": "Fast-paced cyberpunk with satirical energy and strong world design."
+  "reasoning": "Fast-paced cyberpunk with satirical energy and strong world design.",
+  "source": "gemini"
 }
 ```
+
+Possible `source` values:
+
+- `gemini`
+- `local`

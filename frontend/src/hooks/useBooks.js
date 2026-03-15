@@ -1,74 +1,71 @@
-import { useState, useCallback } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { apiFetch } from '../lib/apiClient'
 
-const API_URL = import.meta.env.VITE_API_URL
-
-if (!API_URL) {
-  throw new Error('Missing required environment variable: VITE_API_URL')
+function getBooksQueryKey(session) {
+  return ['books', session?.user?.id ?? 'anonymous']
 }
 
 export function useBooks(session) {
-  const [books, setBooks] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const queryClient = useQueryClient()
+  const booksQueryKey = getBooksQueryKey(session)
+  const isAuthenticated = Boolean(session?.access_token)
 
-  const fetchBooks = useCallback(async () => {
-    if (!session?.access_token) return
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await fetch(`${API_URL}/books`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
-      if (!response.ok) throw new Error('Failed to fetch books')
-      const data = await response.json()
-      setBooks(data)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [session])
+  const booksQuery = useQuery({
+    queryKey: booksQueryKey,
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+    retry: 1,
+    queryFn: () => apiFetch('/books', { session }),
+  })
 
-  const addBook = async (bookData) => {
-    if (!session?.access_token) return null
-    setError(null)
-    try {
-      const response = await fetch(`${API_URL}/books`, {
+  const addBookMutation = useMutation({
+    mutationFn: (bookData) =>
+      apiFetch('/books', {
+        session,
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(bookData),
-      })
-      if (!response.ok) throw new Error('Failed to add book')
-      const newBook = await response.json()
-      setBooks((prev) => [...prev, newBook])
-      return newBook
-    } catch (err) {
-      setError(err.message)
-      return null
-    }
-  }
+        body: bookData,
+      }),
+    onMutate: async (bookData) => {
+      await queryClient.cancelQueries({ queryKey: booksQueryKey })
+      const previousBooks = queryClient.getQueryData(booksQueryKey) ?? []
+      const optimisticBook = {
+        ...bookData,
+        id: `optimistic-${Date.now()}`,
+      }
 
-  const suggestBook = async () => {
-    if (!session?.access_token) return null
-    setError(null)
-    try {
-      const response = await fetch(`${API_URL}/books/suggest`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
-      if (!response.ok) throw new Error('Failed to suggest book')
-      return await response.json()
-    } catch (err) {
-      setError(err.message)
-      return null
-    }
-  }
+      queryClient.setQueryData(booksQueryKey, [...previousBooks, optimisticBook])
+      return { previousBooks }
+    },
+    onError: (_error, _variables, context) => {
+      queryClient.setQueryData(booksQueryKey, context?.previousBooks ?? [])
+    },
+    onSuccess: (createdBook) => {
+      queryClient.setQueryData(booksQueryKey, (currentBooks = []) => [
+        ...currentBooks.filter((book) => !String(book.id).startsWith('optimistic-')),
+        createdBook,
+      ])
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: booksQueryKey })
+    },
+  })
 
-  return { books, loading, error, fetchBooks, addBook, suggestBook }
+  const suggestBookMutation = useMutation({
+    mutationFn: () => apiFetch('/books/suggest', { session }),
+  })
+
+  return {
+    books: booksQuery.data ?? [],
+    loading:
+      booksQuery.isPending || booksQuery.isFetching || addBookMutation.isPending,
+    error:
+      booksQuery.error?.message ??
+      addBookMutation.error?.message ??
+      null,
+    fetchBooks: booksQuery.refetch,
+    addBook: addBookMutation.mutateAsync,
+    suggestBook: suggestBookMutation.mutateAsync,
+    suggestError: suggestBookMutation.error?.message ?? null,
+    suggesting: suggestBookMutation.isPending,
+  }
 }

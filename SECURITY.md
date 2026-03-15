@@ -5,10 +5,19 @@
 Security issues are accepted for:
 
 - backend authentication and authorization
-- Supabase integration
-- environment variable handling
+- Supabase integration and RLS assumptions
+- request validation and prompt-sanitization logic
+- audit logging and observability configuration
 - dependency and supply-chain concerns
-- API exposure and data validation issues
+
+## Security Controls in This Repository
+
+- Supabase JWTs are validated server-side before protected routes run.
+- Health and schema routes are intentionally public for operations and API review.
+- User-controlled book fields are sanitized and checked for XSS and injection patterns.
+- Secure response headers are emitted by the backend middleware layer.
+- Audit events log hashed user identifiers rather than raw identities.
+- Secrets stay environment-driven; production deployments should source them from a vault.
 
 ## Reporting a Vulnerability
 
@@ -24,10 +33,3 @@ Instead:
 
 - Initial triage target: within 5 business days
 - Mitigation or remediation plan: as soon as impact is confirmed
-
-## Security Expectations for Contributors
-
-- Never commit secrets or real credentials.
-- Preserve strict JWT validation and restricted CORS behavior.
-- Keep Supabase RLS assumptions explicit in schema and docs.
-- Validate all user-controlled input before persistence or downstream API use.

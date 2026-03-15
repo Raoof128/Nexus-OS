@@ -2,28 +2,50 @@
 
 from litestar import Litestar
 from litestar.config.cors import CORSConfig
+from litestar.openapi.config import OpenAPIConfig
 
 try:
     from .auth import SupabaseAuthMiddleware
+    from .config import get_settings
     from .controllers import BookController
+    from .health import healthcheck
     from .logging_config import configure_logging
+    from .observability import configure_observability
+    from .security import SecurityHeadersMiddleware
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from auth import SupabaseAuthMiddleware
+    from config import get_settings
     from controllers import BookController
+    from health import healthcheck
     from logging_config import configure_logging
+    from observability import configure_observability
+    from security import SecurityHeadersMiddleware
 
 configure_logging()
+configure_observability()
+settings = get_settings()
 
-# Explicitly configure CORS. No allow_origins=["*"] nonsense.
 cors_config = CORSConfig(
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=list(settings.allowed_origins),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
 
 app = Litestar(
-    route_handlers=[BookController],
-    middleware=[SupabaseAuthMiddleware],
+    route_handlers=[healthcheck, BookController],
+    middleware=[SecurityHeadersMiddleware, SupabaseAuthMiddleware],
     cors_config=cors_config,
+    allowed_hosts=list(settings.allowed_hosts),
+    openapi_config=OpenAPIConfig(
+        title="Nexus Archive API",
+        version="0.2.0",
+        description=(
+            "Authenticated API for the Nexus cyberpunk book library, including"
+            " health probes and AI-assisted recommendation workflows."
+        ),
+        path="/schema",
+        use_handler_docstrings=True,
+        root_schema_site="swagger",
+    ),
 )
