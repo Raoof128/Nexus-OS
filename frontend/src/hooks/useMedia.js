@@ -1,14 +1,50 @@
+import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../lib/apiClient'
+import { realtimeClient } from '../lib/realtimeClient'
 
 function getMediaQueryKey(session, type) {
   return ['media', session?.user?.id ?? 'anonymous', type]
+}
+
+/**
+ * Pure function that applies a Realtime event to the current cache.
+ * Exported for unit testing.
+ */
+export function handleRealtimeEvent(oldData, payload) {
+  const { eventType } = payload
+  const newItem = payload.new
+  const oldItem = payload.old
+
+  switch (eventType) {
+    case 'INSERT': {
+      // Skip if optimistic update already added this item
+      if (oldData.some((item) => item.id === newItem.id)) {
+        return oldData
+      }
+      return [newItem, ...oldData]
+    }
+    case 'UPDATE': {
+      const existing = oldData.find((item) => item.id === newItem.id)
+      // Shallow equality dedup — skip if optimistic update already applied
+      if (existing && JSON.stringify(existing) === JSON.stringify(newItem)) {
+        return oldData
+      }
+      return oldData.map((item) => (item.id === newItem.id ? newItem : item))
+    }
+    case 'DELETE': {
+      return oldData.filter((item) => item.id !== oldItem.id)
+    }
+    default:
+      return oldData
+  }
 }
 
 export function useMedia(session, type = 'book') {
   const queryClient = useQueryClient()
   const mediaQueryKey = getMediaQueryKey(session, type)
   const isAuthenticated = Boolean(session?.user?.id)
+  const accessToken = session?.access_token
 
   const mediaQuery = useQuery({
     queryKey: mediaQueryKey,
@@ -17,6 +53,39 @@ export function useMedia(session, type = 'book') {
     retry: 1,
     queryFn: () => apiFetch(`/media?type=${type}`),
   })
+
+  // --- Supabase Realtime subscription ---
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken) return
+
+    realtimeClient.realtime.setAuth(accessToken)
+
+    const channel = realtimeClient
+      .channel(`media-sync-${type}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'media',
+          filter: `user_id=eq.${session.user.id}`,
+        },
+        (payload) => {
+          const targetType = payload.new?.type || payload.old?.type
+          if (targetType !== type) return
+
+          queryClient.setQueryData(
+            mediaQueryKey,
+            (current) => handleRealtimeEvent(current ?? [], payload),
+          )
+        },
+      )
+      .subscribe()
+
+    return () => {
+      realtimeClient.removeChannel(channel)
+    }
+  }, [isAuthenticated, accessToken, type, session?.user?.id, mediaQueryKey, queryClient])
 
   const addMediaMutation = useMutation({
     mutationFn: (data) =>
