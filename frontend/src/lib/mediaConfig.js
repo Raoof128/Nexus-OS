@@ -29,3 +29,14 @@ export const MEDIA_CONFIG = {
     icon: 'Sparkles',
   },
 }
+
+export function getStatusNav(type, currentStatus) {
+  const flow = MEDIA_CONFIG[type]?.statuses || []
+  const index = flow.indexOf(currentStatus)
+  return {
+    flow,
+    currentIndex: index,
+    prev: index > 0 ? flow[index - 1] : null,
+    next: index >= 0 && index < flow.length - 1 ? flow[index + 1] : null,
+  }
+}
