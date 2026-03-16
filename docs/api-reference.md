@@ -95,7 +95,7 @@ Deletes an existing media entry owned by the authenticated user.
 
 ### `GET /media/suggest`
 
-Returns recommendations derived from the user library. This route is rate-limited to protect quota and degrades to a deterministic local fallback when Gemini is unavailable.
+Returns recommendations derived from the user library. This route consumes the shared per-user AI quota and degrades to a deterministic local fallback when Gemini is unavailable.
 
 Response:
 
@@ -134,3 +134,5 @@ Returns decrypted chat messages for an owned session.
 ### `POST /chat/sessions/{session_id}/messages`
 
 Sends a message, stores it, forwards a sanitized recent history window to Gemini, and returns the AI response.
+
+This route also consumes the shared per-user AI quota. Configure the budget with `AI_RATE_LIMIT_REQUESTS` and `AI_RATE_LIMIT_WINDOW_SECONDS`.

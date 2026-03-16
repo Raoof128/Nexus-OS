@@ -105,6 +105,7 @@ class RedisSlidingWindowRateLimiter:
 
 RateLimiter = SlidingWindowRateLimiter | RedisSlidingWindowRateLimiter
 
+_ai_rate_limiter: RateLimiter | None = None
 _suggest_rate_limiter: RateLimiter | None = None
 _auth_rate_limiter: RateLimiter | None = None
 
@@ -144,6 +145,21 @@ def enforce_suggest_rate_limit(user_id: str) -> None:
     _suggest_rate_limiter.enforce(f"suggest:{user_id}")
 
 
+def enforce_ai_rate_limit(user_id: str, _feature: str) -> None:
+    """Apply a shared AI usage limit across Gemini-backed features."""
+
+    global _ai_rate_limiter
+    settings = get_settings()
+    if _ai_rate_limiter is None:
+        _ai_rate_limiter = _create_rate_limiter(
+            max_requests=settings.ai_rate_limit_requests,
+            window_seconds=settings.ai_rate_limit_window_seconds,
+        )
+    # A single per-user quota prevents a caller from bypassing limits by
+    # alternating between AI-backed endpoints.
+    _ai_rate_limiter.enforce(f"ai:{user_id}")
+
+
 def enforce_auth_rate_limit(key: str) -> None:
     """Apply the configured rate limit to authentication endpoints."""
 
@@ -151,7 +167,16 @@ def enforce_auth_rate_limit(key: str) -> None:
     settings = get_settings()
     if _auth_rate_limiter is None:
         _auth_rate_limiter = _create_rate_limiter(
-            max_requests=settings.auth_rate_limit_requests,
-            window_seconds=settings.auth_rate_limit_window_seconds,
-        )
+        max_requests=settings.auth_rate_limit_requests,
+        window_seconds=settings.auth_rate_limit_window_seconds,
+    )
     _auth_rate_limiter.enforce(f"auth:{key}")
+
+
+def reset_rate_limiters() -> None:
+    """Reset cached rate limiter instances for isolated tests."""
+
+    global _ai_rate_limiter, _suggest_rate_limiter, _auth_rate_limiter
+    _ai_rate_limiter = None
+    _suggest_rate_limiter = None
+    _auth_rate_limiter = None

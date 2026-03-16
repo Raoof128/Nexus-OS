@@ -9,7 +9,7 @@ This repository now includes a stronger defensive posture:
 - backend-managed `HttpOnly` auth cookies instead of frontend-readable Supabase tokens
 - strict cookie refresh flow with short-lived access tokens and silent rotation
 - AI prompt isolation with XML delimiters, string scrubbing, and PII masking
-- server-side rate limiting for `/media/suggest` and chat message generation
+- shared server-side AI rate limiting for `/media/suggest` and chat message generation
 - encrypted `takeaway` persistence when `TAKEAWAY_ENCRYPTION_KEY` is configured
 - Bandit, pip-audit, npm audit, and secret scanning in CI
 
@@ -72,6 +72,7 @@ docker compose up --build backend
 - `POST /auth/refresh` silently rotates short-lived access tokens.
 - `GET /healthz` is available for uptime checks.
 - `GET /schema/swagger` exposes live API docs without requiring auth.
+- `AI_RATE_LIMIT_REQUESTS` and `AI_RATE_LIMIT_WINDOW_SECONDS` enforce a shared per-user Gemini quota across recommendations and chat.
 - `GET /media/suggest?type=book|movie|anime` is rate-limited and degrades to a local recommendation when Gemini is unavailable.
 - chat transcripts are user-scoped, sanitized before Gemini calls, and protected at rest when `TAKEAWAY_ENCRYPTION_KEY` is configured.
 - `takeaway` notes are stored encrypted when `TAKEAWAY_ENCRYPTION_KEY` is configured.

@@ -30,6 +30,8 @@ def test_get_settings_reads_expected_values(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setenv("ALLOWED_ORIGINS", "https://nexus.app,https://preview.nexus.app")
     monkeypatch.setenv("COOKIE_SECURE", "true")
     monkeypatch.setenv("TRUSTED_PROXY_IPS", "10.0.0.1,10.0.0.2")
+    monkeypatch.setenv("AI_RATE_LIMIT_REQUESTS", "7")
+    monkeypatch.setenv("AI_RATE_LIMIT_WINDOW_SECONDS", "120")
 
     settings = get_settings()
 
@@ -39,6 +41,8 @@ def test_get_settings_reads_expected_values(monkeypatch: pytest.MonkeyPatch) -> 
     assert settings.audit_log_salt == "audit-salt"
     assert settings.gemini_api_key == "gemini-key"
     assert settings.cookie_secure is True
+    assert settings.ai_rate_limit_requests == 7
+    assert settings.ai_rate_limit_window_seconds == 120
     assert settings.trusted_proxy_ips == ("10.0.0.1", "10.0.0.2")
     assert settings.allowed_origins == (
         "https://nexus.app",

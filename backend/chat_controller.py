@@ -17,7 +17,7 @@ try:
         protect_chat_content,
         sanitize_chat_message_for_llm,
     )
-    from .rate_limit import enforce_suggest_rate_limit
+    from .rate_limit import enforce_ai_rate_limit
     from .schemas import (
         ChatMessageRequest,
         ChatMessageResponse,
@@ -31,7 +31,7 @@ except ImportError:  # pragma: no cover
         protect_chat_content,
         sanitize_chat_message_for_llm,
     )
-    from rate_limit import enforce_suggest_rate_limit
+    from rate_limit import enforce_ai_rate_limit
     from schemas import (
         ChatMessageRequest,
         ChatMessageResponse,
@@ -180,7 +180,7 @@ class ChatController(Controller):
         """Send a message and get an AI response."""
 
         user_id = request.state.user_id
-        enforce_suggest_rate_limit(user_id)
+        enforce_ai_rate_limit(user_id, "chat")
         client = _get_client(request)
 
         # 1. Verify session ownership via RLS (fetch will be empty if not owned)

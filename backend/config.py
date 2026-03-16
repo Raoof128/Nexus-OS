@@ -41,6 +41,8 @@ class BackendSettings:
     refresh_cookie_max_age: int = 60 * 60 * 24 * 7
     cookie_domain: str | None = None
     cookie_secure: bool = False
+    ai_rate_limit_requests: int = 10
+    ai_rate_limit_window_seconds: int = 60
     suggest_rate_limit_requests: int = 5
     suggest_rate_limit_window_seconds: int = 60
     auth_rate_limit_requests: int = 10
@@ -142,6 +144,10 @@ def get_settings() -> BackendSettings:
         cookie_secure=_parse_bool_env(
             "COOKIE_SECURE",
             (_get_env("APP_ENV", "development") or "development") != "development",
+        ),
+        ai_rate_limit_requests=int(_get_env("AI_RATE_LIMIT_REQUESTS", "10") or "10"),
+        ai_rate_limit_window_seconds=int(
+            _get_env("AI_RATE_LIMIT_WINDOW_SECONDS", "60") or "60"
         ),
         suggest_rate_limit_requests=int(
             _get_env("SUGGEST_RATE_LIMIT_REQUESTS", "5") or "5"

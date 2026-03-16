@@ -22,6 +22,19 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 ## Change Log
 
+### 2026-03-17 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Shared AI Usage Rate Limiting
+- **Summary:** Added a dedicated per-user AI quota for Gemini-backed features so chat generation and media recommendations now share one server-side rate-limit budget instead of allowing endpoint-by-endpoint bypass. Wired the new settings into backend config, applied the limiter to both AI entry points, documented the environment knobs, and added regression coverage for the shared-budget behavior.
+- **Files Changed:**
+  - `backend/config.py` — Added typed AI rate-limit settings.
+  - `backend/rate_limit.py` — Added shared AI limiter wiring and a test reset helper.
+  - `backend/controllers.py`, `backend/chat_controller.py` — Applied the shared AI quota to recommendation and chat routes.
+  - `tests/test_rate_limit.py`, `tests/test_config.py` — Added coverage for shared AI budget enforcement and config parsing.
+  - `backend/.env.example`, `README.md`, `docs/api-reference.md` — Documented the new AI rate-limit controls.
+- **Verification:** `python3 -m pytest tests/test_rate_limit.py tests/test_config.py` passed (4/4), `python3 -m ruff check backend tests` clean.
+- **Follow-ups:** Remove or formally deprecate the older suggest-specific rate-limit settings if you want configuration surface area reduced further.
+
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
 - **Scope:** Responsive Dashboard + Deep Dive Detail Modal

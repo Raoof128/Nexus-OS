@@ -1,5 +1,13 @@
 # Change Log
 
+### 2026-03-17 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Shared AI Usage Rate Limiting
+- **Summary:** Added a single per-user AI quota for Gemini-backed routes so chat and media recommendations now share the same server-side budget. Wired new `AI_RATE_LIMIT_*` settings into backend config, applied the limiter to both endpoints, documented the env vars, and added regression tests.
+- **Files Changed:** `backend/config.py`, `backend/rate_limit.py`, `backend/controllers.py`, `backend/chat_controller.py`, `tests/test_rate_limit.py`, `tests/test_config.py`, `backend/.env.example`, `README.md`, `docs/api-reference.md`.
+- **Verification:** `python3 -m pytest tests/test_rate_limit.py tests/test_config.py` passed (4/4). `python3 -m ruff check backend tests` clean.
+- **Follow-ups:** Optionally remove or deprecate the legacy suggest-specific rate-limit settings to avoid duplicate AI throttling knobs.
+
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
 - **Scope:** Responsive Dashboard + Deep Dive Detail Modal

@@ -10,7 +10,7 @@ from litestar.params import Parameter
 try:
     from .audit_logger import log_audit_event
     from .data_protection import encrypt_takeaway, hydrate_book_record
-    from .rate_limit import enforce_suggest_rate_limit
+    from .rate_limit import enforce_ai_rate_limit
     from .schemas import (
         MediaCreate,
         MediaUpdate,
@@ -21,7 +21,7 @@ try:
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from audit_logger import log_audit_event
     from data_protection import encrypt_takeaway, hydrate_book_record
-    from rate_limit import enforce_suggest_rate_limit
+    from rate_limit import enforce_ai_rate_limit
     from schemas import (
         MediaCreate,
         MediaUpdate,
@@ -180,7 +180,7 @@ class MediaController(Controller):
 
         user_id = request.state.user_id
         media_type = type if type in VALID_MEDIA_TYPES else "book"
-        enforce_suggest_rate_limit(user_id)
+        enforce_ai_rate_limit(user_id, "suggest")
         try:
             query = (
                 _get_user_client(request)
