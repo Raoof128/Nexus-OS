@@ -2,7 +2,7 @@
 
 ## System Summary
 
-Nexus Archive is a split frontend/backend book-tracking application backed by Supabase:
+Nexus Archive is a split frontend/backend media-tracking application backed by Supabase:
 
 ```mermaid
 flowchart LR
@@ -43,7 +43,7 @@ sequenceDiagram
   participant API as Litestar API
   participant Gemini
 
-  Browser->>API: GET /books/suggest
+  Browser->>API: GET /media/suggest?type=book
   API->>API: Enforce per-user rate limit
   API->>API: Load books + scrub prompt input
   API->>API: Wrap context in strict XML delimiters
@@ -68,4 +68,4 @@ sequenceDiagram
 - API to Gemini
 - CI/CD to Terraform-managed infrastructure
 
-Every boundary validates configuration and input before use.
+Runtime boundaries enforce auth, RLS, and request validation where implemented; frontend deployment headers and provider-side auth settings must still be verified in the target environment.

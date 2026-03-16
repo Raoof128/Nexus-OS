@@ -7,6 +7,14 @@
 - **Files Changed:** MediaDetailModal.jsx (new), CyberCard.jsx, KanbanBoard.jsx, App.jsx, index.css, App.test.jsx.
 - **Verification:** Lint, test, build all clean.
 
+### 2026-03-16 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Security Audit Remediation — Auth Trust Boundaries, Chat Isolation, Recovery Token Hygiene
+- **Summary:** Fixed the confirmed and likely security findings from the evidence-driven repo audit. Auth rate limiting now ignores spoofed `X-Forwarded-For` unless the direct peer is listed in `TRUSTED_PROXY_IPS`. Chat cache/query keys are user-scoped and cleared on auth transitions to prevent cross-account disclosure on shared browsers. Recovery tokens are stripped from the URL before Sentry initializes, Sentry now redacts token-bearing URLs, and the reset bootstrap is StrictMode-safe. Chat history sent to Gemini is reduced to a recent window, prompt-injection markers and obvious PII are masked, and chat content is encrypted at rest when `TAKEAWAY_ENCRYPTION_KEY` is configured. Removed the unused required `SUPABASE_KEY`, hardened local Supabase auth defaults, added repo-controlled frontend security headers via `vercel.json`, and synced stale docs/examples to `/media` routes.
+- **Files Changed:** `backend/auth_controller.py`, `backend/config.py`, `backend/chat_controller.py`, `backend/data_protection.py`, `frontend/src/context/AuthContext.jsx`, `frontend/src/hooks/useChat.js`, `frontend/src/components/features/ChatLayout.jsx`, `frontend/src/components/features/ChatWindow.jsx`, `frontend/src/lib/recoveryTokens.js`, `frontend/src/App.jsx`, `frontend/src/main.jsx`, `frontend/src/observability/sentry.js`, `frontend/src/components/features/AuthPanel.jsx`, `frontend/src/hooks/useMedia.js`, `frontend/src/hooks/useBooks.js`, `frontend/index.html`, `vercel.json`, `supabase/config.toml`, `.github/workflows/ci.yml`, `backend/.env.example`, `README.md`, `SECURITY.md`, `docs/architecture.md`, `docs/api-reference.md`, `docs/operations.md`, `docs/usage-examples.md`, `loadtests/locustfile.py`, `pyproject.toml`, `tests/test_auth_controller.py`, `tests/test_config.py`, `tests/test_data_protection.py`, `frontend/src/lib/recoveryTokens.test.js`.
+- **Verification:** Ruff clean, pytest 33/33 pass, Bandit 0 issues, frontend lint clean, frontend tests 6/6 pass, frontend build clean.
+- **Follow-ups:** Configure `TRUSTED_PROXY_IPS` for the deployed reverse-proxy tier and verify live Vercel/Sentry settings still match the repo-controlled header and redaction policy.
+
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
 - **Scope:** Unified Media Model — Books, Movies, Anime

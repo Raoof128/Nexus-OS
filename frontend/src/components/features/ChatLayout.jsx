@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
+import { useAuth } from '../../hooks/useAuth'
 import { useChatSessions } from '../../hooks/useChat'
 import ChatSidebar from './ChatSidebar'
 import ChatWindow from './ChatWindow'
 
 export default function ChatLayout() {
-  const { sessions, createSession, deleteSession } = useChatSessions()
+  const { session } = useAuth()
+  const userId = session?.user?.id ?? null
+  const { sessions, createSession, deleteSession } = useChatSessions(userId)
   const [activeSessionId, setActiveSessionId] = useState(null)
 
   const handleDelete = async (sessionId) => {
@@ -54,7 +57,7 @@ export default function ChatLayout() {
               Sessions
             </button>
             <div className="flex-1">
-              <ChatWindow sessionId={activeSessionId} />
+              <ChatWindow sessionId={activeSessionId} userId={userId} />
             </div>
           </div>
         )}
@@ -62,7 +65,7 @@ export default function ChatLayout() {
 
       {/* Desktop chat window */}
       <div className="hidden flex-1 sm:block">
-        <ChatWindow sessionId={activeSessionId} />
+        <ChatWindow sessionId={activeSessionId} userId={userId} />
       </div>
     </div>
   )

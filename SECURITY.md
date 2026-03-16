@@ -14,7 +14,7 @@ Security issues are accepted for:
 
 - Supabase JWTs are validated server-side before protected routes run.
 - Browser auth uses backend-managed `HttpOnly` cookies rather than frontend-readable access tokens.
-- User-controlled book fields are sanitized and checked for XSS and injection patterns.
+- User-controlled media fields are sanitized and checked for XSS and injection patterns.
 - Secure response headers are emitted by the backend middleware layer.
 - Audit events log hashed user identifiers rather than raw identities.
 - The Gemini prompt path strips markdown fences, masks obvious PII, and treats library data as untrusted input.

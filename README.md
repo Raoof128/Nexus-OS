@@ -1,6 +1,6 @@
 # Nexus Archive
 
-Nexus Archive is a cyberpunk-styled personal book vault. It combines a React frontend, a Litestar API, and Supabase-backed identity and persistence so a user can manage reading queues, ratings, takeaways, and AI-assisted recommendations from a single interface.
+Nexus Archive is a cyberpunk-styled personal media vault. It combines a React frontend, a Litestar API, and Supabase-backed identity and persistence so a user can manage books, movies, anime, ratings, takeaways, chat sessions, and AI-assisted recommendations from a single interface.
 
 ## Security Upgrade Highlights
 
@@ -9,7 +9,7 @@ This repository now includes a stronger defensive posture:
 - backend-managed `HttpOnly` auth cookies instead of frontend-readable Supabase tokens
 - strict cookie refresh flow with short-lived access tokens and silent rotation
 - AI prompt isolation with XML delimiters, string scrubbing, and PII masking
-- server-side rate limiting for `/books/suggest`
+- server-side rate limiting for `/media/suggest` and chat message generation
 - encrypted `takeaway` persistence when `TAKEAWAY_ENCRYPTION_KEY` is configured
 - Bandit, pip-audit, npm audit, and secret scanning in CI
 
@@ -72,7 +72,8 @@ docker compose up --build backend
 - `POST /auth/refresh` silently rotates short-lived access tokens.
 - `GET /healthz` is available for uptime checks.
 - `GET /schema/swagger` exposes live API docs without requiring auth.
-- `GET /books/suggest` is rate-limited and degrades to a local recommendation when Gemini is unavailable.
+- `GET /media/suggest?type=book|movie|anime` is rate-limited and degrades to a local recommendation when Gemini is unavailable.
+- chat transcripts are user-scoped, sanitized before Gemini calls, and protected at rest when `TAKEAWAY_ENCRYPTION_KEY` is configured.
 - `takeaway` notes are stored encrypted when `TAKEAWAY_ENCRYPTION_KEY` is configured.
 
 ## Quality Gates
@@ -100,9 +101,10 @@ make terraform-fmt
 
 - `infra/terraform/` contains the reviewed starting point for Supabase and Vercel-managed infrastructure.
 - `backend/Dockerfile` is the canonical backend runtime image.
+- `vercel.json` codifies frontend security headers for deployed static assets.
 - Sentry DSNs are optional and only activate telemetry when configured.
 - Supabase must enforce RLS, short JWT lifetime, and PITR before public deployment.
-- Production should provide a non-default `AUDIT_LOG_SALT`, `TAKEAWAY_ENCRYPTION_KEY`, and `REDIS_URL`.
+- Production should provide a non-default `AUDIT_LOG_SALT`, `TAKEAWAY_ENCRYPTION_KEY`, `REDIS_URL`, and `TRUSTED_PROXY_IPS`.
 
 ## License
 

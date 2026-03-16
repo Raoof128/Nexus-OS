@@ -59,35 +59,78 @@ Revokes the upstream Supabase session when possible and clears the auth cookies.
 
 Returns the current user snapshot derived from the access cookie.
 
-## Book Endpoints
+## Media Endpoints
 
-### `GET /books`
+### `GET /media`
 
-Returns all book entries for the authenticated user.
+Returns paginated media entries for the authenticated user.
 
-### `POST /books`
+Query parameters:
 
-Creates a new book entry.
+- `type`: optional `book`, `movie`, or `anime`
+- `page`: optional page number, default `1`
+- `limit`: optional page size, default `200`, max `500`
+
+### `POST /media`
+
+Creates a new media entry.
 
 Validation rules:
 
 - `title`: 1-200 chars, rejects angle brackets, XSS, and injection probes
-- `author`: 1-100 chars, rejects angle brackets, XSS, and injection probes
+- `creator`: 1-100 chars, rejects angle brackets, XSS, and injection probes
 - `genre`: optional, max 80 chars, rejects angle brackets, XSS, and injection probes
-- `status`: `To Read`, `Reading`, or `Finished`
+- `status`: `To Read`, `Reading`, `Finished`, `To Watch`, or `Watching`
 - `rating`: optional, integer from 1 to 5
 - `takeaway`: optional, max 2000 chars, rejects embedded script markup
+- `sub_info`: optional, max 100 chars, rejects angle brackets and probe strings
 
-### `GET /books/suggest`
+### `PUT /media/{media_id}`
 
-Returns a recommendation derived from the user library. This route is rate-limited to protect quota and degrades to a deterministic local fallback when Gemini is unavailable.
+Updates an existing media entry owned by the authenticated user.
+
+### `DELETE /media/{media_id}`
+
+Deletes an existing media entry owned by the authenticated user.
+
+### `GET /media/suggest`
+
+Returns recommendations derived from the user library. This route is rate-limited to protect quota and degrades to a deterministic local fallback when Gemini is unavailable.
 
 Response:
 
 ```json
 {
-  "suggestion": "Snow Crash",
-  "reasoning": "Fast-paced cyberpunk with satirical energy and strong world design.",
+  "suggestions": [
+    {
+      "title": "Snow Crash",
+      "creator": "Neal Stephenson",
+      "genre": "Cyberpunk",
+      "pitch": "Fast-paced cyberpunk with satirical energy and strong world design."
+    }
+  ],
   "source": "gemini"
 }
 ```
+
+## Chat Endpoints
+
+### `GET /chat/sessions`
+
+Returns chat sessions for the authenticated user.
+
+### `POST /chat/sessions`
+
+Creates a chat session with `title` and `category`.
+
+### `DELETE /chat/sessions/{session_id}`
+
+Deletes an owned chat session and its messages.
+
+### `GET /chat/sessions/{session_id}/messages`
+
+Returns decrypted chat messages for an owned session.
+
+### `POST /chat/sessions/{session_id}/messages`
+
+Sends a message, stores it, forwards a sanitized recent history window to Gemini, and returns the AI response.

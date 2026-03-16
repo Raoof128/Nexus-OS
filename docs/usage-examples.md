@@ -12,7 +12,6 @@ VITE_SENTRY_TRACES_SAMPLE_RATE=0
 
 ```bash
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-service-role-key
 SUPABASE_AUTH_KEY=your-anon-or-auth-key
 SUPABASE_JWT_SECRET=your-jwt-secret
 GEMINI_API_KEY=optional-key
@@ -23,6 +22,7 @@ REFRESH_COOKIE_MAX_AGE=604800
 COOKIE_SECURE=false
 TAKEAWAY_ENCRYPTION_KEY=replace-me-with-a-fernet-key
 REDIS_URL=redis://localhost:6379/0
+TRUSTED_PROXY_IPS=10.0.0.5
 ```
 
 ## Login Example
@@ -37,7 +37,7 @@ curl -X POST http://127.0.0.1:8000/auth/login \
 ## Suggestion Example
 
 ```bash
-curl http://127.0.0.1:8000/books/suggest \
+curl "http://127.0.0.1:8000/media/suggest?type=book" \
   -b cookies.txt
 ```
 

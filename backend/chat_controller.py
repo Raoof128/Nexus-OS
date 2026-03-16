@@ -12,6 +12,11 @@ from litestar.params import Parameter
 
 try:
     from .config import get_settings
+    from .data_protection import (
+        hydrate_chat_message_record,
+        protect_chat_content,
+        sanitize_chat_message_for_llm,
+    )
     from .rate_limit import enforce_suggest_rate_limit
     from .schemas import (
         ChatMessageRequest,
@@ -21,6 +26,11 @@ try:
     from .services import create_supabase_user_client, get_genai_client
 except ImportError:  # pragma: no cover
     from config import get_settings
+    from data_protection import (
+        hydrate_chat_message_record,
+        protect_chat_content,
+        sanitize_chat_message_for_llm,
+    )
     from rate_limit import enforce_suggest_rate_limit
     from schemas import (
         ChatMessageRequest,
@@ -30,6 +40,8 @@ except ImportError:  # pragma: no cover
     from services import create_supabase_user_client, get_genai_client
 
 logger = logging.getLogger(__name__)
+
+CHAT_HISTORY_MAX_MESSAGES = 12
 
 SYSTEM_INSTRUCTIONS = {
     "books": (
@@ -156,7 +168,7 @@ class ChatController(Controller):
             raise HTTPException(
                 status_code=502, detail="Failed to load messages"
             ) from exc
-        return response.data or []
+        return [hydrate_chat_message_record(record) for record in (response.data or [])]
 
     @post("/sessions/{session_id:str}/messages")
     async def send_message(
@@ -211,20 +223,29 @@ class ChatController(Controller):
         )
 
         contents = []
-        for msg in history_resp.data or []:
+        recent_history = [
+            hydrate_chat_message_record(record)
+            for record in (history_resp.data or [])[-CHAT_HISTORY_MAX_MESSAGES:]
+        ]
+        for msg in recent_history:
             role = msg["role"]
             contents.append(
                 types.Content(
                     role=role,
-                    parts=[types.Part.from_text(text=msg["content"])],
+                    parts=[
+                        types.Part.from_text(
+                            text=sanitize_chat_message_for_llm(msg["content"])
+                        )
+                    ],
                 )
             )
 
         # Add new user message
+        sanitized_user_message = sanitize_chat_message_for_llm(data.content)
         contents.append(
             types.Content(
                 role="user",
-                parts=[types.Part.from_text(text=data.content)],
+                parts=[types.Part.from_text(text=sanitized_user_message)],
             )
         )
 
@@ -234,7 +255,7 @@ class ChatController(Controller):
                 {
                     "session_id": session_id,
                     "role": "user",
-                    "content": data.content,
+                    "content": protect_chat_content(data.content),
                 }
             ).execute()
         except Exception as exc:
@@ -267,7 +288,7 @@ class ChatController(Controller):
                 {
                     "session_id": session_id,
                     "role": "model",
-                    "content": ai_reply,
+                    "content": protect_chat_content(ai_reply),
                 }
             ).execute()
         except Exception:

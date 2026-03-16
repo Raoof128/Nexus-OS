@@ -7,8 +7,8 @@ function isNearBottom(element, threshold = 150) {
   return element.scrollHeight - element.scrollTop - element.clientHeight < threshold
 }
 
-export default function ChatWindow({ sessionId }) {
-  const { messages, loading, sending, sendMessage, error } = useChatMessages(sessionId)
+export default function ChatWindow({ sessionId, userId }) {
+  const { messages, loading, sending, sendMessage, error } = useChatMessages(userId, sessionId)
   const [input, setInput] = useState('')
   const scrollRef = useRef(null)
   const wasNearBottom = useRef(true)

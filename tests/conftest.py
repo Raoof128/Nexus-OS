@@ -13,7 +13,6 @@ def backend_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
     get_settings.cache_clear()
     monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
-    monkeypatch.setenv("SUPABASE_KEY", "service-key")
     monkeypatch.setenv("SUPABASE_AUTH_KEY", "anon-key")
     monkeypatch.setenv("SUPABASE_JWT_SECRET", "jwt-secret")
     monkeypatch.setenv("AUDIT_LOG_SALT", "audit-salt")

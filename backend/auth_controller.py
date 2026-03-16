@@ -40,10 +40,21 @@ logger = logging.getLogger(__name__)
 def _client_ip(request: Request) -> str:
     """Return the nearest client IP for auth abuse controls."""
 
+    direct_client_ip = request.client.host if request.client else "unknown"
+    settings = get_settings()
+
+    # Only honor proxy-forwarded addresses when the immediate peer is trusted.
+    if direct_client_ip not in settings.trusted_proxy_ips:
+        return direct_client_ip
+
     forwarded_for = request.headers.get("x-forwarded-for", "")
-    if forwarded_for:
-        return forwarded_for.split(",", 1)[0].strip()
-    return request.client.host if request.client else "unknown"
+    if not forwarded_for:
+        return direct_client_ip
+
+    forwarded_chain = [
+        part.strip() for part in forwarded_for.split(",") if part.strip()
+    ]
+    return forwarded_chain[0] if forwarded_chain else direct_client_ip
 
 
 def _build_session_response(access_token: str) -> AuthSessionResponse:

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { AnimatePresence, LayoutGroup, motion as Motion } from 'framer-motion'
 import { BookOpen, Film, Loader2, MessageCircle, Sparkles } from 'lucide-react'
 import AddMediaDialog from './components/features/AddMediaDialog'
@@ -13,41 +13,19 @@ import Navbar from './components/layout/Navbar'
 import { useAuth } from './hooks/useAuth'
 import { useMedia } from './hooks/useMedia'
 import { MEDIA_TYPES, MEDIA_CONFIG } from './lib/mediaConfig'
+import { clearRecoveryTokens, getRecoveryTokens } from './lib/recoveryTokens'
 
 const TAB_ICONS = { book: BookOpen, movie: Film, anime: Sparkles, chat: MessageCircle }
 
-function extractRecoveryTokens() {
-  const hash = window.location.hash.substring(1)
-  const hashParams = new URLSearchParams(hash)
-  if (hashParams.get('type') === 'recovery' && hashParams.get('access_token')) {
-    return {
-      accessToken: hashParams.get('access_token'),
-      refreshToken: hashParams.get('refresh_token') || '',
-    }
-  }
-
-  const searchParams = new URLSearchParams(window.location.search)
-  if (searchParams.get('type') === 'recovery' && searchParams.get('access_token')) {
-    return {
-      accessToken: searchParams.get('access_token'),
-      refreshToken: searchParams.get('refresh_token') || '',
-    }
-  }
-
-  return null
-}
-
 function useRecoveryTokens() {
-  const [cleared, setCleared] = useState(false)
-  const tokens = useMemo(() => {
-    if (cleared) return null
-    const found = extractRecoveryTokens()
-    if (found) {
-      window.history.replaceState(null, '', window.location.pathname)
-    }
-    return found
-  }, [cleared])
-  return [tokens, () => setCleared(true)]
+  const [tokens, setTokens] = useState(() => getRecoveryTokens())
+
+  const clearTokens = () => {
+    clearRecoveryTokens()
+    setTokens(null)
+  }
+
+  return [tokens, clearTokens]
 }
 
 function App() {

@@ -36,6 +36,22 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 - **Verification:** `npm run lint` clean, `npm run test` 4/4 pass, `npm run build` clean.
 - **Follow-ups:** None.
 
+### 2026-03-16 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Security Audit Remediation — Auth Trust Boundaries, Chat Isolation, Recovery Token Hygiene
+- **Summary:** Closed the confirmed and likely security findings from the repository-wide audit. Auth throttling no longer trusts spoofed `X-Forwarded-For` unless the immediate peer is explicitly configured in `TRUSTED_PROXY_IPS`. Chat queries are now user-scoped and the frontend clears React Query state on auth transitions to prevent cross-account cache disclosure. Recovery tokens are scrubbed from the URL before frontend telemetry bootstraps, Sentry now redacts token-bearing URLs, and the password-reset bootstrap was made StrictMode-safe. Chat history sent to Gemini is reduced to a recent window, prompt-injection markers and obvious PII are masked, and chat content is encrypted at rest when `TAKEAWAY_ENCRYPTION_KEY` is configured. Removed the unused required `SUPABASE_KEY`, hardened checked-in Supabase local auth defaults, codified frontend security headers in `vercel.json`, and synchronized stale docs/examples with `/media` routes and the current media model.
+- **Files Changed:**
+  - `backend/auth_controller.py`, `backend/config.py` — Trusted-proxy-aware auth rate-limit identity and config cleanup.
+  - `backend/chat_controller.py`, `backend/data_protection.py` — Chat sanitization, history minimization, optional at-rest protection, decrypted reads.
+  - `frontend/src/context/AuthContext.jsx`, `frontend/src/hooks/useChat.js`, `frontend/src/components/features/ChatLayout.jsx`, `frontend/src/components/features/ChatWindow.jsx` — User-scoped chat caching and logout cache invalidation.
+  - `frontend/src/lib/recoveryTokens.js`, `frontend/src/App.jsx`, `frontend/src/main.jsx`, `frontend/src/observability/sentry.js` — Recovery-token URL scrubbing, StrictMode-safe bootstrap, and Sentry redaction.
+  - `frontend/src/components/features/AuthPanel.jsx`, `frontend/src/hooks/useMedia.js`, `frontend/src/hooks/useBooks.js` — Test warning cleanup and stale hook alignment.
+  - `frontend/index.html`, `vercel.json`, `supabase/config.toml` — Frontend security headers and stronger local auth defaults.
+  - `backend/.env.example`, `.github/workflows/ci.yml`, `README.md`, `SECURITY.md`, `docs/architecture.md`, `docs/api-reference.md`, `docs/operations.md`, `docs/usage-examples.md`, `loadtests/locustfile.py`, `pyproject.toml` — Secret/config cleanup and route/documentation alignment.
+  - `tests/test_auth_controller.py`, `tests/test_config.py`, `tests/test_data_protection.py`, `frontend/src/lib/recoveryTokens.test.js` — Coverage for the new security controls.
+- **Verification:** `python3 -m ruff check backend tests loadtests` clean, `python3 -m ruff format --check backend tests loadtests` clean, `python3 -m pytest` 33/33 pass, `python3 -m bandit -r backend -c bandit.yaml` 0 issues, `cd frontend && npm run lint` clean, `cd frontend && npm run test` 6/6 pass, `cd frontend && npm run build` clean.
+- **Follow-ups:** Set `TRUSTED_PROXY_IPS` to the real reverse-proxy tier in deployed environments and verify live Vercel/Sentry settings match the repo-controlled header and redaction policy.
+
 ### 2026-03-15 (Australia/Sydney)
 **Raouf:**
 - **Scope:** Unified Media Model — Books, Movies, Anime

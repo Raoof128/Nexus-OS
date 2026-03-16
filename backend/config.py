@@ -23,7 +23,6 @@ class BackendSettings:
     """Required environment configuration for the backend."""
 
     supabase_url: str
-    supabase_key: str
     supabase_auth_key: str
     supabase_jwt_secret: str
     gemini_api_key: str | None = None
@@ -48,6 +47,7 @@ class BackendSettings:
     auth_rate_limit_window_seconds: int = 60
     password_reset_redirect_url: str | None = None
     redis_url: str | None = None
+    trusted_proxy_ips: tuple[str, ...] = ()
     allowed_origins: tuple[str, ...] = ()
     allowed_hosts: tuple[str, ...] = ()
 
@@ -109,7 +109,6 @@ def get_settings() -> BackendSettings:
     allowed_origins = _parse_csv_env("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS)
     return BackendSettings(
         supabase_url=_require_env("SUPABASE_URL"),
-        supabase_key=_require_env("SUPABASE_KEY"),
         supabase_auth_key=_require_env("SUPABASE_AUTH_KEY"),
         supabase_jwt_secret=_require_env("SUPABASE_JWT_SECRET"),
         gemini_api_key=_get_env("GEMINI_API_KEY"),
@@ -158,6 +157,7 @@ def get_settings() -> BackendSettings:
         ),
         password_reset_redirect_url=_get_env("PASSWORD_RESET_REDIRECT_URL"),
         redis_url=_get_env("REDIS_URL"),
+        trusted_proxy_ips=_parse_csv_env("TRUSTED_PROXY_IPS", ()),
         allowed_origins=allowed_origins,
         allowed_hosts=_derive_allowed_hosts(allowed_origins),
     )

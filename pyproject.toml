@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "nexus-archive"
 version = "0.3.0"
-description = "Personal cyberpunk book archive with AI recommendations and a Litestar API."
+description = "Personal cyberpunk media archive with AI recommendations and a Litestar API."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }

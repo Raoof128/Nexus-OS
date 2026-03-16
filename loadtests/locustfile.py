@@ -11,7 +11,7 @@ PASSWORD = os.getenv("LOCUST_PASSWORD", "")
 
 
 class SuggestionUser(HttpUser):
-    """Exercise the AI recommendation endpoint with authenticated traffic."""
+    """Exercise the media suggestion endpoint with authenticated traffic."""
 
     wait_time = between(1, 3)
 
@@ -32,6 +32,6 @@ class SuggestionUser(HttpUser):
 
     @task
     def request_book_suggestion(self) -> None:
-        """Hit the suggestion endpoint with a Supabase bearer token."""
+        """Hit the suggestion endpoint with the cookie-backed auth flow."""
 
-        self.client.get("/books/suggest", name="/books/suggest")
+        self.client.get("/media/suggest?type=book", name="/media/suggest")

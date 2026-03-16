@@ -130,7 +130,7 @@ export default function AuthPanel() {
         style={{ transform: `translateX(-${offset * 100}%)` }}
       >
         {/* ═══ LOGIN PANEL ═══ */}
-        <div className="w-full shrink-0 p-5 sm:p-8" {...(active !== 'login' ? { inert: '' } : {})}>
+        <div className="w-full shrink-0 p-5 sm:p-8" inert={active !== 'login'}>
 
           <div className="mb-1 flex items-center gap-2 text-primary">
             <LogIn size={18} />
@@ -189,7 +189,7 @@ export default function AuthPanel() {
         </div>
 
         {/* ═══ REGISTER PANEL ═══ */}
-        <div className="w-full shrink-0 p-5 sm:p-8" {...(active !== 'register' ? { inert: '' } : {})}>
+        <div className="w-full shrink-0 p-5 sm:p-8" inert={active !== 'register'}>
           <button
             type="button"
             onClick={() => slideTo('login')}
@@ -261,7 +261,7 @@ export default function AuthPanel() {
         </div>
 
         {/* ═══ FORGOT PASSWORD PANEL ═══ */}
-        <div className="w-full shrink-0 p-5 sm:p-8" {...(active !== 'forgot' ? { inert: '' } : {})}>
+        <div className="w-full shrink-0 p-5 sm:p-8" inert={active !== 'forgot'}>
           <button
             type="button"
             onClick={() => slideTo('login')}

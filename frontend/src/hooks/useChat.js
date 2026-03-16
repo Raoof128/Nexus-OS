@@ -1,11 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../lib/apiClient'
 
-export function useChatSessions() {
+function getChatSessionsQueryKey(userId) {
+  return ['chat-sessions', userId ?? 'anonymous']
+}
+
+function getChatMessagesQueryKey(userId, sessionId) {
+  return ['chat-messages', userId ?? 'anonymous', sessionId ?? 'none']
+}
+
+export function useChatSessions(userId) {
   const queryClient = useQueryClient()
+  const queryKey = getChatSessionsQueryKey(userId)
 
   const sessionsQuery = useQuery({
-    queryKey: ['chat-sessions'],
+    queryKey,
+    enabled: Boolean(userId),
     queryFn: () => apiFetch('/chat/sessions'),
     staleTime: 30_000,
   })
@@ -13,13 +23,13 @@ export function useChatSessions() {
   const createSession = useMutation({
     mutationFn: (data) =>
       apiFetch('/chat/sessions', { method: 'POST', body: data }),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['chat-sessions'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
   })
 
   const deleteSession = useMutation({
     mutationFn: (sessionId) =>
       apiFetch(`/chat/sessions/${sessionId}`, { method: 'DELETE' }),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['chat-sessions'] }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
   })
 
   return {
@@ -30,13 +40,13 @@ export function useChatSessions() {
   }
 }
 
-export function useChatMessages(sessionId) {
+export function useChatMessages(userId, sessionId) {
   const queryClient = useQueryClient()
-  const queryKey = ['chat-messages', sessionId]
+  const queryKey = getChatMessagesQueryKey(userId, sessionId)
 
   const messagesQuery = useQuery({
     queryKey,
-    enabled: Boolean(sessionId),
+    enabled: Boolean(userId && sessionId),
     queryFn: () => apiFetch(`/chat/sessions/${sessionId}/messages`),
     staleTime: 10_000,
   })

@@ -42,7 +42,7 @@ def mask_sensitive_text(value: str) -> str:
 
 
 def sanitize_llm_text(value: str | None) -> str:
-    """Convert untrusted book metadata into inert model input."""
+    """Convert untrusted media metadata into inert model input."""
 
     if not value:
         return ""
@@ -51,6 +51,17 @@ def sanitize_llm_text(value: str | None) -> str:
     sanitized = PROMPT_ATTACK_PATTERN.sub("[redacted-instruction]", sanitized)
     sanitized = mask_sensitive_text(sanitized)
     return json.dumps(sanitized, ensure_ascii=True)[1:-1]
+
+
+def sanitize_chat_message_for_llm(value: str | None) -> str:
+    """Reduce prompt-injection and PII exposure in chat content sent upstream."""
+
+    if not value:
+        return ""
+
+    sanitized = _normalize_text(value)
+    sanitized = PROMPT_ATTACK_PATTERN.sub("[redacted-instruction]", sanitized)
+    return mask_sensitive_text(sanitized)
 
 
 def serialize_media_context_for_llm(
@@ -103,6 +114,20 @@ def encrypt_takeaway(takeaway: str | None) -> str | None:
     return f"{ENCRYPTED_PREFIX}{token}"
 
 
+def protect_chat_content(content: str | None) -> str | None:
+    """Encrypt chat content when a field-level encryption key is configured."""
+
+    if content is None:
+        return None
+
+    cipher = get_takeaway_cipher()
+    if cipher is None:
+        return content
+
+    token = cipher.encrypt(content.encode("utf-8")).decode("utf-8")
+    return f"{ENCRYPTED_PREFIX}{token}"
+
+
 def decrypt_takeaway(takeaway: str | None) -> str | None:
     """Decrypt sensitive takeaway notes after retrieval."""
 
@@ -121,8 +146,16 @@ def decrypt_takeaway(takeaway: str | None) -> str | None:
 
 
 def hydrate_book_record(record: dict[str, Any]) -> dict[str, Any]:
-    """Return a book record with sensitive fields restored for the UI."""
+    """Return a media record with sensitive fields restored for the UI."""
 
     hydrated = dict(record)
     hydrated["takeaway"] = decrypt_takeaway(record.get("takeaway"))
+    return hydrated
+
+
+def hydrate_chat_message_record(record: dict[str, Any]) -> dict[str, Any]:
+    """Return a chat message record with encrypted content restored for the UI."""
+
+    hydrated = dict(record)
+    hydrated["content"] = decrypt_takeaway(record.get("content"))
     return hydrated

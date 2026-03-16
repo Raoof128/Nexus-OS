@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { authFetch, refreshSession } from '../lib/apiClient'
+import { queryClient } from '../lib/queryClient'
 import { AuthContext } from './auth-context'
 
 async function loadCurrentSession() {
@@ -30,6 +31,9 @@ export function AuthProvider({ children }) {
     loadCurrentSession()
       .then((currentSession) => {
         if (active) {
+          if (!currentSession) {
+            queryClient.clear()
+          }
           setSession(currentSession)
         }
       })
@@ -50,6 +54,7 @@ export function AuthProvider({ children }) {
         method: 'POST',
         body: { email, password },
       })
+      queryClient.clear()
       setSession(authenticatedSession)
       return { data: authenticatedSession, error: null }
     } catch (error) {
@@ -61,6 +66,7 @@ export function AuthProvider({ children }) {
     try {
       await authFetch('/auth/logout', { method: 'POST' })
     } finally {
+      queryClient.clear()
       setSession(null)
     }
   }
