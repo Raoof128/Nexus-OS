@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { ArrowLeft, BookOpen, ChevronRight, Film, Search, Sparkles, Trash2 } from 'lucide-react'
-import { MEDIA_CONFIG } from '../../lib/mediaConfig'
+import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Film, Search, Sparkles, Trash2 } from 'lucide-react'
+import { MEDIA_CONFIG, getStatusNav } from '../../lib/mediaConfig'
 
 const TYPE_ICONS = { book: BookOpen, movie: Film, anime: Sparkles }
 
@@ -27,12 +27,10 @@ export default function MediaVault({ items, mediaType, filterStatus, onBack, onU
     return result
   }, [items, filterStatus, search])
 
-  const handleAdvance = async (event, item) => {
+  const handleStatusChange = async (event, item, newStatus) => {
     event.stopPropagation()
-    const statuses = config?.statuses || []
-    const idx = statuses.indexOf(item.status)
-    if (idx === -1 || idx >= statuses.length - 1 || !onUpdate) return
-    await onUpdate({ mediaId: item.id, data: { status: statuses[idx + 1] } })
+    if (!newStatus || !onUpdate) return
+    await onUpdate({ mediaId: item.id, data: { status: newStatus } })
   }
 
   const handleDelete = async (event, item) => {
@@ -126,10 +124,35 @@ export default function MediaVault({ items, mediaType, filterStatus, onBack, onU
               </div>
 
               {/* Status */}
-              <div className="mb-1 sm:mb-0">
-                <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-mono text-primary">
-                  {item.status}
-                </span>
+              <div className="mb-1 flex items-center gap-1 sm:mb-0">
+                {(() => {
+                  const { prev, next } = getStatusNav(mediaType, item.status)
+                  return (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => handleStatusChange(e, item, prev)}
+                        disabled={!prev}
+                        className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary disabled:invisible"
+                        aria-label={prev ? `Back to ${prev}` : undefined}
+                      >
+                        <ChevronLeft size={12} />
+                      </button>
+                      <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-mono text-primary">
+                        {item.status}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => handleStatusChange(e, item, next)}
+                        disabled={!next}
+                        className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary disabled:invisible"
+                        aria-label={next ? `Advance to ${next}` : undefined}
+                      >
+                        <ChevronRight size={12} />
+                      </button>
+                    </>
+                  )
+                })()}
               </div>
 
               {/* Rating */}
@@ -139,15 +162,6 @@ export default function MediaVault({ items, mediaType, filterStatus, onBack, onU
 
               {/* Actions */}
               <div className="flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
-                <button
-                  type="button"
-                  onClick={(e) => handleAdvance(e, item)}
-                  className="rounded p-1 text-muted-foreground hover:bg-primary/20 hover:text-primary"
-                  title="Advance status"
-                  aria-label="Advance status"
-                >
-                  <ChevronRight size={12} />
-                </button>
                 <button
                   type="button"
                   onClick={(e) => handleDelete(e, item)}
