@@ -1,6 +1,6 @@
 import { motion as Motion } from 'framer-motion'
-import { BookOpen, ChevronRight, Film, Sparkles, Trash2 } from 'lucide-react'
-import { MEDIA_CONFIG } from '../../lib/mediaConfig'
+import { BookOpen, ChevronLeft, ChevronRight, Film, Sparkles, Trash2 } from 'lucide-react'
+import { getStatusNav } from '../../lib/mediaConfig'
 
 const TYPE_ICONS = {
   book: BookOpen,
@@ -8,22 +8,21 @@ const TYPE_ICONS = {
   anime: Sparkles,
 }
 
-function nextStatus(current, mediaType) {
-  const statuses = MEDIA_CONFIG[mediaType]?.statuses || ['To Read', 'Reading', 'Finished']
-  const index = statuses.indexOf(current)
-  if (index === -1 || index >= statuses.length - 1) return null
-  return statuses[index + 1]
-}
-
 export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
   const mediaType = item.type || 'book'
   const Icon = TYPE_ICONS[mediaType] || BookOpen
-  const next = nextStatus(item.status, mediaType)
+  const { prev, next } = getStatusNav(mediaType, item.status)
 
   const handleAdvance = async (event) => {
     event.stopPropagation()
     if (!next || !onUpdate) return
     await onUpdate({ mediaId: item.id, data: { status: next } })
+  }
+
+  const handleRevert = async (event) => {
+    event.stopPropagation()
+    if (!prev || !onUpdate) return
+    await onUpdate({ mediaId: item.id, data: { status: prev } })
   }
 
   const handleDelete = async (event) => {
@@ -71,6 +70,17 @@ export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
           )}
 
           <div className="ml-auto flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+            {prev && (
+              <button
+                type="button"
+                onClick={handleRevert}
+                className="rounded-md bg-white/5 p-1 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary sm:p-1.5"
+                title={`Back to ${prev}`}
+                aria-label={`Back to ${prev}`}
+              >
+                <ChevronLeft size={14} />
+              </button>
+            )}
             {next && (
               <button
                 type="button"
