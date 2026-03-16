@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: nexus-api
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: .
+    plan: free
+    region: frankfurt
+    healthCheckPath: /healthz
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        value: https://home-notes-app.uk,https://www.home-notes-app.uk
+      - key: COOKIE_DOMAIN
+        value: home-notes-app.uk
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: PASSWORD_RESET_REDIRECT_URL
+        value: https://home-notes-app.uk
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_AUTH_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: AUDIT_LOG_SALT
+        sync: false
+      - key: TAKEAWAY_ENCRYPTION_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
