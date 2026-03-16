@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
-import { BookOpen, ChevronRight, Film, Sparkles, Star, Trash2, X } from 'lucide-react'
-import { MEDIA_CONFIG } from '../../lib/mediaConfig'
+import { BookOpen, Film, Sparkles, Star, Trash2, X } from 'lucide-react'
+import { MEDIA_CONFIG, getStatusNav } from '../../lib/mediaConfig'
 
 const TYPE_ICONS = { book: BookOpen, movie: Film, anime: Sparkles }
 
@@ -12,18 +12,12 @@ function sanitize(text) {
   return div.innerHTML
 }
 
-function nextStatus(current, mediaType) {
-  const statuses = MEDIA_CONFIG[mediaType]?.statuses || []
-  const index = statuses.indexOf(current)
-  if (index === -1 || index >= statuses.length - 1) return null
-  return statuses[index + 1]
-}
 
 export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) {
   const mediaType = item?.type || 'book'
   const config = MEDIA_CONFIG[mediaType]
   const Icon = TYPE_ICONS[mediaType] || BookOpen
-  const next = item ? nextStatus(item.status, mediaType) : null
+  const statusNav = item ? getStatusNav(mediaType, item.status) : null
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -33,10 +27,9 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
     return () => document.removeEventListener('keydown', handleEsc)
   }, [onClose])
 
-  const handleAdvance = async () => {
-    if (!next || !onUpdate || !item) return
-    await onUpdate({ mediaId: item.id, data: { status: next } })
-    onClose()
+  const handleStatusChange = async (newStatus) => {
+    if (!newStatus || !onUpdate || !item || newStatus === item.status) return
+    await onUpdate({ mediaId: item.id, data: { status: newStatus } })
   }
 
   const handleDelete = async () => {
@@ -100,17 +93,67 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
 
               {/* Body */}
               <div className="space-y-4 p-6">
-                {/* Creator + Status row */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-mono text-xs font-medium text-primary">
-                    {item.status}
-                  </span>
-                  {item.creator && item.creator !== '—' && (
-                    <span className="font-mono text-sm text-muted-foreground">
-                      {config?.creatorLabel}: {sanitize(item.creator)}
-                    </span>
-                  )}
-                </div>
+                {/* Creator */}
+                {item.creator && item.creator !== '—' && (
+                  <div className="font-mono text-sm text-muted-foreground">
+                    {config?.creatorLabel}: {sanitize(item.creator)}
+                  </div>
+                )}
+
+                {/* Status Stepper */}
+                {statusNav && (
+                  <div className="flex items-center gap-1 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-4">
+                    {statusNav.flow.map((stepStatus, index) => {
+                      const isCurrent = index === statusNav.currentIndex
+                      const isPast = index < statusNav.currentIndex
+
+                      return (
+                        <div key={stepStatus} className="flex flex-1 items-center last:flex-none">
+                          <button
+                            type="button"
+                            onClick={() => handleStatusChange(stepStatus)}
+                            disabled={isCurrent}
+                            aria-label={isCurrent ? `Current status: ${stepStatus}` : `Change status to ${stepStatus}`}
+                            className="relative flex flex-col items-center group outline-none disabled:cursor-default"
+                          >
+                            <Motion.div
+                              whileHover={isCurrent ? {} : { scale: 1.3 }}
+                              whileTap={isCurrent ? {} : { scale: 0.9 }}
+                              className={`h-3.5 w-3.5 rotate-45 border transition-all duration-300 ${
+                                isCurrent
+                                  ? 'bg-primary border-primary/60 shadow-[0_0_12px_hsl(var(--neon-cyan)/0.6)]'
+                                  : isPast
+                                    ? 'bg-primary/30 border-primary/40'
+                                    : 'bg-zinc-900 border-zinc-700 group-hover:border-primary/50 group-hover:bg-primary/10'
+                              }`}
+                            />
+                            <span
+                              className={`absolute top-5 whitespace-nowrap font-mono text-[9px] uppercase tracking-widest transition-colors ${
+                                isCurrent
+                                  ? 'text-primary'
+                                  : isPast
+                                    ? 'text-primary/40'
+                                    : 'text-zinc-600 group-hover:text-primary/50'
+                              }`}
+                            >
+                              {stepStatus}
+                            </span>
+                          </button>
+                          {index < statusNav.flow.length - 1 && (
+                            <div className="relative mx-2 h-px flex-1 bg-zinc-800">
+                              <Motion.div
+                                initial={false}
+                                animate={{ width: isPast ? '100%' : '0%' }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="absolute inset-y-0 left-0 bg-primary/50 shadow-[0_0_6px_hsl(var(--neon-cyan)/0.4)]"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
 
                 {/* Metadata grid */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -158,16 +201,6 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 border-t border-white/5 pt-4">
-                  {next && (
-                    <button
-                      type="button"
-                      onClick={handleAdvance}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_15px_var(--color-primary)]"
-                    >
-                      <ChevronRight size={14} />
-                      Move to {next}
-                    </button>
-                  )}
                   <button
                     type="button"
                     onClick={handleDelete}
