@@ -1,0 +1,14 @@
+name = "nexus-api-proxy"
+main = "index.js"
+compatibility_date = "2024-12-01"
+
+[vars]
+BACKEND_ORIGIN = "https://nexus-api-bwch.onrender.com"
+
+[[routes]]
+pattern = "home-notes-app.uk/api/*"
+zone_name = "home-notes-app.uk"
+
+[[routes]]
+pattern = "www.home-notes-app.uk/api/*"
+zone_name = "home-notes-app.uk"
