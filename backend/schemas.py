@@ -47,6 +47,7 @@ class AuthSessionResponse(BaseModel):
 
     user: SessionUser
     expires_at: int | None = None
+    access_token: str | None = None
 
 
 class RegisterRequest(BaseModel):

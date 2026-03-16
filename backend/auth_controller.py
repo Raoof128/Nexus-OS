@@ -67,6 +67,7 @@ def _build_session_response(access_token: str) -> AuthSessionResponse:
             email=payload.get("email"),
         ),
         expires_at=payload.get("exp"),
+        access_token=access_token,
     )
 
 
