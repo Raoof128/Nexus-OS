@@ -58,6 +58,15 @@ describe('handleRealtimeEvent', () => {
     expect(result).toHaveLength(2)
   })
 
+  it('returns oldData unchanged on UPDATE for unknown id', () => {
+    const result = handleRealtimeEvent(existingItems, {
+      eventType: 'UPDATE',
+      new: { id: '999', title: 'Ghost', type: 'book', status: 'To Read' },
+      old: {},
+    })
+    expect(result).toBe(existingItems)
+  })
+
   it('returns oldData for unknown event types', () => {
     const result = handleRealtimeEvent(existingItems, {
       eventType: 'UNKNOWN',
