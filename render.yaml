@@ -17,7 +17,7 @@ services:
       - key: COOKIE_SECURE
         value: "true"
       - key: PASSWORD_RESET_REDIRECT_URL
-        value: https://home-notes-app.uk
+        value: https://home-notes-app.uk/reset-password
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_AUTH_KEY

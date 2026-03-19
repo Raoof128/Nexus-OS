@@ -27,8 +27,12 @@ export function handleRealtimeEvent(oldData, payload) {
     case 'UPDATE': {
       const existing = oldData.find((item) => item.id === newItem.id)
       if (!existing) return oldData
-      // Shallow equality dedup — skip if optimistic update already applied
-      if (JSON.stringify(existing) === JSON.stringify(newItem)) {
+      // Strict status dedup: the optimistic update already applied the new
+      // status to the cache. If the Realtime echo carries the same status,
+      // returning oldData silently drops the event so Framer Motion does not
+      // re-trigger the layout animation. server-side fields like updated_at
+      // intentionally differ, so a full JSON.stringify comparison always fails.
+      if (existing.status === newItem.status) {
         return oldData
       }
       return oldData.map((item) => (item.id === newItem.id ? newItem : item))

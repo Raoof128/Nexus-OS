@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 from litestar.exceptions import ImproperlyConfiguredException
 
 load_dotenv()
+# .env.local overrides .env for local Supabase dev (gitignored, never commit)
+load_dotenv(".env.local", override=True)
 
 DEFAULT_ALLOWED_ORIGINS = (
     "http://localhost:5173",
