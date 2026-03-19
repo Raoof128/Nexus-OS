@@ -167,9 +167,9 @@ def enforce_auth_rate_limit(key: str) -> None:
     settings = get_settings()
     if _auth_rate_limiter is None:
         _auth_rate_limiter = _create_rate_limiter(
-        max_requests=settings.auth_rate_limit_requests,
-        window_seconds=settings.auth_rate_limit_window_seconds,
-    )
+            max_requests=settings.auth_rate_limit_requests,
+            window_seconds=settings.auth_rate_limit_window_seconds,
+        )
     _auth_rate_limiter.enforce(f"auth:{key}")
 
 

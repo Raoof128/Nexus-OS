@@ -1,4 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+// useMedia.js imports realtimeClient at module level; mock it so Supabase's
+// createClient doesn't throw "supabaseUrl is required" in the test environment.
+vi.mock('../lib/realtimeClient', () => ({
+  realtimeClient: {
+    channel: vi.fn(),
+    removeChannel: vi.fn(),
+    realtime: { setAuth: vi.fn() },
+  },
+}))
+
 import { handleRealtimeEvent } from '../hooks/useMedia'
 
 describe('handleRealtimeEvent', () => {
