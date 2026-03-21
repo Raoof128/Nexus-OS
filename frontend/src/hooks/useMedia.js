@@ -27,12 +27,20 @@ export function handleRealtimeEvent(oldData, payload) {
     case 'UPDATE': {
       const existing = oldData.find((item) => item.id === newItem.id)
       if (!existing) return oldData
-      // Strict status dedup: the optimistic update already applied the new
-      // status to the cache. If the Realtime echo carries the same status,
-      // returning oldData silently drops the event so Framer Motion does not
-      // re-trigger the layout animation. server-side fields like updated_at
-      // intentionally differ, so a full JSON.stringify comparison always fails.
-      if (existing.status === newItem.status) {
+      // Dedup: the optimistic update already applied changes to the cache.
+      // If the Realtime echo carries the same user-visible fields, returning
+      // oldData silently drops the event so Framer Motion does not re-trigger
+      // layout animations. We compare all editable fields — not just status —
+      // so edits to title/creator/etc. are also deduped correctly.
+      if (
+        existing.status === newItem.status &&
+        existing.title === newItem.title &&
+        existing.creator === newItem.creator &&
+        existing.genre === newItem.genre &&
+        existing.rating === newItem.rating &&
+        existing.takeaway === newItem.takeaway &&
+        existing.sub_info === newItem.sub_info
+      ) {
         return oldData
       }
       return oldData.map((item) => (item.id === newItem.id ? newItem : item))
@@ -142,8 +150,15 @@ export function useMedia(session, type = 'book') {
     onError: (_error, _variables, context) => {
       queryClient.setQueryData(mediaQueryKey, context?.previous ?? [])
     },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: mediaQueryKey })
+    onSuccess: (serverData, { mediaId }) => {
+      // Replace the optimistic item with the full server record directly.
+      // This avoids invalidateQueries which triggers a GET refetch that can
+      // race with Realtime events and momentarily revert the optimistic update.
+      queryClient.setQueryData(mediaQueryKey, (current) =>
+        (current ?? []).map((item) =>
+          item.id === mediaId ? serverData : item,
+        ),
+      )
     },
   })
 
@@ -169,7 +184,7 @@ export function useMedia(session, type = 'book') {
 
   return {
     items: mediaQuery.data ?? [],
-    loading: mediaQuery.isPending || mediaQuery.isFetching || addMediaMutation.isPending,
+    loading: mediaQuery.isPending || mediaQuery.isFetching || addMediaMutation.isPending || updateMediaMutation.isPending || deleteMediaMutation.isPending,
     error: mediaQuery.error?.message ?? addMediaMutation.error?.message ?? null,
     refetch: mediaQuery.refetch,
     addMedia: addMediaMutation.mutateAsync,

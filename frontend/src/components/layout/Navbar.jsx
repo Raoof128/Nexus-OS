@@ -31,7 +31,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={signOut}
-              className="heading-ui rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-all hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive sm:px-4"
+              className="heading-ui rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-all hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:px-4"
             >
               Disconnect
             </button>

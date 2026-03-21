@@ -1,23 +1,17 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
-import { BookOpen, Film, Sparkles, Star, Trash2, X } from 'lucide-react'
-import { MEDIA_CONFIG, getStatusNav } from '../../lib/mediaConfig'
+import { Pencil, Star, Trash2, X } from 'lucide-react'
+import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../lib/mediaConfig'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
+import ConfirmDialog from './ConfirmDialog'
 
-const TYPE_ICONS = { book: BookOpen, movie: Film, anime: Sparkles }
-
-function sanitize(text) {
-  if (!text) return ''
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML
-}
-
-
-export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) {
+export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, onEdit }) {
   const mediaType = item?.type || 'book'
   const config = MEDIA_CONFIG[mediaType]
-  const Icon = TYPE_ICONS[mediaType] || BookOpen
+  const Icon = TYPE_ICONS[mediaType]
   const statusNav = item ? getStatusNav(mediaType, item.status) : null
+  const trapRef = useFocusTrap(!!item)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -35,6 +29,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
   const handleDelete = async () => {
     if (!onDelete || !item) return
     await onDelete(item.id)
+    setConfirmDelete(false)
     onClose()
   }
 
@@ -56,6 +51,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
           {/* Modal */}
           <div className="fixed inset-0 z-[81] flex items-center justify-center p-4 sm:p-6">
             <Motion.div
+              ref={trapRef}
               layoutId={`card-${item.id}`}
               role="dialog"
               aria-modal="true"
@@ -77,14 +73,14 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
                       {config?.label || 'Media'} // Deep Dive
                     </p>
                     <h2 id="detail-modal-title" className="heading-display text-lg font-bold text-white sm:text-xl">
-                      {sanitize(item.title)}
+                      {item.title}
                     </h2>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-white/5 hover:text-white"
+                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-white/5 hover:text-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   aria-label="Close detail view"
                 >
                   <X size={18} />
@@ -96,7 +92,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
                 {/* Creator */}
                 {item.creator && item.creator !== '—' && (
                   <div className="font-mono text-sm text-muted-foreground">
-                    {config?.creatorLabel}: {sanitize(item.creator)}
+                    {config?.creatorLabel}: {item.creator}
                   </div>
                 )}
 
@@ -160,7 +156,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
                   {item.genre && (
                     <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
                       <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Genre</p>
-                      <p className="text-sm font-medium text-white">{sanitize(item.genre)}</p>
+                      <p className="text-sm font-medium text-white">{item.genre}</p>
                     </div>
                   )}
                   {item.rating && (
@@ -182,7 +178,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
                       <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                         {config?.subInfoLabel || 'Info'}
                       </p>
-                      <p className="text-sm font-medium text-white">{sanitize(item.sub_info)}</p>
+                      <p className="text-sm font-medium text-white">{item.sub_info}</p>
                     </div>
                   )}
                 </div>
@@ -194,7 +190,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
                       Takeaway // Notes
                     </p>
                     <div className="max-h-32 overflow-y-auto custom-scrollbar pr-2 text-sm leading-relaxed text-neutral-300">
-                      {sanitize(item.takeaway)}
+                      {item.takeaway}
                     </div>
                   </div>
                 )}
@@ -203,8 +199,16 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
                 <div className="flex items-center gap-2 border-t border-white/5 pt-4">
                   <button
                     type="button"
-                    onClick={handleDelete}
-                    className="flex items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-destructive ring-1 ring-destructive/20 transition-all hover:bg-destructive/20"
+                    onClick={() => { onEdit?.(item); onClose() }}
+                    className="flex items-center justify-center gap-2 rounded-lg bg-primary/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                  >
+                    <Pencil size={14} />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    className="flex items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-destructive ring-1 ring-destructive/20 transition-all hover:bg-destructive/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   >
                     <Trash2 size={14} />
                     Delete
@@ -216,6 +220,14 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete }) 
               <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
             </Motion.div>
           </div>
+
+          <ConfirmDialog
+            open={confirmDelete}
+            title="Delete Entry"
+            message="This action cannot be undone. Are you sure you want to delete this entry?"
+            onConfirm={handleDelete}
+            onCancel={() => setConfirmDelete(false)}
+          />
         </>
       )}
     </AnimatePresence>

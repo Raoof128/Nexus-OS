@@ -1,14 +1,14 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Film, Search, Sparkles, Trash2 } from 'lucide-react'
-import { MEDIA_CONFIG, getStatusNav } from '../../lib/mediaConfig'
+import { ArrowLeft, ChevronLeft, ChevronRight, Pencil, Search, Trash2 } from 'lucide-react'
+import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../lib/mediaConfig'
+import ConfirmDialog from './ConfirmDialog'
 
-const TYPE_ICONS = { book: BookOpen, movie: Film, anime: Sparkles }
-
-export default function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete, onSelect }) {
+function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete, onSelect, onEdit }) {
   const [search, setSearch] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const config = MEDIA_CONFIG[mediaType]
-  const Icon = TYPE_ICONS[mediaType] || BookOpen
+  const Icon = TYPE_ICONS[mediaType]
 
   const filtered = useMemo(() => {
     let result = items
@@ -33,10 +33,16 @@ export default function MediaVault({ items, mediaType, filterStatus, onBack, onU
     await onUpdate({ mediaId: item.id, data: { status: newStatus } })
   }
 
-  const handleDelete = async (event, item) => {
+  const handleDelete = (event, item) => {
     event.stopPropagation()
     if (!onDelete) return
-    await onDelete(item.id)
+    setDeleteTarget(item.id)
+  }
+
+  const confirmDeleteAction = async () => {
+    if (!deleteTarget || !onDelete) return
+    await onDelete(deleteTarget)
+    setDeleteTarget(null)
   }
 
   return (
@@ -47,7 +53,7 @@ export default function MediaVault({ items, mediaType, filterStatus, onBack, onU
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-2 font-mono text-xs text-muted-foreground transition-colors hover:bg-white/5 hover:text-white"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 font-mono text-xs text-muted-foreground transition-colors hover:bg-white/5 hover:text-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             <ArrowLeft size={14} />
             Overview
@@ -72,7 +78,7 @@ export default function MediaVault({ items, mediaType, filterStatus, onBack, onU
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search vault..."
             aria-label="Search vault"
-            className="w-full rounded-lg border border-white/10 bg-black/40 py-2 pl-9 pr-3 font-mono text-xs text-white placeholder:text-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50"
+            className="w-full rounded-lg border border-white/10 bg-black/40 py-2 pl-9 pr-3 font-mono text-xs text-white placeholder:text-white/40 focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           />
         </div>
       </div>
@@ -164,8 +170,17 @@ export default function MediaVault({ items, mediaType, filterStatus, onBack, onU
               <div className="flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                 <button
                   type="button"
+                  onClick={(e) => { e.stopPropagation(); onEdit?.(item) }}
+                  className="rounded p-1 text-muted-foreground hover:bg-primary/20 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                  title="Edit"
+                  aria-label="Edit"
+                >
+                  <Pencil size={12} />
+                </button>
+                <button
+                  type="button"
                   onClick={(e) => handleDelete(e, item)}
-                  className="rounded p-1 text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+                  className="rounded p-1 text-muted-foreground hover:bg-destructive/20 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   title="Delete"
                   aria-label="Delete"
                 >
@@ -176,6 +191,16 @@ export default function MediaVault({ items, mediaType, filterStatus, onBack, onU
           ))}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Entry"
+        message="This action cannot be undone. Are you sure you want to delete this entry?"
+        onConfirm={confirmDeleteAction}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }
+
+export default memo(MediaVault)

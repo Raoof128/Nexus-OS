@@ -1,4 +1,8 @@
+import { BookOpen, Film, Sparkles } from 'lucide-react'
+
 export const MEDIA_TYPES = ['book', 'movie', 'anime']
+
+export const TYPE_ICONS = { book: BookOpen, movie: Film, anime: Sparkles }
 
 export const MEDIA_CONFIG = {
   book: {
@@ -8,7 +12,6 @@ export const MEDIA_CONFIG = {
     subInfoLabel: 'Pages',
     statuses: ['To Read', 'Reading', 'Finished'],
     defaultStatus: 'To Read',
-    icon: 'BookOpen',
   },
   movie: {
     label: 'Movies',
@@ -17,7 +20,6 @@ export const MEDIA_CONFIG = {
     subInfoLabel: 'Year',
     statuses: ['To Watch', 'Watching', 'Finished'],
     defaultStatus: 'To Watch',
-    icon: 'Film',
   },
   anime: {
     label: 'Anime',
@@ -26,7 +28,6 @@ export const MEDIA_CONFIG = {
     subInfoLabel: 'Episodes',
     statuses: ['To Watch', 'Watching', 'Finished'],
     defaultStatus: 'To Watch',
-    icon: 'Sparkles',
   },
 }
 

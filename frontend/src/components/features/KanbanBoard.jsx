@@ -1,9 +1,10 @@
+import { memo } from 'react'
 import CyberCard from './CyberCard'
 import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 
 const MAX_PREVIEW = 5
 
-export default function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSelect, onHeaderClick }) {
+function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSelect, onEdit, onHeaderClick }) {
   const statuses = MEDIA_CONFIG[mediaType]?.statuses || ['To Read', 'Reading', 'Finished']
 
   const grouped = statuses.map(status => {
@@ -47,6 +48,7 @@ export default function KanbanBoard({ items = [], mediaType = 'book', onUpdate, 
                  onUpdate={onUpdate}
                  onDelete={onDelete}
                  onSelect={onSelect}
+                 onEdit={onEdit}
                />
              ))}
              {columnItems.length === 0 && (
@@ -69,3 +71,5 @@ export default function KanbanBoard({ items = [], mediaType = 'book', onUpdate, 
     </div>
   )
 }
+
+export default memo(KanbanBoard)

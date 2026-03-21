@@ -1,5 +1,53 @@
 # Change Log
 
+### 2026-03-22 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Full Frontend Audit Remediation — Architecture, Performance, Accessibility, Design
+- **Summary:** Implemented all findings from a 4-dimension frontend audit. **Architecture:** removed buggy `sanitize()` double-encoding in MediaDetailModal, extracted shared `MediaForm` from duplicated Add/Edit dialogs (~230 lines deduped), centralized `TYPE_ICONS` into `mediaConfig.js` (was defined 3x), deleted dead code (`useBooks.js`, `BentoGrid.jsx`, scaffold SVGs), replaced `window.location.reload()` with proper `signIn()` in AuthPanel, added env var validation to `realtimeClient.js`, extracted inline `useRecoveryTokens` hook, fixed variable shadowing in ChatLayout/App.jsx, derived ChatSidebar categories from `mediaConfig`. **Performance:** memoized CyberCard (custom comparator), KanbanBoard, MediaVault with `React.memo`, added `useCallback` for all handler props in App.jsx, lazy-loaded MediaDetailModal/EditMediaDialog/ChatLayout (~35KB deferred from initial bundle), set global React Query staleTime (5min)/gcTime (10min), included update/delete mutation pending states in loading. **Accessibility:** reusable `useFocusTrap` hook applied to all 3 modals, `ConfirmDialog` for destructive actions across CyberCard/MediaDetailModal/MediaVault, fixed contrast (`--muted-foreground` 60%→68%, placeholders 20%→40%), skip-to-content link, `role="status"` on all spinners, `aria-describedby`/`aria-invalid` on form errors, standardized `focus-visible` rings on all buttons. **Design:** body `line-height: 1.6`, neon-pulse 3s→6s.
+- **Files Changed:**
+  - New: `MediaForm.jsx`, `ConfirmDialog.jsx`, `useFocusTrap.js`, `useRecoveryTokens.js`.
+  - Modified: `AddMediaDialog.jsx`, `EditMediaDialog.jsx`, `MediaDetailModal.jsx`, `CyberCard.jsx`, `KanbanBoard.jsx`, `MediaVault.jsx`, `ChatLayout.jsx`, `ChatSidebar.jsx`, `ChatWindow.jsx`, `AuthPanel.jsx`, `Navbar.jsx`, `App.jsx`, `mediaConfig.js`, `realtimeClient.js`, `queryClient.js`, `useMedia.js`, `index.css`.
+  - Deleted: `useBooks.js`, `BentoGrid.jsx`, `react.svg`, `vite.svg`.
+- **Verification:** `npm run lint` 0 errors (1 pre-existing warning), `npm run test -- --run` 21/21 pass, `npm run build` clean.
+- **Follow-ups:** Consider `prefers-contrast: more` media query, hero.png WebP conversion, skeleton loaders.
+
+### 2026-03-22 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Two Bug Fixes — Edit Button on Media Cards + Status Revert Race Condition
+- **Summary:** Added full edit capability to media cards: new `EditMediaDialog.jsx` with pre-populated form, edit (pencil) buttons on `CyberCard`, `MediaDetailModal`, and `MediaVault`, wired through `KanbanBoard` and `App.jsx` via `editItem` state. Fixed the status revert bug where changing a tile's status would momentarily update then revert after a few seconds — root cause was `updateMediaMutation.onSettled` calling `invalidateQueries` which triggered a GET refetch that raced with Realtime events; replaced with `onSuccess` that directly updates the cache from the PUT response. Also broadened the Realtime dedup in `handleRealtimeEvent` from status-only to all user-visible fields (title, creator, genre, rating, takeaway, sub_info) so edits are also deduped correctly.
+- **Files Changed:**
+  - `frontend/src/components/features/EditMediaDialog.jsx` — New edit dialog component.
+  - `frontend/src/components/features/CyberCard.jsx` — Added `onEdit` prop and pencil button.
+  - `frontend/src/components/features/MediaDetailModal.jsx` — Added `onEdit` prop and Edit button.
+  - `frontend/src/components/features/MediaVault.jsx` — Added `onEdit` prop and pencil button in vault rows.
+  - `frontend/src/components/features/KanbanBoard.jsx` — Passes `onEdit` through to CyberCard.
+  - `frontend/src/App.jsx` — Added `editItem` state, imported/rendered `EditMediaDialog`, wired `onEdit` to all surfaces.
+  - `frontend/src/hooks/useMedia.js` — Replaced `onSettled→invalidateQueries` with `onSuccess` on `updateMediaMutation`; broadened Realtime dedup to all editable fields.
+- **Verification:** `npm run lint` 0 errors (1 pre-existing warning), `npm run test -- --run` 21/21 pass, `npm run build` clean.
+- **Follow-ups:** None.
+
+### 2026-03-20 (Australia/Sydney)
+**Raouf:**
+- **Scope:** CLI Application — Supabase Stack Restart, DB Seed, Local Dev Env
+- **Summary:** Applied all three bug-fix changes using the Supabase CLI. Started Docker Desktop, ran `supabase start` (picked up the updated `config.toml` with the new redirect URLs and `site_url`). Ran `supabase db reset` which applied all 4 migrations and executed `supabase/seed.sql` — confirmed `raoof.r12@gmail.com` row in `auth.users` (id `aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa`, role `authenticated`, email confirmed) and matching `auth.identities` row. Added `.env.local` overlay support to `backend/config.py` via a second `load_dotenv(".env.local", override=True)` call (already gitignored); created `backend/.env.local` with the local Supabase JWT keys extracted from `supabase status -o env` so the backend automatically targets the local stack when the file is present.
+- **Files Changed:**
+  - `backend/config.py` — Added `load_dotenv(".env.local", override=True)` after existing `load_dotenv()`.
+  - `backend/.env.local` — New gitignored file: local Supabase URL, service-role key, anon key, JWT secret, and local `PASSWORD_RESET_REDIRECT_URL`.
+- **Verification:** `supabase db reset` succeeded (4 migrations + seed), `docker exec supabase_db_Nexus psql` confirmed both `auth.users` and `auth.identities` rows, `python3 -m ruff check backend tests` clean, `python3 -m pytest` 34/34 pass.
+- **Follow-ups:** Regenerate `backend/.env.local` keys after any `supabase stop && supabase start` (local JWT secret is stable across resets but keys may rotate). For production, create `raoof.r12@gmail.com` via Supabase Auth dashboard — never run `seed.sql` against the remote database.
+
+### 2026-03-20 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Three Critical Bug Fixes — Recovery Redirect, Dev Seed, Realtime Race Condition
+- **Summary:** Fixed the "nowhere" password recovery link by adding `/reset-password` exact-match entries to `supabase/config.toml`'s `additional_redirect_urls` (Supabase rejects any `redirect_to` not in the allow-list) and correcting `PASSWORD_RESET_REDIRECT_URL` in `backend/.env` to include the path segment (`/reset-password`). Created `supabase/seed.sql` to idempotently inject the `raoof.r12@gmail.com` dev account (password: `Dev@Nexus2026`) into `auth.users` + `auth.identities` so `supabase db reset` seeds the local database; confirmed no hardcoded session bypass existed in `AuthContext.jsx` — it already strictly uses `POST /auth/login`. Fixed the Realtime vs. optimistic-UI race condition in `useMedia.js`: replaced the broken `JSON.stringify` deduplication (which always failed because the server row has a fresh `updated_at`) with a targeted `existing.status === newItem.status` check, silently dropping Realtime echoes that match the optimistic update and preventing Framer Motion from re-triggering layout animations.
+- **Files Changed:**
+  - `supabase/config.toml` — Changed `site_url` to `http://localhost:5173`; added `http://localhost:5173/reset-password` and `http://127.0.0.1:5173/reset-password` to `additional_redirect_urls`.
+  - `backend/.env` — Fixed `PASSWORD_RESET_REDIRECT_URL` from `http://localhost:5173` to `http://localhost:5173/reset-password`.
+  - `supabase/seed.sql` — New file: idempotent dev user seed for `raoof.r12@gmail.com` with bcrypt password.
+  - `frontend/src/hooks/useMedia.js` — Replaced `JSON.stringify` dedup in `handleRealtimeEvent` UPDATE branch with `existing.status === newItem.status` comparison.
+- **Verification:** `python3 -m ruff check backend tests` clean, `python3 -m pytest` 34/34 pass, `npm run lint` 0 errors (1 pre-existing warning unrelated to changes), `npm run test -- --run` 21/21 pass, `npm run build` clean.
+- **Follow-ups:** After applying the seed, activate it with `supabase db reset` (local) or manually insert via Supabase Studio. For production, create the account through the Supabase Auth dashboard — never run seed.sql against a production database.
+
 ### 2026-03-17 (Australia/Sydney)
 **Raouf:**
 - **Scope:** Shared AI Usage Rate Limiting

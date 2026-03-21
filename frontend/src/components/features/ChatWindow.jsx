@@ -65,11 +65,12 @@ export default function ChatWindow({ sessionId, userId }) {
         className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-5"
       >
         {loading && (
-          <div className="flex justify-center py-10">
+          <div className="flex justify-center py-10" role="status">
             <div className="relative">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
               <Bot size={12} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
             </div>
+            <span className="sr-only">Loading messages</span>
           </div>
         )}
 
@@ -149,13 +150,13 @@ export default function ChatWindow({ sessionId, userId }) {
             placeholder="nexus:// transmit message..."
             disabled={sending}
             aria-label="Chat message"
-            className="flex-1 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 heading-ui text-sm text-white placeholder:text-muted-foreground/30 focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20 disabled:opacity-40 transition-all"
+            className="flex-1 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 heading-ui text-sm text-white placeholder:text-muted-foreground/30 focus:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40 transition-all"
             maxLength={4000}
           />
           <button
             type="submit"
             disabled={sending || !input.trim()}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25 disabled:opacity-20"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25 disabled:opacity-20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             aria-label="Send message"
           >
             <Send size={16} />

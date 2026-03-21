@@ -1,17 +1,14 @@
+import { memo, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { BookOpen, ChevronLeft, ChevronRight, Film, Sparkles, Trash2 } from 'lucide-react'
-import { getStatusNav } from '../../lib/mediaConfig'
+import { ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
+import { TYPE_ICONS, getStatusNav } from '../../lib/mediaConfig'
+import ConfirmDialog from './ConfirmDialog'
 
-const TYPE_ICONS = {
-  book: BookOpen,
-  movie: Film,
-  anime: Sparkles,
-}
-
-export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
+function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
   const mediaType = item.type || 'book'
-  const Icon = TYPE_ICONS[mediaType] || BookOpen
+  const Icon = TYPE_ICONS[mediaType]
   const { prev, next } = getStatusNav(mediaType, item.status)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const handleAdvance = async (event) => {
     event.stopPropagation()
@@ -25,10 +22,22 @@ export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
     await onUpdate({ mediaId: item.id, data: { status: prev } })
   }
 
-  const handleDelete = async (event) => {
+  const handleEdit = (event) => {
+    event.stopPropagation()
+    if (!onEdit) return
+    onEdit(item)
+  }
+
+  const handleDeleteClick = (event) => {
     event.stopPropagation()
     if (!onDelete) return
+    setConfirmDelete(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!onDelete) return
     await onDelete(item.id)
+    setConfirmDelete(false)
   }
 
   return (
@@ -74,7 +83,7 @@ export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
               <button
                 type="button"
                 onClick={handleRevert}
-                className="rounded-md bg-white/5 p-1 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary sm:p-1.5"
+                className="rounded-md bg-white/5 p-1 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
                 title={`Back to ${prev}`}
                 aria-label={`Back to ${prev}`}
               >
@@ -85,7 +94,7 @@ export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
               <button
                 type="button"
                 onClick={handleAdvance}
-                className="rounded-md bg-white/5 p-1 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary sm:p-1.5"
+                className="rounded-md bg-white/5 p-1 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
                 title={`Move to ${next}`}
                 aria-label={`Move to ${next}`}
               >
@@ -94,8 +103,17 @@ export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
             )}
             <button
               type="button"
-              onClick={handleDelete}
-              className="rounded-md bg-white/5 p-1 text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive sm:p-1.5"
+              onClick={handleEdit}
+              className="rounded-md bg-white/5 p-1 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
+              title="Edit"
+              aria-label="Edit"
+            >
+              <Pencil size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteClick}
+              className="rounded-md bg-white/5 p-1 text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
               title="Delete"
               aria-label="Delete"
             >
@@ -104,6 +122,26 @@ export default function CyberCard({ item, onUpdate, onDelete, onSelect }) {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete Entry"
+        message="This action cannot be undone. Are you sure you want to delete this entry?"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </Motion.div>
   )
 }
+
+export default memo(CyberCard, (prev, next) =>
+  prev.item.id === next.item.id &&
+  prev.item.status === next.item.status &&
+  prev.item.title === next.item.title &&
+  prev.item.creator === next.item.creator &&
+  prev.item.genre === next.item.genre &&
+  prev.item.rating === next.item.rating &&
+  prev.item.takeaway === next.item.takeaway &&
+  prev.item.sub_info === next.item.sub_info &&
+  prev.item.type === next.item.type
+)

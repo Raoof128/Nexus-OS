@@ -6,7 +6,7 @@ import { useAuth } from '../../hooks/useAuth'
 const PANELS = { login: 0, register: 1, forgot: 2 }
 
 const inputClass =
-  'w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/20 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50'
+  'w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/40 focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary'
 
 const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground'
 
@@ -20,10 +20,11 @@ function GlitchLine() {
   )
 }
 
-function Alert({ children }) {
+function Alert({ children, id }) {
   if (!children) return null
   return (
     <div
+      id={id}
       role="alert"
       className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm font-bold uppercase tracking-wider text-destructive"
     >
@@ -91,7 +92,8 @@ export default function AuthPanel() {
         body: { email: regEmail, password: regPassword },
       })
       if (result.user) {
-        window.location.reload()
+        const { error: loginError } = await signIn(regEmail, regPassword)
+        if (loginError) setError(loginError.message)
       } else {
         setSuccess(result.message || 'Check your email to confirm registration')
       }
@@ -142,7 +144,7 @@ export default function AuthPanel() {
             Authenticate to load your private catalog.
           </p>
 
-          <Alert>{active === 'login' ? error : null}</Alert>
+          <Alert id="form-error">{active === 'login' ? error : null}</Alert>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
@@ -155,6 +157,7 @@ export default function AuthPanel() {
                 className={inputClass}
                 placeholder="runner@nexus.net"
                 required
+                {...(active === 'login' && error ? { 'aria-describedby': 'form-error', 'aria-invalid': true } : {})}
               />
             </div>
             <div>
@@ -208,7 +211,7 @@ export default function AuthPanel() {
             Register to create your personal archive.
           </p>
 
-          <Alert>{active === 'register' ? error : null}</Alert>
+          <Alert id="reg-form-error">{active === 'register' ? error : null}</Alert>
           <Success>{active === 'register' ? success : null}</Success>
 
           <form onSubmit={handleRegister} className="space-y-4">
@@ -222,6 +225,7 @@ export default function AuthPanel() {
                 className={inputClass}
                 placeholder="runner@nexus.net"
                 required
+                {...(active === 'register' && error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
               />
             </div>
             <div>
@@ -280,7 +284,7 @@ export default function AuthPanel() {
             Enter your identity to receive a recovery link.
           </p>
 
-          <Alert>{active === 'forgot' ? error : null}</Alert>
+          <Alert id="forgot-form-error">{active === 'forgot' ? error : null}</Alert>
           <Success>{active === 'forgot' ? success : null}</Success>
 
           <form onSubmit={handleForgot} className="space-y-4">
@@ -294,6 +298,7 @@ export default function AuthPanel() {
                 className={inputClass}
                 placeholder="runner@nexus.net"
                 required
+                {...(active === 'forgot' && error ? { 'aria-describedby': 'forgot-form-error', 'aria-invalid': true } : {})}
               />
             </div>
             <button

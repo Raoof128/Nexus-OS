@@ -1,32 +1,21 @@
-import { useState } from 'react'
+import { lazy, Suspense, useCallback, useState } from 'react'
 import { AnimatePresence, LayoutGroup, motion as Motion } from 'framer-motion'
-import { BookOpen, Film, Loader2, MessageCircle, Sparkles } from 'lucide-react'
+import { Loader2, MessageCircle } from 'lucide-react'
 import AddMediaDialog from './components/features/AddMediaDialog'
 import AuthPanel from './components/features/AuthPanel'
-import ChatLayout from './components/features/ChatLayout'
 import LazyAICmdPalette from './components/features/LazyAICmdPalette'
-import MediaDetailModal from './components/features/MediaDetailModal'
 import MediaVault from './components/features/MediaVault'
 import ResetPasswordPage from './components/features/ResetPasswordPage'
 import KanbanBoard from './components/features/KanbanBoard'
 import Navbar from './components/layout/Navbar'
 import { useAuth } from './hooks/useAuth'
 import { useMedia } from './hooks/useMedia'
-import { MEDIA_TYPES, MEDIA_CONFIG } from './lib/mediaConfig'
-import { clearRecoveryTokens, getRecoveryTokens } from './lib/recoveryTokens'
+import { useRecoveryTokens } from './hooks/useRecoveryTokens'
+import { MEDIA_TYPES, MEDIA_CONFIG, TYPE_ICONS } from './lib/mediaConfig'
 
-const TAB_ICONS = { book: BookOpen, movie: Film, anime: Sparkles, chat: MessageCircle }
-
-function useRecoveryTokens() {
-  const [tokens, setTokens] = useState(() => getRecoveryTokens())
-
-  const clearTokens = () => {
-    clearRecoveryTokens()
-    setTokens(null)
-  }
-
-  return [tokens, clearTokens]
-}
+const ChatLayout = lazy(() => import('./components/features/ChatLayout'))
+const MediaDetailModal = lazy(() => import('./components/features/MediaDetailModal'))
+const EditMediaDialog = lazy(() => import('./components/features/EditMediaDialog'))
 
 function App() {
   const { session, loading: authLoading } = useAuth()
@@ -34,20 +23,37 @@ function App() {
   const [activeView, setActiveView] = useState('media') // 'media' | 'chat'
   const { items, loading: dataLoading, error, addMedia, updateMedia, deleteMedia } = useMedia(session, activeType)
   const [selectedItem, setSelectedItem] = useState(null)
+  const [editItem, setEditItem] = useState(null)
   const [vaultState, setVaultState] = useState(null) // { status, type }
 
-  const [recoveryTokens, clearRecoveryTokens] = useRecoveryTokens()
+  const [recoveryTokens, dismissTokens] = useRecoveryTokens()
 
-  const openVault = (status, type) => {
+  const openVault = useCallback((status, type) => {
     setVaultState({ status, type })
-  }
+  }, [])
+
+  const handleEdit = useCallback((item) => {
+    setEditItem(item)
+  }, [])
+
+  const handleSelect = useCallback((item) => {
+    setSelectedItem(item)
+  }, [])
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedItem(null)
+  }, [])
+
+  const handleCloseEdit = useCallback(() => {
+    setEditItem(null)
+  }, [])
 
   if (recoveryTokens) {
     return (
       <ResetPasswordPage
         accessToken={recoveryTokens.accessToken}
         refreshToken={recoveryTokens.refreshToken}
-        onComplete={clearRecoveryTokens}
+        onComplete={dismissTokens}
       />
     )
   }
@@ -106,6 +112,9 @@ function App() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-primary-foreground">
+        Skip to main content
+      </a>
       <div className="ambient-orbs" />
       <div className="scanlines" />
       <div className="pointer-events-none fixed inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-cyan)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-cyan)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
@@ -116,14 +125,14 @@ function App() {
       <div className="sticky top-16 z-20 border-b border-white/[0.04] glass-panel">
         <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-2 sm:px-6">
           {MEDIA_TYPES.map((type) => {
-            const Icon = TAB_ICONS[type]
+            const Icon = TYPE_ICONS[type]
             const isActive = activeView === 'media' && activeType === type
             return (
               <button
                 key={type}
                 type="button"
                 onClick={() => { setActiveType(type); setActiveView('media'); setVaultState(null) }}
-                className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 heading-ui text-[11px] font-semibold uppercase tracking-wider transition-all sm:px-4 sm:text-xs ${
+                className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 heading-ui text-[11px] font-semibold uppercase tracking-wider transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:px-4 sm:text-xs ${
                   isActive
                     ? 'bg-primary/20 text-primary shadow-[0_0_10px_var(--color-primary)]'
                     : 'text-muted-foreground hover:bg-white/5 hover:text-white'
@@ -140,7 +149,7 @@ function App() {
           <button
             type="button"
             onClick={() => setActiveView('chat')}
-            className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 heading-ui text-[11px] font-semibold uppercase tracking-wider transition-all sm:px-4 sm:text-xs ${
+            className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 heading-ui text-[11px] font-semibold uppercase tracking-wider transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:px-4 sm:text-xs ${
               activeView === 'chat'
                 ? 'bg-primary/20 text-primary shadow-[0_0_10px_var(--color-primary)]'
                 : 'text-muted-foreground hover:bg-white/5 hover:text-white'
@@ -153,11 +162,18 @@ function App() {
       </div>
 
       {/* Main content */}
-      <main className="relative z-10 flex-1 overflow-y-auto custom-scrollbar">
+      <main id="main-content" className="relative z-10 flex-1 overflow-y-auto custom-scrollbar">
         {activeView === 'chat' ? (
-          <ChatLayout />
+          <Suspense fallback={
+            <div className="flex h-64 items-center justify-center" role="status">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
+              <span className="sr-only">Loading chat</span>
+            </div>
+          }>
+            <ChatLayout />
+          </Suspense>
         ) : dataLoading && items.length === 0 ? (
-          <div className="flex h-64 items-center justify-center">
+          <div className="flex h-64 items-center justify-center" role="status">
             <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
             <span className="sr-only">Loading library</span>
           </div>
@@ -185,7 +201,8 @@ function App() {
                   onBack={() => setVaultState(null)}
                   onUpdate={updateMedia}
                   onDelete={deleteMedia}
-                  onSelect={setSelectedItem}
+                  onSelect={handleSelect}
+                  onEdit={handleEdit}
                 />
               </Motion.div>
             ) : (
@@ -203,7 +220,8 @@ function App() {
                     mediaType={activeType}
                     onUpdate={updateMedia}
                     onDelete={deleteMedia}
-                    onSelect={setSelectedItem}
+                    onSelect={handleSelect}
+                    onEdit={handleEdit}
                     onHeaderClick={openVault}
                   />
                 </LayoutGroup>
@@ -214,12 +232,23 @@ function App() {
       </main>
 
       {/* Detail modal */}
-      <MediaDetailModal
-        item={selectedItem}
-        onClose={() => setSelectedItem(null)}
-        onUpdate={updateMedia}
-        onDelete={deleteMedia}
-      />
+      <Suspense fallback={null}>
+        <MediaDetailModal
+          item={selectedItem}
+          onClose={handleCloseDetail}
+          onUpdate={updateMedia}
+          onDelete={deleteMedia}
+          onEdit={handleEdit}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <EditMediaDialog
+          item={editItem}
+          onUpdate={updateMedia}
+          onClose={handleCloseEdit}
+        />
+      </Suspense>
 
       <AddMediaDialog mediaType={activeType} onAdd={addMedia} />
       <LazyAICmdPalette mediaType={activeType} />

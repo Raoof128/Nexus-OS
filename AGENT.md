@@ -22,6 +22,67 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 ## Change Log
 
+### 2026-03-22 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Full Frontend Audit Remediation — Architecture, Performance, Accessibility, Design
+- **Summary:** Implemented all findings from a 4-dimension frontend audit (architecture, performance, a11y, design). Architecture: removed buggy `sanitize()` double-encoding, extracted shared `MediaForm` component from duplicated Add/Edit dialogs, centralized `TYPE_ICONS` into `mediaConfig.js`, deleted dead code (`useBooks.js`, `BentoGrid.jsx`, scaffold SVGs), replaced `window.location.reload()` with proper `signIn()` in AuthPanel, added env var validation to `realtimeClient.js`, extracted inline `useRecoveryTokens` hook, fixed variable shadowing in ChatLayout and App.jsx, derived ChatSidebar categories from `mediaConfig`. Performance: memoized CyberCard (custom comparator), KanbanBoard, and MediaVault with `React.memo`, added `useCallback` wrappers for all handler props in App.jsx, lazy-loaded MediaDetailModal/EditMediaDialog/ChatLayout, set global React Query `staleTime`/`gcTime` defaults, included update/delete mutation pending states in loading indicator. Accessibility: created reusable `useFocusTrap` hook and applied to all modals, created `ConfirmDialog` component for destructive actions (CyberCard, MediaDetailModal, MediaVault), fixed contrast (`--muted-foreground` to 68% lightness, placeholder opacity to 40%), added skip-to-content link, added `role="status"` to all loading states, linked form errors via `aria-describedby`/`aria-invalid`, standardized `focus-visible` rings across all interactive elements. Design: added `line-height: 1.6` to body, slowed neon-pulse animation to 6s.
+- **Files Changed:**
+  - `components/features/MediaForm.jsx` — New shared form component.
+  - `components/features/ConfirmDialog.jsx` — New delete confirmation dialog.
+  - `hooks/useFocusTrap.js` — New reusable focus trap hook.
+  - `hooks/useRecoveryTokens.js` — Extracted from App.jsx.
+  - `components/features/AddMediaDialog.jsx` — Refactored to use MediaForm, focus trap, a11y fixes.
+  - `components/features/EditMediaDialog.jsx` — Refactored to use MediaForm, focus trap, a11y fixes.
+  - `components/features/MediaDetailModal.jsx` — Removed sanitize(), added focus trap, confirm dialog, centralized icons, a11y focus rings.
+  - `components/features/CyberCard.jsx` — Memoized, confirm dialog, centralized icons, focus rings.
+  - `components/features/KanbanBoard.jsx` — Memoized.
+  - `components/features/MediaVault.jsx` — Memoized, confirm dialog, centralized icons, edit button, focus rings.
+  - `components/features/ChatLayout.jsx` — Fixed session variable shadowing.
+  - `components/features/ChatSidebar.jsx` — Derived categories from mediaConfig.
+  - `components/features/ChatWindow.jsx` — Loading state `role="status"`, focus rings.
+  - `components/features/AuthPanel.jsx` — Replaced reload() with signIn(), a11y error linking, focus rings.
+  - `components/layout/Navbar.jsx` — Focus rings.
+  - `App.jsx` — Lazy-load modals/chat, useCallback handlers, skip link, loading announcements, extracted hook, centralized icons.
+  - `lib/mediaConfig.js` — Added TYPE_ICONS export, removed dead icon strings.
+  - `lib/realtimeClient.js` — Added env var validation.
+  - `lib/queryClient.js` — Added global staleTime/gcTime defaults.
+  - `hooks/useMedia.js` — Added update/delete pending to loading state.
+  - `index.css` — Fixed muted-foreground contrast, body line-height, neon-pulse timing.
+  - Deleted: `hooks/useBooks.js`, `components/layout/BentoGrid.jsx`, `assets/react.svg`, `assets/vite.svg`.
+- **Verification:** `npm run lint` 0 errors (1 pre-existing warning), `npm run test -- --run` 21/21 pass, `npm run build` clean.
+- **Follow-ups:** Consider adding `prefers-contrast: more` media query. Audit hero.png compression (44KB, could convert to WebP). Add skeleton loaders for data loading states.
+
+### 2026-03-22 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Two Bug Fixes — Edit Button on Media Cards + Status Revert Race Condition
+- **Summary:** Added full edit capability to media cards: new `EditMediaDialog.jsx` with pre-populated form, edit (pencil) buttons on `CyberCard`, `MediaDetailModal`, and `MediaVault`, wired through `KanbanBoard` and `App.jsx` via `editItem` state. Fixed the status revert bug where changing a tile's status would momentarily update then revert after a few seconds — root cause was `updateMediaMutation.onSettled` calling `invalidateQueries` which triggered a GET refetch that raced with Realtime events; replaced with `onSuccess` that directly updates the cache from the PUT response. Also broadened the Realtime dedup in `handleRealtimeEvent` from status-only to all user-visible fields (title, creator, genre, rating, takeaway, sub_info) so edits are also deduped correctly.
+- **Files Changed:**
+  - `frontend/src/components/features/EditMediaDialog.jsx` — New edit dialog component.
+  - `frontend/src/components/features/CyberCard.jsx` — Added `onEdit` prop and pencil button.
+  - `frontend/src/components/features/MediaDetailModal.jsx` — Added `onEdit` prop and Edit button.
+  - `frontend/src/components/features/MediaVault.jsx` — Added `onEdit` prop and pencil button in vault rows.
+  - `frontend/src/components/features/KanbanBoard.jsx` — Passes `onEdit` through to CyberCard.
+  - `frontend/src/App.jsx` — Added `editItem` state, imported/rendered `EditMediaDialog`, wired `onEdit` to all surfaces.
+  - `frontend/src/hooks/useMedia.js` — Replaced `onSettled→invalidateQueries` with `onSuccess` on `updateMediaMutation`; broadened Realtime dedup to all editable fields.
+- **Verification:** `npm run lint` 0 errors (1 pre-existing warning), `npm run test -- --run` 21/21 pass, `npm run build` clean.
+- **Follow-ups:** None.
+
+### 2026-03-20 (Australia/Sydney)
+**Raouf:**
+- **Scope:** CLI Application — Supabase Stack Restart, DB Seed, Local Dev Env
+- **Summary:** Applied all three bug-fix changes using the Supabase CLI. `supabase start` picked up the updated `config.toml`. `supabase db reset` applied 4 migrations and seeded `raoof.r12@gmail.com`. Added `.env.local` overlay support to `backend/config.py`; created `backend/.env.local` with local stack credentials.
+- **Files Changed:** `backend/config.py`, `backend/.env.local` (new, gitignored).
+- **Verification:** DB reset succeeded, both `auth.users` + `auth.identities` rows confirmed, ruff clean, pytest 34/34 pass.
+- **Follow-ups:** Regenerate `.env.local` after stack restarts if JWT secret rotates. Create prod user via Supabase Auth dashboard only.
+
+### 2026-03-20 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Three Critical Bug Fixes — Recovery Redirect, Dev Seed, Realtime Race Condition
+- **Summary:** Fixed password recovery redirect (added `/reset-password` to Supabase allow-list and corrected `PASSWORD_RESET_REDIRECT_URL`). Created `supabase/seed.sql` for dev user; `AuthContext.jsx` was already clean (uses `/auth/login`). Fixed Realtime/optimistic-UI race in `useMedia.js` by replacing `JSON.stringify` dedup with `existing.status === newItem.status`.
+- **Files Changed:** `supabase/config.toml`, `backend/.env`, `supabase/seed.sql` (new), `frontend/src/hooks/useMedia.js`.
+- **Verification:** `ruff check` clean, `pytest` 34/34 pass, `npm run lint` 0 errors, `npm run test` 21/21 pass, `npm run build` clean.
+- **Follow-ups:** Activate seed with `supabase db reset` locally. Create prod account via Supabase Auth dashboard — do not run seed.sql against production.
+
 ### 2026-03-17 (Australia/Sydney)
 **Raouf:**
 - **Scope:** Shared AI Usage Rate Limiting

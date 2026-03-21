@@ -1,14 +1,22 @@
 import { useMemo, useState } from 'react'
-import { BookOpen, Film, FolderOpen, MessageCircle, Plus, Sparkles, Trash2 } from 'lucide-react'
+import { FolderOpen, MessageCircle, Plus, Trash2 } from 'lucide-react'
+import { MEDIA_CONFIG, MEDIA_TYPES, TYPE_ICONS } from '../../lib/mediaConfig'
 
-const CATEGORY_CONFIG = {
-  books: { label: 'Books', icon: BookOpen, color: 'text-cyan-400' },
-  movies: { label: 'Movies', icon: Film, color: 'text-pink-400' },
-  anime: { label: 'Anime', icon: Sparkles, color: 'text-purple-400' },
-  general: { label: 'General', icon: FolderOpen, color: 'text-neutral-400' },
+const MEDIA_CATEGORY_COLORS = {
+  book: 'text-cyan-400',
+  movie: 'text-pink-400',
+  anime: 'text-purple-400',
 }
 
-const CATEGORIES = ['books', 'movies', 'anime', 'general']
+const CATEGORY_CONFIG = Object.fromEntries([
+  ...MEDIA_TYPES.map((type) => [
+    MEDIA_CONFIG[type].label.toLowerCase(),
+    { label: MEDIA_CONFIG[type].label, icon: TYPE_ICONS[type], color: MEDIA_CATEGORY_COLORS[type] },
+  ]),
+  ['general', { label: 'General', icon: FolderOpen, color: 'text-neutral-400' }],
+])
+
+const CATEGORIES = [...MEDIA_TYPES.map((type) => MEDIA_CONFIG[type].label.toLowerCase()), 'general']
 
 export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCreate, onDelete }) {
   const [newTitle, setNewTitle] = useState('')
@@ -46,7 +54,7 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
         <button
           type="button"
           onClick={() => setShowCreate(!showCreate)}
-          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20"
+          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           title="New chat"
           aria-label="New chat"
         >
@@ -63,7 +71,7 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="Session name..."
             aria-label="Session title"
-            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 heading-ui text-xs text-white placeholder:text-muted-foreground/30 focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20"
+            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 heading-ui text-xs text-white placeholder:text-muted-foreground/30 focus:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             maxLength={200}
             autoFocus
           />
@@ -79,7 +87,7 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
           </select>
           <button
             type="submit"
-            className="heading-ui w-full rounded-lg bg-primary/15 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25"
+            className="heading-ui w-full rounded-lg bg-primary/15 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             Initialize Session
           </button>
@@ -111,7 +119,7 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
                     <button
                       type="button"
                       onClick={() => onSelect(session.id)}
-                      className={`flex-1 truncate px-3 py-2.5 text-left heading-ui text-[11px] ${
+                      className={`flex-1 truncate px-3 py-2.5 text-left heading-ui text-[11px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                         activeSessionId === session.id
                           ? 'text-primary'
                           : 'text-muted-foreground hover:text-white'
@@ -122,7 +130,7 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
                     <button
                       type="button"
                       onClick={() => onDelete(session.id)}
-                      className="mr-1 shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 hover:text-destructive"
+                      className="mr-1 shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                       aria-label={`Delete ${session.title}`}
                     >
                       <Trash2 size={10} />

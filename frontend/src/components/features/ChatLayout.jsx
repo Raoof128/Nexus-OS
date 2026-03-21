@@ -19,8 +19,8 @@ export default function ChatLayout() {
   }
 
   const handleCreate = async (data) => {
-    const session = await createSession(data)
-    if (session?.id) setActiveSessionId(session.id)
+    const newSession = await createSession(data)
+    if (newSession?.id) setActiveSessionId(newSession.id)
   }
 
   return (
