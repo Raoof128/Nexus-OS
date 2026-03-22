@@ -24,6 +24,13 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 ### 2026-03-22 (Australia/Sydney)
 **Raouf:**
+- **Scope:** AI Palette UX — Lift Button + One-Click Add to Archive
+- **Summary:** Moved AI CMD FAB higher. Added "Add to Archive" buttons on each suggestion card with status selection (To Read/Watch, Reading/Watching, Finished). One click creates the entry with all details pre-filled. Visual confirmation with checkmark.
+- **Files Changed:** `AICmdPalette.jsx`, `LazyAICmdPalette.jsx`, `App.jsx`.
+- **Verification:** Lint/test/build clean, deployed.
+
+### 2026-03-22 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Fix Production Account + Password Reset Redirect
 - **Summary:** Fixed two production issues. (1) Production Supabase user `raoof.r12@gmail.com` password was out of sync — reset to `Dev@Nexus2026` via Supabase Admin API. (2) Password reset email link was redirecting to root `/` instead of `/reset-password` — updated Supabase recovery email template via Management API to use `{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&type=recovery`. Updated frontend `recoveryTokens.js` to also parse `token_hash` from URL params (in addition to `access_token`). Updated `ResetPasswordPage.jsx` to accept `tokenHash` prop and exchange it for a session via `realtimeClient.auth.verifyOtp()` before showing the password form.
 - **Files Changed:** `lib/recoveryTokens.js`, `components/features/ResetPasswordPage.jsx`, `App.jsx`.

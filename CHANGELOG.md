@@ -2,6 +2,13 @@
 
 ### 2026-03-22 (Australia/Sydney)
 **Raouf:**
+- **Scope:** AI Palette UX — Lift Button + One-Click Add to Archive
+- **Summary:** Moved AI CMD FAB higher. Added one-click "Add to Archive" on each AI suggestion card with status buttons. Creates media entry with all details pre-filled.
+- **Files Changed:** `AICmdPalette.jsx`, `LazyAICmdPalette.jsx`, `App.jsx`.
+- **Verification:** Lint/test/build clean, deployed.
+
+### 2026-03-22 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Fix Production Account + Password Reset Redirect
 - **Summary:** Reset production user password. Fixed Supabase recovery email template to redirect to `/reset-password` with `token_hash`. Added `token_hash` support to frontend recovery flow.
 - **Files Changed:** `recoveryTokens.js`, `ResetPasswordPage.jsx`, `App.jsx`. Supabase Management API: updated `mailer_templates_recovery_content`.

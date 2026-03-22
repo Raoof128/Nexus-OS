@@ -18,7 +18,7 @@ function LoadingDialog() {
   )
 }
 
-export default function LazyAICmdPalette({ mediaType = 'book' }) {
+export default function LazyAICmdPalette({ mediaType = 'book', onAdd }) {
   const [open, setOpen] = useState(false)
   const [shouldLoad, setShouldLoad] = useState(false)
 
@@ -44,7 +44,7 @@ export default function LazyAICmdPalette({ mediaType = 'book' }) {
     <>
       <button
         type="button"
-        className="neon-pulse fixed bottom-20 right-4 z-50 flex cursor-pointer items-center gap-2 rounded-xl glass-panel px-3 py-2.5 heading-ui text-[11px] font-semibold text-primary transition-all hover:bg-primary/15 sm:bottom-6 sm:right-6 sm:px-4 sm:text-xs"
+        className="neon-pulse fixed bottom-36 right-4 z-50 flex cursor-pointer items-center gap-2 rounded-xl glass-panel px-3 py-2.5 heading-ui text-[11px] font-semibold text-primary transition-all hover:bg-primary/15 sm:bottom-8 sm:right-6 sm:px-4 sm:text-xs"
         onMouseEnter={() => {
           setShouldLoad(true)
           void loadAICmdPalette()
@@ -64,7 +64,7 @@ export default function LazyAICmdPalette({ mediaType = 'book' }) {
 
       {shouldLoad ? (
         <Suspense fallback={<LoadingDialog />}>
-          <AICmdPalette open={open} onOpenChange={setOpen} mediaType={mediaType} />
+          <AICmdPalette open={open} onOpenChange={setOpen} mediaType={mediaType} onAdd={onAdd} />
         </Suspense>
       ) : null}
     </>

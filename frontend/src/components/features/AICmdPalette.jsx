@@ -1,13 +1,32 @@
 import { useState } from 'react'
 import { Command } from 'cmdk'
-import { Bot, Cpu, Sparkles, Terminal, Zap } from 'lucide-react'
+import { Bot, Check, Cpu, Plus, Sparkles, Terminal, Zap } from 'lucide-react'
 import { useSuggest } from '../../hooks/useSuggest'
 import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 
-export default function AICmdPalette({ open, onOpenChange, mediaType = 'book' }) {
+export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', onAdd }) {
   const [result, setResult] = useState(null)
+  const [addedIndices, setAddedIndices] = useState(new Set())
   const config = MEDIA_CONFIG[mediaType]
   const { suggest, suggestError, suggesting, resetSuggest } = useSuggest(mediaType)
+
+  const handleAddToArchive = async (suggestion, status, index) => {
+    if (!onAdd || addedIndices.has(index)) return
+    try {
+      await onAdd({
+        title: suggestion.title,
+        creator: suggestion.creator || '',
+        genre: suggestion.genre || null,
+        status,
+        rating: null,
+        takeaway: suggestion.pitch || null,
+        sub_info: suggestion.year || null,
+      })
+      setAddedIndices((prev) => new Set(prev).add(index))
+    } catch {
+      // mutation error surfaced by useMedia
+    }
+  }
 
   const handleSuggest = async () => {
     const response = await suggest()
@@ -19,9 +38,9 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book' })
   return (
     <Command.Dialog
       open={open}
-      onOpenChange={(v) => { if (!v) { setResult(null); resetSuggest() } onOpenChange(v) }}
+      onOpenChange={(v) => { if (!v) { setResult(null); resetSuggest(); setAddedIndices(new Set()) } onOpenChange(v) }}
       label="Global AI Command Menu"
-      className="neon-border fixed left-1/2 top-1/2 z-[100] w-full max-w-[680px] max-h-[min(90dvh,640px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl glass-panel p-0 shadow-[0_0_80px_hsl(var(--neon-cyan)/0.08)]"
+      className="neon-border fixed left-1/2 top-[38%] z-[100] w-full max-w-[680px] max-h-[min(90dvh,640px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl glass-panel p-0 shadow-[0_0_80px_hsl(var(--neon-cyan)/0.08)]"
       overlayClassName="fixed inset-0 z-[99] bg-black/60 backdrop-blur-md"
     >
       <span className="sr-only" role="heading" aria-level="2">AI Command Menu</span>
@@ -111,38 +130,66 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book' })
               </span>
             </div>
 
-            {result.suggestions.map((s, i) => (
-              <div
-                key={`${s.title}-${i}`}
-                className="neon-border glass-panel rounded-xl p-4 transition-all hover:bg-white/[0.02]"
-              >
-                <div className="mb-2 flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-2.5">
-                    <Sparkles size={14} className="mt-0.5 shrink-0 text-accent" />
-                    <div>
-                      <h4 className="heading-ui text-sm font-bold text-white">
-                        {s.title}
-                      </h4>
-                      {s.creator && (
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">
-                          {config?.creatorLabel}: {s.creator}
-                        </p>
-                      )}
+            {result.suggestions.map((s, i) => {
+              const added = addedIndices.has(i)
+              return (
+                <div
+                  key={`${s.title}-${i}`}
+                  className="neon-border glass-panel rounded-xl p-4 transition-all hover:bg-white/[0.02]"
+                >
+                  <div className="mb-2 flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2.5">
+                      <Sparkles size={14} className="mt-0.5 shrink-0 text-accent" />
+                      <div>
+                        <h4 className="heading-ui text-sm font-bold text-white">
+                          {s.title}
+                        </h4>
+                        {(s.creator || s.year) && (
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">
+                            {s.creator && <>{config?.creatorLabel}: {s.creator}</>}
+                            {s.creator && s.year && ' · '}
+                            {s.year && s.year}
+                          </p>
+                        )}
+                      </div>
                     </div>
+                    {s.genre && (
+                      <span className="shrink-0 rounded-md bg-white/[0.04] px-2 py-0.5 text-[10px] text-muted-foreground ring-1 ring-white/[0.06]">
+                        {s.genre}
+                      </span>
+                    )}
                   </div>
-                  {s.genre && (
-                    <span className="shrink-0 rounded-md bg-white/[0.04] px-2 py-0.5 text-[10px] text-muted-foreground ring-1 ring-white/[0.06]">
-                      {s.genre}
-                    </span>
+                  {s.pitch && (
+                    <p className="ml-6 mb-3 text-[13px] leading-relaxed text-neutral-400">
+                      {s.pitch}
+                    </p>
+                  )}
+
+                  {/* Quick-add to archive */}
+                  {added ? (
+                    <div className="ml-6 flex items-center gap-2 text-green-400">
+                      <Check size={14} />
+                      <span className="heading-ui text-[11px] tracking-wider">Added to Archive</span>
+                    </div>
+                  ) : onAdd && (
+                    <div className="ml-6 flex flex-wrap items-center gap-1.5">
+                      <span className="mr-1 text-[10px] text-muted-foreground/60 heading-ui tracking-wider">Add as:</span>
+                      {config?.statuses.map((status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => handleAddToArchive(s, status, i)}
+                          className="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[10px] font-semibold heading-ui tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_8px_hsl(var(--neon-cyan)/0.15)]"
+                        >
+                          <Plus size={10} />
+                          {status}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
-                {s.pitch && (
-                  <p className="ml-6 text-[13px] leading-relaxed text-neutral-400">
-                    {s.pitch}
-                  </p>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </Command.List>

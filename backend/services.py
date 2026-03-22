@@ -136,6 +136,7 @@ MASTER_PROMPTS = {
         '- "title": (string)\n'
         '- "creator": (string, author name)\n'
         '- "genre": (string)\n'
+        '- "year": (string, original publication year e.g. "1984")\n'
         '- "pitch": (string, punchy 2-sentence hook)\n'
     ),
     "movie": (
@@ -151,6 +152,7 @@ MASTER_PROMPTS = {
         '- "title": (string)\n'
         '- "creator": (string, director name)\n'
         '- "genre": (string)\n'
+        '- "year": (string, release year e.g. "1999")\n'
         '- "pitch": (string, high-stakes 2-sentence hook)\n'
     ),
     "anime": (
@@ -168,6 +170,7 @@ MASTER_PROMPTS = {
         '- "title": (string)\n'
         '- "creator": (string, animation studio)\n'
         '- "genre": (string)\n'
+        '- "year": (string, first air year e.g. "1998")\n'
         '- "pitch": (string, gripping 2-sentence hook on psychological'
         " stakes)\n"
     ),
@@ -210,6 +213,7 @@ class SuggestionItem:
     creator: str = ""
     genre: str = ""
     pitch: str = ""
+    year: str = ""
 
 
 @dataclass(frozen=True)
@@ -368,6 +372,7 @@ def parse_gemini_json_response(response_text: str) -> list[SuggestionItem]:
                 creator=item.get("creator", ""),
                 genre=item.get("genre", ""),
                 pitch=item.get("pitch", item.get("reasoning", "")),
+                year=str(item.get("year", "")),
             )
             for item in data[:3]
             if isinstance(item, dict) and item.get("title")

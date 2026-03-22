@@ -263,7 +263,7 @@ function App() {
       </Suspense>
 
       <AddMediaDialog mediaType={activeType} onAdd={addMedia} />
-      <LazyAICmdPalette mediaType={activeType} />
+      <LazyAICmdPalette mediaType={activeType} onAdd={addMedia} />
     </div>
   )
 }
