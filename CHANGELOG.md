@@ -2,6 +2,29 @@
 
 ### 2026-03-22 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Fix Production Account + Password Reset Redirect
+- **Summary:** Reset production user password. Fixed Supabase recovery email template to redirect to `/reset-password` with `token_hash`. Added `token_hash` support to frontend recovery flow.
+- **Files Changed:** `recoveryTokens.js`, `ResetPasswordPage.jsx`, `App.jsx`. Supabase Management API: updated `mailer_templates_recovery_content`.
+- **Verification:** Lint/test/build clean, deployed.
+
+### 2026-03-22 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Full 53-Finding UI/UX Remediation — Auth, Media, Chat, Infrastructure
+- **Summary:** Fixed all 53 findings (10 critical, 18 high, 16 medium, 9 low) from 4-agent code-level audit across 26 files. Auth: double-submit race guard, shared PasswordInput, aria-invalid on both fields, register/forgot post-success UX, panel transitions. Media: unique ConfirmDialog IDs, body scroll lock on all modals, Escape guards, null/zero data handling, keyboard-accessible action buttons, mobile column heights, vault search reset, iOS safe-area FAB, rating validation. Chat: delete confirmation, error reset on switch, optimistic dedup, Enter guard, ARIA live region, timestamps, create disabled state, md breakpoint, platform-aware shortcuts. Infra: auth expired callback, mutation error surfacing, Realtime token re-subscribe, container-level focus trap, bootstrap try/catch, hover-only neon-pulse.
+- **Files Changed:** 26 files modified/created across components, hooks, lib, context, and CSS.
+- **Verification:** Lint 0 errors, test 17/17, build clean, deployed to Cloudflare Pages.
+- **Follow-ups:** None.
+
+### 2026-03-22 (Australia/Sydney)
+**Raouf:**
+- **Scope:** UI/UX Audit Fixes — Layout Overlap, Mobile-First Login, Autocomplete, Password Toggle, Footer
+- **Summary:** Fixed all 9 findings from Playwright UI/UX audit. Hero section no longer overlaps auth panel at narrow viewports (hidden below `lg`). Login form is now above the fold on mobile. Added skip link, `autocomplete` on all inputs, password show/hide toggle, increased touch targets, and footer.
+- **Files Changed:** `App.jsx`, `AuthPanel.jsx`.
+- **Verification:** Playwright re-audit: 0 findings remaining. Lint/test/build clean.
+- **Follow-ups:** None.
+
+### 2026-03-22 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Full Frontend Audit Remediation — Architecture, Performance, Accessibility, Design
 - **Summary:** Implemented all findings from a 4-dimension frontend audit. **Architecture:** removed buggy `sanitize()` double-encoding in MediaDetailModal, extracted shared `MediaForm` from duplicated Add/Edit dialogs (~230 lines deduped), centralized `TYPE_ICONS` into `mediaConfig.js` (was defined 3x), deleted dead code (`useBooks.js`, `BentoGrid.jsx`, scaffold SVGs), replaced `window.location.reload()` with proper `signIn()` in AuthPanel, added env var validation to `realtimeClient.js`, extracted inline `useRecoveryTokens` hook, fixed variable shadowing in ChatLayout/App.jsx, derived ChatSidebar categories from `mediaConfig`. **Performance:** memoized CyberCard (custom comparator), KanbanBoard, MediaVault with `React.memo`, added `useCallback` for all handler props in App.jsx, lazy-loaded MediaDetailModal/EditMediaDialog/ChatLayout (~35KB deferred from initial bundle), set global React Query staleTime (5min)/gcTime (10min), included update/delete mutation pending states in loading. **Accessibility:** reusable `useFocusTrap` hook applied to all 3 modals, `ConfirmDialog` for destructive actions across CyberCard/MediaDetailModal/MediaVault, fixed contrast (`--muted-foreground` 60%→68%, placeholders 20%→40%), skip-to-content link, `role="status"` on all spinners, `aria-describedby`/`aria-invalid` on form errors, standardized `focus-visible` rings on all buttons. **Design:** body `line-height: 1.6`, neon-pulse 3s→6s.
 - **Files Changed:**

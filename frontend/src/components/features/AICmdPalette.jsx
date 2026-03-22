@@ -7,7 +7,7 @@ import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 export default function AICmdPalette({ open, onOpenChange, mediaType = 'book' }) {
   const [result, setResult] = useState(null)
   const config = MEDIA_CONFIG[mediaType]
-  const { suggest, suggestError, suggesting } = useSuggest(mediaType)
+  const { suggest, suggestError, suggesting, resetSuggest } = useSuggest(mediaType)
 
   const handleSuggest = async () => {
     const response = await suggest()
@@ -19,9 +19,9 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book' })
   return (
     <Command.Dialog
       open={open}
-      onOpenChange={(v) => { if (!v) setResult(null); onOpenChange(v) }}
+      onOpenChange={(v) => { if (!v) { setResult(null); resetSuggest() } onOpenChange(v) }}
       label="Global AI Command Menu"
-      className="neon-border fixed left-1/2 top-1/2 z-[100] w-full max-w-[680px] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl glass-panel p-0 shadow-[0_0_80px_hsl(var(--neon-cyan)/0.08)]"
+      className="neon-border fixed left-1/2 top-1/2 z-[100] w-full max-w-[680px] max-h-[min(90dvh,640px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl glass-panel p-0 shadow-[0_0_80px_hsl(var(--neon-cyan)/0.08)]"
       overlayClassName="fixed inset-0 z-[99] bg-black/60 backdrop-blur-md"
     >
       <span className="sr-only" role="heading" aria-level="2">AI Command Menu</span>

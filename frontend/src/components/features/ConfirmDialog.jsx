@@ -3,6 +3,7 @@ import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 export default function ConfirmDialog({
   open,
+  id = 'confirm',
   title = 'Confirm',
   message = 'Are you sure?',
   onConfirm,
@@ -14,11 +15,15 @@ export default function ConfirmDialog({
 
   useEffect(() => {
     if (!open) return
+    document.body.style.overflow = 'hidden'
     const handleEsc = (e) => {
       if (e.key === 'Escape') onCancel?.()
     }
     document.addEventListener('keydown', handleEsc)
-    return () => document.removeEventListener('keydown', handleEsc)
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleEsc)
+    }
   }, [open, onCancel])
 
   if (!open) return null
@@ -32,19 +37,19 @@ export default function ConfirmDialog({
         ref={trapRef}
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-message"
+        aria-labelledby={`${id}-dialog-title`}
+        aria-describedby={`${id}-dialog-message`}
         onClick={(e) => e.stopPropagation()}
         className="neon-border glass-panel w-full max-w-sm rounded-2xl p-6 shadow-2xl"
       >
         <h2
-          id="confirm-dialog-title"
+          id={`${id}-dialog-title`}
           className="heading-display mb-2 text-base font-bold text-white"
         >
           {title}
         </h2>
         <p
-          id="confirm-dialog-message"
+          id={`${id}-dialog-message`}
           className="mb-6 text-sm text-muted-foreground"
         >
           {message}

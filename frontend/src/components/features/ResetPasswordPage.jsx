@@ -1,20 +1,61 @@
-import { useState } from 'react'
-import { KeyRound, ShieldCheck } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { KeyRound, Loader2, ShieldCheck } from 'lucide-react'
 import { authFetch } from '../../lib/apiClient'
+import { realtimeClient } from '../../lib/realtimeClient'
 import Navbar from '../layout/Navbar'
+import PasswordInput from '../ui/PasswordInput'
 
 const inputClass =
-  'w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-4 py-2.5 text-sm text-white transition-all placeholder:text-muted-foreground/30 focus:border-primary/30 focus:outline-none focus:ring-1 focus:ring-primary/20'
+  'w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/40 focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary'
 
 const labelClass = 'mb-1.5 block heading-ui text-xs font-semibold uppercase tracking-wider text-muted-foreground'
 
-export default function ResetPasswordPage({ accessToken, refreshToken, onComplete }) {
+export default function ResetPasswordPage({ accessToken: initialAccessToken, refreshToken: initialRefreshToken, tokenHash, onComplete }) {
+  const [accessToken, setAccessToken] = useState(initialAccessToken || '')
+  const [refreshToken, setRefreshToken] = useState(initialRefreshToken || '')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [exchanging, setExchanging] = useState(Boolean(tokenHash && !initialAccessToken))
 
-  if (!accessToken) {
+  // Exchange token_hash for a session via Supabase verifyOtp
+  useEffect(() => {
+    if (!tokenHash || accessToken) return
+    let cancelled = false
+    realtimeClient.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+      .then(({ data, error: otpError }) => {
+        if (cancelled) return
+        if (otpError || !data?.session) {
+          setError('Recovery link is invalid or has expired.')
+          setExchanging(false)
+          return
+        }
+        setAccessToken(data.session.access_token)
+        setRefreshToken(data.session.refresh_token || '')
+        setExchanging(false)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError('Recovery link is invalid or has expired.')
+          setExchanging(false)
+        }
+      })
+    return () => { cancelled = true }
+  }, [tokenHash, accessToken])
+
+  if (exchanging) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background" role="status">
+        <div className="ambient-orbs" />
+        <div className="scanlines" />
+        <Loader2 className="relative z-10 h-10 w-10 animate-spin text-primary" aria-hidden="true" />
+        <span className="sr-only">Verifying recovery link</span>
+      </div>
+    )
+  }
+
+  if (!accessToken && !tokenHash) {
     return (
       <div className="relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground">
         <div className="ambient-orbs" />
@@ -100,13 +141,13 @@ export default function ResetPasswordPage({ accessToken, refreshToken, onComplet
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label htmlFor="new-password" className={labelClass}>New Passkey</label>
-                <input
+                <PasswordInput
                   id="new-password"
-                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={inputClass}
                   placeholder="Min 8 characters"
+                  autoComplete="new-password"
                   minLength={8}
                   required
                   autoFocus
@@ -114,13 +155,13 @@ export default function ResetPasswordPage({ accessToken, refreshToken, onComplet
               </div>
               <div>
                 <label htmlFor="confirm-password" className={labelClass}>Confirm Passkey</label>
-                <input
+                <PasswordInput
                   id="confirm-password"
-                  type="password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   className={inputClass}
                   placeholder="Repeat password"
+                  autoComplete="new-password"
                   minLength={8}
                   required
                 />

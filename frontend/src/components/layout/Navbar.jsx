@@ -1,7 +1,7 @@
 import { useAuth } from '../../hooks/useAuth'
 
 export default function Navbar() {
-  const { session, signOut } = useAuth()
+  const { session, loading, signOut } = useAuth()
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-white/[0.06] glass-panel">
@@ -12,12 +12,14 @@ export default function Navbar() {
             <div className="absolute inset-0 rounded bg-primary/80 blur-sm" />
             <div className="relative h-full w-full rounded bg-primary shadow-[0_0_12px_var(--color-primary)]" />
           </div>
-          <span className="heading-display text-base font-bold text-primary glitch-hover sm:text-lg">
-            Nexus
-          </span>
-          <span className="hidden text-xs text-muted-foreground sm:inline heading-ui">
-            // Archive
-          </span>
+          <div className="flex items-center gap-3 glitch-hover">
+            <span className="heading-display text-base font-bold text-primary sm:text-lg">
+              Nexus
+            </span>
+            <span className="hidden text-xs text-muted-foreground sm:inline heading-ui">
+              // Archive
+            </span>
+          </div>
         </div>
 
         {session ? (
@@ -36,12 +38,12 @@ export default function Navbar() {
               Disconnect
             </button>
           </div>
-        ) : (
+        ) : loading ? (
           <div className="flex items-center gap-2 heading-ui text-xs">
             <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary shadow-[0_0_6px_var(--color-primary)]" />
             <span className="text-muted-foreground">Awaiting Auth...</span>
           </div>
-        )}
+        ) : null}
       </div>
     </nav>
   )

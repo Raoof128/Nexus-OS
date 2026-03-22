@@ -29,9 +29,10 @@ export function useFocusTrap(isActive) {
       }
     }
 
-    document.addEventListener('keydown', handleKeyDown)
+    container.setAttribute('tabindex', '-1')
+    container.addEventListener('keydown', handleKeyDown)
     return () => {
-      document.removeEventListener('keydown', handleKeyDown)
+      container.removeEventListener('keydown', handleKeyDown)
       previouslyFocused?.focus()
     }
   }, [isActive])

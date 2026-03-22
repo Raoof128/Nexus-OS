@@ -22,7 +22,7 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
       {grouped.map(({ status, items: columnItems, total, hasMore }) => (
         <div
           key={status}
-          className="neon-border flex flex-col gap-3 rounded-xl glass-panel p-3 relative sm:gap-4 sm:p-4 sm:max-h-[calc(100vh-200px)]"
+          className="neon-border flex flex-col gap-3 rounded-xl glass-panel p-3 relative max-h-[60vh] sm:gap-4 sm:p-4 sm:max-h-[calc(100vh-200px)]"
         >
            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent shadow-[0_0_10px_var(--color-primary)]"></div>
 
@@ -43,7 +43,7 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
           <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar sm:space-y-4 sm:pr-2">
              {columnItems.map(item => (
                <CyberCard
-                 key={item.id || item.title}
+                 key={item.id}
                  item={item}
                  onUpdate={onUpdate}
                  onDelete={onDelete}

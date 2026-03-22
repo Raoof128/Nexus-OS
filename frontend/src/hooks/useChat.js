@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../lib/apiClient'
 
@@ -37,6 +38,7 @@ export function useChatSessions(userId) {
     loading: sessionsQuery.isPending,
     createSession: createSession.mutateAsync,
     deleteSession: deleteSession.mutateAsync,
+    isCreating: createSession.isPending,
   }
 }
 
@@ -71,11 +73,15 @@ export function useChatMessages(userId, sessionId) {
         ...current,
         { id: `ai-${Date.now()}`, role: 'model', content: aiResponse.content, created_at: new Date().toISOString() },
       ])
+      queryClient.invalidateQueries({ queryKey })
     },
     onError: (_err, _vars, context) => {
       queryClient.setQueryData(queryKey, context?.previous ?? [])
     },
   })
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reset on session switch only, not on mutation identity change
+  useEffect(() => { sendMessage.reset() }, [sessionId])
 
   return {
     messages: messagesQuery.data ?? [],

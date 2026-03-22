@@ -195,7 +195,8 @@
   }
 }
 
-.neon-pulse {
+.neon-pulse:hover,
+.neon-pulse:focus-visible {
   animation: neon-pulse 6s ease-in-out infinite;
 }
 

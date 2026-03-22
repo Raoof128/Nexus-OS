@@ -6,7 +6,7 @@ const inputClass =
 
 const labelClass = 'mb-1 block text-xs font-semibold uppercase text-muted-foreground'
 
-export default function MediaForm({ config, defaultValues = {}, onSubmit, submitting, error, submitLabel, idPrefix = 'media', placeholders = {} }) {
+export default function MediaForm({ config, defaultValues = {}, onSubmit, submitting, error, submitLabel, submittingLabel = 'Saving...', idPrefix = 'media', placeholders = {} }) {
   const [title, setTitle] = useState(defaultValues.title || '')
   const [creator, setCreator] = useState(defaultValues.creator || '')
   const [genre, setGenre] = useState(defaultValues.genre || '')
@@ -107,8 +107,14 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
               type="number"
               min="1"
               max="5"
+              step="1"
               value={rating}
-              onChange={(e) => setRating(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value
+                if (v === '' || (/^[1-5]$/.test(v))) {
+                  setRating(v)
+                }
+              }}
               className={inputClass}
               placeholder="Optional"
             />
@@ -148,7 +154,7 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
           {submitting ? (
             <span className="flex items-center justify-center gap-2">
               <Loader2 size={14} className="animate-spin" />
-              {submitLabel === 'Save Changes' ? 'Saving...' : 'Uploading...'}
+              {submittingLabel}
             </span>
           ) : submitLabel}
         </button>

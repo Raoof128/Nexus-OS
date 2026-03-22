@@ -1,16 +1,28 @@
-const RECOVERY_PARAM_KEYS = ['type', 'access_token', 'refresh_token']
+const RECOVERY_PARAM_KEYS = ['type', 'access_token', 'refresh_token', 'token_hash']
 
 let pendingRecoveryTokens = null
 
 function parseRecoveryTokens(params) {
-  if (params.get('type') !== 'recovery' || !params.get('access_token')) {
-    return null
+  if (params.get('type') !== 'recovery') return null
+
+  // Standard flow: access_token is directly in the URL
+  if (params.get('access_token')) {
+    return {
+      accessToken: params.get('access_token'),
+      refreshToken: params.get('refresh_token') || '',
+    }
   }
 
-  return {
-    accessToken: params.get('access_token'),
-    refreshToken: params.get('refresh_token') || '',
+  // Token hash flow (newer Supabase): token_hash must be exchanged via verifyOtp
+  if (params.get('token_hash')) {
+    return {
+      tokenHash: params.get('token_hash'),
+      accessToken: '',
+      refreshToken: '',
+    }
   }
+
+  return null
 }
 
 export function bootstrapRecoveryTokens() {

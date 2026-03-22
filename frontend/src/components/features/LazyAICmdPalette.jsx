@@ -6,12 +6,15 @@ const AICmdPalette = lazy(loadAICmdPalette)
 
 function LoadingDialog() {
   return (
-    <div className="neon-border fixed left-1/2 top-1/2 z-[100] flex w-full max-w-md -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl glass-panel p-10 shadow-[0_0_60px_hsl(var(--neon-cyan)/0.08)]">
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        <span className="heading-display text-[10px] tracking-[0.3em] text-primary/50">Loading Module</span>
+    <>
+      <div className="fixed inset-0 z-[99] bg-black/60 backdrop-blur-md" aria-hidden="true" />
+      <div className="neon-border fixed left-1/2 top-1/2 z-[100] flex w-full max-w-md -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl glass-panel p-10 shadow-[0_0_60px_hsl(var(--neon-cyan)/0.08)]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="heading-display text-[10px] tracking-[0.3em] text-primary/50">Loading Module</span>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -26,6 +29,7 @@ export default function LazyAICmdPalette({ mediaType = 'book' }) {
 
   useEffect(() => {
     const handleShortcut = (event) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return
       if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault()
         openPalette()
@@ -54,7 +58,7 @@ export default function LazyAICmdPalette({ mediaType = 'book' }) {
         <Zap size={14} className="text-primary" />
         <span className="hidden sm:inline">AI_CMD</span>
         <kbd className="rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-[9px] text-muted-foreground">
-          ⌘K
+          {typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘K' : 'Ctrl+K'}
         </kbd>
       </button>
 

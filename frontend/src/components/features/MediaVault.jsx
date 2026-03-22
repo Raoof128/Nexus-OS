@@ -7,6 +7,7 @@ import ConfirmDialog from './ConfirmDialog'
 function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete, onSelect, onEdit }) {
   const [search, setSearch] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
+
   const config = MEDIA_CONFIG[mediaType]
   const Icon = TYPE_ICONS[mediaType]
 
@@ -27,10 +28,10 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
     return result
   }, [items, filterStatus, search])
 
-  const handleStatusChange = async (event, item, newStatus) => {
+  const handleStatusChange = (event, item, newStatus) => {
     event.stopPropagation()
     if (!newStatus || !onUpdate) return
-    await onUpdate({ mediaId: item.id, data: { status: newStatus } })
+    onUpdate({ mediaId: item.id, data: { status: newStatus } })
   }
 
   const handleDelete = (event, item) => {
@@ -39,9 +40,9 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
     setDeleteTarget(item.id)
   }
 
-  const confirmDeleteAction = async () => {
+  const confirmDeleteAction = () => {
     if (!deleteTarget || !onDelete) return
-    await onDelete(deleteTarget)
+    onDelete(deleteTarget)
     setDeleteTarget(null)
   }
 
@@ -98,8 +99,8 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
         {/* Rows */}
         <div className="max-h-[calc(100vh-250px)] overflow-y-auto custom-scrollbar">
           {filtered.length === 0 && (
-            <div className="p-8 text-center font-mono text-sm text-muted-foreground opacity-50">
-              NO_RECORDS_FOUND
+            <div className="border border-dashed border-white/10 rounded-xl p-8 text-center opacity-50">
+              <p className="font-mono text-xs tracking-wide sm:text-sm">NO_RECORDS_FOUND</p>
             </div>
           )}
           {filtered.map((item) => (
@@ -117,11 +118,13 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
 
               {/* Creator */}
               <div className="mb-1 font-mono text-xs text-muted-foreground sm:mb-0">
+                <span className="mr-1 text-[10px] text-muted-foreground sm:hidden">Creator:</span>
                 {item.creator !== '—' ? item.creator : ''}
               </div>
 
               {/* Genre */}
               <div className="mb-1 sm:mb-0">
+                <span className="mr-1 text-[10px] text-muted-foreground sm:hidden">Genre:</span>
                 {item.genre && (
                   <span className="inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-gray-300 ring-1 ring-inset ring-white/10">
                     {item.genre}
@@ -131,6 +134,7 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
 
               {/* Status */}
               <div className="mb-1 flex items-center gap-1 sm:mb-0">
+                <span className="mr-1 text-[10px] text-muted-foreground sm:hidden">Status:</span>
                 {(() => {
                   const { prev, next } = getStatusNav(mediaType, item.status)
                   return (
@@ -163,11 +167,12 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
 
               {/* Rating */}
               <div className="mb-1 text-xs text-yellow-500 sm:mb-0">
-                {item.rating ? `★ ${item.rating}` : ''}
+                <span className="mr-1 text-[10px] text-muted-foreground sm:hidden">Rating:</span>
+                {item.rating != null && item.rating > 0 ? `★ ${item.rating}` : ''}
               </div>
 
               {/* Actions */}
-              <div className="flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+              <div className="flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onEdit?.(item) }}
@@ -194,6 +199,7 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
 
       <ConfirmDialog
         open={!!deleteTarget}
+        id={deleteTarget}
         title="Delete Entry"
         message="This action cannot be undone. Are you sure you want to delete this entry?"
         onConfirm={confirmDeleteAction}

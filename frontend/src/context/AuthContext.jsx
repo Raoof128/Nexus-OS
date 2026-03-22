@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { authFetch, refreshSession } from '../lib/apiClient'
+import { authFetch, refreshSession, setAuthExpiredCallback } from '../lib/apiClient'
 import { queryClient } from '../lib/queryClient'
 import { AuthContext } from './auth-context'
 
@@ -24,6 +24,11 @@ async function loadCurrentSession() {
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setAuthExpiredCallback(() => setSession(null))
+    return () => setAuthExpiredCallback(null)
+  }, [])
 
   useEffect(() => {
     let active = true

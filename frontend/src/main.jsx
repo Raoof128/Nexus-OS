@@ -9,7 +9,11 @@ import { bootstrapRecoveryTokens } from './lib/recoveryTokens.js'
 import { initializeSentry } from './observability/sentry.js'
 import './index.css'
 
-bootstrapRecoveryTokens()
+try {
+  bootstrapRecoveryTokens()
+} catch {
+  // silently ignore — token extraction failed
+}
 initializeSentry()
 
 createRoot(document.getElementById('root')).render(

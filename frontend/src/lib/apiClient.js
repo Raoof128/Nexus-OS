@@ -1,3 +1,6 @@
+let onAuthExpired = null
+export function setAuthExpiredCallback(cb) { onAuthExpired = cb }
+
 const API_URL = import.meta.env.VITE_API_URL
 
 if (!API_URL) {
@@ -34,7 +37,12 @@ async function request(path, { method = 'GET', body, headers = {} } = {}, retry 
     })
 
     if (response.status === 401 && retry && !path.startsWith('/auth/')) {
-      await refreshSession()
+      try {
+        await refreshSession()
+      } catch {
+        onAuthExpired?.()
+        throw new Error('Your session has expired. Please log in again.')
+      }
       return request(path, { method, body, headers }, false)
     }
 

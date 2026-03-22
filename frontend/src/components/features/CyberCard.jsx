@@ -10,16 +10,16 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
   const { prev, next } = getStatusNav(mediaType, item.status)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const handleAdvance = async (event) => {
+  const handleAdvance = (event) => {
     event.stopPropagation()
     if (!next || !onUpdate) return
-    await onUpdate({ mediaId: item.id, data: { status: next } })
+    onUpdate({ mediaId: item.id, data: { status: next } })
   }
 
-  const handleRevert = async (event) => {
+  const handleRevert = (event) => {
     event.stopPropagation()
     if (!prev || !onUpdate) return
-    await onUpdate({ mediaId: item.id, data: { status: prev } })
+    onUpdate({ mediaId: item.id, data: { status: prev } })
   }
 
   const handleEdit = (event) => {
@@ -34,16 +34,22 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
     setConfirmDelete(true)
   }
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = () => {
     if (!onDelete) return
-    await onDelete(item.id)
+    onDelete(item.id)
     setConfirmDelete(false)
+  }
+
+  const handleCardClick = (event) => {
+    // Only open detail modal if the click was directly on the card,
+    // not on any button or interactive element inside it
+    if (event.target.closest('button')) return
+    onSelect?.(item)
   }
 
   return (
     <Motion.div
-      layoutId={`card-${item.id}`}
-      onClick={() => onSelect?.(item)}
+      onClick={handleCardClick}
       layout="position"
       transition={{ type: 'spring', damping: 28, stiffness: 280 }}
       className="neon-border group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-4 hover:-translate-y-1 sm:p-6"
@@ -62,9 +68,11 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
         <h3 className="heading-ui mb-1 text-base font-bold tracking-tight text-white transition-colors group-hover:text-primary line-clamp-2 sm:text-lg">
           {item.title}
         </h3>
-        <p className="font-mono text-xs text-muted-foreground mb-3 sm:text-sm">
-          // {item.creator}
-        </p>
+        {item.creator && item.creator !== '—' && (
+          <p className="font-mono text-xs text-muted-foreground mb-3 sm:text-sm">
+            // {item.creator}
+          </p>
+        )}
 
         <div className="mt-auto pt-3 border-t border-white/5 flex flex-wrap items-center gap-1.5 sm:gap-2">
           {item.genre && (
@@ -72,13 +80,13 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
               {item.genre}
             </span>
           )}
-          {item.rating && (
+          {item.rating != null && item.rating > 0 && (
             <span className="inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-yellow-500 ring-1 ring-inset ring-white/10 sm:px-2 sm:py-1 sm:text-xs">
               ★ {item.rating}/5
             </span>
           )}
 
-          <div className="ml-auto flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+          <div className="ml-auto flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
             {prev && (
               <button
                 type="button"
@@ -125,6 +133,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
 
       <ConfirmDialog
         open={confirmDelete}
+        id={item.id}
         title="Delete Entry"
         message="This action cannot be undone. Are you sure you want to delete this entry?"
         onConfirm={handleDeleteConfirm}

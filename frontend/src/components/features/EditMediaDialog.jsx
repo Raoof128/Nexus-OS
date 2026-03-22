@@ -19,11 +19,15 @@ export default function EditMediaDialog({ item, onUpdate, onClose }) {
 
   useEffect(() => {
     if (!item) return
+    document.body.style.overflow = 'hidden'
     const handleEsc = (e) => {
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handleEsc)
-    return () => document.removeEventListener('keydown', handleEsc)
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleEsc)
+    }
   }, [item, onClose])
 
   if (!item) return null
@@ -57,7 +61,7 @@ export default function EditMediaDialog({ item, onUpdate, onClose }) {
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 text-muted-foreground transition-colors hover:text-white"
+          className="absolute right-4 top-4 text-muted-foreground transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-md"
           aria-label="Close dialog"
         >
           <X size={18} />
@@ -72,7 +76,7 @@ export default function EditMediaDialog({ item, onUpdate, onClose }) {
           config={config}
           defaultValues={{
             title: item.title || '',
-            creator: item.creator || '',
+            creator: item.creator === '—' ? '' : (item.creator || ''),
             genre: item.genre || '',
             status: item.status || config.defaultStatus,
             rating: item.rating || '',

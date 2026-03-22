@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { FolderOpen, MessageCircle, Plus, Trash2 } from 'lucide-react'
+import { FolderOpen, Loader2, MessageCircle, Plus, Trash2 } from 'lucide-react'
 import { MEDIA_CONFIG, MEDIA_TYPES, TYPE_ICONS } from '../../lib/mediaConfig'
 
 const MEDIA_CATEGORY_COLORS = {
@@ -18,7 +18,7 @@ const CATEGORY_CONFIG = Object.fromEntries([
 
 const CATEGORIES = [...MEDIA_TYPES.map((type) => MEDIA_CONFIG[type].label.toLowerCase()), 'general']
 
-export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCreate, onDelete }) {
+export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCreate, onDelete, isCreating }) {
   const [newTitle, setNewTitle] = useState('')
   const [newCategory, setNewCategory] = useState('general')
   const [showCreate, setShowCreate] = useState(false)
@@ -82,14 +82,16 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
             className="w-full appearance-none rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 heading-ui text-xs text-white focus:border-primary/30 focus:outline-none"
           >
             {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>{CATEGORY_CONFIG[cat].label}</option>
+              <option key={cat} value={cat} className="bg-neutral-900 text-white">{CATEGORY_CONFIG[cat].label}</option>
             ))}
           </select>
           <button
             type="submit"
-            className="heading-ui w-full rounded-lg bg-primary/15 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            disabled={isCreating}
+            className="heading-ui w-full rounded-lg bg-primary/15 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black flex items-center justify-center gap-2"
           >
-            Initialize Session
+            {isCreating && <Loader2 size={12} className="animate-spin" />}
+            {isCreating ? 'Initializing...' : 'Initialize Session'}
           </button>
         </form>
       )}
@@ -129,8 +131,8 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
                     </button>
                     <button
                       type="button"
-                      onClick={() => onDelete(session.id)}
-                      className="mr-1 shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                      onClick={() => { if (window.confirm('Delete this session?')) onDelete(session.id) }}
+                      className="mr-1 shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                       aria-label={`Delete ${session.title}`}
                     >
                       <Trash2 size={10} />
@@ -146,6 +148,7 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
           <div className="flex flex-col items-center gap-3 py-10">
             <MessageCircle size={24} className="text-muted-foreground/40" />
             <p className="heading-ui text-[10px] text-muted-foreground/50">No sessions</p>
+            <button type="button" onClick={() => setShowCreate(true)} className="mt-3 text-xs text-primary hover:text-primary/80">Create your first session</button>
           </div>
         )}
       </div>

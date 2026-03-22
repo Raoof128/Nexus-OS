@@ -8,7 +8,7 @@ import ChatWindow from './ChatWindow'
 export default function ChatLayout() {
   const { session } = useAuth()
   const userId = session?.user?.id ?? null
-  const { sessions, createSession, deleteSession } = useChatSessions(userId)
+  const { sessions, createSession, deleteSession, isCreating } = useChatSessions(userId)
   const [activeSessionId, setActiveSessionId] = useState(null)
 
   const handleDelete = async (sessionId) => {
@@ -26,18 +26,19 @@ export default function ChatLayout() {
   return (
     <div className="flex h-[calc(100dvh-112px)] overflow-hidden">
       {/* Desktop sidebar */}
-      <div className="hidden w-[280px] shrink-0 sm:block">
+      <div className="hidden w-[280px] shrink-0 md:block">
         <ChatSidebar
           sessions={sessions}
           activeSessionId={activeSessionId}
           onSelect={setActiveSessionId}
           onCreate={handleCreate}
           onDelete={handleDelete}
+          isCreating={isCreating}
         />
       </div>
 
       {/* Mobile: toggle sidebar/chat */}
-      <div className="flex flex-1 flex-col sm:hidden">
+      <div className="flex flex-1 flex-col md:hidden">
         {!activeSessionId ? (
           <ChatSidebar
             sessions={sessions}
@@ -45,6 +46,7 @@ export default function ChatLayout() {
             onSelect={setActiveSessionId}
             onCreate={handleCreate}
             onDelete={handleDelete}
+            isCreating={isCreating}
           />
         ) : (
           <div className="flex h-full flex-col">
@@ -64,7 +66,7 @@ export default function ChatLayout() {
       </div>
 
       {/* Desktop chat window */}
-      <div className="hidden flex-1 sm:block">
+      <div className="hidden flex-1 md:block">
         <ChatWindow sessionId={activeSessionId} userId={userId} />
       </div>
     </div>

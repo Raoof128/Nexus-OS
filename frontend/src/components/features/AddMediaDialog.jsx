@@ -14,11 +14,15 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
 
   useEffect(() => {
     if (!open) return
+    document.body.style.overflow = 'hidden'
     const handleEsc = (e) => {
       if (e.key === 'Escape') setOpen(false)
     }
     document.addEventListener('keydown', handleEsc)
-    return () => document.removeEventListener('keydown', handleEsc)
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleEsc)
+    }
   }, [open])
 
   const handleOpen = () => {
@@ -55,7 +59,7 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
       <button
         type="button"
         onClick={handleOpen}
-        className="neon-pulse fixed bottom-6 left-4 z-50 flex items-center gap-2 rounded-xl glass-panel px-3 py-2.5 heading-ui text-[11px] font-semibold text-primary transition-all hover:bg-primary/15 sm:left-6 sm:px-4 sm:text-xs"
+        className="neon-pulse fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] left-4 z-50 flex items-center gap-2 rounded-xl glass-panel px-3 py-2.5 heading-ui text-[11px] font-semibold text-primary transition-all hover:bg-primary/15 sm:left-6 sm:px-4 sm:text-xs"
       >
         <Plus size={14} />
         Add {config.singular}
@@ -79,7 +83,7 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
         <button
           type="button"
           onClick={handleClose}
-          className="absolute right-4 top-4 text-muted-foreground transition-colors hover:text-white"
+          className="absolute right-4 top-4 text-muted-foreground transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-md"
           aria-label="Close dialog"
         >
           <X size={18} />

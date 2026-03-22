@@ -14,21 +14,27 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
+    if (!item) return
+    document.body.style.overflow = 'hidden'
     const handleEsc = (e) => {
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handleEsc)
-    return () => document.removeEventListener('keydown', handleEsc)
-  }, [onClose])
+    return () => {
+      document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleEsc)
+    }
+  }, [item, onClose])
 
-  const handleStatusChange = async (newStatus) => {
+  const handleStatusChange = (newStatus) => {
     if (!newStatus || !onUpdate || !item || newStatus === item.status) return
-    await onUpdate({ mediaId: item.id, data: { status: newStatus } })
+    onUpdate({ mediaId: item.id, data: { status: newStatus } })
+    onClose()
   }
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!onDelete || !item) return
-    await onDelete(item.id)
+    onDelete(item.id)
     setConfirmDelete(false)
     onClose()
   }
@@ -52,12 +58,14 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
           <div className="fixed inset-0 z-[81] flex items-center justify-center p-4 sm:p-6">
             <Motion.div
               ref={trapRef}
-              layoutId={`card-${item.id}`}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
               role="dialog"
               aria-modal="true"
               aria-labelledby="detail-modal-title"
               className="neon-border relative w-full max-w-lg max-h-[90dvh] overflow-y-auto custom-scrollbar rounded-2xl glass-panel shadow-[0_0_60px_rgba(56,189,248,0.08)]"
-              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
             >
               {/* Neon top border */}
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent shadow-[0_0_15px_var(--color-primary)]" />
@@ -124,7 +132,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                               }`}
                             />
                             <span
-                              className={`absolute top-5 whitespace-nowrap font-mono text-[9px] uppercase tracking-widest transition-colors ${
+                              className={`absolute top-5 text-center max-w-[60px] font-mono text-[9px] uppercase tracking-widest transition-colors ${
                                 isCurrent
                                   ? 'text-primary'
                                   : isPast
@@ -159,7 +167,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                       <p className="text-sm font-medium text-white">{item.genre}</p>
                     </div>
                   )}
-                  {item.rating && (
+                  {item.rating != null && item.rating > 0 && (
                     <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
                       <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rating</p>
                       <div className="flex items-center gap-1">
@@ -178,7 +186,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                       <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                         {config?.subInfoLabel || 'Info'}
                       </p>
-                      <p className="text-sm font-medium text-white">{item.sub_info}</p>
+                      <p className="truncate text-sm font-medium text-white">{item.sub_info}</p>
                     </div>
                   )}
                 </div>
@@ -189,7 +197,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                     <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                       Takeaway // Notes
                     </p>
-                    <div className="max-h-32 overflow-y-auto custom-scrollbar pr-2 text-sm leading-relaxed text-neutral-300">
+                    <div className="text-sm leading-relaxed text-neutral-300">
                       {item.takeaway}
                     </div>
                   </div>
@@ -199,7 +207,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                 <div className="flex items-center gap-2 border-t border-white/5 pt-4">
                   <button
                     type="button"
-                    onClick={() => { onEdit?.(item); onClose() }}
+                    onClick={() => { onClose(); requestAnimationFrame(() => onEdit?.(item)) }}
                     className="flex items-center justify-center gap-2 rounded-lg bg-primary/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   >
                     <Pencil size={14} />

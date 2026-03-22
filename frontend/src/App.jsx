@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useState } from 'react'
-import { AnimatePresence, LayoutGroup, motion as Motion } from 'framer-motion'
+import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Loader2, MessageCircle } from 'lucide-react'
 import AddMediaDialog from './components/features/AddMediaDialog'
 import AuthPanel from './components/features/AuthPanel'
@@ -53,6 +53,7 @@ function App() {
       <ResetPasswordPage
         accessToken={recoveryTokens.accessToken}
         refreshToken={recoveryTokens.refreshToken}
+        tokenHash={recoveryTokens.tokenHash}
         onComplete={dismissTokens}
       />
     )
@@ -72,14 +73,17 @@ function App() {
   if (!session) {
     return (
       <div className="relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground">
+        <a href="#auth-panel" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-primary-foreground">
+          Skip to login
+        </a>
         <div className="ambient-orbs" />
         <div className="scanlines" />
         <div className="absolute inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-cyan)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-cyan)/0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
         <Navbar />
         <main className="relative z-10 flex flex-1 items-center justify-center p-4 sm:p-6">
-          <div className="grid w-full max-w-6xl gap-6 sm:gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-            <section className="neon-border glass-panel rounded-2xl p-6 shadow-2xl sm:rounded-[2rem] sm:p-10">
+          <div className="grid w-full max-w-6xl gap-6 sm:gap-8 md:grid-cols-[1.2fr_0.8fr]">
+            <section className="neon-border glass-panel rounded-2xl p-6 shadow-2xl order-2 hidden md:block sm:rounded-[2rem] sm:p-10">
               <p className="heading-ui mb-3 text-xs font-semibold uppercase tracking-[0.4em] text-primary">
                 personal media vault
               </p>
@@ -103,9 +107,18 @@ function App() {
               </div>
             </section>
 
-            <AuthPanel />
+            <div id="auth-panel" className="relative z-10 order-1 md:order-2">
+              <p className="heading-display mb-6 text-center text-lg font-bold text-white md:hidden">
+                Nexus Archive
+              </p>
+              <AuthPanel />
+            </div>
           </div>
         </main>
+
+        <footer className="relative z-10 py-4 text-center font-mono text-[10px] tracking-wider text-muted-foreground/50">
+          Nexus Archive — {new Date().getFullYear()}
+        </footer>
       </div>
     )
   }
@@ -195,6 +208,7 @@ function App() {
                 transition={{ duration: 0.25 }}
               >
                 <MediaVault
+                  key={`${activeType}-${vaultState.status}`}
                   items={items}
                   mediaType={activeType}
                   filterStatus={vaultState.status}
@@ -214,17 +228,15 @@ function App() {
                 transition={{ duration: 0.25 }}
                 className="mx-auto max-w-7xl p-4 sm:p-6"
               >
-                <LayoutGroup>
-                  <KanbanBoard
-                    items={items}
-                    mediaType={activeType}
-                    onUpdate={updateMedia}
-                    onDelete={deleteMedia}
-                    onSelect={handleSelect}
-                    onEdit={handleEdit}
-                    onHeaderClick={openVault}
-                  />
-                </LayoutGroup>
+                <KanbanBoard
+                  items={items}
+                  mediaType={activeType}
+                  onUpdate={updateMedia}
+                  onDelete={deleteMedia}
+                  onSelect={handleSelect}
+                  onEdit={handleEdit}
+                  onHeaderClick={openVault}
+                />
               </Motion.div>
             )}
           </AnimatePresence>

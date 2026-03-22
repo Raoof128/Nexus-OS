@@ -8,49 +8,17 @@ function getMediaQueryKey(userId, type) {
 }
 
 /**
- * Pure function that applies a Realtime event to the current cache.
+ * Handles a Realtime DELETE by removing the item from cache directly.
+ * For INSERT and UPDATE events, we use invalidateQueries instead of
+ * touching the cache — the raw Postgres row from Realtime may contain
+ * encrypted fields or stale timestamps that would corrupt the hydrated
+ * cache managed by React Query + the API layer.
  * Exported for unit testing.
  */
-export function handleRealtimeEvent(oldData, payload) {
-  const { eventType } = payload
-  const newItem = payload.new
+export function handleRealtimeDelete(oldData, payload) {
   const oldItem = payload.old
-
-  switch (eventType) {
-    case 'INSERT': {
-      // Skip if optimistic update already added this item
-      if (oldData.some((item) => item.id === newItem.id)) {
-        return oldData
-      }
-      return [newItem, ...oldData]
-    }
-    case 'UPDATE': {
-      const existing = oldData.find((item) => item.id === newItem.id)
-      if (!existing) return oldData
-      // Dedup: the optimistic update already applied changes to the cache.
-      // If the Realtime echo carries the same user-visible fields, returning
-      // oldData silently drops the event so Framer Motion does not re-trigger
-      // layout animations. We compare all editable fields — not just status —
-      // so edits to title/creator/etc. are also deduped correctly.
-      if (
-        existing.status === newItem.status &&
-        existing.title === newItem.title &&
-        existing.creator === newItem.creator &&
-        existing.genre === newItem.genre &&
-        existing.rating === newItem.rating &&
-        existing.takeaway === newItem.takeaway &&
-        existing.sub_info === newItem.sub_info
-      ) {
-        return oldData
-      }
-      return oldData.map((item) => (item.id === newItem.id ? newItem : item))
-    }
-    case 'DELETE': {
-      return oldData.filter((item) => item.id !== oldItem.id)
-    }
-    default:
-      return oldData
-  }
+  if (!oldItem?.id) return oldData
+  return oldData.filter((item) => item.id !== oldItem.id)
 }
 
 export function useMedia(session, type = 'book') {
@@ -68,15 +36,12 @@ export function useMedia(session, type = 'book') {
     queryFn: () => apiFetch(`/media?type=${type}`),
   })
 
-  // Keep Realtime auth in sync with the current access token
-  useEffect(() => {
-    if (!accessToken) return
-    realtimeClient.realtime.setAuth(accessToken)
-  }, [accessToken])
-
   // --- Supabase Realtime subscription ---
   useEffect(() => {
     if (!isAuthenticated || !accessToken) return
+
+    // Keep Realtime auth in sync with the current access token
+    realtimeClient.realtime.setAuth(accessToken)
 
     const channel = realtimeClient
       .channel(`media-sync-${userId}-${type}`)
@@ -92,10 +57,18 @@ export function useMedia(session, type = 'book') {
           const targetType = payload.new?.type || payload.old?.type
           if (targetType !== type) return
 
-          queryClient.setQueryData(
-            mediaQueryKey,
-            (current) => handleRealtimeEvent(current ?? [], payload),
-          )
+          // Only handle DELETEs from Realtime — safe since no field data needed.
+          // INSERT/UPDATE events are intentionally ignored: the raw Postgres row
+          // contains encrypted fields and server-only timestamps that corrupt the
+          // hydrated cache. User mutations are fully handled by the optimistic
+          // update + onSuccess pattern. External changes are picked up when the
+          // query becomes stale (staleTime: 60s).
+          if (payload.eventType === 'DELETE') {
+            queryClient.setQueryData(
+              mediaQueryKey,
+              (current) => handleRealtimeDelete(current ?? [], payload),
+            )
+          }
         },
       )
       .subscribe()
@@ -103,7 +76,7 @@ export function useMedia(session, type = 'book') {
     return () => {
       realtimeClient.removeChannel(channel)
     }
-  }, [isAuthenticated, userId, type, mediaQueryKey, queryClient])
+  }, [isAuthenticated, accessToken, userId, type, mediaQueryKey, queryClient])
 
   const addMediaMutation = useMutation({
     mutationFn: (data) =>
@@ -151,9 +124,6 @@ export function useMedia(session, type = 'book') {
       queryClient.setQueryData(mediaQueryKey, context?.previous ?? [])
     },
     onSuccess: (serverData, { mediaId }) => {
-      // Replace the optimistic item with the full server record directly.
-      // This avoids invalidateQueries which triggers a GET refetch that can
-      // race with Realtime events and momentarily revert the optimistic update.
       queryClient.setQueryData(mediaQueryKey, (current) =>
         (current ?? []).map((item) =>
           item.id === mediaId ? serverData : item,
@@ -185,7 +155,11 @@ export function useMedia(session, type = 'book') {
   return {
     items: mediaQuery.data ?? [],
     loading: mediaQuery.isPending || mediaQuery.isFetching || addMediaMutation.isPending || updateMediaMutation.isPending || deleteMediaMutation.isPending,
-    error: mediaQuery.error?.message ?? addMediaMutation.error?.message ?? null,
+    error: mediaQuery.error?.message
+      ?? addMediaMutation.error?.message
+      ?? updateMediaMutation.error?.message
+      ?? deleteMediaMutation.error?.message
+      ?? null,
     refetch: mediaQuery.refetch,
     addMedia: addMediaMutation.mutateAsync,
     updateMedia: updateMediaMutation.mutateAsync,

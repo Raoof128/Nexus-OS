@@ -33,8 +33,11 @@ export default function ChatWindow({ sessionId, userId }) {
   }
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && sending) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
+      if (!sending && input.trim()) {
+        handleSubmit(e)
+      }
     }
   }
 
@@ -62,6 +65,9 @@ export default function ChatWindow({ sessionId, userId }) {
       <div
         ref={scrollRef}
         onScroll={checkScroll}
+        role="log"
+        aria-live="polite"
+        aria-label="Chat messages"
         className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-5"
       >
         {loading && (
@@ -109,8 +115,11 @@ export default function ChatWindow({ sessionId, userId }) {
               }`}>
                 {msg.role === 'user' ? 'Operator' : 'Nexus AI'}
               </div>
-              <div className="whitespace-pre-wrap">{msg.content}</div>
+              <div className="whitespace-pre-wrap break-words">{msg.content}</div>
             </div>
+            <span className={`text-[9px] font-mono text-muted-foreground/50 mt-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
           </div>
         ))}
 

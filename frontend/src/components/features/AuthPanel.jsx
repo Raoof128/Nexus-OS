@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { ArrowLeft, KeyRound, LogIn, UserPlus } from 'lucide-react'
 import { authFetch } from '../../lib/apiClient'
 import { useAuth } from '../../hooks/useAuth'
+import PasswordInput from '../ui/PasswordInput'
 
 const PANELS = { login: 0, register: 1, forgot: 2 }
 
@@ -10,7 +11,7 @@ const inputClass =
 
 const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground'
 
-const linkClass = 'text-xs text-primary transition-colors hover:text-primary/80 cursor-pointer'
+const linkClass = 'text-xs text-primary transition-colors hover:text-primary/80 cursor-pointer py-2'
 
 function GlitchLine() {
   return (
@@ -26,7 +27,7 @@ function Alert({ children, id }) {
     <div
       id={id}
       role="alert"
-      className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm font-bold uppercase tracking-wider text-destructive"
+      className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm font-bold normal-case tracking-wider text-destructive"
     >
       {children}
     </div>
@@ -60,29 +61,41 @@ export default function AuthPanel() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [forgotSent, setForgotSent] = useState(false)
 
+  const submittingRef = useRef(false)
   const panelRef = useRef(null)
 
   const slideTo = (panel) => {
     setError(null)
     setSuccess(null)
+    setForgotSent(false)
     setActive(panel)
   }
 
   const handleLogin = async (event) => {
     event.preventDefault()
+    if (submittingRef.current) return
+    submittingRef.current = true
     setError(null)
     setSubmitting(true)
-    const { error: signInError } = await signIn(loginEmail, loginPassword)
-    if (signInError) setError(signInError.message)
-    setSubmitting(false)
+    try {
+      const { error: signInError } = await signIn(loginEmail, loginPassword)
+      if (signInError) setError(signInError.message)
+    } finally {
+      setSubmitting(false)
+      submittingRef.current = false
+    }
   }
 
   const handleRegister = async (event) => {
     event.preventDefault()
+    if (submittingRef.current) return
+    submittingRef.current = true
     setError(null)
     if (regPassword !== regConfirm) {
       setError('Passwords do not match')
+      submittingRef.current = false
       return
     }
     setSubmitting(true)
@@ -93,18 +106,25 @@ export default function AuthPanel() {
       })
       if (result.user) {
         const { error: loginError } = await signIn(regEmail, regPassword)
-        if (loginError) setError(loginError.message)
+        if (loginError) {
+          setSuccess('Account created. Please log in.')
+          slideTo('login')
+        }
       } else {
         setSuccess(result.message || 'Check your email to confirm registration')
       }
     } catch (registerError) {
       setError(registerError.message)
+    } finally {
+      setSubmitting(false)
+      submittingRef.current = false
     }
-    setSubmitting(false)
   }
 
   const handleForgot = async (event) => {
     event.preventDefault()
+    if (submittingRef.current) return
+    submittingRef.current = true
     setError(null)
     setSubmitting(true)
     try {
@@ -113,10 +133,13 @@ export default function AuthPanel() {
         body: { email: forgotEmail },
       })
       setSuccess('If that email exists, a reset link has been sent. Check your inbox.')
+      setForgotSent(true)
     } catch (forgotError) {
       setError(forgotError.message)
+    } finally {
+      setSubmitting(false)
+      submittingRef.current = false
     }
-    setSubmitting(false)
   }
 
   const offset = PANELS[active]
@@ -128,7 +151,7 @@ export default function AuthPanel() {
 
       <div
         ref={panelRef}
-        className="flex transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+        className="flex transition-[transform,height] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] min-h-[420px]"
         style={{ transform: `translateX(-${offset * 100}%)` }}
       >
         {/* ═══ LOGIN PANEL ═══ */}
@@ -156,20 +179,22 @@ export default function AuthPanel() {
                 onChange={(e) => setLoginEmail(e.target.value)}
                 className={inputClass}
                 placeholder="runner@nexus.net"
+                autoComplete="email"
                 required
                 {...(active === 'login' && error ? { 'aria-describedby': 'form-error', 'aria-invalid': true } : {})}
               />
             </div>
             <div>
               <label htmlFor="login-password" className={labelClass}>Passkey // Secret</label>
-              <input
+              <PasswordInput
                 id="login-password"
-                type="password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
                 className={inputClass}
                 placeholder="••••••••"
+                autoComplete="current-password"
                 required
+                {...(active === 'login' && error ? { 'aria-describedby': 'form-error', 'aria-invalid': true } : {})}
               />
             </div>
             <button
@@ -224,34 +249,37 @@ export default function AuthPanel() {
                 onChange={(e) => setRegEmail(e.target.value)}
                 className={inputClass}
                 placeholder="runner@nexus.net"
+                autoComplete="email"
                 required
                 {...(active === 'register' && error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
               />
             </div>
             <div>
               <label htmlFor="reg-password" className={labelClass}>Passkey // Secret</label>
-              <input
+              <PasswordInput
                 id="reg-password"
-                type="password"
                 value={regPassword}
                 onChange={(e) => setRegPassword(e.target.value)}
                 className={inputClass}
                 placeholder="Min 8 characters"
+                autoComplete="new-password"
                 minLength={8}
                 required
+                {...(active === 'register' && error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
               />
             </div>
             <div>
               <label htmlFor="reg-confirm" className={labelClass}>Confirm // Passkey</label>
-              <input
+              <PasswordInput
                 id="reg-confirm"
-                type="password"
                 value={regConfirm}
                 onChange={(e) => setRegConfirm(e.target.value)}
                 className={inputClass}
                 placeholder="••••••••"
+                autoComplete="new-password"
                 minLength={8}
                 required
+                {...(active === 'register' && error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
               />
             </div>
             <button
@@ -297,16 +325,17 @@ export default function AuthPanel() {
                 onChange={(e) => setForgotEmail(e.target.value)}
                 className={inputClass}
                 placeholder="runner@nexus.net"
+                autoComplete="email"
                 required
                 {...(active === 'forgot' && error ? { 'aria-describedby': 'forgot-form-error', 'aria-invalid': true } : {})}
               />
             </div>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || forgotSent}
               className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
             >
-              {submitting ? 'Transmitting...' : 'Send Recovery Link'}
+              {submitting ? 'Transmitting...' : forgotSent ? 'Link Sent' : 'Send Recovery Link'}
             </button>
           </form>
         </div>
