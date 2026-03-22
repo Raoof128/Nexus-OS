@@ -193,6 +193,7 @@ class SuggestionItem(BaseModel):
     creator: str = ""
     genre: str = ""
     pitch: str = ""
+    year: str = ""
 
 
 class SuggestionResponse(BaseModel):

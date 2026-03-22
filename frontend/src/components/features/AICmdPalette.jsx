@@ -40,7 +40,8 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
       open={open}
       onOpenChange={(v) => { if (!v) { setResult(null); resetSuggest(); setAddedIndices(new Set()) } onOpenChange(v) }}
       label="Global AI Command Menu"
-      className="neon-border fixed left-1/2 top-[38%] z-[100] w-full max-w-[680px] max-h-[min(90dvh,640px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl glass-panel p-0 shadow-[0_0_80px_hsl(var(--neon-cyan)/0.08)]"
+      contentClassName="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="neon-border flex w-full max-w-[680px] max-h-[80vh] flex-col overflow-hidden rounded-2xl glass-panel p-0 shadow-[0_0_80px_hsl(var(--neon-cyan)/0.08)]"
       overlayClassName="fixed inset-0 z-[99] bg-black/60 backdrop-blur-md"
     >
       <span className="sr-only" role="heading" aria-level="2">AI Command Menu</span>
@@ -61,7 +62,7 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
         </kbd>
       </div>
 
-      <Command.List className="max-h-[450px] overflow-y-auto custom-scrollbar p-3">
+      <Command.List className="flex-1 overflow-y-auto custom-scrollbar p-3">
         <Command.Empty className="py-10 text-center">
           <Cpu size={24} className="mx-auto mb-3 text-muted-foreground/30" />
           <p className="heading-ui text-xs text-muted-foreground/50">NO_COMMANDS_FOUND</p>

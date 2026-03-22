@@ -216,6 +216,7 @@ class MediaController(Controller):
                     creator=s.creator,
                     genre=s.genre,
                     pitch=s.pitch,
+                    year=s.year,
                 )
                 for s in suggestion.suggestions
             ],
