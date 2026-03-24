@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- 1. Create the media type enum
-CREATE TYPE media_type AS ENUM ('book', 'movie', 'anime');
+CREATE TYPE media_type AS ENUM ('book', 'movie', 'anime', 'job');
 
 -- 2. Create the unified media table
 CREATE TABLE media (
@@ -20,7 +20,7 @@ CREATE TABLE media (
 
 ALTER TABLE media
   ADD CONSTRAINT media_status_check
-  CHECK (status IN ('To Read', 'Reading', 'Finished', 'To Watch', 'Watching'));
+  CHECK (status IN ('To Read', 'Reading', 'Finished', 'To Watch', 'Watching', 'Not Answered', 'Answered', 'Rejected', 'Got the Job'));
 
 CREATE INDEX idx_media_user_type_created ON media (user_id, type, created_at DESC);
 

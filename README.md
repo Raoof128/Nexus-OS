@@ -1,6 +1,6 @@
 # Nexus Archive
 
-Nexus Archive is a cyberpunk-styled personal media vault. It combines a React frontend, a Litestar API, and Supabase-backed identity and persistence so a user can manage books, movies, anime, ratings, takeaways, chat sessions, and AI-assisted recommendations from a single interface.
+Nexus Archive is a cyberpunk-styled personal media vault and job tracker. It combines a React frontend, a Litestar API, and Supabase-backed identity and persistence so a user can manage books, movies, anime, job applications, ratings, takeaways, chat sessions, and AI-assisted recommendations from a single interface.
 
 ## Security Upgrade Highlights
 
@@ -73,7 +73,7 @@ docker compose up --build backend
 - `GET /healthz` is available for uptime checks.
 - `GET /schema/swagger` exposes live API docs without requiring auth.
 - `AI_RATE_LIMIT_REQUESTS` and `AI_RATE_LIMIT_WINDOW_SECONDS` enforce a shared per-user Gemini quota across recommendations and chat.
-- `GET /media/suggest?type=book|movie|anime` is rate-limited and degrades to a local recommendation when Gemini is unavailable.
+- `GET /media/suggest?type=book|movie|anime|job` is rate-limited and degrades to a local recommendation when Gemini is unavailable.
 - chat transcripts are user-scoped, sanitized before Gemini calls, and protected at rest when `TAKEAWAY_ENCRYPTION_KEY` is configured.
 - `takeaway` notes are stored encrypted when `TAKEAWAY_ENCRYPTION_KEY` is configured.
 

@@ -1,6 +1,6 @@
 # CLAUDE.md — Nexus Archive
 
-Personal media vault (books, movies, anime) with AI recommendations. Cyberpunk aesthetic.
+Personal media vault (books, movies, anime, job applications) with AI recommendations. Cyberpunk aesthetic.
 
 ## Stack
 

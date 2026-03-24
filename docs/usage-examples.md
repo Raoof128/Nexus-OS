@@ -41,6 +41,13 @@ curl "http://127.0.0.1:8000/media/suggest?type=book" \
   -b cookies.txt
 ```
 
+## Job Suggestion Example
+
+```bash
+curl "http://127.0.0.1:8000/media/suggest?type=job" \
+  -b cookies.txt
+```
+
 ## Load Test Example
 
 ```bash

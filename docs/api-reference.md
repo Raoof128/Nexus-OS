@@ -67,7 +67,7 @@ Returns paginated media entries for the authenticated user.
 
 Query parameters:
 
-- `type`: optional `book`, `movie`, or `anime`
+- `type`: optional `book`, `movie`, `anime`, or `job`
 - `page`: optional page number, default `1`
 - `limit`: optional page size, default `200`, max `500`
 
@@ -80,7 +80,7 @@ Validation rules:
 - `title`: 1-200 chars, rejects angle brackets, XSS, and injection probes
 - `creator`: 1-100 chars, rejects angle brackets, XSS, and injection probes
 - `genre`: optional, max 80 chars, rejects angle brackets, XSS, and injection probes
-- `status`: `To Read`, `Reading`, `Finished`, `To Watch`, or `Watching`
+- `status`: `To Read`, `Reading`, `Finished`, `To Watch`, `Watching`, `Not Answered`, `Answered`, `Rejected`, or `Got the Job`
 - `rating`: optional, integer from 1 to 5
 - `takeaway`: optional, max 2000 chars, rejects embedded script markup
 - `sub_info`: optional, max 100 chars, rejects angle brackets and probe strings
@@ -106,12 +106,15 @@ Response:
       "title": "Snow Crash",
       "creator": "Neal Stephenson",
       "genre": "Cyberpunk",
+      "year": "1992",
       "pitch": "Fast-paced cyberpunk with satirical energy and strong world design."
     }
   ],
   "source": "gemini"
 }
 ```
+
+For job suggestions, the AI acts as a career strategist — `title` is the role, `creator` is the company, `genre` is the industry.
 
 ## Chat Endpoints
 

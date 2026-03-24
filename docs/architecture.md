@@ -2,7 +2,7 @@
 
 ## System Summary
 
-Nexus Archive is a split frontend/backend media-tracking application backed by Supabase:
+Nexus Archive is a split frontend/backend media-tracking and job-tracking application backed by Supabase:
 
 ```mermaid
 flowchart LR
@@ -43,9 +43,9 @@ sequenceDiagram
   participant API as Litestar API
   participant Gemini
 
-  Browser->>API: GET /media/suggest?type=book
+  Browser->>API: GET /media/suggest?type=book|movie|anime|job
   API->>API: Enforce per-user rate limit
-  API->>API: Load books + scrub prompt input
+  API->>API: Load user library + scrub prompt input
   API->>API: Wrap context in strict XML delimiters
   API->>API: Check circuit breaker
   alt Gemini available

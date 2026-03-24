@@ -2,11 +2,11 @@
 
 ## Overview
 
-Expand Nexus Archive from books-only to a unified media engine supporting books, movies, and anime. Single `media` table with Postgres ENUM discriminator, Pydantic discriminated unions, and tabbed Kanban UI.
+Expand Nexus Archive from books-only to a unified media engine supporting books, movies, anime, and job applications. Single `media` table with Postgres ENUM discriminator, Pydantic discriminated unions, and tabbed Kanban UI.
 
 ## Database Migration
 
-1. Create `media_type` ENUM (`book`, `movie`, `anime`)
+1. Create `media_type` ENUM (`book`, `movie`, `anime`, `job`)
 2. Rename `books` → `media`
 3. Add `type media_type NOT NULL DEFAULT 'book'`
 4. Add `creator TEXT` (author/director/studio) and `sub_info TEXT` (pages/year/episodes)
@@ -26,18 +26,20 @@ Expand Nexus Archive from books-only to a unified media engine supporting books,
 
 ## Frontend
 
-- Media-type tabs (Books | Movies | Anime) above the Kanban
-- Status columns change per type (To Read/Reading/Finished vs To Watch/Watching/Finished)
-- CyberCard swaps icon per type (BookOpen, Film, Sparkles)
+- Media-type tabs (Books | Movies | Anime | Jobs) above the Kanban
+- Status columns change per type (To Read/Reading/Finished vs To Watch/Watching/Finished vs Not Answered/Answered/Rejected/Got the Job)
+- CyberCard swaps icon per type (BookOpen, Film, Sparkles, Briefcase)
 - AddMediaDialog with type selector adjusting field labels
 - useMedia hook with type-filtered queries
 
 ## Schema Reference
 
-| Feature | Book | Movie | Anime |
-|---|---|---|---|
-| Creator Label | Author | Director | Studio |
-| Sub-Info Label | Pages | Year | Episodes |
-| Status 1 | To Read | To Watch | To Watch |
-| Status 2 | Reading | Watching | Watching |
-| Icon | BookOpen | Film | Sparkles |
+| Feature | Book | Movie | Anime | Job |
+|---|---|---|---|---|
+| Creator Label | Author | Director | Studio | Company |
+| Sub-Info Label | Pages | Year | Episodes | Salary/Location |
+| Status 1 | To Read | To Watch | To Watch | Not Answered |
+| Status 2 | Reading | Watching | Watching | Answered |
+| Status 3 | Finished | Finished | Finished | Rejected |
+| Status 4 | — | — | — | Got the Job |
+| Icon | BookOpen | Film | Sparkles | Briefcase |
