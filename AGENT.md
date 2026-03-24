@@ -22,6 +22,23 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 ## Change Log
 
+### 2026-03-24 (Australia/Sydney)
+**Raouf:**
+- **Scope:** New Media Type — Job Application Tracker
+- **Summary:** Added `job` as a fourth media type to the unified engine. Jobs use the existing polymorphic `media` table with `title` (Role), `creator` (Company), `sub_info` (Salary/Location), and `takeaway` (Interview Notes). Four-status Kanban pipeline: Not Answered, Answered, Rejected, Got the Job. Dynamic grid layout switches to 4-column on `lg` for the job board while preserving 3-column for books/movies/anime. Added Gemini career advisor prompt and local fallback suggestions for jobs. Added `jobs` chat category with amber color. Delete button was already fully implemented (Trash2 + ConfirmDialog on CyberCard, MediaDetailModal, MediaVault).
+- **Files Changed:**
+  - `supabase/migrations/20260324000000_add_job_media_type.sql` — New migration: `ALTER TYPE media_type ADD VALUE 'job'`.
+  - `backend/schemas.py` — Added `"job"` to `MediaType`, job statuses to `MediaStatus`, `"jobs"` to `ChatCategory`.
+  - `backend/controllers.py` — Added `"job"` to `VALID_MEDIA_TYPES`.
+  - `backend/services.py` — Added job `MASTER_PROMPTS` (career strategist) and `LOCAL_FALLBACKS` (engineering/ai/product/default).
+  - `frontend/src/lib/mediaConfig.js` — Added `job` config with `Briefcase` icon, 4 statuses, Company/Salary labels.
+  - `frontend/src/components/features/KanbanBoard.jsx` — Dynamic `gridColsClass`: `md:grid-cols-2 lg:grid-cols-4` for jobs.
+  - `frontend/src/components/features/ChatSidebar.jsx` — Added `job: 'text-amber-400'` color.
+  - `frontend/src/components/features/AddMediaDialog.jsx` — Added job placeholders (Senior Engineer / Stripe).
+  - `frontend/src/App.jsx` — Added 'Jobs' to hero labels, updated description text, hero grid to `sm:grid-cols-4`.
+- **Verification:** `ruff check` clean, `pytest` 34/34 pass, `npm run lint` 0 errors, `npm run test` 17/17 pass, `npm run build` clean.
+- **Follow-ups:** Run `ALTER TYPE media_type ADD VALUE 'job'` in production Supabase SQL Editor before deploying. Render auto-deploys backend on push.
+
 ### 2026-03-22 (Australia/Sydney)
 **Raouf:**
 - **Scope:** AI Palette UX — Lift Button + One-Click Add to Archive

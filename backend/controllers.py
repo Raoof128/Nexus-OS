@@ -32,7 +32,7 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
 
 logger = logging.getLogger(__name__)
 
-VALID_MEDIA_TYPES = {"book", "movie", "anime"}
+VALID_MEDIA_TYPES = {"book", "movie", "anime", "job"}
 
 
 def _get_user_client(request: Request):

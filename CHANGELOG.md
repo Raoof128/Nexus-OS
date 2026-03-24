@@ -1,5 +1,13 @@
 # Change Log
 
+### 2026-03-24 (Australia/Sydney)
+**Raouf:**
+- **Scope:** New Media Type — Job Application Tracker
+- **Summary:** Added `job` as a fourth media type with 4-status Kanban pipeline (Not Answered / Answered / Rejected / Got the Job). Dynamic grid: 4 columns on lg for jobs, 3 for others. Gemini career advisor prompt + local fallbacks. `jobs` chat category with amber color. Database migration, backend schemas/controllers/services, and all frontend config/components updated.
+- **Files Changed:** Migration SQL, `schemas.py`, `controllers.py`, `services.py`, `mediaConfig.js`, `KanbanBoard.jsx`, `ChatSidebar.jsx`, `AddMediaDialog.jsx`, `App.jsx`.
+- **Verification:** Ruff clean, pytest 34/34, ESLint 0 errors, Vitest 17/17, build clean.
+- **Follow-ups:** Run `ALTER TYPE` in production Supabase before deploying.
+
 ### 2026-03-22 (Australia/Sydney)
 **Raouf:**
 - **Scope:** AI Palette UX — Lift Button + One-Click Add to Archive

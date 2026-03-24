@@ -17,8 +17,12 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
     }
   })
 
+  const gridColsClass = mediaType === 'job'
+    ? 'md:grid-cols-2 lg:grid-cols-4'
+    : 'md:grid-cols-3'
+
   return (
-    <div className="grid h-full auto-rows-min grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3">
+    <div className={`grid h-full auto-rows-min grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 ${gridColsClass}`}>
       {grouped.map(({ status, items: columnItems, total, hasMore }) => (
         <div
           key={status}

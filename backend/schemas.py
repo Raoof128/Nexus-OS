@@ -5,8 +5,12 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-MediaType = Literal["book", "movie", "anime"]
-MediaStatus = Literal["To Read", "Reading", "Finished", "To Watch", "Watching"]
+MediaType = Literal["book", "movie", "anime", "job"]
+MediaStatus = Literal[
+    "To Read", "Reading", "Finished",
+    "To Watch", "Watching",
+    "Not Answered", "Answered", "Rejected", "Got the Job",
+]
 
 CONTROL_CHARS_PATTERN = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]")
 XSS_PATTERN = re.compile(
@@ -154,7 +158,7 @@ class MediaUpdate(BaseModel):
         return _validate_takeaway_field(value)
 
 
-ChatCategory = Literal["books", "movies", "anime", "general"]
+ChatCategory = Literal["books", "movies", "anime", "jobs", "general"]
 
 
 class ChatSessionCreate(BaseModel):

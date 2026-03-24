@@ -1,8 +1,8 @@
-import { BookOpen, Film, Sparkles } from 'lucide-react'
+import { BookOpen, Briefcase, Film, Sparkles } from 'lucide-react'
 
-export const MEDIA_TYPES = ['book', 'movie', 'anime']
+export const MEDIA_TYPES = ['book', 'movie', 'anime', 'job']
 
-export const TYPE_ICONS = { book: BookOpen, movie: Film, anime: Sparkles }
+export const TYPE_ICONS = { book: BookOpen, movie: Film, anime: Sparkles, job: Briefcase }
 
 export const MEDIA_CONFIG = {
   book: {
@@ -28,6 +28,14 @@ export const MEDIA_CONFIG = {
     subInfoLabel: 'Episodes',
     statuses: ['To Watch', 'Watching', 'Finished'],
     defaultStatus: 'To Watch',
+  },
+  job: {
+    label: 'Jobs',
+    singular: 'Job',
+    creatorLabel: 'Company',
+    subInfoLabel: 'Salary/Location',
+    statuses: ['Not Answered', 'Answered', 'Rejected', 'Got the Job'],
+    defaultStatus: 'Not Answered',
   },
 }
 

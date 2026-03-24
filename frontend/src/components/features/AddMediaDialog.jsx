@@ -49,10 +49,13 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
     }
   }
 
-  const placeholders = {
-    title: mediaType === 'book' ? 'Neuromancer' : mediaType === 'anime' ? 'Cowboy Bebop' : 'Blade Runner',
-    creator: mediaType === 'book' ? 'William Gibson' : mediaType === 'anime' ? 'Sunrise' : 'Ridley Scott',
+  const placeholderMap = {
+    book: { title: 'Neuromancer', creator: 'William Gibson' },
+    movie: { title: 'Blade Runner', creator: 'Ridley Scott' },
+    anime: { title: 'Cowboy Bebop', creator: 'Sunrise' },
+    job: { title: 'Senior Engineer', creator: 'Stripe' },
   }
+  const placeholders = placeholderMap[mediaType] || placeholderMap.book
 
   if (!open) {
     return (

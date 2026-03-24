@@ -92,11 +92,11 @@ function App() {
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:mt-6 md:text-base">
                 Nexus Archive replaces scattered lists with one identity-driven
-                dashboard. Track books, movies, and anime — what you finished,
-                what you are consuming now, and the notes that make your taste personal.
+                dashboard. Track books, movies, anime, and job applications — what
+                you finished, what you are pursuing now, and the notes that matter.
               </p>
-              <div className="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4">
-                {['Books', 'Movies', 'Anime'].map((label) => (
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-4 sm:gap-4">
+                {['Books', 'Movies', 'Anime', 'Jobs'].map((label) => (
                   <div
                     key={label}
                     className="neon-border glass-panel rounded-xl px-4 py-4 heading-ui text-sm font-semibold uppercase tracking-wider text-white/80 sm:py-5"

@@ -6,6 +6,7 @@ const MEDIA_CATEGORY_COLORS = {
   book: 'text-cyan-400',
   movie: 'text-pink-400',
   anime: 'text-purple-400',
+  job: 'text-amber-400',
 }
 
 const CATEGORY_CONFIG = Object.fromEntries([

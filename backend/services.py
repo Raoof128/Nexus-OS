@@ -118,6 +118,36 @@ LOCAL_FALLBACKS: dict[str, dict[str, tuple[str, str, str, str]]] = {
             " from the pasts they can never outrun.",
         ),
     },
+    "job": {
+        "engineering": (
+            "Staff Engineer @ Stripe",
+            "Stripe",
+            "Payments Infrastructure",
+            "Build the financial backbone of the internet."
+            " Distributed systems at planetary scale.",
+        ),
+        "ai": (
+            "ML Engineer @ Anthropic",
+            "Anthropic",
+            "AI Safety",
+            "Train frontier models that understand nuance."
+            " Safety is the product, not the afterthought.",
+        ),
+        "product": (
+            "Product Manager @ Linear",
+            "Linear",
+            "Developer Tools",
+            "Ship the tool that engineers actually want to use."
+            " Taste matters more than process.",
+        ),
+        "_default": (
+            "Senior Software Engineer @ Cloudflare",
+            "Cloudflare",
+            "Edge Computing",
+            "Push code to 300 cities in under a second."
+            " The edge is the new origin.",
+        ),
+    },
 }
 
 # ── Master prompts per media type ────────────────────────────────────────
@@ -173,6 +203,22 @@ MASTER_PROMPTS = {
         '- "year": (string, first air year e.g. "1998")\n'
         '- "pitch": (string, gripping 2-sentence hook on psychological'
         " stakes)\n"
+    ),
+    "job": (
+        "Act as an elite career strategist. I am providing a list of job"
+        " applications from my tracker: {context}.\n"
+        "Analyze the roles, companies, industries, and seniority level.\n"
+        "Suggest 3 new companies or roles that match this career trajectory"
+        " and skill profile. Do NOT suggest companies already in the list.\n\n"
+        "Output requirements:\n"
+        "Return ONLY a valid JSON array of objects. No markdown backticks,"
+        " no intro text, no conversational filler.\n"
+        "Each object must have exactly these keys:\n"
+        '- "title": (string, role title e.g. "Senior Backend Engineer")\n'
+        '- "creator": (string, company name)\n'
+        '- "genre": (string, industry or domain)\n'
+        '- "year": (string, empty string "")\n'
+        '- "pitch": (string, punchy 2-sentence reason why this role fits)\n'
     ),
 }
 
