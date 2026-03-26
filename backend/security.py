@@ -53,10 +53,15 @@ def _build_csp(path: str) -> str:
 
 SECURITY_HEADERS = (
     ("referrer-policy", lambda: "strict-origin-when-cross-origin"),
-    ("strict-transport-security", lambda: "max-age=31536000; includeSubDomains"),
+    (
+        "strict-transport-security",
+        lambda: "max-age=31536000; includeSubDomains; preload",
+    ),
     ("x-content-type-options", lambda: "nosniff"),
     ("x-frame-options", lambda: "DENY"),
     ("permissions-policy", lambda: "camera=(), geolocation=(), microphone=()"),
+    ("cross-origin-opener-policy", lambda: "same-origin"),
+    ("cross-origin-resource-policy", lambda: "same-origin"),
 )
 
 

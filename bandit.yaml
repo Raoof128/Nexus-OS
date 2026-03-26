@@ -5,4 +5,5 @@ exclude_dirs:
   - backend/__pycache__
   - .venv
 skips:
+  # B104: bind-to-all-interfaces — intentional for uvicorn in Docker (network isolation via container)
   - B104

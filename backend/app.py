@@ -36,12 +36,10 @@ cors_config = CORSConfig(
     allow_headers=["Authorization", "Content-Type"],
 )
 
-app = Litestar(
-    route_handlers=[healthcheck, AuthController, ChatController, MediaController],
-    middleware=[SecurityHeadersMiddleware, SupabaseAuthMiddleware],
-    cors_config=cors_config,
-    allowed_hosts=list(settings.allowed_hosts),
-    openapi_config=OpenAPIConfig(
+_openapi_config: OpenAPIConfig | None = (
+    None
+    if settings.environment == "production"
+    else OpenAPIConfig(
         title="Nexus Archive API",
         version="0.3.0",
         description=(
@@ -52,5 +50,13 @@ app = Litestar(
         path="/schema",
         use_handler_docstrings=True,
         root_schema_site="swagger",
-    ),
+    )
+)
+
+app = Litestar(
+    route_handlers=[healthcheck, AuthController, ChatController, MediaController],
+    middleware=[SecurityHeadersMiddleware, SupabaseAuthMiddleware],
+    cors_config=cors_config,
+    allowed_hosts=list(settings.allowed_hosts),
+    openapi_config=_openapi_config,
 )

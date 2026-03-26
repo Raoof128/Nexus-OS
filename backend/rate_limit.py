@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections import defaultdict, deque
 from threading import Lock
 from time import monotonic, time
@@ -14,6 +15,8 @@ try:
     from .config import get_settings
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class SlidingWindowRateLimiter:
@@ -106,7 +109,6 @@ class RedisSlidingWindowRateLimiter:
 RateLimiter = SlidingWindowRateLimiter | RedisSlidingWindowRateLimiter
 
 _ai_rate_limiter: RateLimiter | None = None
-_suggest_rate_limiter: RateLimiter | None = None
 _auth_rate_limiter: RateLimiter | None = None
 
 
@@ -114,6 +116,11 @@ def _create_rate_limiter(max_requests: int, window_seconds: int) -> RateLimiter:
     """Create a distributed limiter when Redis is configured, else local memory."""
 
     redis_url = get_settings().redis_url
+    if not redis_url:
+        logger.warning(
+            "In-memory rate limiter active — not shared across workers. "
+            "Set REDIS_URL for production."
+        )
     if redis_url:
         try:
             return RedisSlidingWindowRateLimiter(
@@ -130,19 +137,6 @@ def _create_rate_limiter(max_requests: int, window_seconds: int) -> RateLimiter:
         max_requests=max_requests,
         window_seconds=window_seconds,
     )
-
-
-def enforce_suggest_rate_limit(user_id: str) -> None:
-    """Apply the configured rate limit to AI suggestion requests."""
-
-    global _suggest_rate_limiter
-    settings = get_settings()
-    if _suggest_rate_limiter is None:
-        _suggest_rate_limiter = _create_rate_limiter(
-            max_requests=settings.suggest_rate_limit_requests,
-            window_seconds=settings.suggest_rate_limit_window_seconds,
-        )
-    _suggest_rate_limiter.enforce(f"suggest:{user_id}")
 
 
 def enforce_ai_rate_limit(user_id: str, _feature: str) -> None:
@@ -176,7 +170,6 @@ def enforce_auth_rate_limit(key: str) -> None:
 def reset_rate_limiters() -> None:
     """Reset cached rate limiter instances for isolated tests."""
 
-    global _ai_rate_limiter, _suggest_rate_limiter, _auth_rate_limiter
+    global _ai_rate_limiter, _auth_rate_limiter
     _ai_rate_limiter = None
-    _suggest_rate_limiter = None
     _auth_rate_limiter = None

@@ -57,6 +57,9 @@ def decode_supabase_token(token: str) -> dict[str, Any]:
 
     alg = header.get("alg", "HS256")
 
+    if alg not in ("HS256", "ES256"):
+        raise jwt.InvalidTokenError("Unsupported algorithm")
+
     if alg == "HS256":
         return jwt.decode(
             token,

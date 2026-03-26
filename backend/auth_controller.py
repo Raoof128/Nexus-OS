@@ -57,7 +57,9 @@ def _client_ip(request: Request) -> str:
     return forwarded_chain[0] if forwarded_chain else direct_client_ip
 
 
-def _build_session_response(access_token: str) -> AuthSessionResponse:
+def _build_session_response(
+    access_token: str, *, include_token: bool = False
+) -> AuthSessionResponse:
     """Derive a frontend-safe session snapshot from a Supabase access token."""
 
     payload = decode_supabase_token(access_token)
@@ -67,7 +69,7 @@ def _build_session_response(access_token: str) -> AuthSessionResponse:
             email=payload.get("email"),
         ),
         expires_at=payload.get("exp"),
-        access_token=access_token,
+        access_token=access_token if include_token else None,
     )
 
 
@@ -128,13 +130,15 @@ class AuthController(Controller):
                 {"email": data.email, "password": data.password}
             )
         except Exception as exc:  # pragma: no cover - upstream auth failure
-            logger.exception("Supabase sign-in failed for %s", data.email)
+            logger.exception("Supabase sign-in failed")
             raise HTTPException(status_code=401, detail="Invalid credentials") from exc
 
         if not auth_response.session:
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        payload = _build_session_response(auth_response.session.access_token)
+        payload = _build_session_response(
+            auth_response.session.access_token, include_token=True
+        )
         response = Response(content=payload.model_dump())
         _attach_auth_cookies(
             response,
@@ -165,7 +169,9 @@ class AuthController(Controller):
         if not auth_response.session:
             raise HTTPException(status_code=401, detail="Session refresh failed")
 
-        payload = _build_session_response(auth_response.session.access_token)
+        payload = _build_session_response(
+            auth_response.session.access_token, include_token=True
+        )
         response = Response(content=payload.model_dump())
         _attach_auth_cookies(
             response,
@@ -204,7 +210,7 @@ class AuthController(Controller):
                 {"email": data.email, "password": data.password}
             )
         except Exception as exc:  # pragma: no cover - upstream auth failure
-            logger.exception("Supabase sign-up failed for %s", data.email)
+            logger.exception("Supabase sign-up failed")
             raise HTTPException(status_code=400, detail="Registration failed") from exc
 
         if not auth_response.session:
@@ -213,7 +219,9 @@ class AuthController(Controller):
                 status_code=200,
             )
 
-        payload = _build_session_response(auth_response.session.access_token)
+        payload = _build_session_response(
+            auth_response.session.access_token, include_token=True
+        )
         response = Response(content=payload.model_dump())
         _attach_auth_cookies(
             response,
@@ -283,7 +291,9 @@ class AuthController(Controller):
                 status_code=400, detail="Password updated but login failed"
             )
 
-        payload = _build_session_response(login_response.session.access_token)
+        payload = _build_session_response(
+            login_response.session.access_token, include_token=True
+        )
         response = Response(content=payload.model_dump())
         _attach_auth_cookies(
             response,

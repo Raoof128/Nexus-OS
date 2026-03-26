@@ -104,7 +104,6 @@ class MediaController(Controller):
             metadata={
                 "type": media_data["type"],
                 "status": media_data["status"],
-                "title": media_data["title"],
             },
         )
         created = response.data[0] if response.data else {}

@@ -167,6 +167,12 @@ class ChatSessionCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     category: ChatCategory = "general"
 
+    @field_validator("title", mode="before")
+    @classmethod
+    def validate_title(cls, value: str | None) -> str | None:
+        """Reject payloads that resemble injection or XSS probes."""
+        return _validate_text_field(value)
+
 
 class ChatSessionResponse(BaseModel):
     """Chat session returned from the API."""

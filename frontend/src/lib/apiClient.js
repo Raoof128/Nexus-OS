@@ -30,6 +30,7 @@ async function request(path, { method = 'GET', body, headers = {} } = {}, retry 
       credentials: 'include',
       signal: controller.signal,
       headers: {
+        'X-Requested-With': 'XMLHttpRequest',
         ...(body ? { 'Content-Type': 'application/json' } : {}),
         ...headers,
       },

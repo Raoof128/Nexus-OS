@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
   },
   build: {
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {

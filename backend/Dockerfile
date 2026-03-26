@@ -1,4 +1,5 @@
-FROM python:3.12-slim
+# Pin to specific version — update periodically
+FROM python:3.12.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1

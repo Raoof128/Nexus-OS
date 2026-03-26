@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from functools import lru_cache
@@ -27,6 +28,7 @@ class BackendSettings:
     supabase_url: str
     supabase_auth_key: str
     supabase_jwt_secret: str
+    audit_log_salt: str
     gemini_api_key: str | None = None
     environment: str = "development"
     gemini_model: str = "gemini-2.5-flash"
@@ -35,7 +37,6 @@ class BackendSettings:
     gemini_circuit_breaker_reset_seconds: int = 120
     backend_sentry_dsn: str | None = None
     backend_sentry_traces_sample_rate: float = 0.0
-    audit_log_salt: str = "nexus-audit-salt"
     takeaway_encryption_key: str | None = None
     access_cookie_name: str = "nexus-access-token"
     refresh_cookie_name: str = "nexus-refresh-token"
@@ -111,10 +112,11 @@ def get_settings() -> BackendSettings:
     """Load and cache backend settings."""
 
     allowed_origins = _parse_csv_env("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS)
-    return BackendSettings(
+    settings = BackendSettings(
         supabase_url=_require_env("SUPABASE_URL"),
         supabase_auth_key=_require_env("SUPABASE_AUTH_KEY"),
         supabase_jwt_secret=_require_env("SUPABASE_JWT_SECRET"),
+        audit_log_salt=_require_env("AUDIT_LOG_SALT"),
         gemini_api_key=_get_env("GEMINI_API_KEY"),
         environment=_get_env("APP_ENV", "development") or "development",
         gemini_model=_get_env("GEMINI_MODEL", "gemini-2.5-flash") or "gemini-2.5-flash",
@@ -131,7 +133,6 @@ def get_settings() -> BackendSettings:
         backend_sentry_traces_sample_rate=float(
             _get_env("BACKEND_SENTRY_TRACES_SAMPLE_RATE", "0.0") or "0.0"
         ),
-        audit_log_salt=_require_env("AUDIT_LOG_SALT"),
         takeaway_encryption_key=_get_env("TAKEAWAY_ENCRYPTION_KEY"),
         access_cookie_name=_get_env("ACCESS_COOKIE_NAME", "nexus-access-token")
         or "nexus-access-token",
@@ -169,3 +170,12 @@ def get_settings() -> BackendSettings:
         allowed_origins=allowed_origins,
         allowed_hosts=_derive_allowed_hosts(allowed_origins),
     )
+
+    if settings.environment != "development" and not settings.cookie_secure:
+        logging.getLogger(__name__).critical(
+            "cookie_secure is False in a non-development environment (%s). "
+            "Session cookies will be sent over plain HTTP!",
+            settings.environment,
+        )
+
+    return settings
