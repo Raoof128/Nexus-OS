@@ -51,6 +51,7 @@ async function request(path, { method = 'GET', body, headers = {} } = {}, retry 
       throw new Error(await extractError(response))
     }
 
+    if (response.status === 204) return null
     return response.json()
   } catch (error) {
     if (error.name === 'AbortError') {
