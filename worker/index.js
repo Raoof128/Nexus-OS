@@ -2,7 +2,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    // Strip the /api prefix and forward to Render backend
+    // Strip the /api prefix and forward to DigitalOcean backend
     const backendPath = url.pathname.replace(/^\/api/, "") || "/";
     const backendUrl = `${env.BACKEND_ORIGIN}${backendPath}${url.search}`;
 
@@ -14,7 +14,7 @@ export default {
       redirect: "follow",
     });
 
-    // Override the Host header so Render accepts the request
+    // Override the Host header so the backend accepts the request
     proxyRequest.headers.set("Host", new URL(env.BACKEND_ORIGIN).host);
 
     const response = await fetch(proxyRequest);

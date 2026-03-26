@@ -3,7 +3,7 @@ main = "index.js"
 compatibility_date = "2024-12-01"
 
 [vars]
-BACKEND_ORIGIN = "https://nexus-api-bwch.onrender.com"
+BACKEND_ORIGIN = "https://api.home-notes-app.uk"
 
 [[routes]]
 pattern = "home-notes-app.uk/api/*"
