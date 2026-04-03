@@ -80,7 +80,7 @@ Validation rules:
 - `title`: 1-200 chars, rejects angle brackets, XSS, and injection probes
 - `creator`: 1-100 chars, rejects angle brackets, XSS, and injection probes
 - `genre`: optional, max 80 chars, rejects angle brackets, XSS, and injection probes
-- `status`: `To Read`, `Reading`, `Finished`, `To Watch`, `Watching`, `Not Answered`, `Answered`, `Rejected`, or `Got the Job`
+- `status`: `To Read`, `Reading`, `Finished`, `To Watch`, `Watching`, `Applied`, `Answered`, `Rejected`, or `Got the Job`
 - `rating`: optional, integer from 1 to 5
 - `takeaway`: optional, max 2000 chars, rejects embedded script markup
 - `sub_info`: optional, max 100 chars, rejects angle brackets and probe strings

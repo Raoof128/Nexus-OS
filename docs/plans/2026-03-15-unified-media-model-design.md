@@ -27,7 +27,7 @@ Expand Nexus Archive from books-only to a unified media engine supporting books,
 ## Frontend
 
 - Media-type tabs (Books | Movies | Anime | Jobs) above the Kanban
-- Status columns change per type (To Read/Reading/Finished vs To Watch/Watching/Finished vs Not Answered/Answered/Rejected/Got the Job)
+- Status columns change per type (To Read/Reading/Finished vs To Watch/Watching/Finished vs Applied/Answered/Rejected/Got the Job)
 - CyberCard swaps icon per type (BookOpen, Film, Sparkles, Briefcase)
 - AddMediaDialog with type selector adjusting field labels
 - useMedia hook with type-filtered queries
@@ -38,7 +38,7 @@ Expand Nexus Archive from books-only to a unified media engine supporting books,
 |---|---|---|---|---|
 | Creator Label | Author | Director | Studio | Company |
 | Sub-Info Label | Pages | Year | Episodes | Salary/Location |
-| Status 1 | To Read | To Watch | To Watch | Not Answered |
+| Status 1 | To Read | To Watch | To Watch | Applied |
 | Status 2 | Reading | Watching | Watching | Answered |
 | Status 3 | Finished | Finished | Finished | Rejected |
 | Status 4 | — | — | — | Got the Job |
