@@ -98,8 +98,12 @@ export function useMedia(session, type = 'book') {
     onError: (_error, _variables, context) => {
       queryClient.setQueryData(mediaQueryKey, context?.previous ?? [])
     },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: mediaQueryKey })
+    onSuccess: (serverData) => {
+      queryClient.setQueryData(mediaQueryKey, (current) =>
+        (current ?? []).map((item) =>
+          item.id?.toString().startsWith('optimistic-') ? serverData : item,
+        ),
+      )
     },
   })
 
