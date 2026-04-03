@@ -161,13 +161,13 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
 
                 {/* Metadata grid */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {item.genre && (
+                  {item.type !== 'job' && item.genre && (
                     <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
                       <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Genre</p>
                       <p className="text-sm font-medium text-white">{item.genre}</p>
                     </div>
                   )}
-                  {item.rating != null && item.rating > 0 && (
+                  {item.type !== 'job' && item.rating != null && item.rating > 0 && (
                     <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
                       <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rating</p>
                       <div className="flex items-center gap-1">

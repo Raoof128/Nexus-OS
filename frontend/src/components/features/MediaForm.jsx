@@ -7,6 +7,7 @@ const inputClass =
 const labelClass = 'mb-1 block text-xs font-semibold uppercase text-muted-foreground'
 
 export default function MediaForm({ config, defaultValues = {}, onSubmit, submitting, error, submitLabel, submittingLabel = 'Saving...', idPrefix = 'media', placeholders = {} }) {
+  const isJob = config.singular === 'Job'
   const [title, setTitle] = useState(defaultValues.title || '')
   const [creator, setCreator] = useState(defaultValues.creator || '')
   const [genre, setGenre] = useState(defaultValues.genre || '')
@@ -71,19 +72,7 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor={`${idPrefix}-genre`} className={labelClass}>Genre</label>
-            <input
-              id={`${idPrefix}-genre`}
-              type="text"
-              value={genre}
-              onChange={(e) => setGenre(e.target.value)}
-              className={inputClass}
-              placeholder="Cyberpunk"
-              maxLength={80}
-            />
-          </div>
+        {isJob ? (
           <div>
             <label htmlFor={`${idPrefix}-status`} className={labelClass}>Status</label>
             <select
@@ -97,28 +86,58 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
               ))}
             </select>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor={`${idPrefix}-rating`} className={labelClass}>Rating (1-5)</label>
-            <input
-              id={`${idPrefix}-rating`}
-              type="number"
-              min="1"
-              max="5"
-              step="1"
-              value={rating}
-              onChange={(e) => {
-                const v = e.target.value
-                if (v === '' || (/^[1-5]$/.test(v))) {
-                  setRating(v)
-                }
-              }}
-              className={inputClass}
-              placeholder="Optional"
-            />
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor={`${idPrefix}-genre`} className={labelClass}>Genre</label>
+              <input
+                id={`${idPrefix}-genre`}
+                type="text"
+                value={genre}
+                onChange={(e) => setGenre(e.target.value)}
+                className={inputClass}
+                placeholder="Cyberpunk"
+                maxLength={80}
+              />
+            </div>
+            <div>
+              <label htmlFor={`${idPrefix}-status`} className={labelClass}>Status</label>
+              <select
+                id={`${idPrefix}-status`}
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className={inputClass}
+              >
+                {config.statuses.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
           </div>
+        )}
+
+        <div className={isJob ? '' : 'grid grid-cols-2 gap-4'}>
+          {!isJob && (
+            <div>
+              <label htmlFor={`${idPrefix}-rating`} className={labelClass}>Rating (1-5)</label>
+              <input
+                id={`${idPrefix}-rating`}
+                type="number"
+                min="1"
+                max="5"
+                step="1"
+                value={rating}
+                onChange={(e) => {
+                  const v = e.target.value
+                  if (v === '' || (/^[1-5]$/.test(v))) {
+                    setRating(v)
+                  }
+                }}
+                className={inputClass}
+                placeholder="Optional"
+              />
+            </div>
+          )}
           <div>
             <label htmlFor={`${idPrefix}-subinfo`} className={labelClass}>{config.subInfoLabel}</label>
             <input

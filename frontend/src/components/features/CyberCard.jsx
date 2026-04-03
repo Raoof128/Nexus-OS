@@ -75,12 +75,12 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
         )}
 
         <div className="mt-auto pt-3 border-t border-white/5 flex flex-wrap items-center gap-1.5 sm:gap-2">
-          {item.genre && (
+          {mediaType !== 'job' && item.genre && (
             <span className="inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-white/10 sm:px-2 sm:py-1 sm:text-xs">
               {item.genre}
             </span>
           )}
-          {item.rating != null && item.rating > 0 && (
+          {mediaType !== 'job' && item.rating != null && item.rating > 0 && (
             <span className="inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-yellow-500 ring-1 ring-inset ring-white/10 sm:px-2 sm:py-1 sm:text-xs">
               ★ {item.rating}/5
             </span>
