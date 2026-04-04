@@ -82,8 +82,8 @@ function App() {
 
         <Navbar />
         <main className="relative z-10 flex flex-1 items-center justify-center p-4 sm:p-6">
-          <div className="grid w-full max-w-6xl gap-6 sm:gap-8 md:grid-cols-[1.2fr_0.8fr]">
-            <section className="neon-border glass-panel rounded-2xl p-6 shadow-2xl order-2 hidden md:block sm:rounded-[2rem] sm:p-10">
+          <div className="grid w-full max-w-6xl gap-6 sm:gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+            <section className="neon-border glass-panel rounded-2xl p-6 shadow-2xl order-2 hidden lg:block sm:rounded-[2rem] sm:p-10">
               <p className="heading-ui mb-3 text-xs font-semibold uppercase tracking-[0.4em] text-primary">
                 personal media vault
               </p>
@@ -107,8 +107,8 @@ function App() {
               </div>
             </section>
 
-            <div id="auth-panel" className="relative z-10 order-1 md:order-2">
-              <p className="heading-display mb-6 text-center text-lg font-bold text-white md:hidden">
+            <div id="auth-panel" className="relative z-10 order-1 lg:order-2">
+              <p className="heading-display mb-6 text-center text-lg font-bold text-white truncate lg:hidden">
                 Nexus Archive
               </p>
               <AuthPanel />

@@ -145,7 +145,7 @@ export default function AuthPanel() {
   const offset = PANELS[active]
 
   return (
-    <div className="neon-border relative w-full overflow-hidden rounded-2xl glass-panel shadow-2xl sm:rounded-[2rem]">
+    <div className="neon-border relative w-full overflow-clip rounded-2xl glass-panel shadow-2xl sm:rounded-[2rem]">
       <div className="absolute -inset-1 -z-10 bg-primary/30 opacity-15 blur-3xl" />
       <GlitchLine />
 
