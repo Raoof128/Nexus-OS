@@ -44,7 +44,7 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd }) {
     <>
       <button
         type="button"
-        className="neon-pulse fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex cursor-pointer items-center gap-2 rounded-xl glass-panel px-3 py-2.5 heading-ui text-[11px] font-semibold text-primary transition-all hover:bg-primary/15 sm:bottom-6 sm:right-6 sm:z-50 sm:px-4 sm:text-xs"
+        className="fixed bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex cursor-pointer items-center gap-1.5 rounded-full border border-white/10 bg-black/70 backdrop-blur-md px-3 py-2 heading-ui text-[10px] font-semibold text-muted-foreground transition-all hover:border-primary/30 hover:text-primary hover:shadow-[0_0_15px_hsl(var(--neon-cyan)/0.2)] sm:bottom-[4.5rem] sm:right-6 sm:z-50 sm:px-3.5 sm:text-xs"
         onMouseEnter={() => {
           setShouldLoad(true)
           void loadAICmdPalette()
