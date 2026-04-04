@@ -135,7 +135,7 @@ function App() {
       <Navbar />
 
       {/* Navigation tabs — desktop: sticky top, mobile: fixed bottom */}
-      <nav className="hidden sm:block sticky top-16 z-40 border-b border-white/[0.04] glass-panel">
+      <nav className="hidden sm:block sticky top-16 z-40 isolate border-b border-white/[0.04] bg-background/80 backdrop-blur-xl">
         <div role="tablist" aria-label="Media types" className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-2 sm:px-6">
           {MEDIA_TYPES.map((type) => {
             const Icon = TYPE_ICONS[type]

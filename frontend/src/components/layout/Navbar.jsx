@@ -4,7 +4,7 @@ export default function Navbar() {
   const { session, loading, signOut } = useAuth()
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-white/[0.06] glass-panel">
+    <nav className="sticky top-0 z-50 isolate w-full border-b border-white/[0.06] bg-background/80 backdrop-blur-xl">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-3">
           {/* Neon logo mark */}
