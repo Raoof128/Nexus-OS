@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Loader2, MessageCircle } from 'lucide-react'
 import AddMediaDialog from './components/features/AddMediaDialog'
@@ -22,9 +22,14 @@ function App() {
   const [activeType, setActiveType] = useState('book')
   const [activeView, setActiveView] = useState('media') // 'media' | 'chat'
   const { items, loading: dataLoading, error, addMedia, updateMedia, deleteMedia } = useMedia(session, activeType)
-  const [selectedItem, setSelectedItem] = useState(null)
+  const [selectedItemId, setSelectedItemId] = useState(null)
   const [editItem, setEditItem] = useState(null)
   const [vaultState, setVaultState] = useState(null) // { status, type }
+
+  const selectedItem = useMemo(
+    () => (selectedItemId ? items.find(i => i.id === selectedItemId) ?? null : null),
+    [selectedItemId, items],
+  )
 
   const [recoveryTokens, dismissTokens] = useRecoveryTokens()
 
@@ -37,11 +42,11 @@ function App() {
   }, [])
 
   const handleSelect = useCallback((item) => {
-    setSelectedItem(item)
+    setSelectedItemId(item.id)
   }, [])
 
   const handleCloseDetail = useCallback(() => {
-    setSelectedItem(null)
+    setSelectedItemId(null)
   }, [])
 
   const handleCloseEdit = useCallback(() => {
