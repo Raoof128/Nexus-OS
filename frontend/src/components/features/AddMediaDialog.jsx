@@ -63,7 +63,7 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
       <button
         type="button"
         onClick={handleOpen}
-        className="neon-pulse fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] left-4 z-50 flex items-center gap-2 rounded-xl glass-panel px-3 py-2.5 heading-ui text-[11px] font-semibold text-primary transition-all hover:bg-primary/15 sm:left-6 sm:px-4 sm:text-xs"
+        className="neon-pulse fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] left-4 z-40 flex items-center gap-2 rounded-xl glass-panel px-3 py-2.5 heading-ui text-[11px] font-semibold text-primary transition-all hover:bg-primary/15 sm:bottom-6 sm:left-6 sm:z-50 sm:px-4 sm:text-xs"
       >
         <Plus size={14} />
         Add {config.singular}

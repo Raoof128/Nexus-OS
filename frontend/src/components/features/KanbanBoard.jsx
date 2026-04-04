@@ -7,6 +7,7 @@ import {
   KeyboardSensor,
   useSensor,
   useSensors,
+  useDroppable,
   closestCenter,
 } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
@@ -131,10 +132,9 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
 }
 
 function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpdate, onDelete, onSelect, onEdit, onHeaderClick, onAiSuggest }) {
-  const { setNodeRef } = useSortable({
+  const { setNodeRef, isOver } = useDroppable({
     id: `column-${status}`,
     data: { columnStatus: status },
-    disabled: true,
   })
 
   return (
@@ -142,7 +142,7 @@ function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpd
       ref={setNodeRef}
       role="region"
       aria-label={`${status} column, ${total} items`}
-      className="neon-border flex flex-col gap-3 rounded-xl glass-panel p-3 relative max-h-[60dvh] sm:gap-4 sm:p-4 sm:max-h-[calc(100dvh-200px)]"
+      className={`neon-border flex flex-col gap-3 rounded-xl glass-panel p-3 relative max-h-[60dvh] sm:gap-4 sm:p-4 sm:max-h-[calc(100dvh-200px)] transition-colors ${isOver ? 'ring-2 ring-primary/40 bg-primary/5' : ''}`}
     >
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent shadow-[0_0_10px_var(--color-primary)]"></div>
 
