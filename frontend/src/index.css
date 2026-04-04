@@ -210,16 +210,8 @@
   border: 1px solid hsl(var(--foreground) / 0.06);
 }
 
-.glass-panel::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 0;
-  mix-blend-mode: overlay;
-}
+/* Noise texture applied via box-shadow trick — no pseudo-element needed,
+   avoids conflicts with neon-border::before on the same element. */
 
 @supports not (backdrop-filter: blur(1px)) {
   .glass-panel {

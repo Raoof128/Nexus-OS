@@ -29,17 +29,20 @@ function SortableCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
+    touchAction: 'none',
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <CyberCard
-        item={item}
-        onUpdate={onUpdate}
-        onDelete={onDelete}
-        onSelect={onSelect}
-        onEdit={onEdit}
-      />
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <div {...listeners} className="cursor-grab active:cursor-grabbing">
+        <CyberCard
+          item={item}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+          onSelect={onSelect}
+          onEdit={onEdit}
+        />
+      </div>
     </div>
   )
 }
