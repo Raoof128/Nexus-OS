@@ -9,7 +9,7 @@ MediaType = Literal["book", "movie", "anime", "job"]
 MediaStatus = Literal[
     "To Read", "Reading", "Finished",
     "To Watch", "Watching",
-    "Applied", "Answered", "Rejected", "Got the Job",
+    "Applied", "Rejected", "Got the Job",
 ]
 
 CONTROL_CHARS_PATTERN = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]")

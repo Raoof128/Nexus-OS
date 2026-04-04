@@ -34,7 +34,7 @@ export const MEDIA_CONFIG = {
     singular: 'Job',
     creatorLabel: 'Company',
     subInfoLabel: 'Salary/Location',
-    statuses: ['Applied', 'Answered', 'Rejected', 'Got the Job'],
+    statuses: ['Applied', 'Rejected', 'Got the Job'],
     defaultStatus: 'Applied',
   },
 }
