@@ -53,7 +53,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
       layoutId={`card-${item.id}`}
       layout="position"
       transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-      className="neon-border group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-4 hover:-translate-y-1 sm:p-6"
+      className="neon-border group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-4 hover:brightness-110 hover:shadow-[0_0_20px_hsl(var(--neon-cyan)/0.15)] sm:p-6 transition-all duration-200"
     >
       {/* Neon glowing artifact behind */}
       <div className="absolute -inset-1 z-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/5 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
