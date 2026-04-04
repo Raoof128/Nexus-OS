@@ -82,7 +82,7 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
               className={inputClass}
             >
               {config.statuses.map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s} value={s} className="bg-gray-900 text-white">{s}</option>
               ))}
             </select>
           </div>
@@ -109,7 +109,7 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
                 className={inputClass}
               >
                 {config.statuses.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s} className="bg-gray-900 text-white">{s}</option>
                 ))}
               </select>
             </div>

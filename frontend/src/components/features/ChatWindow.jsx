@@ -11,6 +11,7 @@ export default function ChatWindow({ sessionId, userId }) {
   const { messages, loading, sending, sendMessage, error } = useChatMessages(userId, sessionId)
   const [input, setInput] = useState('')
   const scrollRef = useRef(null)
+  const textareaRef = useRef(null)
   const wasNearBottom = useRef(true)
 
   const checkScroll = useCallback(() => {
@@ -22,6 +23,14 @@ export default function ChatWindow({ sessionId, userId }) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [messages])
+
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (textarea) {
+      textarea.style.height = 'auto'
+      textarea.style.height = textarea.scrollHeight + 'px'
+    }
+  }, [input])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -68,6 +77,7 @@ export default function ChatWindow({ sessionId, userId }) {
         role="log"
         aria-live="polite"
         aria-label="Chat messages"
+        tabIndex={0}
         className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-5"
       >
         {loading && (
@@ -150,17 +160,19 @@ export default function ChatWindow({ sessionId, userId }) {
       )}
 
       <form onSubmit={handleSubmit} className="border-t border-white/[0.04] bg-white/[0.01] p-4">
-        <div className="flex items-center gap-3">
-          <input
-            type="text"
+        <div className="flex items-end gap-3">
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="nexus:// transmit message..."
             disabled={sending}
             aria-label="Chat message"
-            className="flex-1 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 heading-ui text-sm text-white placeholder:text-muted-foreground/30 focus:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40 transition-all"
+            rows={1}
+            className="flex-1 resize-none rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 heading-ui text-sm text-white placeholder:text-muted-foreground/30 focus:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40 transition-all"
             maxLength={4000}
+            style={{ maxHeight: `${4 * 1.5 * 14 + 24}px` }}
           />
           <button
             type="submit"

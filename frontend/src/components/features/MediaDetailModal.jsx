@@ -29,7 +29,6 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
   const handleStatusChange = (newStatus) => {
     if (!newStatus || !onUpdate || !item || newStatus === item.status) return
     onUpdate({ mediaId: item.id, data: { status: newStatus } })
-    onClose()
   }
 
   const handleDelete = () => {
@@ -58,6 +57,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
           <div className="fixed inset-0 z-[81] flex items-center justify-center p-4 sm:p-6">
             <Motion.div
               ref={trapRef}
+              layoutId={`card-${item.id}`}
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -132,11 +132,11 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                               }`}
                             />
                             <span
-                              className={`absolute top-5 text-center max-w-[60px] font-mono text-[9px] uppercase tracking-widest transition-colors ${
+                              className={`absolute top-6 text-center max-w-[80px] truncate font-mono text-[8px] sm:text-[9px] uppercase tracking-wider transition-colors ${
                                 isCurrent
                                   ? 'text-primary'
                                   : isPast
-                                    ? 'text-primary/40'
+                                    ? 'text-primary/60'
                                     : 'text-zinc-600 group-hover:text-primary/50'
                               }`}
                             >

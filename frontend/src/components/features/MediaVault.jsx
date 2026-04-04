@@ -10,6 +10,7 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
 
   const config = MEDIA_CONFIG[mediaType]
   const Icon = TYPE_ICONS[mediaType]
+  const isJob = mediaType === 'job'
 
   const filtered = useMemo(() => {
     let result = items
@@ -62,7 +63,7 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
           <div className="flex items-center gap-2">
             <Icon size={18} className="text-primary" />
             <h2 className="heading-display text-sm font-bold text-white sm:text-lg">
-              // {filterStatus || 'All'} — {config?.label}
+              <span aria-hidden="true">// </span>{filterStatus || 'All'} — {config?.label}
             </h2>
             <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-xs text-muted-foreground">
               {filtered.length}
@@ -87,13 +88,13 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
       {/* Table */}
       <div className="neon-border overflow-hidden rounded-xl glass-panel">
         {/* Table header */}
-        <div className="hidden border-b border-white/5 bg-white/[0.02] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground sm:grid sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]">
+        <div className={`hidden border-b border-white/5 bg-white/[0.02] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground sm:grid ${isJob ? 'sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : 'sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'}`}>
           <span>Title</span>
           <span>{config?.creatorLabel || 'Creator'}</span>
-          <span>Genre</span>
+          {!isJob && <span>Genre</span>}
           <span>Status</span>
-          <span>Rating</span>
-          <span></span>
+          {!isJob && <span>Rating</span>}
+          <span>{isJob ? (config?.subInfoLabel || 'Info') : ''}</span>
         </div>
 
         {/* Rows */}
@@ -109,7 +110,7 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               onClick={() => onSelect?.(item)}
-              className="group cursor-pointer border-b border-white/[0.03] px-4 py-3 transition-colors hover:bg-white/[0.03] sm:grid sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px] sm:items-center"
+              className={`group cursor-pointer border-b border-white/[0.03] px-4 py-3 transition-colors hover:bg-white/[0.03] sm:grid ${isJob ? 'sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : 'sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'} sm:items-center`}
             >
               {/* Title */}
               <div className="mb-1 font-medium text-white transition-colors group-hover:text-primary sm:mb-0 sm:text-sm">
@@ -123,14 +124,16 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
               </div>
 
               {/* Genre */}
-              <div className="mb-1 sm:mb-0">
-                <span className="mr-1 text-[10px] text-muted-foreground sm:hidden">Genre:</span>
-                {item.genre && (
-                  <span className="inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-gray-300 ring-1 ring-inset ring-white/10">
-                    {item.genre}
-                  </span>
-                )}
-              </div>
+              {!isJob && (
+                <div className="mb-1 sm:mb-0">
+                  <span className="mr-1 text-[10px] text-muted-foreground sm:hidden">Genre:</span>
+                  {item.genre && (
+                    <span className="inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-gray-300 ring-1 ring-inset ring-white/10">
+                      {item.genre}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Status */}
               <div className="mb-1 flex items-center gap-1 sm:mb-0">
@@ -166,10 +169,12 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
               </div>
 
               {/* Rating */}
-              <div className="mb-1 text-xs text-yellow-500 sm:mb-0">
-                <span className="mr-1 text-[10px] text-muted-foreground sm:hidden">Rating:</span>
-                {item.rating != null && item.rating > 0 ? `★ ${item.rating}` : ''}
-              </div>
+              {!isJob && (
+                <div className="mb-1 text-xs text-yellow-500 sm:mb-0">
+                  <span className="mr-1 text-[10px] text-muted-foreground sm:hidden">Rating:</span>
+                  {item.rating != null && item.rating > 0 ? `★ ${item.rating}` : ''}
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">

@@ -134,15 +134,17 @@ function App() {
 
       <Navbar />
 
-      {/* Navigation tabs */}
-      <div className="sticky top-16 z-20 border-b border-white/[0.04] glass-panel">
-        <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-2 sm:px-6">
+      {/* Navigation tabs — desktop: sticky top, mobile: fixed bottom */}
+      <nav className="hidden sm:block sticky top-16 z-20 border-b border-white/[0.04] glass-panel">
+        <div role="tablist" aria-label="Media types" className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-2 sm:px-6">
           {MEDIA_TYPES.map((type) => {
             const Icon = TYPE_ICONS[type]
             const isActive = activeView === 'media' && activeType === type
             return (
               <button
                 key={type}
+                role="tab"
+                aria-selected={isActive}
                 type="button"
                 onClick={() => { setActiveType(type); setActiveView('media'); setVaultState(null) }}
                 className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 heading-ui text-[11px] font-semibold uppercase tracking-wider transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:px-4 sm:text-xs ${
@@ -160,6 +162,8 @@ function App() {
           <div className="mx-2 h-4 w-px bg-white/10" />
 
           <button
+            role="tab"
+            aria-selected={activeView === 'chat'}
             type="button"
             onClick={() => setActiveView('chat')}
             className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 heading-ui text-[11px] font-semibold uppercase tracking-wider transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:px-4 sm:text-xs ${
@@ -172,10 +176,51 @@ function App() {
             AI Chat
           </button>
         </div>
-      </div>
+      </nav>
+
+      {/* Mobile bottom tab bar */}
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-50 border-t border-white/[0.06] glass-panel pb-[env(safe-area-inset-bottom,0px)]">
+        <div role="tablist" aria-label="Media types" className="flex items-center justify-around px-2 py-1.5">
+          {MEDIA_TYPES.map((type) => {
+            const Icon = TYPE_ICONS[type]
+            const isActive = activeView === 'media' && activeType === type
+            return (
+              <button
+                key={type}
+                role="tab"
+                aria-selected={isActive}
+                type="button"
+                onClick={() => { setActiveType(type); setActiveView('media'); setVaultState(null) }}
+                className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 transition-all ${
+                  isActive
+                    ? 'text-primary'
+                    : 'text-muted-foreground'
+                }`}
+              >
+                <Icon size={18} />
+                <span className="heading-ui text-[9px] font-semibold uppercase tracking-wider">{MEDIA_CONFIG[type].label}</span>
+              </button>
+            )
+          })}
+          <button
+            role="tab"
+            aria-selected={activeView === 'chat'}
+            type="button"
+            onClick={() => setActiveView('chat')}
+            className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 transition-all ${
+              activeView === 'chat'
+                ? 'text-primary'
+                : 'text-muted-foreground'
+            }`}
+          >
+            <MessageCircle size={18} />
+            <span className="heading-ui text-[9px] font-semibold uppercase tracking-wider">Chat</span>
+          </button>
+        </div>
+      </nav>
 
       {/* Main content */}
-      <main id="main-content" className="relative z-10 flex-1 overflow-y-auto custom-scrollbar">
+      <main id="main-content" className="relative z-10 flex-1 overflow-y-auto custom-scrollbar pb-16 sm:pb-0">
         {activeView === 'chat' ? (
           <Suspense fallback={
             <div className="flex h-64 items-center justify-center" role="status">
@@ -236,6 +281,7 @@ function App() {
                   onSelect={handleSelect}
                   onEdit={handleEdit}
                   onHeaderClick={openVault}
+                  onAiSuggest={() => setActiveView('chat')}
                 />
               </Motion.div>
             )}

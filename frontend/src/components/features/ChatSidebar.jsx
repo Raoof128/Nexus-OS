@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { FolderOpen, Loader2, MessageCircle, Plus, Trash2 } from 'lucide-react'
 import { MEDIA_CONFIG, MEDIA_TYPES, TYPE_ICONS } from '../../lib/mediaConfig'
+import ConfirmDialog from './ConfirmDialog'
 
 const MEDIA_CATEGORY_COLORS = {
   book: 'text-cyan-400',
@@ -23,6 +24,7 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
   const [newTitle, setNewTitle] = useState('')
   const [newCategory, setNewCategory] = useState('general')
   const [showCreate, setShowCreate] = useState(false)
+  const [deleteSessionId, setDeleteSessionId] = useState(null)
 
   const grouped = useMemo(() => {
     const groups = {}
@@ -132,7 +134,7 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
                     </button>
                     <button
                       type="button"
-                      onClick={() => { if (window.confirm('Delete this session?')) onDelete(session.id) }}
+                      onClick={() => setDeleteSessionId(session.id)}
                       className="mr-1 shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                       aria-label={`Delete ${session.title}`}
                     >
@@ -153,6 +155,14 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={deleteSessionId !== null}
+        title="Delete Session"
+        message="This will permanently delete this chat session."
+        onConfirm={() => { onDelete(deleteSessionId); setDeleteSessionId(null); }}
+        onCancel={() => setDeleteSessionId(null)}
+      />
     </div>
   )
 }
