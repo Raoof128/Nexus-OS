@@ -158,7 +158,7 @@ export function useMedia(session, type = 'book') {
 
   return {
     items: mediaQuery.data ?? [],
-    loading: mediaQuery.isPending || mediaQuery.isFetching || addMediaMutation.isPending || updateMediaMutation.isPending || deleteMediaMutation.isPending,
+    loading: mediaQuery.isPending,
     error: mediaQuery.error?.message
       ?? addMediaMutation.error?.message
       ?? updateMediaMutation.error?.message
