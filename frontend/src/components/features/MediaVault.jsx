@@ -48,7 +48,7 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-4 sm:p-6">
+    <div className="mx-auto max-w-7xl p-3 sm:p-4 md:p-6 xl:p-8">
       {/* Header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -98,7 +98,7 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
         </div>
 
         {/* Rows */}
-        <div className="max-h-[calc(100vh-250px)] overflow-y-auto custom-scrollbar">
+        <div className="max-h-[calc(100dvh-14rem)] sm:max-h-[calc(100dvh-16rem)] overflow-y-auto custom-scrollbar">
           {filtered.length === 0 && (
             <div className="border border-dashed border-white/10 rounded-xl p-8 text-center opacity-50">
               <p className="font-mono text-xs tracking-wide sm:text-sm">NO_RECORDS_FOUND</p>

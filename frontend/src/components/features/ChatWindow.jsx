@@ -114,7 +114,7 @@ export default function ChatWindow({ sessionId, userId }) {
             </div>
 
             <div
-              className={`max-w-[78%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed ${
+              className={`max-w-[85%] sm:max-w-[78%] rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 text-[13px] leading-relaxed ${
                 msg.role === 'user'
                   ? 'rounded-tr-md bg-primary/[0.08] text-white ring-1 ring-primary/20'
                   : 'rounded-tl-md glass-panel text-neutral-200'
@@ -127,7 +127,7 @@ export default function ChatWindow({ sessionId, userId }) {
               </div>
               <div className="whitespace-pre-wrap break-words">{msg.content}</div>
             </div>
-            <span className={`text-[9px] font-mono text-muted-foreground/50 mt-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+            <span className={`hidden sm:block self-end text-[9px] font-mono text-muted-foreground/50 mt-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
               {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>

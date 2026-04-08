@@ -151,7 +151,7 @@ export default function AuthPanel() {
 
       <div
         ref={panelRef}
-        className="flex transition-[transform,height] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] min-h-[420px]"
+        className="flex transition-[transform,height] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] min-h-[360px] sm:min-h-[420px]"
         style={{ transform: `translateX(-${offset * 100}%)` }}
       >
         {/* ═══ LOGIN PANEL ═══ */}

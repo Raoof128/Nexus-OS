@@ -72,7 +72,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent shadow-[0_0_15px_var(--color-primary)]" />
 
               {/* Header */}
-              <div className="flex items-start justify-between p-6 pb-0">
+              <div className="flex items-start justify-between p-4 pb-0 sm:p-6 sm:pb-0">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/30">
                     <Icon className="h-5 w-5 text-primary" />
@@ -97,7 +97,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
               </div>
 
               {/* Body */}
-              <div className="space-y-4 p-6">
+              <div className="space-y-3 p-4 sm:space-y-4 sm:p-6">
                 {/* Creator */}
                 {item.creator && item.creator !== '—' && (
                   <div className="font-mono text-sm text-muted-foreground">
@@ -107,7 +107,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
 
                 {/* Status Stepper */}
                 {statusNav && (
-                  <div className="flex items-center gap-1 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-4">
+                  <div className="flex items-center gap-1 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-4 sm:px-4 overflow-x-auto">
                     {statusNav.flow.map((stepStatus, index) => {
                       const isCurrent = index === statusNav.currentIndex
                       const isPast = index < statusNav.currentIndex
@@ -133,7 +133,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                               }`}
                             />
                             <span
-                              className={`absolute top-6 text-center max-w-[80px] truncate font-mono text-[8px] sm:text-[9px] uppercase tracking-wider transition-colors ${
+                              className={`absolute top-6 text-center max-w-[56px] sm:max-w-[80px] truncate font-mono text-[7px] sm:text-[9px] uppercase tracking-wider transition-colors ${
                                 isCurrent
                                   ? 'text-primary'
                                   : isPast
@@ -161,7 +161,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                 )}
 
                 {/* Metadata grid */}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:grid-cols-3 sm:gap-3">
                   {item.type !== 'job' && item.genre && (
                     <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
                       <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Genre</p>

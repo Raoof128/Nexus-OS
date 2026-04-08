@@ -24,9 +24,9 @@ export default function ChatLayout() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-112px)] overflow-hidden">
+    <div className="flex h-[calc(100dvh-7rem)] overflow-hidden">
       {/* Desktop sidebar */}
-      <div className="hidden w-[280px] shrink-0 md:block">
+      <div className="hidden w-[240px] shrink-0 md:block lg:w-[280px]">
         <ChatSidebar
           sessions={sessions}
           activeSessionId={activeSessionId}

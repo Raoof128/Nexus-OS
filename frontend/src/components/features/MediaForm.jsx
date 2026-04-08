@@ -87,7 +87,7 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
             </select>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 min-[400px]:grid-cols-2">
             <div>
               <label htmlFor={`${idPrefix}-genre`} className={labelClass}>Genre</label>
               <input
@@ -116,7 +116,7 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
           </div>
         )}
 
-        <div className={isJob ? '' : 'grid grid-cols-2 gap-4'}>
+        <div className={isJob ? '' : 'grid grid-cols-1 gap-4 min-[400px]:grid-cols-2'}>
           {!isJob && (
             <div>
               <label htmlFor={`${idPrefix}-rating`} className={labelClass}>Rating (1-5)</label>

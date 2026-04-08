@@ -87,12 +87,12 @@ function App() {
 
         <Navbar />
         <main className="relative z-10 flex flex-1 items-center justify-center p-4 sm:p-6">
-          <div className="grid w-full max-w-6xl gap-6 sm:gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-            <section className="neon-border glass-panel rounded-2xl p-6 shadow-2xl order-2 hidden lg:block sm:rounded-[2rem] sm:p-10">
+          <div className="grid w-full max-w-6xl gap-6 sm:gap-8 md:grid-cols-[1.2fr_0.8fr]">
+            <section className="neon-border glass-panel rounded-2xl p-6 shadow-2xl order-2 hidden md:block sm:rounded-[2rem] sm:p-8 lg:p-10">
               <p className="heading-ui mb-3 text-xs font-semibold uppercase tracking-[0.4em] text-primary">
                 personal media vault
               </p>
-              <h1 className="heading-display max-w-3xl text-3xl font-black text-white sm:text-4xl md:text-5xl lg:text-6xl">
+              <h1 className="heading-display max-w-3xl text-2xl font-black text-white md:text-3xl lg:text-5xl xl:text-6xl">
                 One archive for everything you care about.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:mt-6 md:text-base">
@@ -100,7 +100,7 @@ function App() {
                 dashboard. Track books, movies, anime, and job applications — what
                 you finished, what you are pursuing now, and the notes that matter.
               </p>
-              <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-4 sm:gap-4">
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4">
                 {['Books', 'Movies', 'Anime', 'Jobs'].map((label) => (
                   <div
                     key={label}
@@ -112,8 +112,8 @@ function App() {
               </div>
             </section>
 
-            <div id="auth-panel" className="relative z-10 order-1 lg:order-2">
-              <p className="heading-display mb-6 text-center text-lg font-bold text-white truncate lg:hidden">
+            <div id="auth-panel" className="relative z-10 order-1 md:order-2 w-full max-w-md mx-auto md:max-w-none">
+              <p className="heading-display mb-6 text-center text-lg font-bold text-white truncate md:hidden">
                 Nexus Archive
               </p>
               <AuthPanel />
@@ -141,7 +141,7 @@ function App() {
 
       {/* Navigation tabs — desktop: sticky top, mobile: fixed bottom */}
       <nav className="hidden sm:block sticky top-16 z-40 isolate border-b border-white/[0.04] bg-background/80 backdrop-blur-xl">
-        <div role="tablist" aria-label="Media types" className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-2 sm:px-6">
+        <div role="tablist" aria-label="Media types" className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-2 sm:px-6 xl:px-8">
           {MEDIA_TYPES.map((type) => {
             const Icon = TYPE_ICONS[type]
             const isActive = activeView === 'media' && activeType === type
@@ -225,7 +225,7 @@ function App() {
       </nav>
 
       {/* Main content */}
-      <main id="main-content" className="relative z-10 flex-1 overflow-y-auto custom-scrollbar pb-16 sm:pb-0">
+      <main id="main-content" className="relative z-10 flex-1 overflow-y-auto custom-scrollbar pb-20 sm:pb-0">
         {activeView === 'chat' ? (
           <Suspense fallback={
             <div className="flex h-64 items-center justify-center" role="status">
@@ -276,7 +276,7 @@ function App() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.25 }}
-                className="mx-auto max-w-7xl p-4 sm:p-6"
+                className="mx-auto max-w-7xl p-3 sm:p-4 md:p-6 xl:p-8"
               >
                 <KanbanBoard
                   items={items}
