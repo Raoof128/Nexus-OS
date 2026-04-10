@@ -55,6 +55,12 @@ class BackendSettings:
     trusted_proxy_ips: tuple[str, ...] = ()
     allowed_origins: tuple[str, ...] = ()
     allowed_hosts: tuple[str, ...] = ()
+    # Email OAuth (optional — feature disabled when empty)
+    google_oauth_client_id: str = ""
+    google_oauth_client_secret: str = ""
+    microsoft_oauth_client_id: str = ""
+    microsoft_oauth_client_secret: str = ""
+    email_poll_interval_seconds: int = 60
 
 
 def _get_env(name: str, default: str | None = None) -> str | None:
@@ -169,6 +175,11 @@ def get_settings() -> BackendSettings:
         trusted_proxy_ips=_parse_csv_env("TRUSTED_PROXY_IPS", ()),
         allowed_origins=allowed_origins,
         allowed_hosts=_derive_allowed_hosts(allowed_origins),
+        google_oauth_client_id=_get_env("GOOGLE_OAUTH_CLIENT_ID", "") or "",
+        google_oauth_client_secret=_get_env("GOOGLE_OAUTH_CLIENT_SECRET", "") or "",
+        microsoft_oauth_client_id=_get_env("MICROSOFT_OAUTH_CLIENT_ID", "") or "",
+        microsoft_oauth_client_secret=_get_env("MICROSOFT_OAUTH_CLIENT_SECRET", "") or "",
+        email_poll_interval_seconds=int(_get_env("EMAIL_POLL_INTERVAL_SECONDS", "60") or "60"),
     )
 
     if settings.environment != "development" and not settings.cookie_secure:
