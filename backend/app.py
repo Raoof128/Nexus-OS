@@ -10,8 +10,11 @@ try:
     from .chat_controller import ChatController
     from .config import get_settings
     from .controllers import MediaController
+    from .email_controller import EmailController
+    from .email_poller import start_email_poller
     from .health import healthcheck
     from .logging_config import configure_logging
+    from .oauth_controller import OAuthController
     from .observability import configure_observability
     from .security import SecurityHeadersMiddleware
 except ImportError:  # pragma: no cover - supports backend cwd execution
@@ -20,8 +23,11 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
     from chat_controller import ChatController
     from config import get_settings
     from controllers import MediaController
+    from email_controller import EmailController
+    from email_poller import start_email_poller
     from health import healthcheck
     from logging_config import configure_logging
+    from oauth_controller import OAuthController
     from observability import configure_observability
     from security import SecurityHeadersMiddleware
 
@@ -54,9 +60,17 @@ _openapi_config: OpenAPIConfig | None = (
 )
 
 app = Litestar(
-    route_handlers=[healthcheck, AuthController, ChatController, MediaController],
+    route_handlers=[
+        healthcheck,
+        AuthController,
+        ChatController,
+        MediaController,
+        OAuthController,
+        EmailController,
+    ],
     middleware=[SecurityHeadersMiddleware, SupabaseAuthMiddleware],
     cors_config=cors_config,
     allowed_hosts=list(settings.allowed_hosts),
     openapi_config=_openapi_config,
+    on_startup=[start_email_poller],
 )
