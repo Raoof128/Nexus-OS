@@ -57,9 +57,9 @@ describe('App', () => {
 
     render(<App />)
     expect(screen.getByText('Neuromancer')).toBeTruthy()
-    expect(screen.getByText('Books')).toBeTruthy()
-    expect(screen.getByText('Movies')).toBeTruthy()
-    expect(screen.getByText('Anime')).toBeTruthy()
+    expect(screen.getAllByText('Books').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Movies').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Anime').length).toBeGreaterThan(0)
 
     useAuth.mockReturnValue({ session: null, loading: false, signIn: vi.fn().mockResolvedValue({ error: null }), signOut: vi.fn() })
     useMedia.mockReturnValue({ items: [], loading: false, error: null, addMedia: vi.fn(), updateMedia: vi.fn(), deleteMedia: vi.fn() })
