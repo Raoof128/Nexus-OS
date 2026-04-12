@@ -66,7 +66,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
               role="dialog"
               aria-modal="true"
               aria-labelledby="detail-modal-title"
-              className="neon-border relative w-full max-w-lg max-h-[90dvh] overflow-y-auto custom-scrollbar rounded-2xl glass-panel shadow-[0_0_60px_rgba(56,189,248,0.08)]"
+              className="neon-border relative w-full max-w-lg max-h-[90dvh] overflow-y-auto custom-scrollbar rounded-2xl glass-panel shadow-[0_0_60px_rgba(243,230,0,0.08)]"
             >
               {/* Neon top border */}
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent shadow-[0_0_15px_var(--color-primary)]" />
@@ -126,7 +126,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                               whileTap={isCurrent ? {} : { scale: 0.9 }}
                               className={`h-3.5 w-3.5 rotate-45 border transition-all duration-300 ${
                                 isCurrent
-                                  ? 'bg-primary border-primary/60 shadow-[0_0_12px_hsl(var(--neon-cyan)/0.6)]'
+                                  ? 'bg-primary border-primary/60 shadow-[0_0_12px_hsl(var(--neon-yellow)/0.6)]'
                                   : isPast
                                     ? 'bg-primary/30 border-primary/40'
                                     : 'bg-zinc-900 border-zinc-700 group-hover:border-primary/50 group-hover:bg-primary/10'
@@ -150,7 +150,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                                 initial={false}
                                 animate={{ width: isPast ? '100%' : '0%' }}
                                 transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                className="absolute inset-y-0 left-0 bg-primary/50 shadow-[0_0_6px_hsl(var(--neon-cyan)/0.4)]"
+                                className="absolute inset-y-0 left-0 bg-primary/50 shadow-[0_0_6px_hsl(var(--neon-yellow)/0.4)]"
                               />
                             </div>
                           )}
