@@ -4,10 +4,10 @@ import { MEDIA_CONFIG, MEDIA_TYPES, TYPE_ICONS } from '../../lib/mediaConfig'
 import ConfirmDialog from './ConfirmDialog'
 
 const MEDIA_CATEGORY_COLORS = {
-  book: 'text-cyan-400',
-  movie: 'text-pink-400',
-  anime: 'text-purple-400',
-  job: 'text-amber-400',
+  book: 'text-primary',
+  movie: 'text-destructive',
+  anime: 'text-secondary',
+  job: 'text-primary',
 }
 
 const CATEGORY_CONFIG = Object.fromEntries([
