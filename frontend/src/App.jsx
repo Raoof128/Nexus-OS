@@ -12,8 +12,10 @@ import { useAuth } from './hooks/useAuth'
 import { useMedia } from './hooks/useMedia'
 import { useRecoveryTokens } from './hooks/useRecoveryTokens'
 import { MEDIA_TYPES, MEDIA_CONFIG, TYPE_ICONS } from './lib/mediaConfig'
+import { EMAIL_TAB_ICON } from './lib/emailConfig'
 
 const ChatLayout = lazy(() => import('./components/features/ChatLayout'))
+const EmailInbox = lazy(() => import('./components/features/EmailInbox'))
 const MediaDetailModal = lazy(() => import('./components/features/MediaDetailModal'))
 const EditMediaDialog = lazy(() => import('./components/features/EditMediaDialog'))
 
@@ -168,6 +170,21 @@ function App() {
 
           <button
             role="tab"
+            aria-selected={activeView === 'email'}
+            type="button"
+            onClick={() => { setActiveView('email'); setVaultState(null) }}
+            className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 heading-ui text-[11px] font-semibold uppercase tracking-wider transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:px-4 sm:text-xs ${
+              activeView === 'email'
+                ? 'bg-cyan-500/20 text-cyan-400 shadow-[0_0_10px_hsl(187_100%_42%/0.4)]'
+                : 'text-muted-foreground hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <EMAIL_TAB_ICON size={14} />
+            Email
+          </button>
+
+          <button
+            role="tab"
             aria-selected={activeView === 'chat'}
             type="button"
             onClick={() => setActiveView('chat')}
@@ -209,6 +226,20 @@ function App() {
           })}
           <button
             role="tab"
+            aria-selected={activeView === 'email'}
+            type="button"
+            onClick={() => { setActiveView('email'); setVaultState(null) }}
+            className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 transition-all ${
+              activeView === 'email'
+                ? 'text-cyan-400'
+                : 'text-muted-foreground'
+            }`}
+          >
+            <EMAIL_TAB_ICON size={18} />
+            <span className="heading-ui text-[9px] font-semibold uppercase tracking-wider">Email</span>
+          </button>
+          <button
+            role="tab"
             aria-selected={activeView === 'chat'}
             type="button"
             onClick={() => setActiveView('chat')}
@@ -226,7 +257,13 @@ function App() {
 
       {/* Main content */}
       <main id="main-content" className="relative z-10 flex-1 overflow-y-auto custom-scrollbar pb-20 sm:pb-0">
-        {activeView === 'chat' ? (
+        {activeView === 'email' ? (
+          <Suspense fallback={<div className="flex items-center justify-center h-64 text-zinc-500">Loading email...</div>}>
+            <div className="mx-auto max-w-7xl p-3 sm:p-4 md:p-6 xl:p-8">
+              <EmailInbox />
+            </div>
+          </Suspense>
+        ) : activeView === 'chat' ? (
           <Suspense fallback={
             <div className="flex h-64 items-center justify-center" role="status">
               <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
