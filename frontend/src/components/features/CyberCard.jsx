@@ -53,14 +53,14 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
       layoutId={`card-${item.id}`}
       layout="position"
       transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-      className="neon-border group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-4 hover:brightness-110 hover:shadow-[0_0_20px_hsl(var(--neon-cyan)/0.15)] sm:p-6 transition-all duration-200"
+      className="neon-border group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-4 hover:brightness-110 hover:shadow-[0_0_20px_hsl(var(--neon-yellow)/0.15)] sm:p-6 transition-all duration-200"
     >
       {/* Neon glowing artifact behind */}
       <div className="absolute -inset-1 z-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/5 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
 
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex justify-between items-start mb-3">
-          <Icon className="h-5 w-5 text-primary drop-shadow-[0_0_8px_hsl(var(--neon-cyan)/0.8)] sm:h-6 sm:w-6" aria-hidden="true" />
+          <Icon className="h-5 w-5 text-primary drop-shadow-[0_0_8px_hsl(var(--neon-yellow)/0.8)] sm:h-6 sm:w-6" aria-hidden="true" />
           <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-mono font-medium text-primary sm:text-xs">
             {item.status}
           </span>
