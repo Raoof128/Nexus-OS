@@ -120,7 +120,7 @@ Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`
 - **Frontend env vars must start with `VITE_`** — Vite only exposes prefixed vars to client code. Both `realtimeClient.js` and `apiClient.js` validate their required vars at import time.
 - **AuthPanel registration** uses `signIn()` after successful signup, NOT `window.location.reload()`.
 - **CyberCard is memoized** with a custom comparator on item fields. If you add a new displayable field to the media model, add it to the comparator in `CyberCard.jsx`.
-- **Production builds MUST set `VITE_API_URL=https://home-notes-app.uk/api`** — the local `.env` has `localhost:8000`. If you forget the override, the deployed site will try to hit localhost and all API calls fail with `ERR_CONNECTION_REFUSED`. A Cloudflare Worker (`worker/`) proxies `/api/*` to Render.
+- **Production builds MUST set `VITE_API_URL=https://home-notes-app.uk/api`** — the local `.env` has `localhost:8000`. If you forget the override, the deployed site will try to hit localhost and all API calls fail with `ERR_CONNECTION_REFUSED`. A Cloudflare Worker (`worker/`) proxies `/api/*` to the DigitalOcean droplet (`api.home-notes-app.uk`).
 
 ## Code Style
 
@@ -138,4 +138,4 @@ Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`
 
 - **Frontend → Cloudflare Pages:** Build with `VITE_API_URL=https://home-notes-app.uk/api`, then `wrangler pages deploy dist --project-name nexus-archive --branch codex/bootstrap --commit-dirty=true`. Production branch is `codex/bootstrap` (NOT `main`). Domains: `home-notes-app.uk`, `www.home-notes-app.uk`.
 - **Backend → DigitalOcean:** Docker container on droplet `170.64.167.95`, behind Nginx reverse proxy (ports 80 + 443 with Cloudflare Origin Cert). DNS: `api.home-notes-app.uk` → droplet (Cloudflare-proxied). Cloudflare Worker proxies `home-notes-app.uk/api/*` → `https://api.home-notes-app.uk`. Healthcheck at `/healthz`.
-- **Security headers** defined in `vercel.json` (CSP, X-Frame-Options, etc.) — this file is still used by Cloudflare Pages for header configuration.
+- **Security headers** defined in `vercel.json` (CSP, X-Frame-Options, etc.) — NOTE: this is a legacy file from Vercel. Cloudflare Pages does NOT read `vercel.json`. These headers need to be migrated to `frontend/public/_headers` to take effect.

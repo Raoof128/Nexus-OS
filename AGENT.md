@@ -37,7 +37,7 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
   - `frontend/src/components/features/AddMediaDialog.jsx` — Added job placeholders (Senior Engineer / Stripe).
   - `frontend/src/App.jsx` — Added 'Jobs' to hero labels, updated description text, hero grid to `sm:grid-cols-4`.
 - **Verification:** `ruff check` clean, `pytest` 34/34 pass, `npm run lint` 0 errors, `npm run test` 17/17 pass, `npm run build` clean.
-- **Follow-ups:** Run `ALTER TYPE media_type ADD VALUE 'job'` in production Supabase SQL Editor before deploying. Render auto-deploys backend on push.
+- **Follow-ups:** Run `ALTER TYPE media_type ADD VALUE 'job'` in production Supabase SQL Editor before deploying. Backend runs on DigitalOcean droplet — redeploy Docker container after push.
 
 ### 2026-03-22 (Australia/Sydney)
 **Raouf:**
