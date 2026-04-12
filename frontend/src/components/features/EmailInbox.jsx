@@ -105,7 +105,7 @@ export default function EmailInbox() {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.25 }}
-      className="neon-border relative flex h-[calc(100dvh-7rem)] overflow-hidden rounded-2xl glass-panel"
+      className="neon-border relative flex h-[calc(100dvh-7rem)] overflow-hidden rounded-none glass-panel sm:rounded-2xl"
     >
       {/* Top neon accent */}
       <div className="absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent shadow-[0_0_15px_var(--color-primary)]" />

@@ -24,7 +24,7 @@ const OVERLAY_VARIANTS = {
 const inputClass =
   'flex-1 bg-transparent font-mono text-xs text-white/80 placeholder-muted-foreground/40 focus:outline-none'
 const labelClass =
-  'w-12 shrink-0 font-mono text-[10px] uppercase tracking-wider text-primary/40'
+  'w-10 shrink-0 font-mono text-[9px] uppercase tracking-wider text-primary/40 sm:w-12 sm:text-[10px]'
 
 function ComposeModal({
   isOpen,
@@ -150,8 +150,8 @@ function ComposeModal({
             aria-hidden="true"
           />
 
-          {/* Modal centering wrapper */}
-          <div className="fixed inset-0 z-[81] flex items-center justify-center p-4 sm:p-6">
+          {/* Modal centering wrapper — full-screen on mobile, centered card on desktop */}
+          <div className="fixed inset-0 z-[81] flex items-end justify-center sm:items-center sm:p-6">
           <Motion.div
             key="compose-modal"
             ref={modalRef}
@@ -163,8 +163,8 @@ function ComposeModal({
             animate="visible"
             exit="exit"
             onKeyDown={handleKeyDown}
-            className="neon-border glass-panel flex w-full max-w-lg flex-col overflow-hidden rounded-2xl shadow-[0_0_60px_rgba(56,189,248,0.08)]"
-            style={{ maxHeight: 'calc(100dvh - 3rem)' }}
+            className="neon-border glass-panel flex w-full flex-col overflow-hidden rounded-t-2xl shadow-[0_0_60px_rgba(56,189,248,0.08)] sm:max-w-lg sm:rounded-2xl"
+            style={{ maxHeight: '100dvh', height: 'auto' }}
           >
             {/* Neon top line */}
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent shadow-[0_0_15px_var(--color-primary)]" />
@@ -262,8 +262,8 @@ function ComposeModal({
                   <textarea
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
-                    rows={10}
-                    className="heading-ui w-full resize-none bg-transparent text-xs leading-7 text-white/70 placeholder-muted-foreground/30 focus:outline-none"
+                    rows={6}
+                    className="heading-ui w-full min-h-[120px] flex-1 resize-none bg-transparent text-xs leading-7 text-white/70 placeholder-muted-foreground/30 focus:outline-none sm:min-h-[200px]"
                     placeholder="nexus:// compose transmission..."
                     aria-label="Email body"
                   />
@@ -281,7 +281,7 @@ function ComposeModal({
                   </p>
                 )}
 
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
                   {/* AI Draft */}
                   {(isReply || isForward) && onAiDraft && (
                     <button
