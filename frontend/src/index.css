@@ -20,9 +20,8 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  --color-neon-magenta: hsl(var(--neon-magenta));
-  --color-neon-cyan: hsl(var(--neon-cyan));
-  --color-neon-purple: hsl(var(--neon-purple));
+  --color-neon-yellow: hsl(var(--neon-yellow));
+  --color-neon-teal: hsl(var(--neon-teal));
   --font-display: 'Orbitron', sans-serif;
   --font-ui: 'Oxanium', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -30,29 +29,27 @@
 
 @layer base {
   :root {
-    --background: 240 15% 3%;
-    --foreground: 0 0% 95%;
-    --card: 240 12% 5%;
-    --card-foreground: 0 0% 95%;
-    --popover: 240 12% 5%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 190 95% 55%;
-    --primary-foreground: 220 50% 8%;
-    --secondary: 240 5% 12%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 240 5% 12%;
-    --muted-foreground: 220 10% 72%;
-    --primary-muted: 190 40% 38%;
-    --accent: 330 85% 60%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 70% 45%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 8% 12%;
-    --input: 240 8% 12%;
-    --ring: 190 95% 55%;
-    --neon-magenta: 330 85% 60%;
-    --neon-cyan: 190 95% 55%;
-    --neon-purple: 270 80% 55%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 91%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 91%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 91%;
+    --primary: 56 100% 48%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 170 76% 63%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 7%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 56 100% 48%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 345 100% 39%;
+    --destructive-foreground: 0 0% 91%;
+    --border: 56 100% 48% / 0.15;
+    --input: 0 0% 4%;
+    --ring: 56 100% 48%;
+    --neon-yellow: 56 100% 48%;
+    --neon-teal: 170 76% 63%;
   }
 
   * {
