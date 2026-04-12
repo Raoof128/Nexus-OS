@@ -72,15 +72,15 @@
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: hsl(var(--neon-cyan) / 0.25);
+  background: hsl(var(--neon-yellow) / 0.25);
   border-radius: 9999px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--neon-cyan) / 0.5);
+  background: hsl(var(--neon-yellow) / 0.5);
 }
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--neon-cyan) / 0.25) transparent;
+  scrollbar-color: hsl(var(--neon-yellow) / 0.25) transparent;
 }
 
 /* ── Ambient background orbs ─────────────────────────────── */
@@ -98,14 +98,14 @@
   position: absolute;
   border-radius: 50%;
   filter: blur(120px);
-  opacity: 0.12;
   will-change: transform;
   animation: float-orb 20s ease-in-out infinite;
 }
 .ambient-orbs::before {
   width: 500px;
   height: 500px;
-  background: hsl(var(--neon-magenta));
+  background: hsl(var(--neon-yellow));
+  opacity: 0.08;
   top: -10%;
   right: -5%;
   animation-delay: -5s;
@@ -113,7 +113,8 @@
 .ambient-orbs::after {
   width: 600px;
   height: 600px;
-  background: hsl(var(--neon-cyan));
+  background: hsl(var(--neon-teal));
+  opacity: 0.06;
   bottom: -15%;
   left: -10%;
   animation-delay: -12s;
@@ -136,8 +137,8 @@
     0deg,
     transparent,
     transparent 2px,
-    hsl(var(--neon-cyan) / 0.015) 2px,
-    hsl(var(--neon-cyan) / 0.015) 4px
+    rgba(255, 255, 255, 0.03) 2px,
+    rgba(255, 255, 255, 0.03) 4px
   );
 }
 
@@ -153,10 +154,10 @@
   padding: 1px;
   background: linear-gradient(
     135deg,
-    hsl(var(--neon-cyan) / 0.4),
+    hsl(var(--neon-yellow) / 0.4),
     transparent 40%,
     transparent 60%,
-    hsl(var(--neon-magenta) / 0.3)
+    hsl(var(--neon-teal) / 0.3)
   );
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
