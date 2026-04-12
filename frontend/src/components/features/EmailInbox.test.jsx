@@ -39,7 +39,7 @@ describe('EmailInbox', () => {
     render(<QueryClientProvider client={qc}><EmailInbox /></QueryClientProvider>)
     expect(screen.getByRole('navigation', { name: /email folders/i })).toBeTruthy()
     expect(screen.getByText('Interview follow-up')).toBeTruthy()
-    expect(screen.getByText(/select an email/i)).toBeTruthy()
+    expect(screen.getByText(/SELECT_SIGNAL/)).toBeTruthy()
   })
   it('shows compose button', () => {
     render(<QueryClientProvider client={qc}><EmailInbox /></QueryClientProvider>)

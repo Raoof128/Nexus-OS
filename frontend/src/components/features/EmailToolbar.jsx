@@ -1,11 +1,23 @@
 import React from 'react'
-import { Archive, MailOpen, Mail, Reply, Trash2 } from 'lucide-react'
+import { Archive, MailOpen, Mail, Reply, Trash2, Forward } from 'lucide-react'
 
-const ToolbarButton = React.memo(function ToolbarButton({ onClick, icon: Icon, label, variant = 'default' }) {
-  const variantClass =
-    variant === 'danger'
-      ? 'text-red-400/70 hover:bg-red-500/10 hover:text-red-400'
-      : 'text-muted-foreground hover:bg-white/5 hover:text-white'
+const ToolbarButton = React.memo(function ToolbarButton({
+  onClick,
+  icon: Icon,
+  label,
+  variant = 'default',
+}) {
+  const base =
+    'relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-black'
+
+  const variants = {
+    default:
+      'bg-white/[0.03] text-muted-foreground hover:bg-primary/10 hover:text-primary',
+    danger:
+      'bg-white/[0.03] text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
+    accent:
+      'bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 hover:bg-primary/20 hover:shadow-[0_0_12px_hsl(var(--neon-cyan)/0.15)]',
+  }
 
   return (
     <button
@@ -13,9 +25,9 @@ const ToolbarButton = React.memo(function ToolbarButton({ onClick, icon: Icon, l
       onClick={onClick}
       title={label}
       aria-label={label}
-      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-black ${variantClass}`}
+      className={`${base} ${variants[variant]}`}
     >
-      <Icon size={14} />
+      <Icon size={13} />
       <span className="hidden sm:inline">{label}</span>
     </button>
   )
@@ -31,10 +43,18 @@ const EmailToolbar = React.memo(function EmailToolbar({
   if (!email) return null
 
   return (
-    <div className="flex items-center gap-0.5 border-b border-white/[0.06] px-3 py-2">
-      <ToolbarButton onClick={() => onReply?.(email)} icon={Reply} label="Reply" />
+    <div className="relative flex items-center gap-1 border-b border-white/[0.06] bg-white/[0.01] px-3 py-2">
+      {/* Neon line at bottom of toolbar */}
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
-      <div className="mx-1 h-4 w-px bg-white/10" />
+      <ToolbarButton
+        onClick={() => onReply?.(email)}
+        icon={Reply}
+        label="Reply"
+        variant="accent"
+      />
+
+      <div className="mx-1.5 h-4 w-px bg-white/[0.06]" aria-hidden="true" />
 
       <ToolbarButton
         onClick={() => onArchive?.(email)}
@@ -48,12 +68,12 @@ const EmailToolbar = React.memo(function EmailToolbar({
         variant="danger"
       />
 
-      <div className="mx-1 h-4 w-px bg-white/10" />
+      <div className="mx-1.5 h-4 w-px bg-white/[0.06]" aria-hidden="true" />
 
       <ToolbarButton
         onClick={() => onToggleRead?.(email)}
         icon={email.is_read ? Mail : MailOpen}
-        label={email.is_read ? 'Mark unread' : 'Mark read'}
+        label={email.is_read ? 'Mark Unread' : 'Mark Read'}
       />
     </div>
   )
