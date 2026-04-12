@@ -136,7 +136,8 @@ function ComposeModal({
             aria-hidden="true"
           />
 
-          {/* Modal */}
+          {/* Modal centering wrapper */}
+          <div className="fixed inset-0 z-[81] flex items-center justify-center p-4 sm:p-6">
           <Motion.div
             key="compose-modal"
             role="dialog"
@@ -147,8 +148,8 @@ function ComposeModal({
             animate="visible"
             exit="exit"
             onKeyDown={handleKeyDown}
-            className="neon-border glass-panel fixed inset-4 z-[81] mx-auto my-auto flex w-full max-w-lg flex-col overflow-hidden rounded-2xl shadow-[0_0_60px_rgba(56,189,248,0.08)] sm:inset-6"
-            style={{ maxHeight: 'calc(100dvh - 3rem)', height: 'fit-content' }}
+            className="neon-border glass-panel flex w-full max-w-lg flex-col overflow-hidden rounded-2xl shadow-[0_0_60px_rgba(56,189,248,0.08)]"
+            style={{ maxHeight: 'calc(100dvh - 3rem)' }}
           >
             {/* Neon top line */}
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent shadow-[0_0_15px_var(--color-primary)]" />
@@ -314,6 +315,7 @@ function ComposeModal({
               </div>
             </form>
           </Motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
