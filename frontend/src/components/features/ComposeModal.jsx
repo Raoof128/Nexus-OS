@@ -147,8 +147,8 @@ function ComposeModal({
             animate="visible"
             exit="exit"
             onKeyDown={handleKeyDown}
-            className="neon-border glass-panel fixed bottom-6 right-6 z-[81] flex w-full max-w-lg flex-col overflow-hidden rounded-2xl shadow-[0_0_60px_rgba(56,189,248,0.08)] sm:right-8"
-            style={{ maxHeight: 'calc(100vh - 3rem)' }}
+            className="neon-border glass-panel fixed inset-4 z-[81] mx-auto my-auto flex w-full max-w-lg flex-col overflow-hidden rounded-2xl shadow-[0_0_60px_rgba(56,189,248,0.08)] sm:inset-6"
+            style={{ maxHeight: 'calc(100dvh - 3rem)', height: 'fit-content' }}
           >
             {/* Neon top line */}
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent shadow-[0_0_15px_var(--color-primary)]" />
