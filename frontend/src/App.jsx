@@ -85,7 +85,7 @@ function App() {
         </a>
         <div className="ambient-orbs" />
         <div className="scanlines" />
-        <div className="absolute inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-cyan)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-cyan)/0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
         <Navbar />
         <main className="relative z-10 flex flex-1 items-center justify-center p-4 sm:p-6">
@@ -137,7 +137,7 @@ function App() {
       </a>
       <div className="ambient-orbs" />
       <div className="scanlines" />
-      <div className="pointer-events-none fixed inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-cyan)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-cyan)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      <div className="pointer-events-none fixed inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
       <Navbar />
 
@@ -175,7 +175,7 @@ function App() {
             onClick={() => { setActiveView('email'); setVaultState(null) }}
             className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 heading-ui text-[11px] font-semibold uppercase tracking-wider transition-all focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:px-4 sm:text-xs ${
               activeView === 'email'
-                ? 'bg-cyan-500/20 text-cyan-400 shadow-[0_0_10px_hsl(187_100%_42%/0.4)]'
+                ? 'bg-teal-500/20 text-teal-400 shadow-[0_0_10px_hsl(var(--neon-teal)/0.4)]'
                 : 'text-muted-foreground hover:bg-white/5 hover:text-white'
             }`}
           >
@@ -231,7 +231,7 @@ function App() {
             onClick={() => { setActiveView('email'); setVaultState(null) }}
             className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 transition-all ${
               activeView === 'email'
-                ? 'text-cyan-400'
+                ? 'text-teal-400'
                 : 'text-muted-foreground'
             }`}
           >
