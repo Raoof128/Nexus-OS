@@ -41,7 +41,7 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
       onOpenChange={(v) => { if (!v) { setResult(null); resetSuggest(); setAddedIndices(new Set()) } onOpenChange(v) }}
       label="Global AI Command Menu"
       contentClassName="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4"
-      className="neon-border flex w-full max-w-lg sm:max-w-xl md:max-w-2xl max-h-[85dvh] flex-col overflow-hidden rounded-2xl glass-panel p-0 shadow-[0_0_80px_hsl(var(--neon-cyan)/0.08)]"
+      className="neon-border flex w-full max-w-lg sm:max-w-xl md:max-w-2xl max-h-[85dvh] flex-col overflow-hidden rounded-2xl glass-panel p-0 shadow-[0_0_80px_hsl(var(--neon-yellow)/0.08)]"
       overlayClassName="fixed inset-0 z-[99] bg-black/60 backdrop-blur-md"
     >
       <span className="sr-only" role="heading" aria-level="2">AI Command Menu</span>
@@ -80,7 +80,7 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
             onSelect={handleSuggest}
             className="group my-1 flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3.5 transition-all hover:bg-primary/[0.06] aria-selected:bg-primary/10 aria-selected:ring-1 aria-selected:ring-primary/20"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20 transition-all group-hover:bg-primary/20 group-hover:shadow-[0_0_12px_hsl(var(--neon-cyan)/0.2)]">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20 transition-all group-hover:bg-primary/20 group-hover:shadow-[0_0_12px_hsl(var(--neon-yellow)/0.2)]">
               <Zap size={16} className="text-primary" />
             </div>
             <div>
@@ -180,7 +180,7 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
                           key={status}
                           type="button"
                           onClick={() => handleAddToArchive(s, status, i)}
-                          className="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[10px] font-semibold heading-ui tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_8px_hsl(var(--neon-cyan)/0.15)]"
+                          className="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[10px] font-semibold heading-ui tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_8px_hsl(var(--neon-yellow)/0.15)]"
                         >
                           <Plus size={10} />
                           {status}
