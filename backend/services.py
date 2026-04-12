@@ -291,6 +291,24 @@ def create_supabase_auth_client() -> Client:
     return create_client(settings.supabase_url, settings.supabase_auth_key)
 
 
+def create_supabase_service_client() -> Client:
+    """Return a Supabase client with the service role key — bypasses RLS.
+
+    Use ONLY for backend operations that need to write to RLS-protected tables
+    (e.g., the email poller writing to nexus_emails). Never expose this to
+    user-facing code paths.
+    """
+
+    settings = get_settings()
+    key = settings.supabase_service_role_key
+    if not key:
+        raise RuntimeError(
+            "SUPABASE_SERVICE_ROLE_KEY is required for email poller writes. "
+            "Find it in your Supabase dashboard under Settings > API > service_role."
+        )
+    return create_client(settings.supabase_url, key)
+
+
 @lru_cache(maxsize=1)
 def get_genai_client() -> genai.Client | None:
     """Return a Gemini client when configured."""

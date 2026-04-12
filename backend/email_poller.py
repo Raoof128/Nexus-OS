@@ -12,11 +12,11 @@ import httpx
 try:
     from .config import get_settings
     from .email_service import EmailMessage, decrypt_oauth_token, get_provider
-    from .services import create_supabase_auth_client
+    from .services import create_supabase_service_client
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
     from email_service import EmailMessage, decrypt_oauth_token, get_provider
-    from services import create_supabase_auth_client
+    from services import create_supabase_service_client
 
 if TYPE_CHECKING:
     from litestar import Litestar
@@ -140,7 +140,7 @@ async def refresh_token_if_needed(account: dict, settings) -> str:
         )
 
     try:
-        db = create_supabase_auth_client()
+        db = create_supabase_service_client()
         (
             db.postgrest.from_("email_accounts")
             .update(update_row)
@@ -214,7 +214,7 @@ async def sync_account(account: dict, settings) -> None:
 
     if rows:
         try:
-            db = create_supabase_auth_client()
+            db = create_supabase_service_client()
             db.postgrest.from_("email_messages").upsert(
                 rows, on_conflict="account_id,provider_id"
             ).execute()
@@ -225,7 +225,7 @@ async def sync_account(account: dict, settings) -> None:
 
     # Ghost detection
     try:
-        db = create_supabase_auth_client()
+        db = create_supabase_service_client()
         db_resp = (
             db.postgrest.from_("email_messages")
             .select("provider_id")
@@ -263,7 +263,7 @@ async def poll_all_accounts() -> None:
 
     settings = get_settings()
     try:
-        db = create_supabase_auth_client()
+        db = create_supabase_service_client()
         resp = (
             db.postgrest.from_("email_accounts")
             .select("*")

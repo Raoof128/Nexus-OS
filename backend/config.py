@@ -55,6 +55,8 @@ class BackendSettings:
     trusted_proxy_ips: tuple[str, ...] = ()
     allowed_origins: tuple[str, ...] = ()
     allowed_hosts: tuple[str, ...] = ()
+    # Supabase service role key (required for email poller writes — bypasses RLS)
+    supabase_service_role_key: str = ""
     # Email OAuth (optional — feature disabled when empty)
     google_oauth_client_id: str = ""
     google_oauth_client_secret: str = ""
@@ -175,6 +177,7 @@ def get_settings() -> BackendSettings:
         trusted_proxy_ips=_parse_csv_env("TRUSTED_PROXY_IPS", ()),
         allowed_origins=allowed_origins,
         allowed_hosts=_derive_allowed_hosts(allowed_origins),
+        supabase_service_role_key=_get_env("SUPABASE_SERVICE_ROLE_KEY", "") or "",
         google_oauth_client_id=_get_env("GOOGLE_OAUTH_CLIENT_ID", "") or "",
         google_oauth_client_secret=_get_env("GOOGLE_OAUTH_CLIENT_SECRET", "") or "",
         microsoft_oauth_client_id=_get_env("MICROSOFT_OAUTH_CLIENT_ID", "") or "",
