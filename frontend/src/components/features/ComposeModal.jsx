@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Loader2, Sparkles, X, Send } from 'lucide-react'
 import { getProviderBadge } from '../../lib/emailConfig'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 const MODAL_VARIANTS = {
   hidden: { opacity: 0, y: 24, scale: 0.96 },
@@ -48,6 +49,18 @@ function ComposeModal({
 
   const isReply = replyTo?.type === 'reply'
   const isForward = replyTo?.type === 'forward'
+
+  // Focus trap
+  const modalRef = useFocusTrap(isOpen)
+
+  // Scroll lock
+  useEffect(() => {
+    if (!isOpen) return
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -116,8 +129,9 @@ function ComposeModal({
   const handleKeyDown = useCallback(
     (e) => {
       if (e.key === 'Escape') onClose?.()
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleSubmit(e)
     },
-    [onClose],
+    [onClose, handleSubmit],
   )
 
   return (
@@ -140,6 +154,7 @@ function ComposeModal({
           <div className="fixed inset-0 z-[81] flex items-center justify-center p-4 sm:p-6">
           <Motion.div
             key="compose-modal"
+            ref={modalRef}
             role="dialog"
             aria-modal="true"
             aria-label={isReply ? 'Reply' : isForward ? 'Forward' : 'New transmission'}

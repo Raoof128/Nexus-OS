@@ -2,6 +2,40 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query'
 
+vi.mock('lucide-react', () => ({
+  ArrowLeft: () => null,
+  Menu: () => null,
+  Search: () => null,
+  Star: () => null,
+  Paperclip: () => null,
+  X: () => null,
+  Send: () => null,
+  Sparkles: () => null,
+  Loader2: () => null,
+  ChevronDown: () => null,
+  Plus: () => null,
+  Zap: () => null,
+  Inbox: () => null,
+  Eye: () => null,
+  EyeOff: () => null,
+  AlertTriangle: () => null,
+}))
+
+vi.mock('framer-motion', () => ({
+  motion: new Proxy({}, {
+    get: () => {
+      // eslint-disable-next-line react/display-name
+      return ({ children, ...props }) => {
+        // strip motion-specific props
+        const { initial, animate, exit, transition, variants, layoutId, layout, whileHover, whileTap, ...rest } = props
+        return <div {...rest}>{children}</div>
+      }
+    }
+  }),
+  AnimatePresence: ({ children }) => <>{children}</>,
+  LayoutGroup: ({ children }) => <>{children}</>,
+}))
+
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({ session: { user: { id: 'user-1' }, access_token: 'jwt' } }),
 }))
@@ -19,7 +53,7 @@ vi.mock('../../hooks/useEmails', () => ({
       is_read: false, is_starred: false, provider_date: '2026-04-10T09:00:00Z',
       to_addresses: [{ name: 'Raouf', email: 'raoof@gmail.com' }], folder: 'inbox',
     }],
-    loading: false, error: null, loadMore: vi.fn(),
+    loading: false, error: null, loadMore: vi.fn(), search: vi.fn().mockResolvedValue([]), refetch: vi.fn(),
   }),
 }))
 vi.mock('../../hooks/useEmailActions', () => ({
@@ -28,6 +62,30 @@ vi.mock('../../hooks/useEmailActions', () => ({
     sendEmail: vi.fn(), replyEmail: vi.fn(), forwardEmail: vi.fn(),
     aiDraft: vi.fn(), aiSummarize: vi.fn(), isSending: false, sendError: null,
   }),
+}))
+vi.mock('./EmailReader', () => ({
+  default: ({ email }) => email
+    ? <div data-testid="email-reader">{email.subject}</div>
+    : <div data-testid="email-reader-empty">SELECT_SIGNAL</div>,
+}))
+vi.mock('./ComposeModal', () => ({
+  default: () => null,
+}))
+vi.mock('./FolderSidebar', () => ({
+  default: ({ onSelectFolder, activeFolder }) => (
+    <nav aria-label="Email folders">
+      <button type="button" onClick={() => onSelectFolder?.('inbox')}>Inbox</button>
+    </nav>
+  ),
+}))
+vi.mock('./EmailList', () => ({
+  default: ({ emails, onSelectEmail }) => (
+    <ul role="list" aria-label="Email messages">
+      {emails.map((e) => (
+        <li key={e.id} onClick={() => onSelectEmail?.(e)}>{e.subject}</li>
+      ))}
+    </ul>
+  ),
 }))
 
 import EmailInbox from './EmailInbox'

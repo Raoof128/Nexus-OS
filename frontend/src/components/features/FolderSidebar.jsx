@@ -9,6 +9,7 @@ const FolderSidebar = React.memo(function FolderSidebar({
   onSelectAccount,
   onSelectFolder,
   onConnectAccount,
+  hasUnreadInbox = false,
 }) {
   const handleFolderClick = useCallback(
     (folderId) => {
@@ -103,7 +104,13 @@ const FolderSidebar = React.memo(function FolderSidebar({
                         : 'text-muted-foreground'
                     }
                   />
-                  <span>{label}</span>
+                  <span className="flex-1">{label}</span>
+                  {id === 'inbox' && hasUnreadInbox && (
+                    <span
+                      className="ml-auto h-2 w-2 rounded-full bg-primary shadow-[0_0_6px_var(--color-primary)]"
+                      aria-label="Has unread messages"
+                    />
+                  )}
                 </button>
               </li>
             )

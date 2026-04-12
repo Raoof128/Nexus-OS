@@ -112,15 +112,23 @@ export function useEmails(session, folder = 'inbox', accountId = 'all') {
     }
   }, [isAuthenticated, accessToken, userId, folder, accountId, emailsQueryKey, queryClient])
 
+  const loadingMoreRef = useRef(false)
+
   const loadMore = useCallback(async () => {
+    if (loadingMoreRef.current) return
     const all = [...(emailsQuery.data ?? []), ...extraEmails]
     if (all.length === 0) return
     const lastEmail = all[all.length - 1]
     const newCursor = lastEmail.provider_date
     setCursor(newCursor)
 
-    const nextPage = await fetchEmails({ userId, folder, accountId, cursor: newCursor })
-    setExtraEmails((prev) => [...prev, ...nextPage])
+    loadingMoreRef.current = true
+    try {
+      const nextPage = await fetchEmails({ userId, folder, accountId, cursor: newCursor })
+      setExtraEmails((prev) => [...prev, ...nextPage])
+    } finally {
+      loadingMoreRef.current = false
+    }
   }, [emailsQuery.data, extraEmails, userId, folder, accountId])
 
   const search = useCallback(
