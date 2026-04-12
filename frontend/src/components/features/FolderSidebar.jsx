@@ -39,7 +39,7 @@ const FolderSidebar = React.memo(function FolderSidebar({
           <select
             value={selectedAccountId}
             onChange={handleAccountChange}
-            className="heading-ui w-full appearance-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 pr-8 text-xs text-white/80 transition-all focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:shadow-[0_0_12px_hsl(var(--neon-cyan)/0.15)]"
+            className="heading-ui w-full appearance-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 pr-8 text-xs text-white/80 transition-all focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:shadow-[0_0_12px_hsl(var(--neon-yellow)/0.15)]"
             aria-label="Select email account"
           >
             <option value="all">All Uplinks</option>
@@ -91,7 +91,7 @@ const FolderSidebar = React.memo(function FolderSidebar({
                   onClick={() => handleFolderClick(id)}
                   className={`heading-ui flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                     isActive
-                      ? 'bg-primary/15 text-primary shadow-[inset_0_0_0_1px_hsl(var(--neon-cyan)/0.3),0_0_12px_hsl(var(--neon-cyan)/0.1)]'
+                      ? 'bg-primary/15 text-primary shadow-[inset_0_0_0_1px_hsl(var(--neon-yellow)/0.3),0_0_12px_hsl(var(--neon-yellow)/0.1)]'
                       : 'text-muted-foreground hover:bg-white/[0.04] hover:text-white'
                   }`}
                   aria-current={isActive ? 'page' : undefined}
@@ -100,7 +100,7 @@ const FolderSidebar = React.memo(function FolderSidebar({
                     size={14}
                     className={
                       isActive
-                        ? 'text-primary drop-shadow-[0_0_6px_hsl(var(--neon-cyan)/0.6)]'
+                        ? 'text-primary drop-shadow-[0_0_6px_hsl(var(--neon-yellow)/0.6)]'
                         : 'text-muted-foreground'
                     }
                   />
@@ -123,7 +123,7 @@ const FolderSidebar = React.memo(function FolderSidebar({
         <button
           type="button"
           onClick={onConnectAccount}
-          className="neon-pulse flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-primary/20 px-3 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground transition-all hover:border-primary/50 hover:bg-primary/5 hover:text-primary hover:shadow-[0_0_15px_hsl(var(--neon-cyan)/0.1)] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          className="neon-pulse flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-primary/20 px-3 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground transition-all hover:border-primary/50 hover:bg-primary/5 hover:text-primary hover:shadow-[0_0_15px_hsl(var(--neon-yellow)/0.1)] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         >
           <Zap size={11} />
           Uplink Account

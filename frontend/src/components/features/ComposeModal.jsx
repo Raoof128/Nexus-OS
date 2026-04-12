@@ -163,7 +163,7 @@ function ComposeModal({
             animate="visible"
             exit="exit"
             onKeyDown={handleKeyDown}
-            className="neon-border glass-panel flex w-full flex-col overflow-hidden rounded-t-2xl shadow-[0_0_60px_rgba(56,189,248,0.08)] sm:max-w-lg sm:rounded-2xl"
+            className="neon-border glass-panel flex w-full flex-col overflow-hidden rounded-t-2xl shadow-[0_0_60px_rgba(243,230,0,0.08)] sm:max-w-lg sm:rounded-2xl"
             style={{ maxHeight: '100dvh', height: 'auto' }}
           >
             {/* Neon top line */}
@@ -288,7 +288,7 @@ function ComposeModal({
                       type="button"
                       onClick={handleAiDraft}
                       disabled={isDrafting || isSending}
-                      className="flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-accent ring-1 ring-inset ring-accent/20 transition-all hover:bg-accent/20 hover:shadow-[0_0_12px_hsl(var(--neon-magenta)/0.15)] disabled:pointer-events-none disabled:opacity-40"
+                      className="flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-accent ring-1 ring-inset ring-accent/20 transition-all hover:bg-accent/20 hover:shadow-[0_0_12px_hsl(var(--neon-yellow)/0.15)] disabled:pointer-events-none disabled:opacity-40"
                     >
                       {isDrafting ? (
                         <Loader2 size={11} className="animate-spin" />

@@ -176,7 +176,7 @@ export default function EmailInbox() {
               setReplyTo(null)
               setComposeOpen(true)
             }}
-            className="heading-ui rounded-md bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary ring-1 ring-inset ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_10px_hsl(var(--neon-cyan)/0.15)] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            className="heading-ui rounded-md bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary ring-1 ring-inset ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.15)] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             aria-label="Compose new email"
           >
             Compose
@@ -187,7 +187,7 @@ export default function EmailInbox() {
 
         {/* Search bar */}
         <div className="relative border-b border-white/[0.04] bg-white/[0.01] px-3 py-2">
-          <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 focus-within:border-primary/30 focus-within:shadow-[0_0_10px_hsl(var(--neon-cyan)/0.08)]">
+          <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 focus-within:border-primary/30 focus-within:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.08)]">
             <Search size={11} className="shrink-0 text-primary/40" />
             <input
               type="text"

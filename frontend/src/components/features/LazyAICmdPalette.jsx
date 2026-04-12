@@ -8,7 +8,7 @@ function LoadingDialog() {
   return (
     <>
       <div className="fixed inset-0 z-[99] bg-black/60 backdrop-blur-md" aria-hidden="true" />
-      <div className="neon-border fixed left-1/2 top-1/2 z-[100] flex w-full max-w-md -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl glass-panel p-10 shadow-[0_0_60px_hsl(var(--neon-cyan)/0.08)]">
+      <div className="neon-border fixed left-1/2 top-1/2 z-[100] flex w-full max-w-md -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl glass-panel p-10 shadow-[0_0_60px_hsl(var(--neon-yellow)/0.08)]">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <span className="heading-display text-[10px] tracking-[0.3em] text-primary/50">Loading Module</span>
@@ -44,7 +44,7 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd }) {
     <>
       <button
         type="button"
-        className="fixed bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex cursor-pointer items-center gap-1.5 rounded-full border border-white/10 bg-black/70 backdrop-blur-md px-3 py-2 heading-ui text-[10px] font-semibold text-muted-foreground transition-all hover:border-primary/30 hover:text-primary hover:shadow-[0_0_15px_hsl(var(--neon-cyan)/0.2)] sm:bottom-[4.5rem] sm:right-6 sm:z-50 sm:px-3.5 sm:text-xs"
+        className="fixed bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex cursor-pointer items-center gap-1.5 rounded-full border border-white/10 bg-black/70 backdrop-blur-md px-3 py-2 heading-ui text-[10px] font-semibold text-muted-foreground transition-all hover:border-primary/30 hover:text-primary hover:shadow-[0_0_15px_hsl(var(--neon-yellow)/0.2)] sm:bottom-[4.5rem] sm:right-6 sm:z-50 sm:px-3.5 sm:text-xs"
         onMouseEnter={() => {
           setShouldLoad(true)
           void loadAICmdPalette()

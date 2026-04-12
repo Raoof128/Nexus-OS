@@ -16,7 +16,7 @@ const ToolbarButton = React.memo(function ToolbarButton({
     danger:
       'bg-white/[0.03] text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
     accent:
-      'bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 hover:bg-primary/20 hover:shadow-[0_0_12px_hsl(var(--neon-cyan)/0.15)]',
+      'bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 hover:bg-primary/20 hover:shadow-[0_0_12px_hsl(var(--neon-yellow)/0.15)]',
   }
 
   return (
