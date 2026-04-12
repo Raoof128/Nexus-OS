@@ -175,22 +175,37 @@
   80% { transform: translateX(1px); }
 }
 
+@keyframes glitch-chromatic {
+  0%, 100% {
+    text-shadow: none;
+  }
+  20% {
+    text-shadow: -3px 0 #f3e600, 3px 0 #55ead4;
+  }
+  40% {
+    text-shadow: 3px 0 #f3e600, -3px 0 #c5003c;
+  }
+  60% {
+    text-shadow: -2px 0 #55ead4, 2px 0 #f3e600;
+  }
+  80% {
+    text-shadow: 2px 0 #c5003c, -2px 0 #f3e600;
+  }
+}
+
 .glitch-hover:hover {
-  animation: glitch-shift 0.3s ease-in-out;
-  text-shadow:
-    2px 0 hsl(var(--neon-cyan) / 0.5),
-    -2px 0 hsl(var(--neon-magenta) / 0.5);
+  animation: glitch-shift 0.3s ease-in-out, glitch-chromatic 0.3s ease-in-out;
 }
 
 /* ── Neon pulse animation ────────────────────────────────── */
 @keyframes neon-pulse {
   0%, 100% {
-    box-shadow: 0 0 5px hsl(var(--neon-cyan) / 0.3),
-                0 0 20px hsl(var(--neon-cyan) / 0.1);
+    box-shadow: 0 0 5px hsl(var(--neon-yellow) / 0.3),
+                0 0 20px hsl(var(--neon-yellow) / 0.1);
   }
   50% {
-    box-shadow: 0 0 10px hsl(var(--neon-cyan) / 0.5),
-                0 0 40px hsl(var(--neon-cyan) / 0.15);
+    box-shadow: 0 0 10px hsl(var(--neon-yellow) / 0.5),
+                0 0 40px hsl(var(--neon-yellow) / 0.15);
   }
 }
 
