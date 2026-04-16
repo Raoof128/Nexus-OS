@@ -56,7 +56,7 @@ function Taskbar() {
   if (isMobile) {
     return (
       <nav
-        className="glass-panel fixed inset-x-0 bottom-0 z-[500] flex items-center justify-around border-t border-cyan-500/10 px-2 py-1.5 overflow-x-auto"
+        className="glass-panel relative z-[500] flex shrink-0 items-center justify-around border-t border-cyan-500/10 px-2 py-1.5 overflow-x-auto"
         style={{ paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom, 0px))' }}
         aria-label="App dock"
       >
@@ -96,7 +96,7 @@ function Taskbar() {
 
   return (
     <nav
-      className="glass-panel fixed inset-x-0 bottom-0 z-[500] flex h-12 items-center border-t border-cyan-500/10 px-3"
+      className="glass-panel relative z-[500] flex h-12 shrink-0 items-center border-t border-cyan-500/10 px-3"
       aria-label="Taskbar"
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />

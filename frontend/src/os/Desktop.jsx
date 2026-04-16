@@ -135,85 +135,85 @@ export default function Desktop() {
       {/* Boot sequence — overlays desktop on first load */}
       {!booted && <BootSequence onComplete={handleBootComplete} />}
 
+      {/* Desktop shell — flex column: work area fills space, taskbar at bottom */}
       <div
-        className="fixed inset-0 overflow-hidden bg-background"
+        className="fixed inset-0 flex flex-col overflow-hidden bg-background"
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >
-        {/* Wallpaper layers — z-index: -1 in CSS, always behind everything */}
+        {/* Wallpaper layers — z-index: -1, always behind everything */}
         {orbsEnabled && <div className="ambient-orbs" />}
         {scanlinesEnabled && <div className="scanlines" />}
         <div className="pointer-events-none absolute inset-0 -z-1 bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
-        {/* Work area — excludes taskbar height so content doesn't go behind it */}
+        {/* Work area — takes all space above the taskbar */}
         <div
           ref={desktopRef}
           data-testid="desktop"
-          className="absolute inset-0 overflow-hidden"
-          style={{ bottom: 48 }}
+          className="relative flex-1 overflow-hidden"
         >
-        {/* Desktop icons — behind all windows */}
-        <DesktopIcons />
+          {/* Desktop icons — behind all windows */}
+          <DesktopIcons />
 
-        {visibleWindows.map((win) => {
-          const manifest = APP_REGISTRY[win.appId]
-          if (!manifest) return null
-          const AppComponent = manifest.component
-          const zIndex = Z_INDEX_BASE + zStack.indexOf(win.windowId)
-          return (
-            <Window
-              key={win.windowId}
-              windowId={win.windowId}
-              appId={win.appId}
-              title={win.title}
-              position={win.position}
-              size={win.size}
-              minSize={win.minSize}
-              state={win.state}
-              restoredRect={win.restoredRect}
-              zIndex={zIndex}
-              desktopRef={desktopRef}
-              onSnapHint={handleSnapHint}
-            >
-              <Suspense
-                fallback={
-                  <div className="flex h-full items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                }
+          {visibleWindows.map((win) => {
+            const manifest = APP_REGISTRY[win.appId]
+            if (!manifest) return null
+            const AppComponent = manifest.component
+            const zIndex = Z_INDEX_BASE + zStack.indexOf(win.windowId)
+            return (
+              <Window
+                key={win.windowId}
+                windowId={win.windowId}
+                appId={win.appId}
+                title={win.title}
+                position={win.position}
+                size={win.size}
+                minSize={win.minSize}
+                state={win.state}
+                restoredRect={win.restoredRect}
+                zIndex={zIndex}
+                desktopRef={desktopRef}
+                onSnapHint={handleSnapHint}
               >
-                <AppComponent appId={win.appId} windowId={win.windowId} />
-              </Suspense>
-            </Window>
-          )
-        })}
+                <Suspense
+                  fallback={
+                    <div className="flex h-full items-center justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  }
+                >
+                  <AppComponent appId={win.appId} windowId={win.windowId} />
+                </Suspense>
+              </Window>
+            )
+          })}
 
-        {/* Snap preview overlay */}
-        {snapPreview && (
-          <div
-            data-testid="snap-preview"
-            className="pointer-events-none absolute z-[99] rounded-lg border border-cyan-500/30 bg-cyan-500/5 backdrop-blur-sm transition-all duration-150"
-            style={
-              snapPreview === 'left'
-                ? { left: 0, top: 0, width: '50%', height: '100%' }
-                : snapPreview === 'right'
-                  ? { left: '50%', top: 0, width: '50%', height: '100%' }
-                  : { left: 0, top: 0, width: '100%', height: '100%' }
-            }
-          />
-        )}
+          {/* Snap preview overlay */}
+          {snapPreview && (
+            <div
+              data-testid="snap-preview"
+              className="pointer-events-none absolute inset-0 z-[99] rounded-lg border border-cyan-500/30 bg-cyan-500/5 backdrop-blur-sm transition-all duration-150"
+              style={
+                snapPreview === 'left'
+                  ? { right: '50%' }
+                  : snapPreview === 'right'
+                    ? { left: '50%' }
+                    : {}
+              }
+            />
+          )}
+        </div>
 
-        </div>{/* end work area */}
-
-        {!locked && <NotificationToast />}
-
+        {/* Taskbar — normal flex child at the bottom, NOT fixed */}
         <Taskbar />
+
+        {/* Overlays — these use fixed/absolute positioning above everything */}
+        {!locked && <NotificationToast />}
 
         <AnimatePresence>
           {launcherOpen && <AppLauncher />}
         </AnimatePresence>
 
-        {/* Desktop right-click context menu */}
         {contextMenu && (
           <ContextMenu
             x={contextMenu.x}
@@ -222,7 +222,6 @@ export default function Desktop() {
           />
         )}
 
-        {/* Lock screen — shown after 5 min idle */}
         {locked && (
           <LockScreen onUnlock={() => setLocked(false)} />
         )}
