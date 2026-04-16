@@ -94,6 +94,7 @@ function Window({
   restoredRect: _restoredRect,
   zIndex,
   desktopRef,
+  onSnapHint,
   children,
 }) {
   const dragControls = useDragControls()
@@ -105,16 +106,46 @@ function Window({
   const maximizeWindow = useWindowStore((s) => s.maximizeWindow)
   const restoreWindow = useWindowStore((s) => s.restoreWindow)
   const moveWindow = useWindowStore((s) => s.moveWindow)
+  const snapWindow = useWindowStore((s) => s.snapWindow)
 
   const isMaximized = windowState === 'maximized'
+  const isSnapped = windowState === 'snapped-left' || windowState === 'snapped-right'
+  const isSnappedLeft = windowState === 'snapped-left'
+  const isLocked = isMaximized || isSnapped
   const AppIcon = APP_REGISTRY[appId]?.icon
 
+  const handleDrag = useCallback((_e, info) => {
+    const cursorX = position.x + info.offset.x
+    const cursorY = position.y + info.offset.y
+    const SNAP_THRESHOLD = 20
+
+    if (cursorX <= SNAP_THRESHOLD) {
+      onSnapHint?.('left')
+    } else if (cursorX + size.width >= window.innerWidth - SNAP_THRESHOLD) {
+      onSnapHint?.('right')
+    } else if (cursorY <= SNAP_THRESHOLD) {
+      onSnapHint?.('top')
+    } else {
+      onSnapHint?.(null)
+    }
+  }, [position, size, onSnapHint])
+
   const handleDragEnd = useCallback((_e, info) => {
-    moveWindow(windowId, {
-      x: position.x + info.offset.x,
-      y: position.y + info.offset.y,
-    })
-  }, [windowId, position, moveWindow])
+    const newX = position.x + info.offset.x
+    const newY = position.y + info.offset.y
+    const SNAP_THRESHOLD = 20
+
+    if (newX <= SNAP_THRESHOLD) {
+      snapWindow(windowId, 'left')
+    } else if (newX + size.width >= window.innerWidth - SNAP_THRESHOLD) {
+      snapWindow(windowId, 'right')
+    } else if (newY <= SNAP_THRESHOLD) {
+      maximizeWindow(windowId)
+    } else {
+      moveWindow(windowId, { x: newX, y: newY })
+    }
+    onSnapHint?.(null)
+  }, [windowId, position, size, moveWindow, snapWindow, maximizeWindow, onSnapHint])
 
   const toggleMaximize = useCallback(() => {
     if (isMaximized) {
@@ -154,26 +185,42 @@ function Window({
     )
   }
 
-  const displayPos = isMaximized ? { x: 0, y: 0 } : position
-  const displaySize = isMaximized
-    ? { width: window.innerWidth, height: window.innerHeight - TASKBAR_HEIGHT }
-    : size
+  const displayStyle = isSnapped
+    ? {
+        position: 'absolute',
+        left: isSnappedLeft ? '0px' : '50%',
+        top: '0px',
+        width: '50%',
+        height: `calc(100% - ${TASKBAR_HEIGHT}px)`,
+        zIndex,
+      }
+    : isMaximized
+      ? {
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: window.innerWidth,
+          height: window.innerHeight - TASKBAR_HEIGHT,
+          zIndex,
+        }
+      : {
+          position: 'absolute',
+          left: position.x,
+          top: position.y,
+          width: size.width,
+          height: size.height,
+          zIndex,
+        }
 
   return (
     <Motion.div
-      style={{
-        position: 'absolute',
-        left: displayPos.x,
-        top: displayPos.y,
-        width: displaySize.width,
-        height: displaySize.height,
-        zIndex,
-      }}
-      drag={!isMaximized}
+      style={displayStyle}
+      drag={!isLocked}
       dragListener={false}
       dragControls={dragControls}
       dragMomentum={false}
       dragConstraints={desktopRef}
+      onDrag={handleDrag}
       onDragEnd={handleDragEnd}
       onPointerDownCapture={() => focusWindow(windowId)}
       className="flex flex-col rounded-lg overflow-hidden"
@@ -190,7 +237,14 @@ function Window({
 
       {/* Title bar */}
       <div
-        onPointerDown={(e) => { if (!isMaximized) dragControls.start(e) }}
+        data-testid="titlebar"
+        onPointerDown={(e) => {
+          if (isSnapped) {
+            restoreWindow(windowId)
+            return
+          }
+          if (!isMaximized) dragControls.start(e)
+        }}
         onDoubleClick={toggleMaximize}
         className={`glass-panel flex h-9 shrink-0 cursor-grab items-center justify-between border-b px-3 select-none active:cursor-grabbing ${
           isFocused
@@ -246,7 +300,7 @@ function Window({
       </div>
 
       {/* Resize handles */}
-      {!isMaximized && RESIZE_DIRECTIONS.map((dir) => (
+      {!isLocked && RESIZE_DIRECTIONS.map((dir) => (
         <ResizeHandle
           key={dir}
           direction={dir}

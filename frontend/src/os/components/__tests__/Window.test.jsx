@@ -19,6 +19,8 @@ const mockCloseWindow = vi.fn()
 const mockMinimizeWindow = vi.fn()
 const mockMaximizeWindow = vi.fn()
 const mockRestoreWindow = vi.fn()
+const mockMoveWindow = vi.fn()
+const mockSnapWindow = vi.fn()
 
 vi.mock('../../stores/windowStore', () => ({
   useWindowStore: (selector) => {
@@ -30,6 +32,8 @@ vi.mock('../../stores/windowStore', () => ({
       minimizeWindow: mockMinimizeWindow,
       maximizeWindow: mockMaximizeWindow,
       restoreWindow: mockRestoreWindow,
+      moveWindow: mockMoveWindow,
+      snapWindow: mockSnapWindow,
     }
     return selector(state)
   },
@@ -101,5 +105,20 @@ describe('Window', () => {
     render(<Window {...defaultProps} state="maximized" />)
     fireEvent.click(screen.getByLabelText('Restore window'))
     expect(mockRestoreWindow).toHaveBeenCalledWith('test-win')
+  })
+
+  it('renders with CSS percentage sizing when snapped-left', () => {
+    render(<Window {...defaultProps} state="snapped-left" />)
+    const frame = screen.getByTestId('window-frame')
+    expect(frame.style.left).toBe('0px')
+    expect(frame.style.top).toBe('0px')
+    expect(frame.style.width).toBe('50%')
+  })
+
+  it('renders with CSS percentage sizing when snapped-right', () => {
+    render(<Window {...defaultProps} state="snapped-right" />)
+    const frame = screen.getByTestId('window-frame')
+    expect(frame.style.left).toBe('50%')
+    expect(frame.style.width).toBe('50%')
   })
 })

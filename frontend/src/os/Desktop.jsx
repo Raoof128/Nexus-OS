@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useWindowStore } from './stores/windowStore'
@@ -11,6 +11,7 @@ const Z_INDEX_BASE = 100
 
 export default function Desktop() {
   const desktopRef = useRef(null)
+  const [snapPreview, setSnapPreview] = useState(null) // null | 'left' | 'right' | 'top'
   const windows = useWindowStore((s) => s.windows)
   const zStack = useWindowStore((s) => s.zStack)
   const launcherOpen = useWindowStore((s) => s.launcherOpen)
@@ -30,6 +31,10 @@ export default function Desktop() {
       openApp('media')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleSnapHint = useCallback((hint) => {
+    setSnapPreview(hint)
   }, [])
 
   const visibleWindows = zStack
@@ -64,6 +69,7 @@ export default function Desktop() {
             restoredRect={win.restoredRect}
             zIndex={zIndex}
             desktopRef={desktopRef}
+            onSnapHint={handleSnapHint}
           >
             <Suspense
               fallback={
@@ -77,6 +83,21 @@ export default function Desktop() {
           </Window>
         )
       })}
+
+      {/* Snap preview overlay */}
+      {snapPreview && (
+        <div
+          data-testid="snap-preview"
+          className="pointer-events-none absolute z-[99] rounded-lg border border-cyan-500/30 bg-cyan-500/5 backdrop-blur-sm transition-all duration-150"
+          style={
+            snapPreview === 'left'
+              ? { left: 0, top: 0, width: '50%', height: `calc(100% - ${48}px)` }
+              : snapPreview === 'right'
+                ? { left: '50%', top: 0, width: '50%', height: `calc(100% - ${48}px)` }
+                : { left: 0, top: 0, width: '100%', height: `calc(100% - ${48}px)` }
+          }
+        />
+      )}
 
       <Taskbar />
 
