@@ -3,9 +3,19 @@ import { Eye, Pencil } from 'lucide-react'
 
 const SAVE_DEBOUNCE_MS = 500
 
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 function renderMarkdown(text) {
   if (!text) return ''
-  return text
+  const escaped = escapeHtml(text)
+  return escaped
     // Code blocks (must come before inline code)
     .replace(/```([\s\S]*?)```/g, '<pre class="my-2 rounded-lg bg-white/[0.03] p-3 font-mono text-[11px] text-white/70 overflow-x-auto border border-white/[0.06]"><code>$1</code></pre>')
     // Inline code

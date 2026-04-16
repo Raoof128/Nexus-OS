@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useWindowStore } from '../stores/windowStore'
 
@@ -116,8 +116,10 @@ export default function TerminalApp({ windowId: _windowId }) {
   const [historyIdx, setHistoryIdx] = useState(-1)
   const inputRef = useRef(null)
   const scrollRef = useRef(null)
-
-  const commands = buildCommands({ session, windows, zStack })
+  const commandsRef = useRef(null)
+  useLayoutEffect(() => {
+    commandsRef.current = buildCommands({ session, windows, zStack })
+  })
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -143,7 +145,7 @@ export default function TerminalApp({ windowId: _windowId }) {
 
     const [cmdName, ...argParts] = trimmed.split(/\s+/)
     const args = argParts.join(' ')
-    const cmd = commands[cmdName.toLowerCase()]
+    const cmd = commandsRef.current[cmdName.toLowerCase()]
 
     if (!cmd) {
       setLines((prev) => [...prev, { type: 'error', text: `command not found: ${cmdName}` }])
@@ -159,7 +161,7 @@ export default function TerminalApp({ windowId: _windowId }) {
     }
 
     setLines((prev) => [...prev, result])
-  }, [commands])
+  }, [])
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter') {

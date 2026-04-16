@@ -106,12 +106,14 @@ export default function FileManagerApp() {
 
   const buildEntryPath = (name) => currentPath === '/' ? `/${name}` : `${currentPath}/${name}`
 
-  if (viewingFile) {
-    const fileData = files[viewingFile]
-    if (fileData) {
-      return <FileViewer file={fileData} onClose={() => setViewingFile(null)} />
+  useEffect(() => {
+    if (viewingFile && !files[viewingFile]) {
+      setViewingFile(null)
     }
-    setViewingFile(null)
+  }, [viewingFile, files])
+
+  if (viewingFile && files[viewingFile]) {
+    return <FileViewer file={files[viewingFile]} onClose={() => setViewingFile(null)} />
   }
 
   return (
