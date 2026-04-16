@@ -5,7 +5,7 @@ import { APP_REGISTRY, APP_ORDER } from '../stores/appRegistry'
 const GRID_CELL = 80
 const COLS = 2
 const ICON_START_X = 16
-const ICON_START_Y = 16
+const ICON_START_Y = 24
 
 function DesktopIcons() {
   const openApp = useWindowStore((s) => s.openApp)

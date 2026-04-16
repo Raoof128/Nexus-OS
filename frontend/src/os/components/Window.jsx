@@ -191,7 +191,7 @@ function Window({
         left: isSnappedLeft ? '0px' : '50%',
         top: '0px',
         width: '50%',
-        height: `calc(100% - ${TASKBAR_HEIGHT}px)`,
+        height: '100%',
         zIndex,
       }
     : isMaximized
@@ -200,7 +200,7 @@ function Window({
           left: 0,
           top: 0,
           width: '100%',
-          height: `calc(100% - ${TASKBAR_HEIGHT}px)`,
+          height: '100%',
           zIndex,
         }
       : {

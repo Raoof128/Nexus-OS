@@ -136,8 +136,6 @@ export default function Desktop() {
       {!booted && <BootSequence onComplete={handleBootComplete} />}
 
       <div
-        ref={desktopRef}
-        data-testid="desktop"
         className="fixed inset-0 overflow-hidden bg-background"
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
@@ -147,6 +145,13 @@ export default function Desktop() {
         {scanlinesEnabled && <div className="scanlines" />}
         <div className="pointer-events-none absolute inset-0 -z-1 bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
+        {/* Work area — excludes taskbar height so content doesn't go behind it */}
+        <div
+          ref={desktopRef}
+          data-testid="desktop"
+          className="absolute inset-0 overflow-hidden"
+          style={{ bottom: 48 }}
+        >
         {/* Desktop icons — behind all windows */}
         <DesktopIcons />
 
@@ -190,13 +195,15 @@ export default function Desktop() {
             className="pointer-events-none absolute z-[99] rounded-lg border border-cyan-500/30 bg-cyan-500/5 backdrop-blur-sm transition-all duration-150"
             style={
               snapPreview === 'left'
-                ? { left: 0, top: 0, width: '50%', height: `calc(100% - ${48}px)` }
+                ? { left: 0, top: 0, width: '50%', height: '100%' }
                 : snapPreview === 'right'
-                  ? { left: '50%', top: 0, width: '50%', height: `calc(100% - ${48}px)` }
-                  : { left: 0, top: 0, width: '100%', height: `calc(100% - ${48}px)` }
+                  ? { left: '50%', top: 0, width: '50%', height: '100%' }
+                  : { left: 0, top: 0, width: '100%', height: '100%' }
             }
           />
         )}
+
+        </div>{/* end work area */}
 
         {!locked && <NotificationToast />}
 
