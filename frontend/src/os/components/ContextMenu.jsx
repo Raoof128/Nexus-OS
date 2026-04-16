@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useRef } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
+import { DURATION, EASE } from '../../lib/motion'
 import {
   AppWindow,
   ChevronDown,
@@ -108,7 +109,7 @@ function ContextMenu({ x, y, onClose }) {
         initial={{ opacity: 0, scale: 0.92 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.92 }}
-        transition={{ duration: 0.1, ease: 'easeOut' }}
+        transition={{ duration: DURATION.fast, ease: EASE.standard }}
         style={{
           position: 'fixed',
           left: clampedX,

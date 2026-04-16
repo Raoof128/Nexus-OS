@@ -264,16 +264,17 @@ export default function BootSequence({ onComplete }) {
             {sweepVisible && (
               <Motion.div
                 key="crt-sweep"
-                className="pointer-events-none absolute inset-x-0 h-[2px]"
+                className="pointer-events-none absolute inset-x-0 top-0 h-[2px]"
                 style={{
                   zIndex: 20,
                   background:
                     'linear-gradient(90deg, transparent, hsl(56 100% 48% / 0.8), hsl(170 76% 63% / 0.6), transparent)',
                   boxShadow:
                     '0 0 20px hsl(56 100% 48% / 0.6), 0 0 60px hsl(170 76% 63% / 0.3)',
+                  willChange: 'transform',
                 }}
-                initial={{ top: '-2px' }}
-                animate={{ top: '100%' }}
+                initial={{ y: '-2px' }}
+                animate={{ y: '100vh' }}
                 transition={{ duration: 0.8, ease: 'easeIn' }}
                 onAnimationComplete={() => setSweepVisible(false)}
               />

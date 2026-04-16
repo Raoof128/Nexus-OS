@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
+import { SPRING } from '../../lib/motion'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 export default function ConfirmDialog({
@@ -51,7 +52,7 @@ export default function ConfirmDialog({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            transition={SPRING.snappy}
           >
             <h2
               id={`${id}-dialog-title`}

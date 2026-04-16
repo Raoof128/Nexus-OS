@@ -2,6 +2,7 @@ import { memo, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
 import { TYPE_ICONS, getStatusNav } from '../../lib/mediaConfig'
+import { SPRING } from '../../lib/motion'
 import ConfirmDialog from './ConfirmDialog'
 
 function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
@@ -52,7 +53,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
       onClick={handleCardClick}
       layoutId={`card-${item.id}`}
       layout="position"
-      transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+      transition={SPRING.soft}
       className="neon-border group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-4 hover:brightness-110 hover:shadow-[0_0_20px_hsl(var(--neon-yellow)/0.15)] sm:p-6 transition-all duration-200"
     >
       {/* Neon glowing artifact behind */}

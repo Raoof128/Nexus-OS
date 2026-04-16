@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
+import { DURATION } from '../../lib/motion'
 import DOMPurify from 'dompurify'
 import { AlertTriangle, Eye, EyeOff, Loader2, Inbox } from 'lucide-react'
 import { apiFetch } from '../../lib/apiClient'
@@ -133,7 +134,7 @@ const EmailReader = React.memo(function EmailReader({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: DURATION.base }}
           className="border-b border-white/[0.06] px-5 py-4"
         >
           <h2 className="heading-ui mb-3 text-sm font-semibold leading-tight text-white">

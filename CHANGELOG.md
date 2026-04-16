@@ -1,5 +1,12 @@
 # Change Log
 
+### 2026-04-17 (Australia/Sydney) — Animation Audit + Polish
+**Raouf:**
+- **Scope:** Inventory + polish every animation (Framer Motion + CSS) across 18 files / 190 usages.
+- **Summary:** New `lib/motion.js` consolidates durations (`fast/base/slow`), easings, and two spring flavors (`soft/snappy`), replacing 11 distinct duration values and 3 near-identical spring configs. Migrated CyberCard, MediaDetailModal, Compose/Add/Edit/ConfirmDialog, AppLauncher, NotificationToast, EmailInbox/Reader/List, MediaApp, ContextMenu to tokens. Performance pass: LockScreen infinite scan and BootSequence CRT sweep now animate `y` (transform + willChange) instead of `top` (%) — GPU-composited, zero per-frame layout. Reduced-motion: `MotionConfig reducedMotion="user"` already at root; CSS catch-all already disables ambient orbs / scanlines / glitch / neon-pulse. Choreographed BootSequence (0.3–0.8s pacing) and LockScreen (2/3/8s loops) kept bespoke — their motion is the content.
+- **Files Changed:** new `lib/motion.js`; edits to CyberCard, MediaDetailModal, ComposeModal, AddMediaDialog, ConfirmDialog, MediaApp, EmailInbox, EmailReader, EmailList, AppLauncher, NotificationToast, ContextMenu, LockScreen, BootSequence.
+- **Verification:** ESLint 0, vitest 117/117, vite build clean.
+
 ### 2026-04-17 (Australia/Sydney) — Window Controls + Z-index + Responsive Polish
 **Raouf:**
 - **Scope:** Fix close/min/max buttons requiring multiple clicks; polish window resizing; global z-index scale + responsive audit.

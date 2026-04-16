@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Plus, X } from 'lucide-react'
 import { MEDIA_CONFIG } from '../../lib/mediaConfig'
+import { SPRING } from '../../lib/motion'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import MediaForm from './MediaForm'
 
@@ -104,7 +105,7 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                transition={SPRING.snappy}
               >
                 <button
                   type="button"

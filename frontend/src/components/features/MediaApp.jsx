@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useMedia } from '../../hooks/useMedia'
 import { MEDIA_TYPES, MEDIA_CONFIG, TYPE_ICONS } from '../../lib/mediaConfig'
+import { DURATION } from '../../lib/motion'
 import KanbanBoard from './KanbanBoard'
 import MediaVault from './MediaVault'
 import AddMediaDialog from './AddMediaDialog'
@@ -113,7 +114,7 @@ export default function MediaApp() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.25 }}
+                transition={{ duration: DURATION.slow }}
               >
                 <MediaVault
                   items={items}
@@ -132,7 +133,7 @@ export default function MediaApp() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.25 }}
+                transition={{ duration: DURATION.slow }}
                 className="p-3 sm:p-4"
               >
                 <KanbanBoard

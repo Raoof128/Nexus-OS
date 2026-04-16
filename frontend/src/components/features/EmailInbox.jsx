@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { useEmailAccounts } from '../../hooks/useEmailAccounts'
 import { useEmails } from '../../hooks/useEmails'
 import { useEmailActions } from '../../hooks/useEmailActions'
+import { DURATION } from '../../lib/motion'
 import FolderSidebar from './FolderSidebar'
 import EmailList from './EmailList'
 import EmailReader from './EmailReader'
@@ -105,7 +106,7 @@ export default function EmailInbox() {
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.25 }}
+      transition={{ duration: DURATION.slow }}
       className="neon-border relative flex h-full w-full overflow-hidden rounded-none glass-panel @sm:rounded-2xl"
     >
       {/* Top neon accent */}

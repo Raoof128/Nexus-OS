@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Pencil, Star, Trash2, X } from 'lucide-react'
 import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../lib/mediaConfig'
+import { DURATION, EASE, SPRING, TRANSITION_FADE } from '../../lib/motion'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import ConfirmDialog from './ConfirmDialog'
 
@@ -50,7 +51,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={TRANSITION_FADE}
             className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-md"
             onClick={onClose}
           />
@@ -63,7 +64,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              transition={SPRING.soft}
               role="dialog"
               aria-modal="true"
               aria-labelledby="detail-modal-title"
@@ -150,7 +151,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                               <Motion.div
                                 initial={false}
                                 animate={{ width: isPast ? '100%' : '0%' }}
-                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                transition={{ duration: DURATION.slow, ease: EASE.inOut }}
                                 className="absolute inset-y-0 left-0 bg-primary/50 shadow-[0_0_6px_hsl(var(--neon-yellow)/0.4)]"
                               />
                             </div>

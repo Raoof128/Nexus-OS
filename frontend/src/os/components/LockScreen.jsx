@@ -100,14 +100,16 @@ function CircuitBackground() {
           backgroundSize: '20px 20px',
         }}
       />
-      {/* Animated horizontal scan highlight */}
+      {/* Animated horizontal scan highlight — animate `y` (transform) rather
+         than `top` so the infinite loop is GPU-composited and skips layout. */}
       <Motion.div
-        className="absolute inset-x-0 h-[1px]"
+        className="absolute inset-x-0 top-0 h-[1px]"
         style={{
           background:
             'linear-gradient(90deg, transparent 0%, hsl(56 100% 48% / 0.15) 30%, hsl(170 76% 63% / 0.12) 70%, transparent 100%)',
+          willChange: 'transform',
         }}
-        animate={{ top: ['0%', '100%'] }}
+        animate={{ y: ['0vh', '100vh'] }}
         transition={{
           duration: 8,
           repeat: Infinity,

@@ -3,23 +3,19 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Loader2, Sparkles, X, Send } from 'lucide-react'
 import { getProviderBadge } from '../../lib/emailConfig'
+import { DURATION, SPRING, TRANSITION_FADE, TRANSITION_FAST } from '../../lib/motion'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 const MODAL_VARIANTS = {
   hidden: { opacity: 0, y: 24, scale: 0.96 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { type: 'spring', damping: 28, stiffness: 280 },
-  },
-  exit: { opacity: 0, y: 16, scale: 0.97, transition: { duration: 0.15 } },
+  visible: { opacity: 1, y: 0, scale: 1, transition: SPRING.soft },
+  exit: { opacity: 0, y: 16, scale: 0.97, transition: TRANSITION_FAST },
 }
 
 const OVERLAY_VARIANTS = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.2 } },
-  exit: { opacity: 0, transition: { duration: 0.15 } },
+  visible: { opacity: 1, transition: TRANSITION_FADE },
+  exit: { opacity: 0, transition: { duration: DURATION.fast } },
 }
 
 const inputClass =

@@ -2,6 +2,7 @@ import React, { useCallback, useRef } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { Star, Paperclip } from 'lucide-react'
 import { formatEmailDate, getProviderBadge } from '../../lib/emailConfig'
+import { DURATION, SPRING } from '../../lib/motion'
 
 const SCROLL_THRESHOLD = 150
 
@@ -75,7 +76,7 @@ const EmailList = React.memo(function EmailList({
               }}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: index < 20 ? index * 0.02 : 0 }}
+              transition={{ duration: DURATION.base, delay: index < 20 ? index * 0.02 : 0 }}
               className={`group relative cursor-pointer border-b border-white/[0.04] px-4 py-3 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50 ${
                 isSelected
                   ? 'bg-primary/[0.07]'
@@ -88,7 +89,7 @@ const EmailList = React.memo(function EmailList({
                 <Motion.div
                   layoutId="email-selected-bar"
                   className="absolute inset-y-0 left-0 w-0.5 bg-primary shadow-[0_0_8px_var(--color-primary)]"
-                  transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+                  transition={SPRING.soft}
                 />
               )}
 

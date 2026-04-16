@@ -1,5 +1,6 @@
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { X, Info, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react'
+import { SPRING } from '../../lib/motion'
 import { useNotificationStore } from '../stores/notificationStore'
 
 const TYPE_CONFIG = {
@@ -28,7 +29,7 @@ function Toast({ notification }) {
       initial={{ opacity: 0, x: 60, scale: 0.95 }}
       animate={{ opacity: 1, x: 0,  scale: 1    }}
       exit={{    opacity: 0, x: 60, scale: 0.95 }}
-      transition={{ type: 'spring', stiffness: 340, damping: 28 }}
+      transition={SPRING.snappy}
       className={`glass-panel relative w-[300px] overflow-hidden rounded-lg border border-white/10 shadow-lg ${config.bgClass}`}
       role="alert"
       aria-live={notification.type === 'error' ? 'assertive' : 'polite'}

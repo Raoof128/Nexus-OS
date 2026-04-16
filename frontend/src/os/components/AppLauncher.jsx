@@ -3,6 +3,7 @@ import { motion as Motion } from 'framer-motion'
 import { Search, SearchX } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
 import { APP_REGISTRY, APP_ORDER } from '../stores/appRegistry'
+import { SPRING } from '../../lib/motion'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 function AppLauncher() {
@@ -53,7 +54,7 @@ function AppLauncher() {
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 40 }}
-        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        transition={SPRING.snappy}
         className="neon-border glass-panel fixed bottom-14 left-1/2 z-[600] w-[90vw] max-w-md -translate-x-1/2 rounded-2xl p-4 shadow-[0_0_60px_rgba(0,255,255,0.05)] sm:bottom-16 sm:p-6"
       >
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
