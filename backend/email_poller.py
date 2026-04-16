@@ -182,7 +182,9 @@ async def sync_account(account: dict, settings) -> None:
     try:
         provider = get_provider(provider_name)
     except ValueError:
-        logger.warning("Unknown provider '%s' for account %s", provider_name, account_id)
+        logger.warning(
+            "Unknown provider '%s' for account %s", provider_name, account_id
+        )
         return
 
     # Fetch remote messages
@@ -307,6 +309,8 @@ async def start_email_poller(app: "Litestar") -> None:
 
     The poller is skipped silently when no OAuth client IDs are configured
     so that the app starts cleanly in environments without email integration.
+    The task handle is stashed on ``app.state`` so a shutdown hook can
+    cancel it cleanly — otherwise SIGTERM leaves a dangling poll in flight.
     """
 
     settings = get_settings()
@@ -316,8 +320,23 @@ async def start_email_poller(app: "Litestar") -> None:
         )
         return
 
-    asyncio.create_task(
+    task = asyncio.create_task(
         _poller_loop(settings.email_poll_interval_seconds),
         name="email_poller",
     )
+    app.state.email_poller_task = task
     logger.info("Email poller task scheduled")
+
+
+async def stop_email_poller(app: "Litestar") -> None:
+    """Litestar on_shutdown hook that cancels the poller if it was started."""
+
+    task = getattr(app.state, "email_poller_task", None)
+    if task is None or task.done():
+        return
+    task.cancel()
+    try:
+        await task
+    except (asyncio.CancelledError, Exception):  # noqa: BLE001 — shutdown best-effort
+        pass
+    logger.info("Email poller task cancelled")

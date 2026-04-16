@@ -293,8 +293,15 @@ export const useWindowStore = create((set, get) => ({
         }
       }
 
+      // Dedupe: a stale persisted zStack could contain duplicates, which
+      // would then break filter/indexOf assumptions in focus/close.
+      const seen = new Set()
       for (const oldId of saved.zStack) {
-        if (idMap[oldId]) newZStack.push(idMap[oldId])
+        const newId = idMap[oldId]
+        if (newId && !seen.has(newId)) {
+          newZStack.push(newId)
+          seen.add(newId)
+        }
       }
 
       if (Object.keys(restoredWindows).length === 0) return

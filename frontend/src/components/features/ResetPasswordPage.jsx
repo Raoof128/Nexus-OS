@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { KeyRound, Loader2, ShieldCheck } from 'lucide-react'
 import { authFetch } from '../../lib/apiClient'
 import { realtimeClient } from '../../lib/realtimeClient'
@@ -17,6 +17,9 @@ export default function ResetPasswordPage({ accessToken: initialAccessToken, ref
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  // Ref guard to reject rapid double-clicks — React state updates async and a
+  // second click can slip in before `submitting` flips to true.
+  const submittingRef = useRef(false)
   const [exchanging, setExchanging] = useState(Boolean(tokenHash && !initialAccessToken))
 
   // Exchange token_hash for a session via Supabase verifyOtp
@@ -86,6 +89,7 @@ export default function ResetPasswordPage({ accessToken: initialAccessToken, ref
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (submittingRef.current) return
     setError(null)
 
     if (password !== confirm) {
@@ -93,6 +97,7 @@ export default function ResetPasswordPage({ accessToken: initialAccessToken, ref
       return
     }
 
+    submittingRef.current = true
     setSubmitting(true)
     try {
       await authFetch('/auth/reset-password', {
@@ -106,8 +111,10 @@ export default function ResetPasswordPage({ accessToken: initialAccessToken, ref
       window.location.href = '/'
     } catch (resetError) {
       setError(resetError.message)
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
     }
-    setSubmitting(false)
   }
 
   return (

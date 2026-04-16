@@ -90,12 +90,24 @@ def serialize_media_context_for_llm(
 
 
 def get_takeaway_cipher() -> Fernet | None:
-    """Return a Fernet cipher when field-level encryption is configured."""
+    """Return a Fernet cipher when field-level encryption is configured.
+
+    Raises a clear ``RuntimeError`` at first use if the configured key is not a
+    valid Fernet key so misconfiguration surfaces immediately rather than
+    masquerading as an opaque ``binascii`` error from deeper in ``cryptography``.
+    """
 
     key = get_settings().takeaway_encryption_key
     if not key:
         return None
-    return Fernet(key.encode("utf-8"))
+    try:
+        return Fernet(key.encode("utf-8"))
+    except (ValueError, TypeError) as exc:
+        raise RuntimeError(
+            "TAKEAWAY_ENCRYPTION_KEY is not a valid base64-encoded Fernet key. "
+            "Generate one with `python -c 'from cryptography.fernet import Fernet; "
+            "print(Fernet.generate_key().decode())'`."
+        ) from exc
 
 
 def encrypt_takeaway(takeaway: str | None) -> str | None:

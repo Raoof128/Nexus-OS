@@ -23,7 +23,11 @@ try:
         ChatMessageResponse,
         ChatSessionCreate,
     )
-    from .services import create_supabase_user_client, get_genai_client
+    from .services import (
+        create_supabase_user_client,
+        get_gemini_circuit_breaker,
+        get_genai_client,
+    )
 except ImportError:  # pragma: no cover
     from config import get_settings
     from data_protection import (
@@ -37,7 +41,11 @@ except ImportError:  # pragma: no cover
         ChatMessageResponse,
         ChatSessionCreate,
     )
-    from services import create_supabase_user_client, get_genai_client
+    from services import (
+        create_supabase_user_client,
+        get_gemini_circuit_breaker,
+        get_genai_client,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -264,10 +272,19 @@ class ChatController(Controller):
                 status_code=502, detail="Failed to save message"
             ) from exc
 
-        # 5. Call Gemini
+        # 5. Call Gemini (honour the shared circuit breaker so a Gemini outage
+        # short-circuits here the same way it does for /media/suggest).
         genai_client = get_genai_client()
+        breaker = get_gemini_circuit_breaker()
         if not genai_client:
             ai_reply = "AI is not configured. Set GEMINI_API_KEY in environment."
+        elif not breaker.allows_requests():
+            logger.warning(
+                "Gemini circuit breaker open; returning fallback chat reply"
+            )
+            ai_reply = (
+                "AI service is temporarily unavailable. Please try again shortly."
+            )
         else:
             try:
                 response = genai_client.models.generate_content(
@@ -278,8 +295,10 @@ class ChatController(Controller):
                     ),
                 )
                 ai_reply = response.text or "No response generated."
+                breaker.record_success()
             except Exception:
                 logger.exception("Gemini chat request failed")
+                breaker.record_failure()
                 ai_reply = "AI request failed. Please try again."
 
         # 6. Save AI response

@@ -8,6 +8,15 @@ import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', onAdd }) {
   const [result, setResult] = useState(null)
   const [addedIndices, setAddedIndices] = useState(new Set())
+  // Reset prior-suggestion state when the caller switches media type — a 0th
+  // book suggestion must not inherit the "Added" flag when the user toggles to
+  // movies. Using the render-time reset pattern avoids a setState-in-effect.
+  const [lastType, setLastType] = useState(mediaType)
+  if (lastType !== mediaType) {
+    setLastType(mediaType)
+    setAddedIndices(new Set())
+    setResult(null)
+  }
   const config = MEDIA_CONFIG[mediaType]
   const { suggest, suggestError, suggesting, resetSuggest } = useSuggest(mediaType)
 

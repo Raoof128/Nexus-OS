@@ -233,6 +233,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
 
           <ConfirmDialog
             open={confirmDelete}
+            id={item.id}
             title="Delete Entry"
             message="This action cannot be undone. Are you sure you want to delete this entry?"
             onConfirm={handleDelete}

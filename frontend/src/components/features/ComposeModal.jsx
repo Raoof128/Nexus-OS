@@ -92,6 +92,9 @@ function ComposeModal({
   const handleSubmit = useCallback(
     async (e) => {
       e.preventDefault()
+      // Don't submit without a chosen account — the button should already be
+      // disabled, but guard here so a misconfigured parent can't slip through.
+      if (!selectedAccountId) return
       const data = { accountId: selectedAccountId, to, cc, subject, body }
       try {
         if (isReply && replyTo?.email?.id) {

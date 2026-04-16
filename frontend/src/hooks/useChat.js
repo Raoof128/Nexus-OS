@@ -68,11 +68,11 @@ export function useChatMessages(userId, sessionId) {
       ])
       return { previous }
     },
-    onSuccess: (aiResponse) => {
-      queryClient.setQueryData(queryKey, (current = []) => [
-        ...current,
-        { id: `ai-${Date.now()}`, role: 'model', content: aiResponse.content, created_at: new Date().toISOString() },
-      ])
+    onSuccess: () => {
+      // Trust the invalidate + refetch to bring in the server's canonical user
+      // and AI rows (with real IDs/timestamps). Appending a synthetic `ai-...`
+      // message here just causes a render with a non-stable ID that the refetch
+      // then replaces — pure churn and a risk of double-rendering.
       queryClient.invalidateQueries({ queryKey })
     },
     onError: (_err, _vars, context) => {

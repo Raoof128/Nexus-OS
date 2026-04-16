@@ -11,7 +11,7 @@ try:
     from .config import get_settings
     from .controllers import MediaController
     from .email_controller import EmailController
-    from .email_poller import start_email_poller
+    from .email_poller import start_email_poller, stop_email_poller
     from .health import healthcheck
     from .logging_config import configure_logging
     from .oauth_controller import OAuthController
@@ -24,7 +24,7 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
     from controllers import MediaController
     from email_controller import EmailController
-    from email_poller import start_email_poller
+    from email_poller import start_email_poller, stop_email_poller
     from health import healthcheck
     from logging_config import configure_logging
     from oauth_controller import OAuthController
@@ -73,4 +73,5 @@ app = Litestar(
     allowed_hosts=list(settings.allowed_hosts),
     openapi_config=_openapi_config,
     on_startup=[start_email_poller],
+    on_shutdown=[stop_email_poller],
 )
