@@ -48,9 +48,9 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
   }
 
   return (
-    <div className="mx-auto max-w-7xl p-3 sm:p-4 md:p-6 xl:p-8">
+    <div className="h-full w-full overflow-auto custom-scrollbar p-3 @sm:p-4 @md:p-6">
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-6 flex flex-col gap-4 @sm:flex-row @sm:items-center @sm:justify-between">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -62,7 +62,7 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
           </button>
           <div className="flex items-center gap-2">
             <Icon size={18} className="text-primary" />
-            <h2 className="heading-display text-sm font-bold text-white sm:text-lg">
+            <h2 className="heading-display text-sm font-bold text-white @sm:text-lg">
               <span aria-hidden="true">// </span>{filterStatus || 'All'} — {config?.label}
             </h2>
             <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-xs text-muted-foreground">
@@ -72,7 +72,7 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
         </div>
 
         {/* Search */}
-        <div className="relative max-w-sm flex-1 sm:max-w-xs">
+        <div className="relative max-w-sm flex-1 @sm:max-w-xs">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
@@ -88,7 +88,7 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
       {/* Table */}
       <div className="neon-border overflow-hidden rounded-xl glass-panel">
         {/* Table header */}
-        <div className={`hidden border-b border-white/5 bg-white/[0.02] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground sm:grid ${isJob ? 'sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : 'sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'}`}>
+        <div className={`hidden border-b border-white/5 bg-white/[0.02] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground @sm:grid ${isJob ? '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'}`}>
           <span>Title</span>
           <span>{config?.creatorLabel || 'Creator'}</span>
           {!isJob && <span>Genre</span>}
@@ -98,10 +98,10 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
         </div>
 
         {/* Rows */}
-        <div className="max-h-[calc(100dvh-14rem)] sm:max-h-[calc(100dvh-16rem)] overflow-y-auto custom-scrollbar">
+        <div className="overflow-y-auto custom-scrollbar">
           {filtered.length === 0 && (
             <div className="border border-dashed border-white/10 rounded-xl p-8 text-center opacity-50">
-              <p className="font-mono text-xs tracking-wide sm:text-sm">NO_RECORDS_FOUND</p>
+              <p className="font-mono text-xs tracking-wide @sm:text-sm">NO_RECORDS_FOUND</p>
             </div>
           )}
           {filtered.map((item) => (
@@ -110,23 +110,23 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               onClick={() => onSelect?.(item)}
-              className={`group cursor-pointer border-b border-white/[0.03] px-4 py-3 transition-colors hover:bg-white/[0.03] sm:grid ${isJob ? 'sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : 'sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'} sm:items-center`}
+              className={`group cursor-pointer border-b border-white/[0.03] px-4 py-3 transition-colors hover:bg-white/[0.03] @sm:grid ${isJob ? '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'} @sm:items-center`}
             >
               {/* Title */}
-              <div className="mb-1 font-medium text-white transition-colors group-hover:text-primary sm:mb-0 sm:text-sm">
+              <div className="mb-1 font-medium text-white transition-colors group-hover:text-primary @sm:mb-0 @sm:text-sm">
                 {item.title}
               </div>
 
               {/* Creator */}
-              <div className="mb-1 font-mono text-xs text-muted-foreground sm:mb-0">
-                <span className="mr-1 text-[10px] text-muted-foreground sm:hidden">Creator:</span>
+              <div className="mb-1 font-mono text-xs text-muted-foreground @sm:mb-0">
+                <span className="mr-1 text-[10px] text-muted-foreground @sm:hidden">Creator:</span>
                 {item.creator !== '—' ? item.creator : ''}
               </div>
 
               {/* Genre */}
               {!isJob && (
-                <div className="mb-1 sm:mb-0">
-                  <span className="mr-1 text-[10px] text-muted-foreground sm:hidden">Genre:</span>
+                <div className="mb-1 @sm:mb-0">
+                  <span className="mr-1 text-[10px] text-muted-foreground @sm:hidden">Genre:</span>
                   {item.genre && (
                     <span className="inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-gray-300 ring-1 ring-inset ring-white/10">
                       {item.genre}
@@ -136,8 +136,8 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
               )}
 
               {/* Status */}
-              <div className="mb-1 flex items-center gap-1 sm:mb-0">
-                <span className="mr-1 text-[10px] text-muted-foreground sm:hidden">Status:</span>
+              <div className="mb-1 flex items-center gap-1 @sm:mb-0">
+                <span className="mr-1 text-[10px] text-muted-foreground @sm:hidden">Status:</span>
                 {(() => {
                   const { prev, next } = getStatusNav(mediaType, item.status)
                   return (
@@ -170,14 +170,14 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
 
               {/* Rating */}
               {!isJob && (
-                <div className="mb-1 text-xs text-yellow-500 sm:mb-0">
-                  <span className="mr-1 text-[10px] text-muted-foreground sm:hidden">Rating:</span>
+                <div className="mb-1 text-xs text-yellow-500 @sm:mb-0">
+                  <span className="mr-1 text-[10px] text-muted-foreground @sm:hidden">Rating:</span>
                   {item.rating != null && item.rating > 0 ? `★ ${item.rating}` : ''}
                 </div>
               )}
 
               {/* Actions */}
-              <div className="flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+              <div className="flex gap-1 @sm:opacity-0 @sm:transition-opacity @sm:group-hover:opacity-100 @sm:group-focus-within:opacity-100">
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onEdit?.(item) }}

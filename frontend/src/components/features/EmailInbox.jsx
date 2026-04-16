@@ -105,13 +105,13 @@ export default function EmailInbox() {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.25 }}
-      className="neon-border relative flex h-[calc(100dvh-7rem)] overflow-hidden rounded-none glass-panel sm:rounded-2xl"
+      className="neon-border relative flex h-full w-full overflow-hidden rounded-none glass-panel @sm:rounded-2xl"
     >
       {/* Top neon accent */}
       <div className="absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent shadow-[0_0_15px_var(--color-primary)]" />
 
       {/* Left: Folder Sidebar — hidden on mobile, shown on md+ */}
-      <div className="hidden md:flex">
+      <div className="hidden @md:flex">
         <FolderSidebar
           accounts={accounts}
           activeFolder={activeFolder}
@@ -125,7 +125,7 @@ export default function EmailInbox() {
 
       {/* Mobile sidebar overlay */}
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
+        <div className="fixed inset-0 z-50 flex @md:hidden">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setMobileSidebarOpen(false)}
@@ -147,8 +147,8 @@ export default function EmailInbox() {
 
       {/* Middle: Email List */}
       <div
-        className={`flex w-full shrink-0 flex-col border-r border-white/[0.06] md:w-80 ${
-          mobileView === 'reader' ? 'hidden md:flex' : 'flex'
+        className={`flex w-full shrink-0 flex-col border-r border-white/[0.06] @md:w-80 ${
+          mobileView === 'reader' ? 'hidden @md:flex' : 'flex'
         }`}
       >
         {/* List header */}
@@ -158,7 +158,7 @@ export default function EmailInbox() {
             <button
               type="button"
               onClick={() => setMobileSidebarOpen(true)}
-              className="mr-1 rounded-md p-1 text-muted-foreground hover:text-white focus-visible:ring-2 focus-visible:ring-primary md:hidden"
+              className="mr-1 rounded-md p-1 text-muted-foreground hover:text-white focus-visible:ring-2 focus-visible:ring-primary @md:hidden"
               aria-label="Open folder menu"
             >
               <Menu size={14} />
@@ -246,7 +246,7 @@ export default function EmailInbox() {
       {/* Right: Email Reader */}
       <div
         className={`flex min-w-0 flex-1 flex-col ${
-          mobileView !== 'reader' ? 'hidden md:flex' : 'flex'
+          mobileView !== 'reader' ? 'hidden @md:flex' : 'flex'
         }`}
       >
         {/* Mobile back button */}
@@ -254,7 +254,7 @@ export default function EmailInbox() {
           <button
             type="button"
             onClick={() => setMobileView('list')}
-            className="flex min-h-[44px] items-center gap-1.5 border-b border-white/[0.04] bg-white/[0.01] px-4 heading-ui text-xs text-muted-foreground transition-colors hover:text-white md:hidden"
+            className="flex min-h-[44px] items-center gap-1.5 border-b border-white/[0.04] bg-white/[0.01] px-4 heading-ui text-xs text-muted-foreground transition-colors hover:text-white @md:hidden"
           >
             <ArrowLeft size={12} />
             Back

@@ -93,8 +93,8 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
   }, [])
 
   const gridColsClass = mediaType === 'job'
-    ? 'md:grid-cols-2 lg:grid-cols-3'
-    : 'md:grid-cols-3'
+    ? '@md:grid-cols-2 @lg:grid-cols-3'
+    : '@md:grid-cols-3'
 
   return (
     <DndContext
@@ -104,7 +104,7 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className={`grid h-full auto-rows-min grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 ${gridColsClass}`}>
+      <div className={`grid h-full auto-rows-min grid-cols-1 gap-4 @sm:grid-cols-2 @sm:gap-6 ${gridColsClass}`}>
         {grouped.map(({ status, items: columnItems, total, hasMore }) => (
           <DroppableColumn
             key={status}
@@ -145,7 +145,7 @@ function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpd
       ref={setNodeRef}
       role="region"
       aria-label={`${status} column, ${total} items`}
-      className={`neon-border flex flex-col gap-3 rounded-xl glass-panel p-3 relative max-h-[50dvh] sm:max-h-[60dvh] sm:gap-4 sm:p-4 md:max-h-[calc(100dvh-12rem)] transition-colors ${isOver ? 'ring-2 ring-primary/40 bg-primary/5' : ''}`}
+      className={`neon-border flex flex-col gap-3 rounded-xl glass-panel p-3 relative max-h-[50dvh] @sm:gap-4 @sm:p-4 transition-colors ${isOver ? 'ring-2 ring-primary/40 bg-primary/5' : ''}`}
     >
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent shadow-[0_0_10px_var(--color-primary)]"></div>
 
@@ -155,15 +155,15 @@ function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpd
         aria-label={`${status} — open vault`}
         className="flex items-center justify-between px-2 pt-2 text-left transition-colors hover:opacity-80"
       >
-        <h2 className="heading-display text-xs font-bold text-white sm:text-sm">
+        <h2 className="heading-display text-xs font-bold text-white @sm:text-sm">
           <span aria-hidden="true">// </span>{status}
         </h2>
-        <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-white/10 text-[10px] font-bold font-mono sm:h-6 sm:w-6 sm:text-xs">
+        <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-white/10 text-[10px] font-bold font-mono @sm:h-6 @sm:w-6 @sm:text-xs">
           {total}
         </span>
       </button>
 
-      <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar sm:space-y-4 sm:pr-2">
+      <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar @sm:space-y-4 @sm:pr-2">
         {columnItems.map(item => (
           <SortableCard
             key={item.id}
@@ -175,13 +175,13 @@ function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpd
           />
         ))}
         {columnItems.length === 0 && (
-          <div className="border border-dashed border-white/10 rounded-xl p-6 text-center flex flex-col items-center justify-center gap-3 h-24 sm:p-8 sm:h-36">
-            <p className="font-mono text-xs tracking-wide text-muted-foreground/50 sm:text-sm">NO_RECORDS_FOUND</p>
+          <div className="border border-dashed border-white/10 rounded-xl p-6 text-center flex flex-col items-center justify-center gap-3 h-24 @sm:p-8 @sm:h-36">
+            <p className="font-mono text-xs tracking-wide text-muted-foreground/50 @sm:text-sm">NO_RECORDS_FOUND</p>
             {onAiSuggest && (
               <button
                 type="button"
                 onClick={() => onAiSuggest(status, mediaType)}
-                className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 font-mono text-[10px] text-primary/70 transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary sm:text-xs"
+                className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 font-mono text-[10px] text-primary/70 transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary @sm:text-xs"
               >
                 <Sparkles size={12} />
                 Ask AI for ideas

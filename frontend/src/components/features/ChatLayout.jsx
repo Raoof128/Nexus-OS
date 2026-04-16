@@ -24,9 +24,9 @@ export default function ChatLayout() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-7rem)] overflow-hidden">
+    <div className="flex h-full w-full overflow-hidden">
       {/* Desktop sidebar */}
-      <div className="hidden w-[240px] shrink-0 md:block lg:w-[280px]">
+      <div className="hidden w-[240px] shrink-0 @md:block @lg:w-[280px]">
         <ChatSidebar
           sessions={sessions}
           activeSessionId={activeSessionId}
@@ -38,7 +38,7 @@ export default function ChatLayout() {
       </div>
 
       {/* Mobile: toggle sidebar/chat */}
-      <div className="flex flex-1 flex-col md:hidden">
+      <div className="flex flex-1 flex-col @md:hidden">
         {!activeSessionId ? (
           <ChatSidebar
             sessions={sessions}
@@ -66,7 +66,7 @@ export default function ChatLayout() {
       </div>
 
       {/* Desktop chat window */}
-      <div className="hidden flex-1 md:block">
+      <div className="hidden flex-1 @md:block">
         <ChatWindow sessionId={activeSessionId} userId={userId} />
       </div>
     </div>
