@@ -41,6 +41,7 @@ export default function EmailInbox() {
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
     if (!searchTerm.trim()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSearchResults([])
       return
     }

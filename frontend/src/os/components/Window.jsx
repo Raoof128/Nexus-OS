@@ -60,7 +60,7 @@ function ResizeHandle({ direction, windowId, position, size, minSize }) {
     if (direction.includes('w') || direction.includes('n')) {
       moveWindow(windowId, { x: newX, y: newY })
     }
-  }, [direction, windowId, position, size, minSize, resizeWindow, moveWindow])
+  }, [direction, windowId, position, minSize, resizeWindow, moveWindow])
 
   const handlePointerUp = useCallback(() => {
     startRef.current = null
@@ -91,7 +91,7 @@ function Window({
   size,
   minSize,
   state: windowState,
-  restoredRect,
+  restoredRect: _restoredRect,
   zIndex,
   desktopRef,
   children,

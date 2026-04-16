@@ -54,7 +54,7 @@ export function useEmails(session, folder = 'inbox', accountId = 'all') {
   )
 
   // Cursor for pagination — last email's provider_date
-  const [cursor, setCursor] = useState(null)
+  const [_cursor, setCursor] = useState(null)
   // Extra pages loaded via loadMore, accumulated
   const [extraEmails, setExtraEmails] = useState([])
 

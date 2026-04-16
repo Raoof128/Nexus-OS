@@ -24,9 +24,9 @@ vi.mock('lucide-react', () => ({
 vi.mock('framer-motion', () => ({
   motion: new Proxy({}, {
     get: () => {
-      // eslint-disable-next-line react/display-name
       return ({ children, ...props }) => {
         // strip motion-specific props
+        // eslint-disable-next-line no-unused-vars
         const { initial, animate, exit, transition, variants, layoutId, layout, whileHover, whileTap, ...rest } = props
         return <div {...rest}>{children}</div>
       }
@@ -72,7 +72,7 @@ vi.mock('./ComposeModal', () => ({
   default: () => null,
 }))
 vi.mock('./FolderSidebar', () => ({
-  default: ({ onSelectFolder, activeFolder }) => (
+  default: ({ onSelectFolder }) => (
     <nav aria-label="Email folders">
       <button type="button" onClick={() => onSelectFolder?.('inbox')}>Inbox</button>
     </nav>

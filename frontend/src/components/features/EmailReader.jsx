@@ -3,7 +3,7 @@ import { motion as Motion, AnimatePresence } from 'framer-motion'
 import DOMPurify from 'dompurify'
 import { AlertTriangle, Eye, EyeOff, Loader2, Inbox } from 'lucide-react'
 import { apiFetch } from '../../lib/apiClient'
-import { formatEmailDate } from '../../lib/emailConfig'
+
 import EmailToolbar from './EmailToolbar'
 
 function buildSrcdoc(html, allowImages) {
@@ -65,6 +65,7 @@ const EmailReader = React.memo(function EmailReader({
 
   useEffect(() => {
     if (!email?.id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHtmlContent(null)
       return
     }

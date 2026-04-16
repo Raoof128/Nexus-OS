@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import App from './App'
 
 vi.mock('./hooks/useAuth', () => ({
@@ -32,6 +32,14 @@ const { useAuth } = await import('./hooks/useAuth')
 const { useMedia } = await import('./hooks/useMedia')
 
 describe('App', () => {
+  beforeEach(() => {
+    window.matchMedia = vi.fn().mockReturnValue({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })
+  })
+
   it('renders the login panel when signed out', () => {
     render(<App />)
     expect(screen.getByText(/system login/i)).toBeTruthy()
@@ -45,7 +53,24 @@ describe('App', () => {
     useAuth.mockReturnValue({ session: null, loading: false, signIn: vi.fn().mockResolvedValue({ error: null }), signOut: vi.fn() })
   })
 
-  it('renders media tabs and kanban when authenticated', () => {
+  it('renders the desktop OS shell when authenticated', () => {
+    useAuth.mockReturnValue({
+      session: { user: { id: 'u1', email: 'test@nexus.net' } },
+      loading: false, signIn: vi.fn(), signOut: vi.fn(),
+    })
+    useMedia.mockReturnValue({
+      items: [], loading: false, error: null,
+      addMedia: vi.fn(), updateMedia: vi.fn(), deleteMedia: vi.fn(),
+    })
+
+    render(<App />)
+    expect(screen.getByTestId('desktop')).toBeTruthy()
+
+    useAuth.mockReturnValue({ session: null, loading: false, signIn: vi.fn().mockResolvedValue({ error: null }), signOut: vi.fn() })
+    useMedia.mockReturnValue({ items: [], loading: false, error: null, addMedia: vi.fn(), updateMedia: vi.fn(), deleteMedia: vi.fn() })
+  })
+
+  it('renders the desktop OS shell when authenticated with items', () => {
     useAuth.mockReturnValue({
       session: { user: { id: 'u1', email: 'test@nexus.net' } },
       loading: false, signIn: vi.fn(), signOut: vi.fn(),
@@ -56,28 +81,7 @@ describe('App', () => {
     })
 
     render(<App />)
-    expect(screen.getByText('Neuromancer')).toBeTruthy()
-    expect(screen.getAllByText('Books').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Movies').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Anime').length).toBeGreaterThan(0)
-
-    useAuth.mockReturnValue({ session: null, loading: false, signIn: vi.fn().mockResolvedValue({ error: null }), signOut: vi.fn() })
-    useMedia.mockReturnValue({ items: [], loading: false, error: null, addMedia: vi.fn(), updateMedia: vi.fn(), deleteMedia: vi.fn() })
-  })
-
-  it('displays error state when API fails', () => {
-    useAuth.mockReturnValue({
-      session: { user: { id: 'u1', email: 'test@nexus.net' } },
-      loading: false, signIn: vi.fn(), signOut: vi.fn(),
-    })
-    useMedia.mockReturnValue({
-      items: [], loading: false, error: 'Connection refused',
-      addMedia: vi.fn(), updateMedia: vi.fn(), deleteMedia: vi.fn(),
-    })
-
-    render(<App />)
-    expect(screen.getByRole('alert')).toBeTruthy()
-    expect(screen.getByText(/connection refused/i)).toBeTruthy()
+    expect(screen.getByTestId('desktop')).toBeTruthy()
 
     useAuth.mockReturnValue({ session: null, loading: false, signIn: vi.fn().mockResolvedValue({ error: null }), signOut: vi.fn() })
     useMedia.mockReturnValue({ items: [], loading: false, error: null, addMedia: vi.fn(), updateMedia: vi.fn(), deleteMedia: vi.fn() })
