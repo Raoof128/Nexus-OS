@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { authFetch, refreshSession, setAuthExpiredCallback } from '../lib/apiClient'
 import { queryClient } from '../lib/queryClient'
+import { realtimeClient } from '../lib/realtimeClient'
 import { AuthContext } from './auth-context'
 
 async function loadCurrentSession() {
@@ -71,6 +72,13 @@ export function AuthProvider({ children }) {
     try {
       await authFetch('/auth/logout', { method: 'POST' })
     } finally {
+      // Tear down Realtime channels before clearing the session so no
+      // authenticated events land in a cache that is about to be wiped.
+      try {
+        await realtimeClient.removeAllChannels()
+      } catch {
+        // Best-effort — failures here must not block logout.
+      }
       queryClient.clear()
       setSession(null)
     }

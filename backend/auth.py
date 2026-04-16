@@ -55,10 +55,11 @@ def decode_supabase_token(token: str) -> dict[str, Any]:
     except jwt.DecodeError as exc:
         raise jwt.InvalidTokenError("Malformed token header") from exc
 
-    alg = header.get("alg", "HS256")
-
+    # Reject tokens with missing `alg` outright rather than defaulting — a missing
+    # header should never be silently treated as HS256 (algorithm-substitution).
+    alg = header.get("alg")
     if alg not in ("HS256", "ES256"):
-        raise jwt.InvalidTokenError("Unsupported algorithm")
+        raise jwt.InvalidTokenError("Unsupported or missing algorithm")
 
     if alg == "HS256":
         return jwt.decode(

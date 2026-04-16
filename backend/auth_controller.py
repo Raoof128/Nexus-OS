@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
+from typing import Union
 
 from litestar import Controller, Request, Response, get, post
 from litestar.exceptions import HTTPException
@@ -37,14 +39,59 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
 logger = logging.getLogger(__name__)
 
 
+_TrustedNet = Union[
+    ipaddress.IPv4Network,
+    ipaddress.IPv6Network,
+    ipaddress.IPv4Address,
+    ipaddress.IPv6Address,
+]
+
+
+def _parsed_trusted_nets() -> tuple[_TrustedNet, ...]:
+    """Parse ``TRUSTED_PROXY_IPS`` entries into IP addresses or CIDR networks.
+
+    Accepts either ``10.0.0.5`` (exact) or ``10.0.0.0/24`` (subnet). Invalid
+    entries are dropped with a warning so a single bad value cannot silently
+    disable forwarded-header trust. Not cached: settings is itself cached and
+    caching here pinned stale values across tests that flush settings.
+    """
+
+    parsed: list[_TrustedNet] = []
+    for entry in get_settings().trusted_proxy_ips:
+        try:
+            if "/" in entry:
+                parsed.append(ipaddress.ip_network(entry, strict=False))
+            else:
+                parsed.append(ipaddress.ip_address(entry))
+        except ValueError:
+            logger.warning("Ignoring malformed TRUSTED_PROXY_IPS entry: %r", entry)
+    return tuple(parsed)
+
+
+def _is_trusted_peer(direct_client_ip: str) -> bool:
+    """Return ``True`` when the direct peer is a configured trusted proxy."""
+
+    try:
+        peer = ipaddress.ip_address(direct_client_ip)
+    except ValueError:
+        return False
+    for net in _parsed_trusted_nets():
+        if isinstance(net, (ipaddress.IPv4Network, ipaddress.IPv6Network)):
+            if peer in net:
+                return True
+        else:
+            if peer == net:
+                return True
+    return False
+
+
 def _client_ip(request: Request) -> str:
     """Return the nearest client IP for auth abuse controls."""
 
     direct_client_ip = request.client.host if request.client else "unknown"
-    settings = get_settings()
 
     # Only honor proxy-forwarded addresses when the immediate peer is trusted.
-    if direct_client_ip not in settings.trusted_proxy_ips:
+    if not _is_trusted_peer(direct_client_ip):
         return direct_client_ip
 
     forwarded_for = request.headers.get("x-forwarded-for", "")

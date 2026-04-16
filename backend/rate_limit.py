@@ -83,6 +83,9 @@ class RedisSlidingWindowRateLimiter:
         self.redis_client = redis_client
         self.max_requests = max_requests
         self.window_seconds = window_seconds
+        # Per-instance fallback so one Redis outage doesn't pin the process
+        # into either fail-open or fail-closed for the remainder of its life.
+        self._fallback = SlidingWindowRateLimiter(max_requests, window_seconds)
 
     def enforce(self, key: str) -> None:
         """Atomically check and record a request, rejecting over-limit traffic."""
@@ -90,15 +93,25 @@ class RedisSlidingWindowRateLimiter:
         now = time()
         window_start = now - self.window_seconds
         redis_key = f"rate-limit:{key}"
-        blocked = self.redis_client.eval(
-            _LUA_SLIDING_WINDOW,
-            1,
-            redis_key,
-            now,
-            window_start,
-            self.max_requests,
-            self.window_seconds,
-        )
+        try:
+            blocked = self.redis_client.eval(
+                _LUA_SLIDING_WINDOW,
+                1,
+                redis_key,
+                now,
+                window_start,
+                self.max_requests,
+                self.window_seconds,
+            )
+        except RedisError:
+            # Redis went away mid-flight — degrade to per-instance limits so
+            # traffic keeps flowing but at least some ceiling still applies.
+            logger.warning(
+                "Redis rate-limit backend unavailable; falling back to in-memory",
+                exc_info=True,
+            )
+            self._fallback.enforce(key)
+            return
         if blocked:
             raise HTTPException(
                 status_code=429,

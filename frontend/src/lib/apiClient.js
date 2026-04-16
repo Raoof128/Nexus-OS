@@ -37,13 +37,24 @@ async function request(path, { method = 'GET', body, headers = {} } = {}, retry 
       body: body ? JSON.stringify(body) : undefined,
     })
 
-    if (response.status === 401 && retry && !path.startsWith('/auth/')) {
+    if (
+      response.status === 401 &&
+      retry &&
+      !path.startsWith('/auth/') &&
+      path !== '/auth/refresh'
+    ) {
       try {
-        await refreshSession()
-      } catch {
+        const refreshed = await refreshSession()
+        if (!refreshed) {
+          onAuthExpired?.()
+          throw new Error('Your session has expired. Please log in again.')
+        }
+      } catch (refreshError) {
         onAuthExpired?.()
+        if (refreshError?.message) throw refreshError
         throw new Error('Your session has expired. Please log in again.')
       }
+      // retry=false guarantees we can't recurse on a second 401
       return request(path, { method, body, headers }, false)
     }
 

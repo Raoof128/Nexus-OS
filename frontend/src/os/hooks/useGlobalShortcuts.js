@@ -18,6 +18,18 @@ export default function useGlobalShortcuts() {
     const handler = (e) => {
       if (!e.altKey) return
 
+      // Never hijack keys while the user is typing — Alt+W in a text field must
+      // not close the active window (same rule applied elsewhere in the OS).
+      const active = document.activeElement
+      if (
+        active &&
+        (active.tagName === 'INPUT' ||
+          active.tagName === 'TEXTAREA' ||
+          active.isContentEditable)
+      ) {
+        return
+      }
+
       const key = e.key.toLowerCase()
       const activeWin = activeWindowId ? windows[activeWindowId] : null
 

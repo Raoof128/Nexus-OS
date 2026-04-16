@@ -33,7 +33,15 @@ export function useFocusTrap(isActive) {
     container.addEventListener('keydown', handleKeyDown)
     return () => {
       container.removeEventListener('keydown', handleKeyDown)
-      previouslyFocused?.focus()
+      // Restore focus only if the previously-focused element is still in the
+      // document — the host may have unmounted it while the trap was open.
+      if (
+        previouslyFocused &&
+        typeof previouslyFocused.focus === 'function' &&
+        document.contains(previouslyFocused)
+      ) {
+        previouslyFocused.focus()
+      }
     }
   }, [isActive])
 

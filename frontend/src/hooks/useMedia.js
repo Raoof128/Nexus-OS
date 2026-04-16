@@ -151,9 +151,9 @@ export function useMedia(session, type = 'book') {
     onError: (_error, _variables, context) => {
       queryClient.setQueryData(mediaQueryKey, context?.previous ?? [])
     },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: mediaQueryKey })
-    },
+    // No invalidateQueries on success: the optimistic removal already matches
+    // the server outcome. Invalidating here triggered a refetch that raced
+    // Realtime DELETE events and briefly reintroduced the deleted item.
   })
 
   return {

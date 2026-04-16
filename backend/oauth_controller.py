@@ -116,7 +116,12 @@ class OAuthController(Controller):
         state = secrets.token_urlsafe(32)
         verifier, challenge = _generate_pkce_pair()
 
-        # Build redirect_uri from request origin
+        # Build redirect_uri from request origin, but only after confirming the
+        # Host header matches a configured allowed host — otherwise an attacker
+        # with a spoofed Host could steer the provider back to their domain.
+        host = (request.headers.get("host") or "").split(":")[0].lower()
+        if host and host not in {h.lower() for h in settings.allowed_hosts}:
+            raise HTTPException(status_code=400, detail="Invalid Host header")
         base = str(request.base_url).rstrip("/")
         redirect_uri = f"{base}/api/email/accounts/callback"
 
