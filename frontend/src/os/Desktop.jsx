@@ -2,6 +2,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useWindowStore } from './stores/windowStore'
+import useGlobalShortcuts from './hooks/useGlobalShortcuts'
 import { APP_REGISTRY } from './stores/appRegistry'
 import Window from './components/Window'
 import Taskbar from './components/Taskbar'
@@ -32,6 +33,8 @@ export default function Desktop() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useGlobalShortcuts()
 
   const handleSnapHint = useCallback((hint) => {
     setSnapPreview(hint)
