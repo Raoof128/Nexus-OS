@@ -27,8 +27,12 @@ export default function Desktop() {
     return () => mql.removeEventListener('change', handler)
   }, [setMobile])
 
+  const hydrateFromStorage = useWindowStore((s) => s.hydrateFromStorage)
+
   useEffect(() => {
-    if (Object.keys(windows).length === 0) {
+    hydrateFromStorage()
+    // If hydration didn't restore any windows, open the default app
+    if (Object.keys(useWindowStore.getState().windows).length === 0) {
       openApp('media')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
