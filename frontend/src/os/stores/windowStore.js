@@ -371,9 +371,14 @@ useWindowStore.subscribe((state) => {
   saveTimeout = setTimeout(() => {
     try {
       const { windows, zStack, activeWindowId } = state
+      // Convert minimized windows to normal before saving — hydration ignores minimized state anyway
+      const windowsToSave = {}
+      for (const [id, win] of Object.entries(windows)) {
+        windowsToSave[id] = win.state === 'minimized' ? { ...win, state: 'normal' } : win
+      }
       const snapshot = {
         schemaVersion: SCHEMA_VERSION,
-        windows,
+        windows: windowsToSave,
         zStack,
         activeWindowId,
       }

@@ -70,7 +70,10 @@ function BootLine({ text, delayMs }) {
 }
 
 export default function BootSequence({ onComplete }) {
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const [prefersReduced] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  })
 
   // Skip animation entirely for reduced motion users
   useEffect(() => {

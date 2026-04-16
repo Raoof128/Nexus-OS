@@ -11,11 +11,15 @@ function Clock() {
   })
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    let timeoutId
+    const tick = () => {
       const now = new Date()
       setTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }))
-    }, 60_000)
-    return () => clearInterval(interval)
+      const msToNext = 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds())
+      timeoutId = setTimeout(tick, msToNext + 50) // +50ms buffer to avoid edge cases
+    }
+    timeoutId = setTimeout(tick, 60_000 - (new Date().getSeconds() * 1000 + new Date().getMilliseconds()) + 50)
+    return () => clearTimeout(timeoutId)
   }, [])
 
   return (

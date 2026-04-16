@@ -27,6 +27,7 @@ function DesktopIcons() {
 
   return (
     <div
+      role="group"
       className="pointer-events-none absolute inset-0 z-[2]"
       aria-label="Desktop icons"
     >

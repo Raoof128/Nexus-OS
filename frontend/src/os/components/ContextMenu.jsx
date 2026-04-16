@@ -14,13 +14,14 @@ import { useWindowStore } from '../stores/windowStore'
 import { useSettingsStore } from '../stores/settingsStore'
 
 function Separator() {
-  return <div className="mx-2 my-1 h-px bg-white/[0.06]" />
+  return <div role="separator" className="mx-2 my-1 h-px bg-white/[0.06]" />
 }
 
 function MenuItem({ icon: Icon, label, onClick, danger }) {
   return (
     <button
       type="button"
+      role="menuitem"
       onClick={onClick}
       className={`flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left transition-colors duration-100 ${
         danger
@@ -98,6 +99,8 @@ function ContextMenu({ x, y, onClose }) {
           zIndex: 900,
           transformOrigin: 'top left',
         }}
+        role="menu"
+        aria-label="Desktop context menu"
         className="neon-border glass-panel rounded-lg py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
         onContextMenu={(e) => e.preventDefault()}
       >

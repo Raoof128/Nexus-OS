@@ -96,7 +96,9 @@ export default function Desktop() {
   useEffect(() => {
     hydrateFromStorage()
     hydrateSettings()
-    // If hydration didn't restore any windows, open the default app
+    // getState() is safe here because hydrateFromStorage() is synchronous —
+    // it calls set() internally and Zustand's set() updates the store synchronously,
+    // so getState() immediately reflects the hydrated windows.
     if (Object.keys(useWindowStore.getState().windows).length === 0) {
       openApp('media')
     }

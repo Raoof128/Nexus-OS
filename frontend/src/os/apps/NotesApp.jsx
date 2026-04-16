@@ -57,6 +57,13 @@ export default function NotesApp({ windowId }) {
     })
   }, [storageKey])
 
+  // Clear any pending debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeout.current) clearTimeout(saveTimeout.current)
+    }
+  }, [])
+
   // Debounced save
   const saveToStorage = useCallback((text) => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current)
