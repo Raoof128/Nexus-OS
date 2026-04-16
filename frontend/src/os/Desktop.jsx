@@ -12,13 +12,67 @@ import AppLauncher from './components/AppLauncher'
 import NotificationToast from './components/NotificationToast'
 import DesktopIcons from './components/DesktopIcons'
 import ContextMenu from './components/ContextMenu'
+import BootSequence from './components/BootSequence'
+import LockScreen from './components/LockScreen'
 
 const Z_INDEX_BASE = 100
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
+const BOOT_SESSION_KEY = 'nexus_booted'
 
 export default function Desktop() {
   const desktopRef = useRef(null)
   const [snapPreview, setSnapPreview] = useState(null) // null | 'left' | 'right' | 'top'
   const [contextMenu, setContextMenu] = useState(null) // null | { x, y }
+
+  // ── Boot state ────────────────────────────────────────────
+  // Skip boot animation if already shown this browser session
+  const [booted, setBooted] = useState(
+    () => sessionStorage.getItem(BOOT_SESSION_KEY) === '1'
+  )
+
+  const handleBootComplete = useCallback(() => {
+    sessionStorage.setItem(BOOT_SESSION_KEY, '1')
+    setBooted(true)
+  }, [])
+
+  // ── Lock screen state ─────────────────────────────────────
+  const [locked, setLocked] = useState(false)
+  const idleTimerRef = useRef(null)
+
+  const resetIdleTimer = useCallback(() => {
+    clearTimeout(idleTimerRef.current)
+    idleTimerRef.current = setTimeout(() => {
+      // Don't lock if user is actively typing in an input element
+      const active = document.activeElement
+      if (
+        active &&
+        (active.tagName === 'INPUT' ||
+          active.tagName === 'TEXTAREA' ||
+          active.isContentEditable)
+      ) {
+        resetIdleTimer()
+        return
+      }
+      setLocked(true)
+    }, IDLE_TIMEOUT_MS)
+  }, [])
+
+  useEffect(() => {
+    if (!booted) return
+
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll']
+    const handler = () => resetIdleTimer()
+
+    events.forEach((e) => document.addEventListener(e, handler, { passive: true }))
+    resetIdleTimer()
+
+    return () => {
+      events.forEach((e) => document.removeEventListener(e, handler))
+      clearTimeout(idleTimerRef.current)
+    }
+  }, [booted, resetIdleTimer])
+
+  // ── Window store ──────────────────────────────────────────
   const windows = useWindowStore((s) => s.windows)
   const zStack = useWindowStore((s) => s.zStack)
   const launcherOpen = useWindowStore((s) => s.launcherOpen)
@@ -75,84 +129,94 @@ export default function Desktop() {
     .filter((w) => w && w.state !== 'minimized')
 
   return (
-    <div
-      ref={desktopRef}
-      data-testid="desktop"
-      className="fixed inset-0 overflow-hidden bg-background"
-      onContextMenu={handleContextMenu}
-      onClick={closeContextMenu}
-    >
-      {orbsEnabled && <div className="ambient-orbs" />}
-      {scanlinesEnabled && <div className="scanlines" />}
-      <div className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
+    <>
+      {/* Boot sequence — overlays desktop on first load */}
+      {!booted && <BootSequence onComplete={handleBootComplete} />}
 
-      {/* Desktop icons — behind all windows */}
-      <DesktopIcons />
+      <div
+        ref={desktopRef}
+        data-testid="desktop"
+        className="fixed inset-0 overflow-hidden bg-background"
+        onContextMenu={handleContextMenu}
+        onClick={closeContextMenu}
+      >
+        {orbsEnabled && <div className="ambient-orbs" />}
+        {scanlinesEnabled && <div className="scanlines" />}
+        <div className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
-      {visibleWindows.map((win) => {
-        const manifest = APP_REGISTRY[win.appId]
-        if (!manifest) return null
-        const AppComponent = manifest.component
-        const zIndex = Z_INDEX_BASE + zStack.indexOf(win.windowId)
-        return (
-          <Window
-            key={win.windowId}
-            windowId={win.windowId}
-            appId={win.appId}
-            title={win.title}
-            position={win.position}
-            size={win.size}
-            minSize={win.minSize}
-            state={win.state}
-            restoredRect={win.restoredRect}
-            zIndex={zIndex}
-            desktopRef={desktopRef}
-            onSnapHint={handleSnapHint}
-          >
-            <Suspense
-              fallback={
-                <div className="flex h-full items-center justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              }
+        {/* Desktop icons — behind all windows */}
+        <DesktopIcons />
+
+        {visibleWindows.map((win) => {
+          const manifest = APP_REGISTRY[win.appId]
+          if (!manifest) return null
+          const AppComponent = manifest.component
+          const zIndex = Z_INDEX_BASE + zStack.indexOf(win.windowId)
+          return (
+            <Window
+              key={win.windowId}
+              windowId={win.windowId}
+              appId={win.appId}
+              title={win.title}
+              position={win.position}
+              size={win.size}
+              minSize={win.minSize}
+              state={win.state}
+              restoredRect={win.restoredRect}
+              zIndex={zIndex}
+              desktopRef={desktopRef}
+              onSnapHint={handleSnapHint}
             >
-              <AppComponent appId={win.appId} windowId={win.windowId} />
-            </Suspense>
-          </Window>
-        )
-      })}
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                }
+              >
+                <AppComponent appId={win.appId} windowId={win.windowId} />
+              </Suspense>
+            </Window>
+          )
+        })}
 
-      {/* Snap preview overlay */}
-      {snapPreview && (
-        <div
-          data-testid="snap-preview"
-          className="pointer-events-none absolute z-[99] rounded-lg border border-cyan-500/30 bg-cyan-500/5 backdrop-blur-sm transition-all duration-150"
-          style={
-            snapPreview === 'left'
-              ? { left: 0, top: 0, width: '50%', height: `calc(100% - ${48}px)` }
-              : snapPreview === 'right'
-                ? { left: '50%', top: 0, width: '50%', height: `calc(100% - ${48}px)` }
-                : { left: 0, top: 0, width: '100%', height: `calc(100% - ${48}px)` }
-          }
-        />
-      )}
+        {/* Snap preview overlay */}
+        {snapPreview && (
+          <div
+            data-testid="snap-preview"
+            className="pointer-events-none absolute z-[99] rounded-lg border border-cyan-500/30 bg-cyan-500/5 backdrop-blur-sm transition-all duration-150"
+            style={
+              snapPreview === 'left'
+                ? { left: 0, top: 0, width: '50%', height: `calc(100% - ${48}px)` }
+                : snapPreview === 'right'
+                  ? { left: '50%', top: 0, width: '50%', height: `calc(100% - ${48}px)` }
+                  : { left: 0, top: 0, width: '100%', height: `calc(100% - ${48}px)` }
+            }
+          />
+        )}
 
-      <NotificationToast />
+        <NotificationToast />
 
-      <Taskbar />
+        <Taskbar />
 
-      <AnimatePresence>
-        {launcherOpen && <AppLauncher />}
-      </AnimatePresence>
+        <AnimatePresence>
+          {launcherOpen && <AppLauncher />}
+        </AnimatePresence>
 
-      {/* Desktop right-click context menu */}
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          onClose={closeContextMenu}
-        />
-      )}
-    </div>
+        {/* Desktop right-click context menu */}
+        {contextMenu && (
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            onClose={closeContextMenu}
+          />
+        )}
+
+        {/* Lock screen — shown after 5 min idle */}
+        {locked && (
+          <LockScreen onUnlock={() => setLocked(false)} />
+        )}
+      </div>
+    </>
   )
 }

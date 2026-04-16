@@ -25,6 +25,20 @@ vi.mock('../../stores/windowStore', () => {
   return { useWindowStore }
 })
 
+vi.mock('../../stores/settingsStore', () => ({
+  useSettingsStore: (selector) => selector({
+    scanlinesEnabled: false,
+    orbsEnabled: false,
+    hydrateSettings: vi.fn(),
+  }),
+}))
+
+vi.mock('../../stores/notificationStore', () => ({
+  useNotificationStore: {
+    getState: () => ({ addNotification: vi.fn() }),
+  },
+}))
+
 vi.mock('../../stores/appRegistry', () => ({
   APP_REGISTRY: {
     media: {
@@ -33,6 +47,7 @@ vi.mock('../../stores/appRegistry', () => ({
       component: () => <div>Media Content</div>,
     },
   },
+  APP_ORDER: ['media'],
 }))
 
 vi.mock('../Window', () => ({
@@ -47,8 +62,46 @@ vi.mock('../AppLauncher', () => ({
   default: () => <div data-testid="app-launcher">Launcher</div>,
 }))
 
+vi.mock('../NotificationToast', () => ({
+  default: () => null,
+}))
+
+vi.mock('../DesktopIcons', () => ({
+  default: () => <div data-testid="desktop-icons" />,
+}))
+
+vi.mock('../ContextMenu', () => ({
+  default: () => null,
+}))
+
+vi.mock('../BootSequence', () => ({
+  default: ({ onComplete }) => {
+    // Use queueMicrotask to call onComplete after render, avoiding setState-during-render warning
+    queueMicrotask(() => onComplete?.())
+    return null
+  },
+}))
+
+vi.mock('../LockScreen', () => ({
+  default: ({ onUnlock }) => (
+    <div data-testid="lock-screen" onClick={onUnlock}>Locked</div>
+  ),
+}))
+
+vi.mock('../../hooks/useGlobalShortcuts', () => ({
+  default: () => {},
+}))
+
 vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }) => <>{children}</>,
+  // Proxy so motion.div, motion.span etc. all just render a plain div
+  motion: new Proxy(
+    {},
+    {
+      get: (_t, tag) =>
+        ({ children, ...rest }) => <div data-motion={String(tag)} {...rest}>{children}</div>,
+    }
+  ),
 }))
 
 import Desktop from '../../Desktop'
@@ -66,6 +119,8 @@ describe('Desktop', () => {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     })
+    // Simulate first-ever load (no session flag)
+    sessionStorage.clear()
   })
 
   it('renders taskbar', () => {
