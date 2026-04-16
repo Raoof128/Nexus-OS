@@ -21,6 +21,7 @@ export default defineConfig({
           observability: ['@sentry/react'],
           query: ['@tanstack/react-query'],
           ui: ['framer-motion', 'lucide-react'],
+          state: ['zustand'],
         },
       },
     },
