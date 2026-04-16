@@ -58,9 +58,13 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
 
           {/* Modal */}
           <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 sm:p-6">
+            {/* No `layoutId` here — see CyberCard for the full reasoning.
+               Sharing the id with the card while both were simultaneously
+               mounted caused a shake on status updates and stalled the exit
+               animation when close was clicked. A clean fade/scale entry is
+               the safe, deterministic behaviour. */}
             <Motion.div
               ref={trapRef}
-              layoutId={`card-${item.id}`}
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}

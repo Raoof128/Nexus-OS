@@ -1,5 +1,12 @@
 # Change Log
 
+### 2026-04-17 (Australia/Sydney) — Fix: card shake on status change + stalled modal exit
+**Raouf:**
+- **Scope:** User-reported: changing status from the detail modal made the card shake, then the X button appeared broken.
+- **Root cause:** `CyberCard` and `MediaDetailModal` both rendered `layoutId="card-${item.id}"` simultaneously while the modal was open. Framer Motion's shared-layout reconciler expects one element at a time — with both mounted AND `layout="position"` on the card, each optimistic status update re-parented the card to a new kanban column and the reconciler tried to animate the modal toward the card's new DOM position, producing the shake. The same broken state stalled the exit animation after clicking X: the click fired and state cleared, but AnimatePresence's exit never completed, so the modal appeared frozen. Dropped the shared `layoutId` from both sides; kept `layout="position"` on the card for in-column drag settles. Trade-off: no more card-to-modal morph on open, but modal open/close is deterministic again.
+- **Files Changed:** `CyberCard.jsx`, `MediaDetailModal.jsx`.
+- **Verification:** ESLint 0, vitest 117/117, vite build clean.
+
 ### 2026-04-17 (Australia/Sydney) — Animation Audit + Polish
 **Raouf:**
 - **Scope:** Inventory + polish every animation (Framer Motion + CSS) across 18 files / 190 usages.

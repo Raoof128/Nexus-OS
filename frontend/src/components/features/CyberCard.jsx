@@ -49,9 +49,15 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
   }
 
   return (
+    // No `layoutId` here: the detail modal used to share `card-${item.id}` for
+    // a morph-from-card entry, but sharing the id while both the card and the
+    // modal are mounted caused Framer's layout reconciler to fight with itself
+    // on optimistic status updates (card re-parented to a new column while the
+    // modal was still open), which showed up as a full-modal "shake" and a
+    // stalled exit animation when the close button was clicked. `layout="position"`
+    // is kept so within-column drag reorder still settles smoothly.
     <Motion.div
       onClick={handleCardClick}
-      layoutId={`card-${item.id}`}
       layout="position"
       transition={SPRING.soft}
       className="neon-border group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-4 hover:brightness-110 hover:shadow-[0_0_20px_hsl(var(--neon-yellow)/0.15)] sm:p-6 transition-all duration-200"

@@ -22,6 +22,15 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 ## Change Log
 
+### 2026-04-17 (Australia/Sydney) — Fix: card shake on status change + stalled modal exit
+**Raouf:**
+- **Scope:** Two user-reported bugs in the Media Vault detail modal — "card shakes when I pick a status option" and "exit button doesn't work after that."
+- **Root cause:** `CyberCard.jsx:54` and `MediaDetailModal.jsx:63` both rendered `layoutId={'card-${item.id}'}` simultaneously while the modal was open. Framer Motion's shared-layout reconciler is designed for *one element at a time* claiming a `layoutId` so it can morph between them (card → modal on open). With both mounted *and* `layout="position"` on CyberCard, whenever an optimistic status update re-parented the card to a different kanban column, the reconciler tried to animate the **modal** toward the card's new DOM position and back — visible as a "shake." The same broken reconciler state then stalled the exit animation; the X-button click *did* fire and the React state *did* clear, but AnimatePresence's exit never completed cleanly, so users perceived the close button as dead. The conflict was latent until the prior commit that stopped auto-closing the modal on status change — before that fix, only one element held the id at a time.
+- **Fix:** Dropped the shared `layoutId` from both sides. Kept `layout="position"` on `CyberCard` so within-column drag/drop reordering still settles smoothly. Modal now has a deterministic `initial/animate/exit` fade+scale+y entry/exit that doesn't depend on the card's DOM position. Trade-off: lost the delightful card-to-modal morph on open — acceptable in exchange for a modal that actually opens and closes reliably while its item is being updated.
+- **Investigation notes:** Followed the systematic-debugging protocol — reproduced mentally from code, traced data flow through the optimistic update, identified the exact Framer Motion interaction, formed a single hypothesis, applied the minimal fix. Not a "remove all animations" sledgehammer: only the *shared* id was removed.
+- **Files Changed:** `frontend/src/components/features/CyberCard.jsx`, `frontend/src/components/features/MediaDetailModal.jsx`.
+- **Verification:** ESLint 0 errors, Vitest 117/117, Vite build clean.
+
 ### 2026-04-17 (Australia/Sydney) — Animation Audit + Polish
 **Raouf:**
 - **Scope:** Full audit and polish of every animation across the frontend (190 Framer Motion usages across 18 files, 3 CSS keyframe sets).
