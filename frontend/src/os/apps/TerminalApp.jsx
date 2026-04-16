@@ -119,7 +119,7 @@ export default function TerminalApp({ windowId: _windowId }) {
   const commandsRef = useRef(null)
   useLayoutEffect(() => {
     commandsRef.current = buildCommands({ session, windows, zStack })
-  })
+  }, [session, windows, zStack])
 
   // Auto-scroll to bottom
   useEffect(() => {

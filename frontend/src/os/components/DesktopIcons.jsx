@@ -89,7 +89,7 @@ function DesktopIcons() {
 
             {/* Label */}
             <span
-              className="heading-ui w-full truncate text-center text-[9px] text-white/60 leading-tight"
+              className="heading-ui w-full truncate text-center text-[10px] text-white/60 leading-tight"
             >
               {manifest.title}
             </span>

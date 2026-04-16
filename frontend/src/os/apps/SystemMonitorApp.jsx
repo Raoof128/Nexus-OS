@@ -111,8 +111,10 @@ export default function SystemMonitorApp() {
         <Panel icon={Wifi} title="Realtime">
           <div className="space-y-1">
             <div className="mb-2 flex items-center gap-2">
+              {/* NOTE: Supabase Realtime does not expose channel connection state easily;
+                  showing ACTIVE (subscription registered) rather than CONNECTED. */}
               <StatusDot status="online" />
-              <span className="heading-display text-sm font-bold text-white">CONNECTED</span>
+              <span className="heading-display text-sm font-bold text-white">ACTIVE</span>
             </div>
             <DataRow label="Protocol" value="WebSocket" />
             <DataRow label="Provider" value="Supabase" />

@@ -31,7 +31,7 @@ function Toast({ notification }) {
       transition={{ type: 'spring', stiffness: 340, damping: 28 }}
       className={`glass-panel relative w-[300px] overflow-hidden rounded-lg border border-white/10 shadow-lg ${config.bgClass}`}
       role="alert"
-      aria-live="assertive"
+      aria-live={notification.type === 'error' ? 'assertive' : 'polite'}
     >
       {/* Left accent bar */}
       <div

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
+import { useWindowStore } from '../stores/windowStore'
 
 /** Clock that updates every second for the lock screen */
 function LockClock() {
@@ -54,8 +55,9 @@ function LockClock() {
   )
 }
 
-/** Blinking "click to unlock" hint */
+/** Blinking "click/tap to unlock" hint — adapts to mobile vs desktop */
 function UnlockHint() {
+  const isMobile = useWindowStore((s) => s.isMobile)
   return (
     <Motion.p
       className="select-none font-mono text-xs"
@@ -63,7 +65,7 @@ function UnlockHint() {
       animate={{ opacity: [1, 0.3, 1] }}
       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
     >
-      Click or press any key to unlock
+      {isMobile ? 'Tap to unlock' : 'Click or press any key to unlock'}
     </Motion.p>
   )
 }

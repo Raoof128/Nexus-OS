@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, MessageSquare } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useChatSessions } from '../../hooks/useChat'
 import ChatSidebar from './ChatSidebar'
@@ -67,7 +67,14 @@ export default function ChatLayout() {
 
       {/* Desktop chat window */}
       <div className="hidden flex-1 @md:block">
-        <ChatWindow sessionId={activeSessionId} userId={userId} />
+        {activeSessionId ? (
+          <ChatWindow sessionId={activeSessionId} userId={userId} />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
+            <MessageSquare size={32} className="text-primary/20" />
+            <p className="heading-ui text-xs text-muted-foreground/50">Select a conversation</p>
+          </div>
+        )}
       </div>
     </div>
   )

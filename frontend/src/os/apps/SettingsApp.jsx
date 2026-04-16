@@ -189,7 +189,16 @@ function AboutTab() {
         <div className="space-y-1.5">
           {shortcuts.map((s) => (
             <div key={s.keys} className="flex items-center justify-between font-mono text-[10px]">
-              <kbd className="rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-white/70">
+              <kbd
+                className="rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-white/70"
+                aria-label={s.keys
+                  .replace(/\+/g, ' plus ')
+                  .replace(/↑/g, 'Up Arrow')
+                  .replace(/←/g, 'Left Arrow')
+                  .replace(/→/g, 'Right Arrow')
+                  .replace(/\s+/g, ' ')
+                  .trim()}
+              >
                 {s.keys}
               </kbd>
               <span className="text-muted-foreground">{s.action}</span>

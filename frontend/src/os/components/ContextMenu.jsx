@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from 'react'
+import { memo, useCallback, useEffect, useRef } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import {
   AppWindow,
@@ -82,6 +82,24 @@ function ContextMenu({ x, y, onClose }) {
     fn()
   }
 
+  const handleMenuKeyDown = useCallback((e) => {
+    const items = menuRef.current
+      ? Array.from(menuRef.current.querySelectorAll('[role="menuitem"]'))
+      : []
+    if (items.length === 0) return
+    const focused = document.activeElement
+    const currentIndex = items.indexOf(focused)
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0
+      items[nextIndex]?.focus()
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
+      items[prevIndex]?.focus()
+    }
+  }, [])
+
   return (
     <AnimatePresence>
       <Motion.div
@@ -103,6 +121,7 @@ function ContextMenu({ x, y, onClose }) {
         aria-label="Desktop context menu"
         className="neon-border glass-panel rounded-lg py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
         onContextMenu={(e) => e.preventDefault()}
+        onKeyDown={handleMenuKeyDown}
       >
         {/* Accent line at top */}
         <div className="absolute inset-x-0 top-0 h-px rounded-t-lg bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
