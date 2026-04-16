@@ -85,9 +85,9 @@
 
 /* ── Ambient background orbs ─────────────────────────────── */
 .ambient-orbs {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   overflow: hidden;
   contain: strict;
@@ -128,9 +128,9 @@
 
 /* ── Scanline overlay ────────────────────────────────────── */
 .scanlines {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: -1;
   pointer-events: none;
   contain: strict;
   background: repeating-linear-gradient(

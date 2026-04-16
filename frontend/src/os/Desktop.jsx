@@ -142,12 +142,10 @@ export default function Desktop() {
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >
-        {/* Wallpaper layers — forced to z-0, absolute (not fixed) to stay in desktop stacking context */}
-        {orbsEnabled && <div className="ambient-orbs" style={{ position: 'absolute', zIndex: 0 }} />}
-        {scanlinesEnabled && <div className="scanlines" style={{ position: 'absolute', zIndex: 0 }} />}
-        <div className="pointer-events-none absolute inset-0" style={{ zIndex: 0 }}>
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
-        </div>
+        {/* Wallpaper layers — z-index: -1 in CSS, always behind everything */}
+        {orbsEnabled && <div className="ambient-orbs" />}
+        {scanlinesEnabled && <div className="scanlines" />}
+        <div className="pointer-events-none absolute inset-0 -z-1 bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
         {/* Desktop icons — behind all windows */}
         <DesktopIcons />

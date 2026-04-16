@@ -40,7 +40,7 @@ function App() {
         </a>
         <div className="ambient-orbs" />
         <div className="scanlines" />
-        <div className="absolute inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="pointer-events-none absolute inset-0 -z-1 bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
         <Navbar />
         <main className="relative z-10 flex flex-1 items-center justify-center p-4 sm:p-6">
