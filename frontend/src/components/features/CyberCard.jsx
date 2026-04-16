@@ -87,7 +87,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
             </span>
           )}
 
-          <div className="ml-auto flex gap-0.5 sm:gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+          <div className="ml-auto flex gap-0.5 sm:gap-1 sm:opacity-60 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
             {prev && (
               <button
                 type="button"

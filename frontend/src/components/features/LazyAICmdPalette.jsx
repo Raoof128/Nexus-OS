@@ -35,9 +35,14 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd }) {
         openPalette()
       }
     }
+    const handleExternalOpen = () => openPalette()
 
     document.addEventListener('keydown', handleShortcut)
-    return () => document.removeEventListener('keydown', handleShortcut)
+    window.addEventListener('nexus:open-ai-cmd', handleExternalOpen)
+    return () => {
+      document.removeEventListener('keydown', handleShortcut)
+      window.removeEventListener('nexus:open-ai-cmd', handleExternalOpen)
+    }
   }, [])
 
   return (

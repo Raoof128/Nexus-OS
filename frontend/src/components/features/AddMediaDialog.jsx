@@ -9,6 +9,7 @@ import MediaForm from './MediaForm'
 export default function AddMediaDialog({ mediaType, onAdd }) {
   const config = MEDIA_CONFIG[mediaType]
   const [open, setOpen] = useState(false)
+  const [initialStatus, setInitialStatus] = useState(null)
   const trapRef = useFocusTrap(open)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -27,7 +28,20 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
     }
   }, [open])
 
+  useEffect(() => {
+    const handleExternal = (event) => {
+      const requestedStatus = event?.detail?.status || null
+      setInitialStatus(requestedStatus)
+      setError(null)
+      setFormKey((k) => k + 1)
+      setOpen(true)
+    }
+    window.addEventListener('nexus:open-add-media', handleExternal)
+    return () => window.removeEventListener('nexus:open-add-media', handleExternal)
+  }, [])
+
   const handleOpen = () => {
+    setInitialStatus(null)
     setError(null)
     setFormKey((k) => k + 1)
     setOpen(true)
@@ -108,7 +122,7 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
                 <MediaForm
                   key={formKey}
                   config={config}
-                  defaultValues={{ status: config.defaultStatus }}
+                  defaultValues={{ status: initialStatus || config.defaultStatus }}
                   onSubmit={handleSubmit}
                   submitting={submitting}
                   error={error}

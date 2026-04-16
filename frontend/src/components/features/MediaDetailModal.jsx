@@ -30,7 +30,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
   const handleStatusChange = (newStatus) => {
     if (!newStatus || !onUpdate || !item || newStatus === item.status) return
     onUpdate({ mediaId: item.id, data: { status: newStatus } })
-    onClose()
+    // Keep modal open so the user sees the stepper advance.
   }
 
   const handleDelete = () => {

@@ -165,7 +165,7 @@ function Window({
         <div className="glass-panel flex h-9 items-center justify-between border-b border-cyan-500/10 px-3">
           <div className="flex items-center gap-2">
             {AppIcon && <AppIcon size={12} className="text-primary" />}
-            <span className="heading-ui text-[10px] font-semibold text-white/80 truncate">
+            <span className="heading-ui text-[11px] font-semibold text-white/80 truncate">
               {title}
             </span>
           </div>
@@ -260,7 +260,7 @@ function Window({
       >
         <div className="flex items-center gap-2 overflow-hidden">
           {AppIcon && <AppIcon size={12} className="shrink-0 text-primary" />}
-          <span className={`heading-ui truncate text-[10px] font-semibold ${isFocused ? 'text-white/80' : 'text-white/50'}`}>
+          <span className={`heading-ui truncate text-[11px] font-semibold ${isFocused ? 'text-white/80' : 'text-white/50'}`}>
             {title}
           </span>
         </div>

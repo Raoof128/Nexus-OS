@@ -5,7 +5,7 @@ import { useWindowStore } from './stores/windowStore'
 import { useSettingsStore } from './stores/settingsStore'
 import { useNotificationStore } from './stores/notificationStore'
 import useGlobalShortcuts from './hooks/useGlobalShortcuts'
-import { APP_REGISTRY } from './stores/appRegistry'
+import { APP_REGISTRY, APP_ORDER } from './stores/appRegistry'
 import Window from './components/Window'
 import Taskbar from './components/Taskbar'
 import AppLauncher from './components/AppLauncher'
@@ -99,15 +99,18 @@ export default function Desktop() {
     // getState() is safe here because hydrateFromStorage() is synchronous —
     // it calls set() internally and Zustand's set() updates the store synchronously,
     // so getState() immediately reflects the hydrated windows.
-    if (Object.keys(useWindowStore.getState().windows).length === 0) {
+    const firstBoot = Object.keys(useWindowStore.getState().windows).length === 0
+    if (firstBoot) {
       openApp('media')
     }
-    // Welcome notification after boot
-    useNotificationStore.getState().addNotification({
-      title: 'System Ready',
-      message: 'Nexus OS initialized successfully. All 8 apps operational.',
-      type: 'success',
-    })
+    // Welcome notification only on a genuine first boot this session
+    if (firstBoot && sessionStorage.getItem(BOOT_SESSION_KEY) !== '1') {
+      useNotificationStore.getState().addNotification({
+        title: 'System Ready',
+        message: `Nexus OS initialized successfully. ${APP_ORDER.length} apps operational.`,
+        type: 'success',
+      })
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

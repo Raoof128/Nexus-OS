@@ -103,7 +103,7 @@ function AppLauncher() {
                   }`}>
                     <Icon size={20} className={`text-muted-foreground transition-colors group-hover:text-primary ${isFirst ? 'text-primary' : ''}`} />
                   </div>
-                  <span className="heading-ui text-[9px] font-semibold text-muted-foreground transition-colors group-hover:text-white sm:text-[10px]">
+                  <span className="heading-ui text-[11px] font-semibold text-muted-foreground transition-colors group-hover:text-white">
                     {manifest.title}
                   </span>
                 </button>

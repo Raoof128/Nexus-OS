@@ -23,7 +23,7 @@ function Clock() {
   }, [])
 
   return (
-    <span className="heading-ui text-[10px] font-semibold text-white/60">{time}</span>
+    <span className="heading-ui text-[11px] font-semibold text-white/70 tabular-nums">{time}</span>
   )
 }
 
@@ -83,7 +83,7 @@ function Taskbar() {
               }`}
             >
               {Icon && <Icon size={18} />}
-              <span className="heading-ui text-[8px] max-w-[48px] truncate">{win.title}</span>
+              <span className="heading-ui text-[10px] max-w-[56px] truncate">{win.title}</span>
               {isActive && (
                 <div className="h-1 w-4 rounded-full bg-cyan-400 shadow-[0_0_4px_rgba(0,255,255,0.6)]" />
               )}
@@ -112,7 +112,13 @@ function Taskbar() {
 
       <div className="mr-3 h-5 w-px bg-white/10" />
 
-      <div className="flex flex-1 items-center gap-1 overflow-x-auto">
+      <div
+        className="flex flex-1 items-center gap-1 overflow-x-auto custom-scrollbar"
+        style={{
+          maskImage: 'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
+        }}
+      >
         {windowEntries.map((win) => {
           const manifest = APP_REGISTRY[win.appId]
           const Icon = manifest?.icon
@@ -123,7 +129,7 @@ function Taskbar() {
               key={win.windowId}
               type="button"
               onClick={() => focusWindow(win.windowId)}
-              className={`relative flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 heading-ui text-[10px] font-semibold transition-all ${
+              className={`relative flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 heading-ui text-[11px] font-semibold transition-all ${
                 isActive
                   ? 'bg-white/[0.06] text-white'
                   : isMinimized

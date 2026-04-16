@@ -223,9 +223,6 @@
   border: 1px solid hsl(var(--neon-yellow) / 0.15);
 }
 
-/* Noise texture applied via box-shadow trick — no pseudo-element needed,
-   avoids conflicts with neon-border::before on the same element. */
-
 @supports not (backdrop-filter: blur(1px)) {
   .glass-panel {
     background: hsl(var(--card) / 0.95);

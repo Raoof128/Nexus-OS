@@ -1,5 +1,13 @@
 # Change Log
 
+### 2026-04-17 (Australia/Sydney)
+**Raouf:**
+- **Scope:** UI/UX Audit Remediation — Defect + High-Confidence Fixes
+- **Summary:** Fixed 11 items from a full frontend audit: (1) wired dead empty-state Kanban CTAs (`Add X` + `Ask AI`) via a `window` event bus; (2) CyberCard action row resting opacity 0→60 on desktop (discoverability); (3) MediaDetailModal no longer auto-closes on status change; (4) welcome notification gated on genuine first-boot + dynamic app count; (5) Kanban grid cols derived from `config.statuses.length`; (6) empty-state primary `+ Add {Singular}` CTA that pre-fills status; (7) activeType persisted in URL `?type=`; (8) font bump 8–10px → 10–11px across Taskbar/Window/DesktopIcons/AppLauncher/media-tabs; (9) edge-fade masks on scrollable tab rails; (10) removed duplicate import in KanbanBoard; (11) removed stale CSS comment. Deferred 6+ subjective items (OS-metaphor scope, copy tone, dual-accent commit, logo redesign, undo system, ConfirmDialog hoist, contrast audit) for separate decisions.
+- **Files Changed:** `KanbanBoard.jsx`, `MediaApp.jsx`, `CyberCard.jsx`, `MediaDetailModal.jsx`, `AddMediaDialog.jsx`, `LazyAICmdPalette.jsx`, `Desktop.jsx`, `Taskbar.jsx`, `Window.jsx`, `DesktopIcons.jsx`, `AppLauncher.jsx`, `index.css`.
+- **Verification:** ESLint 0 errors, Vitest 117/117, Vite build clean (1.95s).
+- **Follow-ups:** OS-metaphor decision, copy tone rewrite, dual-accent commit, undo toast system, ConfirmDialog hoist, browser contrast audit.
+
 ### 2026-03-24 (Australia/Sydney)
 **Raouf:**
 - **Scope:** New Media Type — Job Application Tracker

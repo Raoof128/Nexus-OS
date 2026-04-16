@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react'
+import { memo, useCallback, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -12,10 +12,9 @@ import {
 } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Sparkles } from 'lucide-react'
+import { Plus, Sparkles } from 'lucide-react'
 import CyberCard from './CyberCard'
 import { MEDIA_CONFIG } from '../../lib/mediaConfig'
-import { useState } from 'react'
 
 const MAX_PREVIEW = 5
 
@@ -47,7 +46,7 @@ function SortableCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
   )
 }
 
-function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSelect, onEdit, onHeaderClick, onAiSuggest }) {
+function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSelect, onEdit, onHeaderClick, onAiSuggest, onAddRequest }) {
   const statuses = MEDIA_CONFIG[mediaType]?.statuses || ['To Read', 'Reading', 'Finished']
   const [activeItem, setActiveItem] = useState(null)
 
@@ -92,9 +91,13 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
     setActiveItem(null)
   }, [])
 
-  const gridColsClass = mediaType === 'job'
-    ? '@md:grid-cols-2 @lg:grid-cols-3'
-    : '@md:grid-cols-3'
+  // Derive column count from the config's status list so new statuses don't wrap.
+  const statusCount = statuses.length
+  const gridColsClass = statusCount >= 4
+    ? '@md:grid-cols-2 @lg:grid-cols-4'
+    : statusCount === 3
+      ? '@md:grid-cols-3'
+      : '@md:grid-cols-2'
 
   return (
     <DndContext
@@ -119,6 +122,7 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
             onEdit={onEdit}
             onHeaderClick={onHeaderClick}
             onAiSuggest={onAiSuggest}
+            onAddRequest={onAddRequest}
           />
         ))}
       </div>
@@ -134,7 +138,9 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
   )
 }
 
-function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpdate, onDelete, onSelect, onEdit, onHeaderClick, onAiSuggest }) {
+function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpdate, onDelete, onSelect, onEdit, onHeaderClick, onAiSuggest, onAddRequest }) {
+  const config = MEDIA_CONFIG[mediaType]
+  const singular = config?.singular || 'entry'
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${status}`,
     data: { columnStatus: status },
@@ -175,18 +181,30 @@ function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpd
           />
         ))}
         {columnItems.length === 0 && (
-          <div className="border border-dashed border-white/10 rounded-xl p-6 text-center flex flex-col items-center justify-center gap-3 h-24 @sm:p-8 @sm:h-36">
-            <p className="font-mono text-xs tracking-wide text-muted-foreground/50 @sm:text-sm">NO_RECORDS_FOUND</p>
-            {onAiSuggest && (
-              <button
-                type="button"
-                onClick={() => onAiSuggest(status, mediaType)}
-                className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 font-mono text-[10px] text-primary/70 transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary @sm:text-xs"
-              >
-                <Sparkles size={12} />
-                Ask AI for ideas
-              </button>
-            )}
+          <div className="border border-dashed border-white/10 rounded-xl p-6 text-center flex flex-col items-center justify-center gap-3 h-28 @sm:p-8 @sm:h-40">
+            <p className="font-mono text-[11px] tracking-wide text-muted-foreground/60 @sm:text-xs">Empty — no {singular.toLowerCase()}s here yet.</p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {onAddRequest && (
+                <button
+                  type="button"
+                  onClick={() => onAddRequest(status)}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary/15 px-3 py-1.5 font-mono text-[11px] font-semibold text-primary ring-1 ring-primary/30 transition-all hover:bg-primary/25 hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.2)] @sm:text-xs"
+                >
+                  <Plus size={12} />
+                  Add {singular}
+                </button>
+              )}
+              {onAiSuggest && (
+                <button
+                  type="button"
+                  onClick={() => onAiSuggest(status, mediaType)}
+                  className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 font-mono text-[11px] text-primary/70 transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary @sm:text-xs"
+                >
+                  <Sparkles size={12} />
+                  Ask AI
+                </button>
+              )}
+            </div>
           </div>
         )}
         {hasMore && (

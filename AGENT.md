@@ -22,6 +22,26 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 ## Change Log
 
+### 2026-04-17 (Australia/Sydney)
+**Raouf:**
+- **Scope:** UI/UX Audit Remediation — Defect + High-Confidence Fixes
+- **Summary:** Audited full frontend (auth → Desktop OS shell → Media/KanbanBoard/CyberCard/Detail/Add/AICmd apps) and fixed 11 items that were clear defects or high-confidence UX wins. Deferred 6 subjective items (OS-metaphor scope, tone-of-voice rewrite, dual-accent color commitment, logo redesign, full undo system, mobile breakpoint) for separate decisions. Fixes: (1) wired `onAiSuggest` + `onAddRequest` from empty-state Kanban columns via a lightweight `window` event bus (`nexus:open-add-media`, `nexus:open-ai-cmd`) — previously dead buttons. (2) CyberCard action row now rests at `opacity-60` instead of `0` on desktop, so advance/revert/edit/delete are discoverable without hover. (3) MediaDetailModal no longer auto-closes on status change — stepper progression is now visible. (4) Desktop welcome notification gated on genuine first-boot + derived count from `APP_ORDER.length` (no more hardcoded "8 apps" every mount). (5) KanbanBoard grid cols derived from `config.statuses.length`. (6) Empty-state column gets a primary "+ Add {Singular}" CTA (pre-fills status), AI button demoted to secondary. (7) activeType mirrored to URL `?type=…` so refresh preserves tab. (8) Font sizes raised from 8–10px to 10–11px on Taskbar labels/clock, Window titlebar, DesktopIcons labels, AppLauncher labels, media-type tabs. (9) Edge-fade mask on overflow-scroll tab rails (Taskbar window list, MediaApp type tabs). (10) Removed duplicate `useState` import in KanbanBoard. (11) Removed stale "noise texture" comment in `index.css`.
+- **Files Changed:**
+  - `frontend/src/components/features/KanbanBoard.jsx` — merged imports, added `Plus` icon, derived grid cols from `statuses.length`, threaded `onAddRequest`, rewrote empty-state block with primary/secondary CTAs and cleaner copy.
+  - `frontend/src/components/features/MediaApp.jsx` — URL-sync for `activeType` via `URLSearchParams` + `replaceState`, added `handleAddRequest`/`handleAiSuggest` that dispatch window events, passed both to KanbanBoard, added edge-fade mask on the tab rail.
+  - `frontend/src/components/features/CyberCard.jsx` — resting opacity `0` → `60` for the action row on desktop.
+  - `frontend/src/components/features/MediaDetailModal.jsx` — removed `onClose()` from `handleStatusChange`.
+  - `frontend/src/components/features/AddMediaDialog.jsx` — listens for `nexus:open-add-media`, reads `detail.status` and seeds the form.
+  - `frontend/src/components/features/LazyAICmdPalette.jsx` — listens for `nexus:open-ai-cmd`.
+  - `frontend/src/os/Desktop.jsx` — welcome notification gated on first boot + dynamic app count from `APP_ORDER`.
+  - `frontend/src/os/components/Taskbar.jsx` — clock, tab, and window-name font bumps (11px), edge-fade mask on window tab rail.
+  - `frontend/src/os/components/Window.jsx` — titlebar font bump (11px desktop + mobile).
+  - `frontend/src/os/components/DesktopIcons.jsx` — icon labels 11px and contrast lifted to `text-white/70`.
+  - `frontend/src/os/components/AppLauncher.jsx` — app labels 11px (removed tiny 9px breakpoint).
+  - `frontend/src/index.css` — removed stale noise-texture comment block.
+- **Verification:** `npm run lint` 0 errors, `npm run test -- --run` 117/117 passing, `npm run build` clean (2645 modules, 1.95s).
+- **Follow-ups (deferred, need direction):** (i) OS-metaphor vs. media-vault focus — 8 apps around one core product is scope creep. (ii) Copy tone rewrite — action verbs are dressed up ("Authenticate", "Commit to Archive", "Disconnect"). (iii) Dual-accent color commitment — `--neon-teal` defined but near-unused. (iv) Full undo system for status changes / drag-drop (notification-store toast with "Undo" action). (v) Navbar logo glyph upgrade. (vi) Tablet breakpoint near 768px (min-window-width 600px inside 768px viewport). (vii) Hoist per-card `ConfirmDialog` to a single app-level dialog. Browser-based axe/contrast audit also still outstanding.
+
 ### 2026-03-24 (Australia/Sydney)
 **Raouf:**
 - **Scope:** New Media Type — Job Application Tracker

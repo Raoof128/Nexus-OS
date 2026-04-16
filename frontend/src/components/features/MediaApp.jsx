@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
@@ -12,10 +12,27 @@ import LazyAICmdPalette from './LazyAICmdPalette'
 const MediaDetailModal = lazy(() => import('./MediaDetailModal'))
 const EditMediaDialog = lazy(() => import('./EditMediaDialog'))
 
+const QUERY_KEY = 'type'
+
+function readInitialType() {
+  if (typeof window === 'undefined') return 'book'
+  const fromUrl = new URLSearchParams(window.location.search).get(QUERY_KEY)
+  return MEDIA_TYPES.includes(fromUrl) ? fromUrl : 'book'
+}
+
 export default function MediaApp() {
   const { session } = useAuth()
-  const [activeType, setActiveType] = useState('book')
+  const [activeType, setActiveType] = useState(readInitialType)
   const { items, loading: dataLoading, error, addMedia, updateMedia, deleteMedia } = useMedia(session, activeType)
+
+  // Mirror activeType into the URL so refresh/back buttons preserve context.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    if (url.searchParams.get(QUERY_KEY) === activeType) return
+    url.searchParams.set(QUERY_KEY, activeType)
+    window.history.replaceState({}, '', url)
+  }, [activeType])
   const [selectedItemId, setSelectedItemId] = useState(null)
   const [editItem, setEditItem] = useState(null)
   const [vaultState, setVaultState] = useState(null)
@@ -34,11 +51,26 @@ export default function MediaApp() {
   const handleCloseDetail = useCallback(() => setSelectedItemId(null), [])
   const handleCloseEdit = useCallback(() => setEditItem(null), [])
 
+  const handleAddRequest = useCallback((status) => {
+    window.dispatchEvent(new CustomEvent('nexus:open-add-media', { detail: { status } }))
+  }, [])
+  const handleAiSuggest = useCallback(() => {
+    window.dispatchEvent(new Event('nexus:open-ai-cmd'))
+  }, [])
+
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       {/* Media type tabs — inside the window */}
       <nav className="shrink-0 border-b border-white/[0.04] bg-black/20">
-        <div role="tablist" aria-label="Media types" className="flex items-center gap-1 overflow-x-auto px-3 py-1.5">
+        <div
+          role="tablist"
+          aria-label="Media types"
+          className="flex items-center gap-1 overflow-x-auto px-3 py-1.5"
+          style={{
+            maskImage: 'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
+          }}
+        >
           {MEDIA_TYPES.map((type) => {
             const Icon = TYPE_ICONS[type]
             const isActive = activeType === type
@@ -49,7 +81,7 @@ export default function MediaApp() {
                 aria-selected={isActive}
                 type="button"
                 onClick={() => { setActiveType(type); setVaultState(null) }}
-                className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 heading-ui text-[10px] font-semibold uppercase tracking-wider transition-all ${
+                className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 heading-ui text-[11px] font-semibold uppercase tracking-wider transition-all ${
                   isActive
                     ? 'bg-primary/20 text-primary'
                     : 'text-muted-foreground hover:bg-white/5 hover:text-white'
@@ -111,6 +143,8 @@ export default function MediaApp() {
                   onSelect={handleSelect}
                   onEdit={handleEdit}
                   onHeaderClick={openVault}
+                  onAddRequest={handleAddRequest}
+                  onAiSuggest={handleAiSuggest}
                 />
               </Motion.div>
             )}
