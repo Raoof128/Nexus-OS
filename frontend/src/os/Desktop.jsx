@@ -2,6 +2,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useWindowStore } from './stores/windowStore'
+import { useSettingsStore } from './stores/settingsStore'
 import useGlobalShortcuts from './hooks/useGlobalShortcuts'
 import { APP_REGISTRY } from './stores/appRegistry'
 import Window from './components/Window'
@@ -27,10 +28,15 @@ export default function Desktop() {
     return () => mql.removeEventListener('change', handler)
   }, [setMobile])
 
+  const scanlinesEnabled = useSettingsStore((s) => s.scanlinesEnabled)
+  const orbsEnabled = useSettingsStore((s) => s.orbsEnabled)
+  const hydrateSettings = useSettingsStore((s) => s.hydrateSettings)
+
   const hydrateFromStorage = useWindowStore((s) => s.hydrateFromStorage)
 
   useEffect(() => {
     hydrateFromStorage()
+    hydrateSettings()
     // If hydration didn't restore any windows, open the default app
     if (Object.keys(useWindowStore.getState().windows).length === 0) {
       openApp('media')
@@ -54,8 +60,8 @@ export default function Desktop() {
       data-testid="desktop"
       className="fixed inset-0 overflow-hidden bg-background"
     >
-      <div className="ambient-orbs" />
-      <div className="scanlines" />
+      {orbsEnabled && <div className="ambient-orbs" />}
+      {scanlinesEnabled && <div className="scanlines" />}
       <div className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
       {visibleWindows.map((win) => {
@@ -85,7 +91,7 @@ export default function Desktop() {
                 </div>
               }
             >
-              <AppComponent appId={win.appId} />
+              <AppComponent appId={win.appId} windowId={win.windowId} />
             </Suspense>
           </Window>
         )

@@ -18,6 +18,10 @@ const ChatLayout = lazy(() => import('../../components/features/ChatLayout'))
 // Lazy-load placeholder for unbuilt apps
 const PlaceholderApp = lazy(() => import('../components/PlaceholderApp'))
 
+const SettingsApp = lazy(() => import('../apps/SettingsApp'))
+const SystemMonitorApp = lazy(() => import('../apps/SystemMonitorApp'))
+const NotesApp = lazy(() => import('../apps/NotesApp'))
+
 export const APP_REGISTRY = {
   media: {
     id: 'media',
@@ -71,7 +75,7 @@ export const APP_REGISTRY = {
     singleton: true,
     defaultSize: { width: 600, height: 500 },
     minSize: { width: 450, height: 400 },
-    component: PlaceholderApp,
+    component: SettingsApp,
   },
   sysmon: {
     id: 'sysmon',
@@ -80,7 +84,7 @@ export const APP_REGISTRY = {
     singleton: true,
     defaultSize: { width: 650, height: 450 },
     minSize: { width: 400, height: 300 },
-    component: PlaceholderApp,
+    component: SystemMonitorApp,
   },
   notes: {
     id: 'notes',
@@ -89,7 +93,7 @@ export const APP_REGISTRY = {
     singleton: false,
     defaultSize: { width: 600, height: 500 },
     minSize: { width: 350, height: 300 },
-    component: PlaceholderApp,
+    component: NotesApp,
   },
 }
 
