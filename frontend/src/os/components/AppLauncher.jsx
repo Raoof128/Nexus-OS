@@ -3,6 +3,7 @@ import { motion as Motion } from 'framer-motion'
 import { Search, SearchX } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
 import { APP_REGISTRY, APP_ORDER } from '../stores/appRegistry'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 function AppLauncher() {
   const openApp = useWindowStore((s) => s.openApp)
@@ -10,6 +11,7 @@ function AppLauncher() {
   const isMobile = useWindowStore((s) => s.isMobile)
   const [query, setQuery] = useState('')
   const inputRef = useRef(null)
+  const trapRef = useFocusTrap(true)
 
   // Auto-focus on desktop only
   useEffect(() => {
@@ -47,6 +49,7 @@ function AppLauncher() {
       />
 
       <Motion.div
+        ref={trapRef}
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 40 }}

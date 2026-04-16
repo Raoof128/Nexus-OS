@@ -28,6 +28,4 @@ export const useNotificationStore = create((set, get) => ({
   },
 
   clearAll: () => set({ notifications: [] }),
-
-  unreadCount: () => get().notifications.filter((n) => !n.read).length,
 }))

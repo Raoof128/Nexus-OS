@@ -73,16 +73,18 @@ export const useFileSystemStore = create((set, get) => ({
       const parent = state.files[parentPath]
       if (!parent) return state
       const entryPath = buildPath(parentPath, name)
-      const { [entryPath]: _removed, ...restFiles } = state.files
-      return {
-        files: {
-          ...restFiles,
-          [parentPath]: {
-            ...parent,
-            children: parent.children.filter((c) => c !== name),
-          },
-        },
+      // Remove the entry AND all descendant keys
+      const newFiles = {}
+      for (const [k, v] of Object.entries(state.files)) {
+        if (k !== entryPath && !k.startsWith(entryPath + '/')) {
+          newFiles[k] = v
+        }
       }
+      newFiles[parentPath] = {
+        ...parent,
+        children: parent.children.filter((c) => c !== name),
+      }
+      return { files: newFiles }
     })
   },
 
@@ -94,17 +96,23 @@ export const useFileSystemStore = create((set, get) => ({
       const newPath = buildPath(parentPath, newName)
       const entry = state.files[oldPath]
       if (!entry) return state
-      const { [oldPath]: _removed, ...restFiles } = state.files
-      return {
-        files: {
-          ...restFiles,
-          [parentPath]: {
-            ...parent,
-            children: parent.children.map((c) => (c === oldName ? newName : c)),
-          },
-          [newPath]: { ...entry, name: newName },
-        },
+      // Remap the entry key AND all descendant keys
+      const newFiles = {}
+      for (const [k, v] of Object.entries(state.files)) {
+        if (k === oldPath) {
+          newFiles[newPath] = { ...v, name: newName }
+        } else if (k.startsWith(oldPath + '/')) {
+          const newKey = newPath + k.slice(oldPath.length)
+          newFiles[newKey] = v
+        } else {
+          newFiles[k] = v
+        }
       }
+      newFiles[parentPath] = {
+        ...parent,
+        children: parent.children.map((c) => (c === oldName ? newName : c)),
+      }
+      return { files: newFiles }
     })
   },
 
@@ -123,11 +131,14 @@ export const useFileSystemStore = create((set, get) => ({
   },
 }))
 
-// Debounced persistence
+// Debounced persistence — only save when `files` actually changes
 let fsSaveTimeout = null
+let lastSavedFiles = null
 useFileSystemStore.subscribe((state) => {
+  if (state.files === lastSavedFiles) return
   if (fsSaveTimeout) clearTimeout(fsSaveTimeout)
   fsSaveTimeout = setTimeout(() => {
+    lastSavedFiles = state.files
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         schemaVersion: SCHEMA_VERSION,

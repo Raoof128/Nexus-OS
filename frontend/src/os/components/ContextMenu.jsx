@@ -9,7 +9,6 @@ import {
   ScanLine,
   Sparkles,
   Settings,
-  Info,
 } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -148,11 +147,6 @@ function ContextMenu({ x, y, onClose }) {
         <MenuItem
           icon={Settings}
           label="Settings"
-          onClick={() => run(() => openApp('settings'))}
-        />
-        <MenuItem
-          icon={Info}
-          label="About Nexus OS"
           onClick={() => run(() => openApp('settings'))}
         />
       </Motion.div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 
 /** Clock that updates every second for the lock screen */
@@ -209,13 +209,15 @@ function LockLogo() {
 
 export default function LockScreen({ onUnlock }) {
   const [exiting, setExiting] = useState(false)
+  const exitingRef = useRef(false)
 
-  const dismiss = () => {
-    if (exiting) return
+  const dismiss = useCallback(() => {
+    if (exitingRef.current) return
+    exitingRef.current = true
     setExiting(true)
-  }
+  }, [])
 
-  // Listen for any user interaction
+  // Listen for any user interaction — register once, stable via ref guard
   useEffect(() => {
     const handleInteraction = () => {
       // Don't dismiss if user is typing in a focused input inside the lock screen
@@ -240,8 +242,7 @@ export default function LockScreen({ onUnlock }) {
       document.removeEventListener('keydown', handleInteraction)
       document.removeEventListener('mousedown', handleInteraction)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exiting])
+  }, [dismiss])
 
   return (
     <AnimatePresence onExitComplete={onUnlock}>
