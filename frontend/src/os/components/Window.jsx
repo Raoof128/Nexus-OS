@@ -223,6 +223,7 @@ function Window({
       onDrag={handleDrag}
       onDragEnd={handleDragEnd}
       onPointerDownCapture={() => focusWindow(windowId)}
+      onContextMenu={(e) => e.stopPropagation()}
       className="flex flex-col rounded-lg overflow-hidden"
     >
       {/* Window border glow */}
