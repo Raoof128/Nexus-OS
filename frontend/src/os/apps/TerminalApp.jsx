@@ -105,7 +105,7 @@ function buildCommands({ session, windows, zStack }) {
   }
 }
 
-export default function TerminalApp({ windowId }) {
+export default function TerminalApp({ windowId: _windowId }) {
   const { session } = useAuth()
   const windows = useWindowStore((s) => s.windows)
   const zStack = useWindowStore((s) => s.zStack)

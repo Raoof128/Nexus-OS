@@ -73,7 +73,7 @@ export const useFileSystemStore = create((set, get) => ({
       const parent = state.files[parentPath]
       if (!parent) return state
       const entryPath = buildPath(parentPath, name)
-      const { [entryPath]: removed, ...restFiles } = state.files
+      const { [entryPath]: _removed, ...restFiles } = state.files
       return {
         files: {
           ...restFiles,
@@ -94,7 +94,7 @@ export const useFileSystemStore = create((set, get) => ({
       const newPath = buildPath(parentPath, newName)
       const entry = state.files[oldPath]
       if (!entry) return state
-      const { [oldPath]: removed, ...restFiles } = state.files
+      const { [oldPath]: _removed, ...restFiles } = state.files
       return {
         files: {
           ...restFiles,

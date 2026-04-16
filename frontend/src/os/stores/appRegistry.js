@@ -15,12 +15,12 @@ const MediaApp = lazy(() => import('../../components/features/MediaApp'))
 const EmailInbox = lazy(() => import('../../components/features/EmailInbox'))
 const ChatLayout = lazy(() => import('../../components/features/ChatLayout'))
 
-// Lazy-load placeholder for unbuilt apps
-const PlaceholderApp = lazy(() => import('../components/PlaceholderApp'))
 
 const SettingsApp = lazy(() => import('../apps/SettingsApp'))
 const SystemMonitorApp = lazy(() => import('../apps/SystemMonitorApp'))
 const NotesApp = lazy(() => import('../apps/NotesApp'))
+const TerminalApp = lazy(() => import('../apps/TerminalApp'))
+const FileManagerApp = lazy(() => import('../apps/FileManagerApp'))
 
 export const APP_REGISTRY = {
   media: {
@@ -57,7 +57,7 @@ export const APP_REGISTRY = {
     singleton: false,
     defaultSize: { width: 700, height: 450 },
     minSize: { width: 400, height: 250 },
-    component: PlaceholderApp,
+    component: TerminalApp,
   },
   files: {
     id: 'files',
@@ -66,7 +66,7 @@ export const APP_REGISTRY = {
     singleton: true,
     defaultSize: { width: 800, height: 550 },
     minSize: { width: 500, height: 350 },
-    component: PlaceholderApp,
+    component: FileManagerApp,
   },
   settings: {
     id: 'settings',
