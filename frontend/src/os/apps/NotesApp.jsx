@@ -34,15 +34,17 @@ export default function NotesApp({ windowId }) {
 
   // Load on mount
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey)
-      if (raw) {
-        const saved = JSON.parse(raw)
-        if (saved.content) setContent(saved.content)
+    queueMicrotask(() => {
+      try {
+        const raw = localStorage.getItem(storageKey)
+        if (raw) {
+          const saved = JSON.parse(raw)
+          if (saved.content) setContent(saved.content)
+        }
+      } catch {
+        // Corrupt data
       }
-    } catch {
-      // Corrupt data
-    }
+    })
   }, [storageKey])
 
   // Debounced save

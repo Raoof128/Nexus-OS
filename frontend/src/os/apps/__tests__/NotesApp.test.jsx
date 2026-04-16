@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 import NotesApp from '../NotesApp'
 
@@ -23,10 +23,12 @@ describe('NotesApp', () => {
     vi.useRealTimers()
   })
 
-  it('restores content from localStorage on mount', () => {
+  it('restores content from localStorage on mount', async () => {
     localStorage.setItem('nexus-os:note-notes-abc', JSON.stringify({ content: 'Saved note' }))
     render(<NotesApp windowId="notes-abc" />)
-    expect(screen.getByRole('textbox').value).toBe('Saved note')
+    await waitFor(() => {
+      expect(screen.getByRole('textbox').value).toBe('Saved note')
+    })
   })
 
   it('toggles between edit and preview mode', () => {

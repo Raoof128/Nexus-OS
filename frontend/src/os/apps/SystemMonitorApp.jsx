@@ -65,7 +65,7 @@ export default function SystemMonitorApp() {
   }, [])
 
   useEffect(() => {
-    checkHealth()
+    queueMicrotask(checkHealth)
     const interval = setInterval(checkHealth, 30_000)
     return () => clearInterval(interval)
   }, [checkHealth])
