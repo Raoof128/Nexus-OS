@@ -1,0 +1,97 @@
+import { memo, useState, useCallback } from 'react'
+import { useWindowStore } from '../stores/windowStore'
+import { APP_REGISTRY, APP_ORDER } from '../stores/appRegistry'
+
+const GRID_CELL = 80
+const COLS = 2
+const ICON_START_X = 16
+const ICON_START_Y = 16
+
+function DesktopIcons() {
+  const openApp = useWindowStore((s) => s.openApp)
+  const [selectedId, setSelectedId] = useState(null)
+
+  const handleClick = useCallback((e, appId) => {
+    e.stopPropagation()
+    setSelectedId(appId)
+  }, [])
+
+  const handleDoubleClick = useCallback((e, appId) => {
+    e.stopPropagation()
+    openApp(appId)
+    setSelectedId(null)
+  }, [openApp])
+
+  // Deselect when clicking desktop background (bubbled up, but we stop propagation on icons)
+  // Selection is cleared by Desktop.jsx onClick
+
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 z-[2]"
+      aria-label="Desktop icons"
+    >
+      {APP_ORDER.map((appId, index) => {
+        const manifest = APP_REGISTRY[appId]
+        if (!manifest) return null
+        const Icon = manifest.icon
+        const col = index % COLS
+        const row = Math.floor(index / COLS)
+        const x = ICON_START_X + col * GRID_CELL
+        const y = ICON_START_Y + row * GRID_CELL
+        const isSelected = selectedId === appId
+
+        return (
+          <div
+            key={appId}
+            role="button"
+            tabIndex={0}
+            aria-label={`Open ${manifest.title}`}
+            onClick={(e) => handleClick(e, appId)}
+            onDoubleClick={(e) => handleDoubleClick(e, appId)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                openApp(appId)
+              }
+            }}
+            className={`pointer-events-auto absolute flex flex-col items-center gap-1 rounded-lg p-1 cursor-default select-none transition-all duration-150 ${
+              isSelected
+                ? 'ring-1 ring-primary/40 bg-primary/[0.06]'
+                : ''
+            }`}
+            style={{
+              left: x,
+              top: y,
+              width: 64,
+            }}
+          >
+            {/* Icon container */}
+            <div
+              className={`flex h-14 w-14 items-center justify-center rounded-xl bg-white/[0.02] ring-1 ring-white/[0.04] transition-all duration-150 ${
+                isSelected
+                  ? 'bg-primary/[0.08] ring-primary/30 shadow-[0_0_14px_rgba(0,255,255,0.12)]'
+                  : 'hover:shadow-[0_0_12px_rgba(0,255,255,0.08)]'
+              }`}
+            >
+              <Icon
+                size={32}
+                className={`transition-colors duration-150 ${
+                  isSelected ? 'text-primary' : 'text-white/60'
+                }`}
+              />
+            </div>
+
+            {/* Label */}
+            <span
+              className="heading-ui w-full truncate text-center text-[9px] text-white/60 leading-tight"
+            >
+              {manifest.title}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export default memo(DesktopIcons)

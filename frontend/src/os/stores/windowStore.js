@@ -328,6 +328,38 @@ export const useWindowStore = create((set, get) => ({
     }
     get().focusWindow(visible[nextIdx])
   },
+
+  cascadeWindows: () => {
+    set((state) => {
+      const newWindows = { ...state.windows }
+      let offset = 0
+      for (const id of state.zStack) {
+        if (newWindows[id] && newWindows[id].state !== 'minimized') {
+          newWindows[id] = {
+            ...newWindows[id],
+            state: 'normal',
+            position: { x: 60 + offset, y: 40 + offset },
+          }
+          offset += 30
+        }
+      }
+      return { windows: newWindows }
+    })
+  },
+
+  minimizeAll: () => {
+    set((state) => {
+      const newWindows = { ...state.windows }
+      for (const id of Object.keys(newWindows)) {
+        newWindows[id] = { ...newWindows[id], state: 'minimized' }
+      }
+      return { windows: newWindows, activeWindowId: null }
+    })
+  },
+
+  closeAll: () => {
+    set({ windows: {}, zStack: [], activeWindowId: null })
+  },
 }))
 
 // Debounced persistence subscriber

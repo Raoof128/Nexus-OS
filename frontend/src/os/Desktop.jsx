@@ -3,17 +3,22 @@ import { AnimatePresence } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useWindowStore } from './stores/windowStore'
 import { useSettingsStore } from './stores/settingsStore'
+import { useNotificationStore } from './stores/notificationStore'
 import useGlobalShortcuts from './hooks/useGlobalShortcuts'
 import { APP_REGISTRY } from './stores/appRegistry'
 import Window from './components/Window'
 import Taskbar from './components/Taskbar'
 import AppLauncher from './components/AppLauncher'
+import NotificationToast from './components/NotificationToast'
+import DesktopIcons from './components/DesktopIcons'
+import ContextMenu from './components/ContextMenu'
 
 const Z_INDEX_BASE = 100
 
 export default function Desktop() {
   const desktopRef = useRef(null)
   const [snapPreview, setSnapPreview] = useState(null) // null | 'left' | 'right' | 'top'
+  const [contextMenu, setContextMenu] = useState(null) // null | { x, y }
   const windows = useWindowStore((s) => s.windows)
   const zStack = useWindowStore((s) => s.zStack)
   const launcherOpen = useWindowStore((s) => s.launcherOpen)
@@ -41,6 +46,12 @@ export default function Desktop() {
     if (Object.keys(useWindowStore.getState().windows).length === 0) {
       openApp('media')
     }
+    // Welcome notification after boot
+    useNotificationStore.getState().addNotification({
+      title: 'System Ready',
+      message: 'Nexus OS initialized successfully. All 8 apps operational.',
+      type: 'success',
+    })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -48,6 +59,15 @@ export default function Desktop() {
 
   const handleSnapHint = useCallback((hint) => {
     setSnapPreview(hint)
+  }, [])
+
+  const handleContextMenu = useCallback((e) => {
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY })
+  }, [])
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(null)
   }, [])
 
   const visibleWindows = zStack
@@ -59,10 +79,15 @@ export default function Desktop() {
       ref={desktopRef}
       data-testid="desktop"
       className="fixed inset-0 overflow-hidden bg-background"
+      onContextMenu={handleContextMenu}
+      onClick={closeContextMenu}
     >
       {orbsEnabled && <div className="ambient-orbs" />}
       {scanlinesEnabled && <div className="scanlines" />}
       <div className="pointer-events-none absolute inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
+
+      {/* Desktop icons — behind all windows */}
+      <DesktopIcons />
 
       {visibleWindows.map((win) => {
         const manifest = APP_REGISTRY[win.appId]
@@ -112,11 +137,22 @@ export default function Desktop() {
         />
       )}
 
+      <NotificationToast />
+
       <Taskbar />
 
       <AnimatePresence>
         {launcherOpen && <AppLauncher />}
       </AnimatePresence>
+
+      {/* Desktop right-click context menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={closeContextMenu}
+        />
+      )}
     </div>
   )
 }
