@@ -227,4 +227,42 @@ export const useWindowStore = create((set, get) => ({
   setMobile: (isMobile) => set({ isMobile }),
 
   toggleLauncher: () => set((state) => ({ launcherOpen: !state.launcherOpen })),
+
+  snapWindow: (windowId, side) => {
+    set((state) => {
+      const win = state.windows[windowId]
+      if (!win) return state
+      return {
+        windows: {
+          ...state.windows,
+          [windowId]: {
+            ...win,
+            state: side === 'left' ? 'snapped-left' : 'snapped-right',
+            restoredRect: {
+              x: win.position.x,
+              y: win.position.y,
+              width: win.size.width,
+              height: win.size.height,
+            },
+          },
+        },
+      }
+    })
+  },
+
+  cycleWindow: (direction) => {
+    const { zStack, windows, activeWindowId } = get()
+    const visible = zStack.filter(
+      (id) => windows[id] && windows[id].state !== 'minimized',
+    )
+    if (visible.length <= 1) return
+    const currentIdx = visible.indexOf(activeWindowId)
+    let nextIdx
+    if (direction === 'next') {
+      nextIdx = currentIdx === -1 ? 0 : (currentIdx + 1) % visible.length
+    } else {
+      nextIdx = currentIdx <= 0 ? visible.length - 1 : currentIdx - 1
+    }
+    get().focusWindow(visible[nextIdx])
+  },
 }))

@@ -249,4 +249,80 @@ describe('windowStore', () => {
       expect(useWindowStore.getState().launcherOpen).toBe(false)
     })
   })
+
+  describe('snapWindow', () => {
+    it('saves restoredRect and sets state to snapped-left', () => {
+      useWindowStore.getState().openApp('media')
+      const before = useWindowStore.getState().windows.media
+      const prevPos = { ...before.position }
+      const prevSize = { ...before.size }
+      useWindowStore.getState().snapWindow('media', 'left')
+      const after = useWindowStore.getState().windows.media
+      expect(after.state).toBe('snapped-left')
+      expect(after.restoredRect).toEqual({ ...prevPos, ...prevSize })
+    })
+
+    it('sets state to snapped-right', () => {
+      useWindowStore.getState().openApp('media')
+      useWindowStore.getState().snapWindow('media', 'right')
+      expect(useWindowStore.getState().windows.media.state).toBe('snapped-right')
+    })
+
+    it('does nothing for unknown windowId', () => {
+      useWindowStore.getState().snapWindow('nonexistent', 'left')
+      expect(Object.keys(useWindowStore.getState().windows)).toHaveLength(0)
+    })
+  })
+
+  describe('cycleWindow', () => {
+    it('cycles forward through zStack', () => {
+      const { openApp } = useWindowStore.getState()
+      openApp('media')
+      openApp('chat')
+      openApp('terminal')
+      useWindowStore.getState().focusWindow('media')
+      expect(useWindowStore.getState().activeWindowId).toBe('media')
+      useWindowStore.getState().cycleWindow('next')
+      const state = useWindowStore.getState()
+      expect(state.activeWindowId).not.toBe('media')
+    })
+
+    it('cycles backward through zStack', () => {
+      const { openApp } = useWindowStore.getState()
+      openApp('media')
+      openApp('chat')
+      useWindowStore.getState().focusWindow('chat')
+      useWindowStore.getState().cycleWindow('prev')
+      expect(useWindowStore.getState().activeWindowId).toBe('media')
+    })
+
+    it('skips minimized windows', () => {
+      const { openApp } = useWindowStore.getState()
+      openApp('media')
+      openApp('chat')
+      openApp('terminal')
+      useWindowStore.getState().minimizeWindow('chat')
+      useWindowStore.getState().focusWindow('media')
+      useWindowStore.getState().cycleWindow('next')
+      const state = useWindowStore.getState()
+      expect(state.activeWindowId).not.toBe('chat')
+    })
+
+    it('wraps around at the end', () => {
+      const { openApp } = useWindowStore.getState()
+      openApp('media')
+      openApp('chat')
+      useWindowStore.getState().focusWindow('chat')
+      useWindowStore.getState().cycleWindow('next')
+      expect(useWindowStore.getState().activeWindowId).toBe('media')
+    })
+
+    it('does nothing with zero or one window', () => {
+      useWindowStore.getState().cycleWindow('next')
+      expect(useWindowStore.getState().activeWindowId).toBeNull()
+      useWindowStore.getState().openApp('media')
+      useWindowStore.getState().cycleWindow('next')
+      expect(useWindowStore.getState().activeWindowId).toBe('media')
+    })
+  })
 })
