@@ -1,6 +1,97 @@
-/**
- * App Registry — single source of truth for all OS-managed apps.
- * Populated in Task 3. This stub allows the window store to import
- * without errors before the registry is fully defined.
- */
-export const APP_REGISTRY = {}
+import { lazy } from 'react'
+import {
+  Activity,
+  BookOpen,
+  FolderOpen,
+  Mail,
+  MessageSquare,
+  Settings,
+  StickyNote,
+  TerminalSquare,
+} from 'lucide-react'
+
+// Lazy-load real app components
+const MediaApp = lazy(() => import('../../components/features/MediaApp'))
+const EmailInbox = lazy(() => import('../../components/features/EmailInbox'))
+const ChatLayout = lazy(() => import('../../components/features/ChatLayout'))
+
+// Lazy-load placeholder for unbuilt apps
+const PlaceholderApp = lazy(() => import('../components/PlaceholderApp'))
+
+export const APP_REGISTRY = {
+  media: {
+    id: 'media',
+    title: 'Media Vault',
+    icon: BookOpen,
+    singleton: true,
+    defaultSize: { width: 1000, height: 700 },
+    minSize: { width: 600, height: 400 },
+    component: MediaApp,
+  },
+  email: {
+    id: 'email',
+    title: 'Email',
+    icon: Mail,
+    singleton: true,
+    defaultSize: { width: 1000, height: 700 },
+    minSize: { width: 500, height: 400 },
+    component: EmailInbox,
+  },
+  chat: {
+    id: 'chat',
+    title: 'AI Chat',
+    icon: MessageSquare,
+    singleton: true,
+    defaultSize: { width: 800, height: 600 },
+    minSize: { width: 400, height: 400 },
+    component: ChatLayout,
+  },
+  terminal: {
+    id: 'terminal',
+    title: 'Terminal',
+    icon: TerminalSquare,
+    singleton: false,
+    defaultSize: { width: 700, height: 450 },
+    minSize: { width: 400, height: 250 },
+    component: PlaceholderApp,
+  },
+  files: {
+    id: 'files',
+    title: 'File Manager',
+    icon: FolderOpen,
+    singleton: true,
+    defaultSize: { width: 800, height: 550 },
+    minSize: { width: 500, height: 350 },
+    component: PlaceholderApp,
+  },
+  settings: {
+    id: 'settings',
+    title: 'Settings',
+    icon: Settings,
+    singleton: true,
+    defaultSize: { width: 600, height: 500 },
+    minSize: { width: 450, height: 400 },
+    component: PlaceholderApp,
+  },
+  sysmon: {
+    id: 'sysmon',
+    title: 'System Monitor',
+    icon: Activity,
+    singleton: true,
+    defaultSize: { width: 650, height: 450 },
+    minSize: { width: 400, height: 300 },
+    component: PlaceholderApp,
+  },
+  notes: {
+    id: 'notes',
+    title: 'Notes',
+    icon: StickyNote,
+    singleton: false,
+    defaultSize: { width: 600, height: 500 },
+    minSize: { width: 350, height: 300 },
+    component: PlaceholderApp,
+  },
+}
+
+/** Ordered list of app IDs for the launcher grid */
+export const APP_ORDER = ['media', 'email', 'chat', 'terminal', 'files', 'settings', 'sysmon', 'notes']
