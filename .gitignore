@@ -26,3 +26,18 @@ frontend/dist/
 .wrangler/
 worker/node_modules/
 /package-lock.json
+
+# Personal data files
+Anime I have Watched.xlsx
+Books.md
+Scary movies i have watched.md
+
+# Legacy deploy configs
+render.yaml
+vercel.json
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+*.tfvars
+.terraform/

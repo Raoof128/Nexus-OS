@@ -9,13 +9,13 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- -----------------------------------------------------------------------------
--- Dev user: raoof.r12@gmail.com  /  password: Dev@Nexus2026
+-- Dev user: dev@example.com  /  password: Dev@Nexus2026
 -- Fixed UUID for reproducible references across resets.
 -- -----------------------------------------------------------------------------
 DO $$
 DECLARE
   _user_id uuid := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid;
-  _email   text := 'raoof.r12@gmail.com';
+  _email   text := 'dev@example.com';
 BEGIN
 
   -- Insert into auth.users (idempotent via ON CONFLICT)
