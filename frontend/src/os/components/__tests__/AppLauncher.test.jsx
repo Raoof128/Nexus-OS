@@ -9,6 +9,7 @@ vi.mock('../../stores/windowStore', () => ({
     const state = {
       openApp: mockOpenApp,
       toggleLauncher: mockToggleLauncher,
+      isMobile: false,
     }
     return selector(state)
   },
@@ -52,5 +53,35 @@ describe('AppLauncher', () => {
     render(<AppLauncher />)
     fireEvent.click(screen.getByTestId('launcher-backdrop'))
     expect(mockToggleLauncher).toHaveBeenCalled()
+  })
+
+  it('filters apps by search query', () => {
+    render(<AppLauncher />)
+    const input = screen.getByPlaceholderText('search::applications...')
+    fireEvent.change(input, { target: { value: 'med' } })
+    expect(screen.getByText('Media Vault')).toBeDefined()
+    expect(screen.queryByText('AI Chat')).toBeNull()
+  })
+
+  it('launches first result on Enter', () => {
+    render(<AppLauncher />)
+    const input = screen.getByPlaceholderText('search::applications...')
+    fireEvent.change(input, { target: { value: 'med' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(mockOpenApp).toHaveBeenCalledWith('media')
+    expect(mockToggleLauncher).toHaveBeenCalled()
+  })
+
+  it('shows all apps when search is empty', () => {
+    render(<AppLauncher />)
+    expect(screen.getByText('Media Vault')).toBeDefined()
+    expect(screen.getByText('AI Chat')).toBeDefined()
+  })
+
+  it('shows no matches message when nothing matches', () => {
+    render(<AppLauncher />)
+    const input = screen.getByPlaceholderText('search::applications...')
+    fireEvent.change(input, { target: { value: 'zzzzz' } })
+    expect(screen.getByText('NO_MATCHES_FOUND')).toBeDefined()
   })
 })
