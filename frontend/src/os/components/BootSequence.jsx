@@ -13,15 +13,12 @@ const BOOT_LINES = [
 ]
 
 const STAGGER_MS = 150
-// Total time for all lines to appear
-const LOG_DURATION_MS = BOOT_LINES.length * STAGGER_MS
 
 // Phase timings
-const PHASE1_END = 1000       // Logo fade-in done
-const PHASE2_START = 1000     // Log starts scrolling
-const PHASE2_END = 2500       // Log done
-const PHASE3_START = 2500     // Sweep + fade-out
-const PHASE3_END = 4000       // All done
+const PHASE2_START = 1000     // Log starts scrolling (after logo fade-in)
+// PHASE3_START is calculated dynamically: log finishes typing + 300ms pause
+const PHASE3_START = PHASE2_START + (BOOT_LINES.length * STAGGER_MS) + 300
+const PHASE3_END = PHASE3_START + 1500  // Sweep + fade-out (1.5s after log done)
 
 /** One typed-out boot log line */
 function BootLine({ text, delayMs }) {
@@ -63,7 +60,9 @@ function BootLine({ text, delayMs }) {
           animate={{ opacity: 1, scale: 1 }}
           className="font-mono text-[11px]"
           style={{ color: 'hsl(56 100% 48%)' }}
-        />
+        >
+          OK
+        </Motion.span>
       )}
     </div>
   )

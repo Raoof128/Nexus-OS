@@ -87,6 +87,9 @@ function AppearanceTab() {
             <span className="font-mono text-xs text-muted-foreground">Scanlines overlay</span>
             <button
               type="button"
+              role="switch"
+              aria-checked={scanlinesEnabled}
+              aria-label="Toggle scanlines"
               onClick={toggleScanlines}
               className={`relative h-5 w-9 rounded-full transition-colors ${
                 scanlinesEnabled ? 'bg-primary/40' : 'bg-white/10'
@@ -101,6 +104,9 @@ function AppearanceTab() {
             <span className="font-mono text-xs text-muted-foreground">Ambient orbs</span>
             <button
               type="button"
+              role="switch"
+              aria-checked={orbsEnabled}
+              aria-label="Toggle ambient orbs"
               onClick={toggleOrbs}
               className={`relative h-5 w-9 rounded-full transition-colors ${
                 orbsEnabled ? 'bg-primary/40' : 'bg-white/10'

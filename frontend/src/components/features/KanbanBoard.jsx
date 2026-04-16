@@ -199,6 +199,7 @@ function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpd
           </button>
         )}
       </div>
+      <div className="pointer-events-none absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-[rgba(20,20,20,0.85)] to-transparent" />
     </div>
   )
 }

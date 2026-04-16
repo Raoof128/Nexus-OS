@@ -56,7 +56,7 @@ function Taskbar() {
   if (isMobile) {
     return (
       <nav
-        className="glass-panel fixed inset-x-0 bottom-0 z-[500] flex items-center justify-around border-t border-cyan-500/10 px-2 py-1.5"
+        className="glass-panel fixed inset-x-0 bottom-0 z-[500] flex items-center justify-around border-t border-cyan-500/10 px-2 py-1.5 overflow-x-auto"
         style={{ paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom, 0px))' }}
         aria-label="App dock"
       >
@@ -83,8 +83,9 @@ function Taskbar() {
               }`}
             >
               {Icon && <Icon size={18} />}
+              <span className="heading-ui text-[8px] max-w-[48px] truncate">{win.title}</span>
               {isActive && (
-                <div className="h-1 w-1 rounded-full bg-cyan-400 shadow-[0_0_4px_rgba(0,255,255,0.6)]" />
+                <div className="h-1 w-4 rounded-full bg-cyan-400 shadow-[0_0_4px_rgba(0,255,255,0.6)]" />
               )}
             </button>
           )

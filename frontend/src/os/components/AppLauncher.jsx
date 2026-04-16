@@ -93,6 +93,7 @@ function AppLauncher() {
                   key={appId}
                   type="button"
                   onClick={() => handleLaunch(appId)}
+                  aria-label={manifest.title}
                   className={`group flex flex-col items-center gap-2 rounded-xl p-3 transition-all hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(0,255,255,0.05)] sm:p-4 ${
                     isFirst ? 'ring-1 ring-primary/40 bg-primary/[0.04]' : ''
                   }`}

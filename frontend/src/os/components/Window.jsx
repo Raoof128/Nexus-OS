@@ -159,7 +159,7 @@ function Window({
   if (isMobile) {
     return (
       <div
-        className="fixed inset-0 z-[100] flex flex-col bg-[#0a0a0a]"
+        className="fixed inset-0 z-[100] flex flex-col bg-background"
         style={{ paddingBottom: TASKBAR_HEIGHT + 8 }}
       >
         <div className="glass-panel flex h-9 items-center justify-between border-b border-cyan-500/10 px-3">
@@ -250,7 +250,7 @@ function Window({
         className={`glass-panel flex h-9 shrink-0 cursor-grab items-center justify-between border-b px-3 select-none active:cursor-grabbing ${
           isFocused
             ? 'border-b-cyan-500/15'
-            : 'border-b-white/[0.04] opacity-60'
+            : 'border-b-white/[0.04] bg-white/[0.01]'
         }`}
         style={{
           borderImage: isFocused
@@ -260,7 +260,7 @@ function Window({
       >
         <div className="flex items-center gap-2 overflow-hidden">
           {AppIcon && <AppIcon size={12} className="shrink-0 text-primary" />}
-          <span className="heading-ui truncate text-[10px] font-semibold text-white/80">
+          <span className={`heading-ui truncate text-[10px] font-semibold ${isFocused ? 'text-white/80' : 'text-white/50'}`}>
             {title}
           </span>
         </div>
@@ -294,7 +294,7 @@ function Window({
 
       {/* Content area */}
       <div
-        className="flex-1 overflow-hidden bg-[#0a0a0a]"
+        className="flex-1 overflow-hidden bg-background"
         style={{ containerType: 'inline-size' }}
       >
         {children}

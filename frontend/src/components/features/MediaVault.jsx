@@ -48,9 +48,9 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
   }
 
   return (
-    <div className="h-full w-full overflow-auto custom-scrollbar p-3 @sm:p-4 @md:p-6">
+    <div className="flex flex-col h-full w-full">
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 @sm:flex-row @sm:items-center @sm:justify-between">
+      <div className="shrink-0 mb-6 flex flex-col gap-4 p-3 @sm:p-4 @md:p-6 @sm:flex-row @sm:items-center @sm:justify-between">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -86,9 +86,9 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
       </div>
 
       {/* Table */}
-      <div className="neon-border overflow-hidden rounded-xl glass-panel">
+      <div className="neon-border flex flex-col flex-1 min-h-0 overflow-hidden rounded-xl glass-panel mx-3 mb-3 @sm:mx-4 @sm:mb-4 @md:mx-6 @md:mb-6">
         {/* Table header */}
-        <div className={`hidden border-b border-white/5 bg-white/[0.02] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground @sm:grid ${isJob ? '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'}`}>
+        <div className={`shrink-0 hidden border-b border-white/5 bg-white/[0.02] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground @sm:grid ${isJob ? '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'}`}>
           <span>Title</span>
           <span>{config?.creatorLabel || 'Creator'}</span>
           {!isJob && <span>Genre</span>}
@@ -98,7 +98,7 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
         </div>
 
         {/* Rows */}
-        <div className="overflow-y-auto custom-scrollbar">
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
           {filtered.length === 0 && (
             <div className="border border-dashed border-white/10 rounded-xl p-8 text-center opacity-50">
               <p className="font-mono text-xs tracking-wide @sm:text-sm">NO_RECORDS_FOUND</p>
