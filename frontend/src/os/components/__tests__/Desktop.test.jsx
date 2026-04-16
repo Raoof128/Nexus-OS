@@ -7,8 +7,8 @@ let mockActiveWindowId = null
 let mockIsMobile = false
 let mockLauncherOpen = false
 
-vi.mock('../../stores/windowStore', () => ({
-  useWindowStore: (selector) => {
+vi.mock('../../stores/windowStore', () => {
+  const useWindowStore = (selector) => {
     const state = {
       windows: mockWindows,
       zStack: mockZStack,
@@ -17,10 +17,13 @@ vi.mock('../../stores/windowStore', () => ({
       launcherOpen: mockLauncherOpen,
       openApp: vi.fn(),
       setMobile: vi.fn(),
+      hydrateFromStorage: vi.fn(),
     }
     return selector(state)
-  },
-}))
+  }
+  useWindowStore.getState = () => ({ windows: mockWindows })
+  return { useWindowStore }
+})
 
 vi.mock('../../stores/appRegistry', () => ({
   APP_REGISTRY: {
