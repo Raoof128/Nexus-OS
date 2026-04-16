@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Plus, X } from 'lucide-react'
 import { MEDIA_CONFIG } from '../../lib/mediaConfig'
@@ -69,55 +70,58 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
         Add {config.singular}
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <Motion.div
-            ref={trapRef}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
-            onClick={handleClose}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="add-media-title"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
+      {createPortal(
+        <AnimatePresence>
+          {open && (
             <Motion.div
-              onClick={(e) => e.stopPropagation()}
-              className="neon-border relative w-full max-w-lg max-h-[90dvh] overflow-y-auto custom-scrollbar rounded-2xl glass-panel p-6 shadow-2xl"
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              ref={trapRef}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+              onClick={handleClose}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="add-media-title"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
-              <button
-                type="button"
-                onClick={handleClose}
-                className="absolute right-4 top-4 text-muted-foreground transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-md"
-                aria-label="Close dialog"
+              <Motion.div
+                onClick={(e) => e.stopPropagation()}
+                className="neon-border relative w-full max-w-lg max-h-[90dvh] overflow-y-auto custom-scrollbar rounded-2xl glass-panel p-6 shadow-2xl"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               >
-                <X size={18} />
-              </button>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="absolute right-4 top-4 text-muted-foreground transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-md"
+                  aria-label="Close dialog"
+                >
+                  <X size={18} />
+                </button>
 
-              <h2 id="add-media-title" className="heading-display mb-6 text-lg font-bold text-primary sm:text-xl">
-                <span aria-hidden="true">// </span>Register New {config.singular}
-              </h2>
+                <h2 id="add-media-title" className="heading-display mb-6 text-lg font-bold text-primary sm:text-xl">
+                  <span aria-hidden="true">// </span>Register New {config.singular}
+                </h2>
 
-              <MediaForm
-                key={formKey}
-                config={config}
-                defaultValues={{ status: config.defaultStatus }}
-                onSubmit={handleSubmit}
-                submitting={submitting}
-                error={error}
-                submitLabel="Commit to Archive"
-                idPrefix="add"
-                placeholders={placeholders}
-              />
+                <MediaForm
+                  key={formKey}
+                  config={config}
+                  defaultValues={{ status: config.defaultStatus }}
+                  onSubmit={handleSubmit}
+                  submitting={submitting}
+                  error={error}
+                  submitLabel="Commit to Archive"
+                  idPrefix="add"
+                  placeholders={placeholders}
+                />
+              </Motion.div>
             </Motion.div>
-          </Motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.getElementById('modal-root') || document.body
+      )}
     </>
   )
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Loader2, Sparkles, X, Send } from 'lucide-react'
 import { getProviderBadge } from '../../lib/emailConfig'
@@ -134,7 +135,7 @@ function ComposeModal({
     [onClose, handleSubmit],
   )
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -333,7 +334,8 @@ function ComposeModal({
           </div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.getElementById('modal-root') || document.body
   )
 }
 

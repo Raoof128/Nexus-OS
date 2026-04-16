@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
@@ -45,7 +46,7 @@ export default function EditMediaDialog({ item, onUpdate, onClose }) {
     }
   }
 
-  return (
+  return createPortal(
     <div
       ref={trapRef}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
@@ -90,6 +91,7 @@ export default function EditMediaDialog({ item, onUpdate, onClose }) {
           idPrefix="edit"
         />
       </div>
-    </div>
+    </div>,
+    document.getElementById('modal-root') || document.body
   )
 }

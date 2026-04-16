@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Pencil, Star, Trash2, X } from 'lucide-react'
 import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../lib/mediaConfig'
@@ -39,7 +40,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
     onClose()
   }
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {item && (
         <>
@@ -239,6 +240,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
           />
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.getElementById('modal-root') || document.body
   )
 }

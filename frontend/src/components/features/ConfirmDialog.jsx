@@ -90,6 +90,6 @@ export default function ConfirmDialog({
         </Motion.div>
       )}
     </AnimatePresence>,
-    document.body
+    document.getElementById('modal-root') || document.body
   )
 }

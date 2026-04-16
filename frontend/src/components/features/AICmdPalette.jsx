@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Command } from 'cmdk'
 import { Bot, Check, Cpu, Plus, Sparkles, Terminal, Zap } from 'lucide-react'
 import { useSuggest } from '../../hooks/useSuggest'
@@ -35,7 +36,7 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
     }
   }
 
-  return (
+  return createPortal(
     <Command.Dialog
       open={open}
       onOpenChange={(v) => { if (!v) { setResult(null); resetSuggest(); setAddedIndices(new Set()) } onOpenChange(v) }}
@@ -194,6 +195,7 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
           </div>
         )}
       </Command.List>
-    </Command.Dialog>
+    </Command.Dialog>,
+    document.getElementById('modal-root') || document.body
   )
 }
