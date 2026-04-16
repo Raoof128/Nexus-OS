@@ -2,7 +2,11 @@ import { create } from 'zustand'
 import { nanoid } from 'nanoid'
 import { APP_REGISTRY } from './appRegistry'
 
-const TASKBAR_HEIGHT = 48
+export const TASKBAR_HEIGHT = 48
+
+const STORAGE_KEY = 'nexus-os:window-layout'
+const SCHEMA_VERSION = 1
+const SAVE_DEBOUNCE_MS = 500
 
 function boundedSize(defaultSize) {
   return {
@@ -250,6 +254,65 @@ export const useWindowStore = create((set, get) => ({
     })
   },
 
+  hydrateFromStorage: () => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (!raw) return
+
+      const saved = JSON.parse(raw)
+      if (!saved || saved.schemaVersion !== SCHEMA_VERSION) return
+      if (!saved.windows || !saved.zStack) return
+
+      const restoredWindows = {}
+      const newZStack = []
+      const idMap = {}
+
+      for (const [oldId, win] of Object.entries(saved.windows)) {
+        const manifest = APP_REGISTRY[win.appId]
+        if (!manifest) continue
+
+        const newId = manifest.singleton ? win.appId : `${win.appId}-${nanoid(6)}`
+        idMap[oldId] = newId
+
+        const x = Math.max(0, Math.min(win.position?.x ?? 0, window.innerWidth - 100))
+        const y = Math.max(0, Math.min(win.position?.y ?? 0, window.innerHeight - TASKBAR_HEIGHT - 40))
+        const width = Math.min(win.size?.width ?? 600, window.innerWidth * 0.95)
+        const height = Math.min(win.size?.height ?? 400, (window.innerHeight - TASKBAR_HEIGHT) * 0.95)
+
+        const state = win.state === 'minimized' ? 'normal' : (win.state || 'normal')
+
+        restoredWindows[newId] = {
+          windowId: newId,
+          appId: win.appId,
+          title: manifest.title,
+          position: { x, y },
+          size: { width, height },
+          minSize: { ...manifest.minSize },
+          state,
+          restoredRect: { x, y, width, height },
+        }
+      }
+
+      for (const oldId of saved.zStack) {
+        if (idMap[oldId]) newZStack.push(idMap[oldId])
+      }
+
+      if (Object.keys(restoredWindows).length === 0) return
+
+      const newActive = saved.activeWindowId && idMap[saved.activeWindowId]
+        ? idMap[saved.activeWindowId]
+        : newZStack[newZStack.length - 1] || null
+
+      set({
+        windows: restoredWindows,
+        zStack: newZStack,
+        activeWindowId: newActive,
+      })
+    } catch {
+      // Corrupt data — silently ignore
+    }
+  },
+
   cycleWindow: (direction) => {
     const { zStack, windows, activeWindowId } = get()
     const visible = zStack.filter(
@@ -266,3 +329,25 @@ export const useWindowStore = create((set, get) => ({
     get().focusWindow(visible[nextIdx])
   },
 }))
+
+// Debounced persistence subscriber
+let saveTimeout = null
+useWindowStore.subscribe((state) => {
+  if (state.isMobile) return
+
+  if (saveTimeout) clearTimeout(saveTimeout)
+  saveTimeout = setTimeout(() => {
+    try {
+      const { windows, zStack, activeWindowId } = state
+      const snapshot = {
+        schemaVersion: SCHEMA_VERSION,
+        windows,
+        zStack,
+        activeWindowId,
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
+    } catch {
+      // Storage full or unavailable
+    }
+  }, SAVE_DEBOUNCE_MS)
+})

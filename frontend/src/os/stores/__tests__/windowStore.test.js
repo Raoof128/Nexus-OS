@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
+const TASKBAR_HEIGHT = 48
+
 // We need to mock appRegistry before importing the store
 vi.mock('../appRegistry', () => ({
   APP_REGISTRY: {
@@ -323,6 +325,137 @@ describe('windowStore', () => {
       useWindowStore.getState().openApp('media')
       useWindowStore.getState().cycleWindow('next')
       expect(useWindowStore.getState().activeWindowId).toBe('media')
+    })
+  })
+
+  describe('persistence', () => {
+    beforeEach(() => {
+      localStorage.clear()
+    })
+
+    it('hydrateFromStorage restores saved layout', () => {
+      const saved = {
+        schemaVersion: 1,
+        windows: {
+          media: {
+            windowId: 'media',
+            appId: 'media',
+            title: 'Media Vault',
+            position: { x: 200, y: 100 },
+            size: { width: 800, height: 500 },
+            minSize: { width: 600, height: 400 },
+            state: 'normal',
+            restoredRect: { x: 200, y: 100, width: 800, height: 500 },
+          },
+        },
+        zStack: ['media'],
+        activeWindowId: 'media',
+      }
+      localStorage.setItem('nexus-os:window-layout', JSON.stringify(saved))
+
+      useWindowStore.getState().hydrateFromStorage()
+      const state = useWindowStore.getState()
+      expect(Object.keys(state.windows)).toHaveLength(1)
+      expect(state.windows.media.position.x).toBe(200)
+      expect(state.zStack).toEqual(['media'])
+    })
+
+    it('hydrateFromStorage clamps positions to current viewport', () => {
+      const saved = {
+        schemaVersion: 1,
+        windows: {
+          media: {
+            windowId: 'media',
+            appId: 'media',
+            title: 'Media Vault',
+            position: { x: 5000, y: 3000 },
+            size: { width: 800, height: 500 },
+            minSize: { width: 600, height: 400 },
+            state: 'normal',
+            restoredRect: { x: 5000, y: 3000, width: 800, height: 500 },
+          },
+        },
+        zStack: ['media'],
+        activeWindowId: 'media',
+      }
+      localStorage.setItem('nexus-os:window-layout', JSON.stringify(saved))
+
+      useWindowStore.getState().hydrateFromStorage()
+      const win = useWindowStore.getState().windows.media
+      expect(win.position.x).toBeLessThanOrEqual(window.innerWidth - 100)
+      expect(win.position.y).toBeLessThanOrEqual(window.innerHeight - TASKBAR_HEIGHT - 40)
+    })
+
+    it('hydrateFromStorage converts minimized to normal', () => {
+      const saved = {
+        schemaVersion: 1,
+        windows: {
+          media: {
+            windowId: 'media',
+            appId: 'media',
+            title: 'Media Vault',
+            position: { x: 100, y: 50 },
+            size: { width: 800, height: 500 },
+            minSize: { width: 600, height: 400 },
+            state: 'minimized',
+            restoredRect: { x: 100, y: 50, width: 800, height: 500 },
+          },
+        },
+        zStack: ['media'],
+        activeWindowId: 'media',
+      }
+      localStorage.setItem('nexus-os:window-layout', JSON.stringify(saved))
+
+      useWindowStore.getState().hydrateFromStorage()
+      expect(useWindowStore.getState().windows.media.state).toBe('normal')
+    })
+
+    it('hydrateFromStorage discards on schema version mismatch', () => {
+      const saved = {
+        schemaVersion: 999,
+        windows: { media: { windowId: 'media', appId: 'media' } },
+        zStack: ['media'],
+        activeWindowId: 'media',
+      }
+      localStorage.setItem('nexus-os:window-layout', JSON.stringify(saved))
+
+      useWindowStore.getState().hydrateFromStorage()
+      expect(Object.keys(useWindowStore.getState().windows)).toHaveLength(0)
+    })
+
+    it('hydrateFromStorage handles corrupt JSON gracefully', () => {
+      localStorage.setItem('nexus-os:window-layout', 'not-json{{{')
+
+      useWindowStore.getState().hydrateFromStorage()
+      expect(Object.keys(useWindowStore.getState().windows)).toHaveLength(0)
+    })
+
+    it('hydrateFromStorage regenerates multi-instance windowIds', () => {
+      const saved = {
+        schemaVersion: 1,
+        windows: {
+          'terminal-abc123': {
+            windowId: 'terminal-abc123',
+            appId: 'terminal',
+            title: 'Terminal',
+            position: { x: 100, y: 50 },
+            size: { width: 700, height: 450 },
+            minSize: { width: 400, height: 250 },
+            state: 'normal',
+            restoredRect: { x: 100, y: 50, width: 700, height: 450 },
+          },
+        },
+        zStack: ['terminal-abc123'],
+        activeWindowId: 'terminal-abc123',
+      }
+      localStorage.setItem('nexus-os:window-layout', JSON.stringify(saved))
+
+      useWindowStore.getState().hydrateFromStorage()
+      const state = useWindowStore.getState()
+      const windowIds = Object.keys(state.windows)
+      expect(windowIds).toHaveLength(1)
+      expect(windowIds[0]).toMatch(/^terminal-/)
+      expect(windowIds[0]).not.toBe('terminal-abc123')
     })
   })
 })
