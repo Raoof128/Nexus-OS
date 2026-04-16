@@ -6,7 +6,11 @@ import { APP_REGISTRY } from '../stores/appRegistry'
 
 const TITLEBAR_HEIGHT = 36
 const TASKBAR_HEIGHT = 48
-const RESIZE_HANDLE_SIZE = 8
+// Resize grab area. Edges are thinner (6px) so the cursor only becomes a
+// resize arrow when the user is genuinely at the border; corners are larger
+// (14px) to stay reachable despite the rounded-lg window radius.
+const RESIZE_EDGE_SIZE = 6
+const RESIZE_CORNER_SIZE = 14
 
 function ResizeHandle({ direction, windowId, position, size, minSize }) {
   const resizeWindow = useWindowStore((s) => s.resizeWindow)
@@ -19,14 +23,14 @@ function ResizeHandle({ direction, windowId, position, size, minSize }) {
   }
 
   const positionStyles = {
-    n: { top: 0, left: RESIZE_HANDLE_SIZE, right: RESIZE_HANDLE_SIZE, height: RESIZE_HANDLE_SIZE },
-    s: { bottom: 0, left: RESIZE_HANDLE_SIZE, right: RESIZE_HANDLE_SIZE, height: RESIZE_HANDLE_SIZE },
-    e: { right: 0, top: RESIZE_HANDLE_SIZE, bottom: RESIZE_HANDLE_SIZE, width: RESIZE_HANDLE_SIZE },
-    w: { left: 0, top: RESIZE_HANDLE_SIZE, bottom: RESIZE_HANDLE_SIZE, width: RESIZE_HANDLE_SIZE },
-    ne: { top: 0, right: 0, width: RESIZE_HANDLE_SIZE, height: RESIZE_HANDLE_SIZE },
-    nw: { top: 0, left: 0, width: RESIZE_HANDLE_SIZE, height: RESIZE_HANDLE_SIZE },
-    se: { bottom: 0, right: 0, width: RESIZE_HANDLE_SIZE, height: RESIZE_HANDLE_SIZE },
-    sw: { bottom: 0, left: 0, width: RESIZE_HANDLE_SIZE, height: RESIZE_HANDLE_SIZE },
+    n: { top: -RESIZE_EDGE_SIZE / 2, left: RESIZE_CORNER_SIZE, right: RESIZE_CORNER_SIZE, height: RESIZE_EDGE_SIZE },
+    s: { bottom: -RESIZE_EDGE_SIZE / 2, left: RESIZE_CORNER_SIZE, right: RESIZE_CORNER_SIZE, height: RESIZE_EDGE_SIZE },
+    e: { right: -RESIZE_EDGE_SIZE / 2, top: RESIZE_CORNER_SIZE, bottom: RESIZE_CORNER_SIZE, width: RESIZE_EDGE_SIZE },
+    w: { left: -RESIZE_EDGE_SIZE / 2, top: RESIZE_CORNER_SIZE, bottom: RESIZE_CORNER_SIZE, width: RESIZE_EDGE_SIZE },
+    ne: { top: -RESIZE_EDGE_SIZE / 2, right: -RESIZE_EDGE_SIZE / 2, width: RESIZE_CORNER_SIZE, height: RESIZE_CORNER_SIZE },
+    nw: { top: -RESIZE_EDGE_SIZE / 2, left: -RESIZE_EDGE_SIZE / 2, width: RESIZE_CORNER_SIZE, height: RESIZE_CORNER_SIZE },
+    se: { bottom: -RESIZE_EDGE_SIZE / 2, right: -RESIZE_EDGE_SIZE / 2, width: RESIZE_CORNER_SIZE, height: RESIZE_CORNER_SIZE },
+    sw: { bottom: -RESIZE_EDGE_SIZE / 2, left: -RESIZE_EDGE_SIZE / 2, width: RESIZE_CORNER_SIZE, height: RESIZE_CORNER_SIZE },
   }
 
   const handlePointerDown = useCallback((e) => {
@@ -75,6 +79,7 @@ function ResizeHandle({ direction, windowId, position, size, minSize }) {
         position: 'absolute',
         cursor: cursorMap[direction],
         zIndex: 10,
+        touchAction: 'none',
         ...positionStyles[direction],
       }}
     />
@@ -160,12 +165,16 @@ function Window({
     return (
       <div
         className="fixed inset-0 z-[100] flex flex-col bg-background"
-        style={{ paddingBottom: TASKBAR_HEIGHT + 8 }}
+        data-testid="mobile-window"
+        style={{
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingBottom: TASKBAR_HEIGHT + 8,
+        }}
       >
-        <div className="glass-panel flex h-9 items-center justify-between border-b border-cyan-500/10 px-3">
+        <div className="glass-panel flex h-11 items-center justify-between border-b border-cyan-500/10 px-3">
           <div className="flex items-center gap-2">
-            {AppIcon && <AppIcon size={12} className="text-primary" />}
-            <span className="heading-ui text-[11px] font-semibold text-white/80 truncate">
+            {AppIcon && <AppIcon size={14} className="text-primary" />}
+            <span className="heading-ui text-[12px] font-semibold text-white/80 truncate">
               {title}
             </span>
           </div>
@@ -173,9 +182,9 @@ function Window({
             type="button"
             onClick={() => closeWindow(windowId)}
             aria-label="Close window"
-            className="rounded-md p-2 text-muted-foreground hover:bg-red-500/20 hover:text-red-400"
+            className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-red-500/20 hover:text-red-400"
           >
-            <X size={14} />
+            <X size={18} />
           </button>
         </div>
         <div className="flex-1 overflow-hidden" style={{ containerType: 'inline-size' }}>
@@ -224,9 +233,11 @@ function Window({
       onDragEnd={handleDragEnd}
       onPointerDownCapture={() => focusWindow(windowId)}
       onContextMenu={(e) => e.stopPropagation()}
-      className="flex flex-col rounded-lg overflow-hidden"
+      className="flex flex-col"
     >
-      {/* Window border glow */}
+      {/* Window border glow — rounded-lg lives here, not on the outer Motion.div,
+         so the absolute-positioned resize handles aren't clipped by the corner
+         radius. */}
       <div
         className={`pointer-events-none absolute inset-0 rounded-lg border transition-all duration-200 ${
           isFocused
@@ -240,14 +251,22 @@ function Window({
       <div
         data-testid="titlebar"
         onPointerDown={(e) => {
+          // Don't start a drag when the pointer lands on the window controls
+          // (min/max/close) — framer's dragControls.start(e) captures the
+          // pointer and suppresses the button's click, so users had to click
+          // several times to actually close a window.
+          if (e.target.closest('button')) return
           if (isSnapped) {
             restoreWindow(windowId)
             return
           }
           if (!isMaximized) dragControls.start(e)
         }}
-        onDoubleClick={toggleMaximize}
-        className={`glass-panel flex h-9 shrink-0 cursor-grab items-center justify-between border-b px-3 select-none active:cursor-grabbing ${
+        onDoubleClick={(e) => {
+          if (e.target.closest('button')) return
+          toggleMaximize()
+        }}
+        className={`glass-panel flex h-9 shrink-0 cursor-grab items-center justify-between border-b rounded-t-lg px-3 select-none active:cursor-grabbing ${
           isFocused
             ? 'border-b-cyan-500/15'
             : 'border-b-white/[0.04] bg-white/[0.01]'
@@ -269,7 +288,7 @@ function Window({
             type="button"
             onClick={() => minimizeWindow(windowId)}
             aria-label="Minimize window"
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-cyan-500/15 hover:text-cyan-400"
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-cyan-500/15 hover:text-cyan-400"
           >
             <Minus size={10} />
           </button>
@@ -277,7 +296,7 @@ function Window({
             type="button"
             onClick={toggleMaximize}
             aria-label={isMaximized ? 'Restore window' : 'Maximize window'}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-cyan-500/15 hover:text-cyan-400"
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-cyan-500/15 hover:text-cyan-400"
           >
             <Square size={10} />
           </button>
@@ -285,16 +304,17 @@ function Window({
             type="button"
             onClick={() => closeWindow(windowId)}
             aria-label="Close window"
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-400"
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-400"
           >
             <X size={10} />
           </button>
         </div>
       </div>
 
-      {/* Content area */}
+      {/* Content area — rounded-b-lg so the bottom corners stay clipped even
+         though the outer container no longer has overflow:hidden. */}
       <div
-        className="flex-1 overflow-hidden bg-background"
+        className="flex-1 overflow-hidden rounded-b-lg bg-background"
         style={{ containerType: 'inline-size' }}
       >
         {children}

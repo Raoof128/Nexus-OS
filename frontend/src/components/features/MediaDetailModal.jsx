@@ -51,12 +51,12 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-md"
+            className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-md"
             onClick={onClose}
           />
 
           {/* Modal */}
-          <div className="fixed inset-0 z-[81] flex items-center justify-center p-4 sm:p-6">
+          <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 sm:p-6">
             <Motion.div
               ref={trapRef}
               layoutId={`card-${item.id}`}

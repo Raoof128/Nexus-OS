@@ -22,6 +22,18 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 ## Change Log
 
+### 2026-04-17 (Australia/Sydney) — Window Controls + Z-index + Responsive Polish
+**Raouf:**
+- **Scope:** Three reported bugs plus a global z-index/responsive audit on the Desktop OS shell.
+- **Summary:** (1) **Close/min/max buttons required multiple clicks** — titlebar's `onPointerDown` unconditionally called `dragControls.start(e)`, capturing the pointer and swallowing the button's click. Fixed by bailing out when the event target is inside a `<button>` (plus the same guard on the titlebar's double-click-to-maximize so button double-clicks don't accidentally maximize). (2) **Resize felt unreliable at corners** — the outer `Motion.div` had `overflow-hidden rounded-lg`, which clipped the 8px resize handles against the rounded corner path. Moved `rounded-t-lg`/`rounded-b-lg` onto the inner titlebar + content, removed outer `overflow-hidden`, enlarged handle hit areas (edges 6px, corners 14px) and offset them outward by half their width so the grabbable region extends slightly past the window border. Added `touch-action: none` on handles so touch doesn't scroll mid-resize. (3) **Z-index scale was overlapping** — windows occupied 100–~250 while in-app modals lived at 80/81/100/110 and `ContextMenu` at 900. A modal opened in a non-top window would render below another window. Built a single canonical ladder in `frontend/src/lib/zLayers.js` (snap preview 90, windows 100+stack, taskbar 500, launcher 599/600, modals 1000/1001, nested confirm 1051, context menu 1200, notifications 1500, lock 2000, boot 9999) and migrated every consumer to it. (4) **Mobile/responsive polish** — mobile Window titlebar now uses `env(safe-area-inset-top)` + a 44×44 close button (WCAG touch target); desktop window controls bumped from `p-1.5` to `p-2`.
+- **Files Changed:**
+  - `frontend/src/os/components/Window.jsx` — button-in-titlebar drag guard, resize handle size + outset, rounded-lg moved inward, mobile safe-area-top, bigger hit targets.
+  - `frontend/src/lib/zLayers.js` *(new)* — canonical z-index constants + Tailwind class fragments.
+  - `frontend/src/os/Desktop.jsx` — snap preview `z-[99]` → `z-[90]`.
+  - `frontend/src/components/features/MediaDetailModal.jsx`, `ComposeModal.jsx`, `AddMediaDialog.jsx`, `EditMediaDialog.jsx`, `AICmdPalette.jsx`, `LazyAICmdPalette.jsx`, `ConfirmDialog.jsx` — all modal z-indexes migrated into the 1000–1051 band.
+  - `frontend/src/os/components/ContextMenu.jsx` — bumped to `zIndex: 1200` so right-click inside a modal still surfaces the menu on top.
+- **Verification:** `npm run lint` 0 errors, `vitest` 117/117, `vite build` clean (2.08s).
+
 ### 2026-04-17 (Australia/Sydney) — Logic Audit Remediation (Medium + Low)
 **Raouf:**
 - **Scope:** Four-agent file-by-file logic/correctness audit, all remaining batches (Backend Medium, OS shell Medium, Feature Medium, Data layer Medium, Low sweep).

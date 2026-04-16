@@ -195,7 +195,7 @@ export default function Desktop() {
           {snapPreview && (
             <div
               data-testid="snap-preview"
-              className="pointer-events-none absolute inset-0 z-[99] rounded-lg border border-cyan-500/30 bg-cyan-500/5 backdrop-blur-sm transition-all duration-150"
+              className="pointer-events-none absolute inset-0 z-[90] rounded-lg border border-cyan-500/30 bg-cyan-500/5 backdrop-blur-sm transition-all duration-150"
               style={
                 snapPreview === 'left'
                   ? { right: '50%' }

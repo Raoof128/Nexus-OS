@@ -50,9 +50,9 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
       open={open}
       onOpenChange={(v) => { if (!v) { setResult(null); resetSuggest(); setAddedIndices(new Set()) } onOpenChange(v) }}
       label="Global AI Command Menu"
-      contentClassName="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4"
+      contentClassName="fixed inset-0 z-[1001] flex items-center justify-center p-3 sm:p-4"
       className="neon-border flex w-full max-w-lg sm:max-w-xl md:max-w-2xl max-h-[85dvh] flex-col overflow-hidden rounded-2xl glass-panel p-0 shadow-[0_0_80px_hsl(var(--neon-yellow)/0.08)]"
-      overlayClassName="fixed inset-0 z-[99] bg-black/60 backdrop-blur-md"
+      overlayClassName="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-md"
     >
       <span className="sr-only" role="heading" aria-level="2">AI Command Menu</span>
       <p className="sr-only">Search commands or request AI-powered media suggestions.</p>

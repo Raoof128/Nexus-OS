@@ -149,13 +149,13 @@ function ComposeModal({
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-md"
+            className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-md"
             onClick={onClose}
             aria-hidden="true"
           />
 
           {/* Modal centering wrapper — full-screen on mobile, centered card on desktop */}
-          <div className="fixed inset-0 z-[81] flex items-end justify-center sm:items-center sm:p-6">
+          <div className="fixed inset-0 z-[1001] flex items-end justify-center sm:items-center sm:p-6">
           <Motion.div
             key="compose-modal"
             ref={modalRef}

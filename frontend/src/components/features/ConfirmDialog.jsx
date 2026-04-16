@@ -33,7 +33,7 @@ export default function ConfirmDialog({
       {open && (
         <Motion.div
           key="confirm-backdrop"
-          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+          className="fixed inset-0 z-[1051] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
           onClick={onCancel}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

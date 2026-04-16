@@ -1,5 +1,12 @@
 # Change Log
 
+### 2026-04-17 (Australia/Sydney) — Window Controls + Z-index + Responsive Polish
+**Raouf:**
+- **Scope:** Fix close/min/max buttons requiring multiple clicks; polish window resizing; global z-index scale + responsive audit.
+- **Summary:** Titlebar `onPointerDown` now bails when the target is a `<button>` — `dragControls.start(e)` was capturing the pointer and swallowing button clicks. Same guard on the double-click-to-maximize. Resize handles re-architected: `overflow-hidden rounded-lg` moved off the outer `Motion.div` onto the inner titlebar + content, so the handles aren't clipped by the corner path; edge hit area 6px, corner 14px, outset by half width; `touch-action: none` added. New `lib/zLayers.js` establishes a canonical ladder (snap 90, windows 100+, taskbar 500, launcher 599/600, modals 1000/1001, confirm 1051, context menu 1200, notifications 1500, lock 2000, boot 9999); all modals migrated out of the old 80–110 band that was colliding with window stacking. Mobile Window titlebar gets `env(safe-area-inset-top)` + a proper 44×44 close button; desktop controls bumped `p-1.5 → p-2`.
+- **Files Changed:** Window.jsx, Desktop.jsx, ContextMenu.jsx, MediaDetailModal.jsx, ComposeModal.jsx, AddMediaDialog.jsx, EditMediaDialog.jsx, AICmdPalette.jsx, LazyAICmdPalette.jsx, ConfirmDialog.jsx, new lib/zLayers.js.
+- **Verification:** ESLint 0, vitest 117/117, vite build clean.
+
 ### 2026-04-17 (Australia/Sydney) — Logic Audit Remediation
 **Raouf:**
 - **Scope:** Four-agent file-by-file logic/correctness audit across backend + frontend. All real Critical/High/Medium/Low findings fixed; false positives dropped after verification.

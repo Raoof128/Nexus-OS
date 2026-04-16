@@ -114,7 +114,9 @@ function ContextMenu({ x, y, onClose }) {
           left: clampedX,
           top: clampedY,
           minWidth: MENU_WIDTH,
-          zIndex: 900,
+          // Above windows (100–~250) and above in-app modals (1000–1051) so a
+          // right-click inside an open dialog still surfaces the menu on top.
+          zIndex: 1200,
           transformOrigin: 'top left',
         }}
         role="menu"

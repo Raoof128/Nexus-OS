@@ -89,7 +89,7 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
           {open && (
             <Motion.div
               ref={trapRef}
-              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+              className="fixed inset-0 z-[1001] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
               onClick={handleClose}
               role="dialog"
               aria-modal="true"
