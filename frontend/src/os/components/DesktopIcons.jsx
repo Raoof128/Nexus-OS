@@ -9,12 +9,17 @@ const ICON_START_Y = 16
 
 function DesktopIcons() {
   const openApp = useWindowStore((s) => s.openApp)
+  const isMobile = useWindowStore((s) => s.isMobile)
   const [selectedId, setSelectedId] = useState(null)
 
   const handleClick = useCallback((e, appId) => {
     e.stopPropagation()
-    setSelectedId(appId)
-  }, [])
+    if (isMobile) {
+      openApp(appId)
+    } else {
+      setSelectedId(appId)
+    }
+  }, [isMobile, openApp])
 
   const handleDoubleClick = useCallback((e, appId) => {
     e.stopPropagation()

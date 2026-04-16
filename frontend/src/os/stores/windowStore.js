@@ -271,7 +271,7 @@ export const useWindowStore = create((set, get) => ({
         const manifest = APP_REGISTRY[win.appId]
         if (!manifest) continue
 
-        const newId = manifest.singleton ? win.appId : `${win.appId}-${nanoid(6)}`
+        const newId = manifest.singleton ? win.appId : oldId
         idMap[oldId] = newId
 
         const x = Math.max(0, Math.min(win.position?.x ?? 0, window.innerWidth - 100))

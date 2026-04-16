@@ -430,7 +430,7 @@ describe('windowStore', () => {
       expect(Object.keys(useWindowStore.getState().windows)).toHaveLength(0)
     })
 
-    it('hydrateFromStorage regenerates multi-instance windowIds', () => {
+    it('hydrateFromStorage preserves multi-instance windowIds across sessions', () => {
       const saved = {
         schemaVersion: 1,
         windows: {
@@ -455,7 +455,7 @@ describe('windowStore', () => {
       const windowIds = Object.keys(state.windows)
       expect(windowIds).toHaveLength(1)
       expect(windowIds[0]).toMatch(/^terminal-/)
-      expect(windowIds[0]).not.toBe('terminal-abc123')
+      expect(windowIds[0]).toBe('terminal-abc123')
     })
   })
 })

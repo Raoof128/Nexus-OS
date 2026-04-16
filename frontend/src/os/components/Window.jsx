@@ -173,9 +173,9 @@ function Window({
             type="button"
             onClick={() => closeWindow(windowId)}
             aria-label="Close window"
-            className="rounded-md p-1 text-muted-foreground hover:bg-red-500/20 hover:text-red-400"
+            className="rounded-md p-2 text-muted-foreground hover:bg-red-500/20 hover:text-red-400"
           >
-            <X size={12} />
+            <X size={14} />
           </button>
         </div>
         <div className="flex-1 overflow-hidden" style={{ containerType: 'inline-size' }}>
@@ -199,8 +199,8 @@ function Window({
           position: 'absolute',
           left: 0,
           top: 0,
-          width: window.innerWidth,
-          height: window.innerHeight - TASKBAR_HEIGHT,
+          width: '100%',
+          height: `calc(100% - ${TASKBAR_HEIGHT}px)`,
           zIndex,
         }
       : {
@@ -269,7 +269,7 @@ function Window({
             type="button"
             onClick={() => minimizeWindow(windowId)}
             aria-label="Minimize window"
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-cyan-500/15 hover:text-cyan-400"
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-cyan-500/15 hover:text-cyan-400"
           >
             <Minus size={10} />
           </button>
@@ -277,7 +277,7 @@ function Window({
             type="button"
             onClick={toggleMaximize}
             aria-label={isMaximized ? 'Restore window' : 'Maximize window'}
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-cyan-500/15 hover:text-cyan-400"
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-cyan-500/15 hover:text-cyan-400"
           >
             <Square size={10} />
           </button>
@@ -285,7 +285,7 @@ function Window({
             type="button"
             onClick={() => closeWindow(windowId)}
             aria-label="Close window"
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-400"
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-400"
           >
             <X size={10} />
           </button>
