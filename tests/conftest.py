@@ -1,8 +1,13 @@
-"""Shared pytest fixtures for stable backend configuration."""
-
-from __future__ import annotations
-
+import os
 import pytest
+
+# Set dummy environment variables at module level before litestar/settings are imported
+os.environ.setdefault("SUPABASE_URL", "https://example.supabase.co")
+os.environ.setdefault("SUPABASE_AUTH_KEY", "anon-key")
+os.environ.setdefault("SUPABASE_JWT_SECRET", "jwt-secret")
+os.environ.setdefault("AUDIT_LOG_SALT", "audit-salt")
+os.environ.setdefault("COOKIE_DOMAIN", "localhost")
+os.environ.setdefault("VITE_API_URL", "http://localhost:8000")
 
 from backend.config import get_settings
 

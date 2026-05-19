@@ -1,13 +1,12 @@
 import { useRef, useState } from 'react'
+import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, KeyRound, LogIn, UserPlus } from 'lucide-react'
 import { authFetch } from '../../lib/apiClient'
 import { useAuth } from '../../hooks/useAuth'
 import PasswordInput from '../ui/PasswordInput'
 
-const PANELS = { login: 0, register: 1, forgot: 2 }
-
 const inputClass =
-  'w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/40 focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary'
+  'w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/40 focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary terminal-input'
 
 const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground'
 
@@ -17,6 +16,7 @@ function GlitchLine() {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 h-px overflow-hidden">
       <div className="h-full w-full animate-pulse bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+      <div className="absolute top-0 left-1/4 h-full w-20 bg-primary/40 blur-sm animate-[glitch-shift_2s_infinite]" />
     </div>
   )
 }
@@ -24,25 +24,40 @@ function GlitchLine() {
 function Alert({ children, id }) {
   if (!children) return null
   return (
-    <div
+    <Motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
       id={id}
       role="alert"
       className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm font-bold normal-case tracking-wider text-destructive"
     >
       {children}
-    </div>
+    </Motion.div>
   )
 }
 
 function Success({ children }) {
   if (!children) return null
   return (
-    <div
+    <Motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
       role="status"
       className="mb-4 rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm font-bold uppercase tracking-wider text-green-400"
     >
       {children}
-    </div>
+    </Motion.div>
+  )
+}
+
+function DecryptText({ text, active }) {
+  if (!active) return text
+  return (
+    <span className="flex items-center justify-center gap-1">
+      <span className="decrypt-effect">_</span>
+      {text}
+      <span className="decrypt-effect">_</span>
+    </span>
   )
 }
 
@@ -64,7 +79,6 @@ export default function AuthPanel() {
   const [forgotSent, setForgotSent] = useState(false)
 
   const submittingRef = useRef(false)
-  const panelRef = useRef(null)
 
   const slideTo = (panel) => {
     setError(null)
@@ -142,204 +156,238 @@ export default function AuthPanel() {
     }
   }
 
-  const offset = PANELS[active]
-
   return (
-    <div className="neon-border relative w-full overflow-clip rounded-2xl glass-panel shadow-2xl sm:rounded-[2rem]">
+    <div className="neon-border relative w-full overflow-hidden rounded-2xl glass-panel shadow-2xl sm:rounded-[2rem]">
       <div className="absolute -inset-1 -z-10 bg-primary/30 opacity-15 blur-3xl" />
       <GlitchLine />
 
-      <div
-        ref={panelRef}
-        className="flex transition-[transform,height] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] min-h-[360px] sm:min-h-[420px]"
-        style={{ transform: `translateX(-${offset * 100}%)` }}
-      >
-        {/* ═══ LOGIN PANEL ═══ */}
-        <div className="w-full shrink-0 p-5 sm:p-8" inert={active !== 'login'}>
-
-          <div className="mb-1 flex items-center gap-2 text-primary">
-            <LogIn size={18} />
-            <h2 className="heading-display text-xl font-bold text-white sm:text-2xl">
-              System Login
-            </h2>
-          </div>
-          <p className="mb-6 text-sm text-muted-foreground">
-            Authenticate to load your private catalog.
-          </p>
-
-          <Alert id="form-error">{active === 'login' ? error : null}</Alert>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label htmlFor="login-email" className={labelClass}>Identity // Email</label>
-              <input
-                id="login-email"
-                type="email"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                className={inputClass}
-                placeholder="runner@nexus.net"
-                autoComplete="email"
-                required
-                {...(active === 'login' && error ? { 'aria-describedby': 'form-error', 'aria-invalid': true } : {})}
-              />
-            </div>
-            <div>
-              <label htmlFor="login-password" className={labelClass}>Passkey // Secret</label>
-              <PasswordInput
-                id="login-password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className={inputClass}
-                placeholder="••••••••"
-                autoComplete="current-password"
-                required
-                {...(active === 'login' && error ? { 'aria-describedby': 'form-error', 'aria-invalid': true } : {})}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
-            >
-              {submitting ? 'Connecting...' : 'Authenticate'}
-            </button>
-          </form>
-
-          <div className="mt-5 flex items-center justify-between border-t border-white/5 pt-4">
-            <button type="button" onClick={() => slideTo('register')} className={linkClass}>
-              <span className="flex items-center gap-1.5"><UserPlus size={12} /> Create account</span>
-            </button>
-            <button type="button" onClick={() => slideTo('forgot')} className={linkClass}>
-              <span className="flex items-center gap-1.5"><KeyRound size={12} /> Forgot password</span>
-            </button>
-          </div>
-        </div>
-
-        {/* ═══ REGISTER PANEL ═══ */}
-        <div className="w-full shrink-0 p-5 sm:p-8" inert={active !== 'register'}>
-          <button
-            type="button"
-            onClick={() => slideTo('login')}
-            className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-white"
-          >
-            <ArrowLeft size={14} /> Back to login
-          </button>
-
-          <div className="mb-1 flex items-center gap-2 text-primary">
-            <UserPlus size={18} />
-            <h2 className="heading-display text-xl font-bold text-white sm:text-2xl">
-              New Identity
-            </h2>
-          </div>
-          <p className="mb-6 text-sm text-muted-foreground">
-            Register to create your personal archive.
-          </p>
-
-          <Alert id="reg-form-error">{active === 'register' ? error : null}</Alert>
-          <Success>{active === 'register' ? success : null}</Success>
-
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div>
-              <label htmlFor="reg-email" className={labelClass}>Identity // Email</label>
-              <input
-                id="reg-email"
-                type="email"
-                value={regEmail}
-                onChange={(e) => setRegEmail(e.target.value)}
-                className={inputClass}
-                placeholder="runner@nexus.net"
-                autoComplete="email"
-                required
-                {...(active === 'register' && error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
-              />
-            </div>
-            <div>
-              <label htmlFor="reg-password" className={labelClass}>Passkey // Secret</label>
-              <PasswordInput
-                id="reg-password"
-                value={regPassword}
-                onChange={(e) => setRegPassword(e.target.value)}
-                className={inputClass}
-                placeholder="Min 8 characters"
-                autoComplete="new-password"
-                minLength={8}
-                required
-                {...(active === 'register' && error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
-              />
-            </div>
-            <div>
-              <label htmlFor="reg-confirm" className={labelClass}>Confirm // Passkey</label>
-              <PasswordInput
-                id="reg-confirm"
-                value={regConfirm}
-                onChange={(e) => setRegConfirm(e.target.value)}
-                className={inputClass}
-                placeholder="••••••••"
-                autoComplete="new-password"
-                minLength={8}
-                required
-                {...(active === 'register' && error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
-            >
-              {submitting ? 'Initializing...' : 'Create Archive'}
-            </button>
-          </form>
-        </div>
-
-        {/* ═══ FORGOT PASSWORD PANEL ═══ */}
-        <div className="w-full shrink-0 p-5 sm:p-8" inert={active !== 'forgot'}>
-          <button
-            type="button"
-            onClick={() => slideTo('login')}
-            className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-white"
-          >
-            <ArrowLeft size={14} /> Back to login
-          </button>
-
-          <div className="mb-1 flex items-center gap-2 text-primary">
-            <KeyRound size={18} />
-            <h2 className="heading-display text-xl font-bold text-white sm:text-2xl">
-              Reset Passkey
-            </h2>
-          </div>
-          <p className="mb-6 text-sm text-muted-foreground">
-            Enter your identity to receive a recovery link.
-          </p>
-
-          <Alert id="forgot-form-error">{active === 'forgot' ? error : null}</Alert>
-          <Success>{active === 'forgot' ? success : null}</Success>
-
-          <form onSubmit={handleForgot} className="space-y-4">
-            <div>
-              <label htmlFor="forgot-email" className={labelClass}>Identity // Email</label>
-              <input
-                id="forgot-email"
-                type="email"
-                value={forgotEmail}
-                onChange={(e) => setForgotEmail(e.target.value)}
-                className={inputClass}
-                placeholder="runner@nexus.net"
-                autoComplete="email"
-                required
-                {...(active === 'forgot' && error ? { 'aria-describedby': 'forgot-form-error', 'aria-invalid': true } : {})}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={submitting || forgotSent}
-              className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
-            >
-              {submitting ? 'Transmitting...' : forgotSent ? 'Link Sent' : 'Send Recovery Link'}
-            </button>
-          </form>
-        </div>
+      {/* Cyber Brackets */}
+      <div className="pointer-events-none absolute inset-0 z-10">
+        <div className="cyber-bracket cyber-bracket-tl h-full w-full" />
+        <div className="cyber-bracket cyber-bracket-tr h-full w-full" />
+        <div className="cyber-bracket cyber-bracket-bl h-full w-full" />
+        <div className="cyber-bracket cyber-bracket-br h-full w-full" />
       </div>
+
+      <Motion.div
+        animate={{ height: 'auto' }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        className="relative overflow-hidden"
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          {active === 'login' && (
+            <Motion.div
+              key="login"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="p-5 sm:p-8"
+            >
+              <div className="mb-1 flex items-center gap-2 text-primary">
+                <LogIn size={18} />
+                <h2 className="heading-display text-xl font-bold text-white sm:text-2xl">
+                  System Login
+                </h2>
+              </div>
+              <p className="mb-6 text-sm text-muted-foreground font-mono">
+                [AUTH_REQUIRED] Authenticate to access terminal.
+              </p>
+
+              <Alert id="form-error">{error}</Alert>
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label htmlFor="login-email" className={labelClass}>Identity // Email</label>
+                  <input
+                    id="login-email"
+                    type="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    className={inputClass}
+                    placeholder="runner@nexus.net"
+                    autoComplete="email"
+                    required
+                    {...(error ? { 'aria-describedby': 'form-error', 'aria-invalid': true } : {})}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="login-password" className={labelClass}>Passkey // Secret</label>
+                  <PasswordInput
+                    id="login-password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className={inputClass}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    required
+                    {...(error ? { 'aria-describedby': 'form-error', 'aria-invalid': true } : {})}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
+                >
+                  <DecryptText text={submitting ? 'Connecting...' : 'Authenticate'} active={submitting} />
+                </button>
+              </form>
+
+              <div className="mt-5 flex items-center justify-between border-t border-white/5 pt-4">
+                <button type="button" onClick={() => slideTo('register')} className={linkClass}>
+                  <span className="flex items-center gap-1.5"><UserPlus size={12} /> Create account</span>
+                </button>
+                <button type="button" onClick={() => slideTo('forgot')} className={linkClass}>
+                  <span className="flex items-center gap-1.5"><KeyRound size={12} /> Forgot password</span>
+                </button>
+              </div>
+            </Motion.div>
+          )}
+
+          {active === 'register' && (
+            <Motion.div
+              key="register"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="p-5 sm:p-8"
+            >
+              <button
+                type="button"
+                onClick={() => slideTo('login')}
+                className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-white"
+              >
+                <ArrowLeft size={14} /> [ESC] Back to login
+              </button>
+
+              <div className="mb-1 flex items-center gap-2 text-primary">
+                <UserPlus size={18} />
+                <h2 className="heading-display text-xl font-bold text-white sm:text-2xl">
+                  New Identity
+                </h2>
+              </div>
+              <p className="mb-6 text-sm text-muted-foreground font-mono">
+                [REG_INIT] Initializing new user profile.
+              </p>
+
+              <Alert id="reg-form-error">{error}</Alert>
+              <Success>{success}</Success>
+
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div>
+                  <label htmlFor="reg-email" className={labelClass}>Identity // Email</label>
+                  <input
+                    id="reg-email"
+                    type="email"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    className={inputClass}
+                    placeholder="runner@nexus.net"
+                    autoComplete="email"
+                    required
+                    {...(error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="reg-password" className={labelClass}>Passkey // Secret</label>
+                  <PasswordInput
+                    id="reg-password"
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    className={inputClass}
+                    placeholder="Min 8 characters"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                    {...(error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="reg-confirm" className={labelClass}>Confirm // Passkey</label>
+                  <PasswordInput
+                    id="reg-confirm"
+                    value={regConfirm}
+                    onChange={(e) => setRegConfirm(e.target.value)}
+                    className={inputClass}
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                    {...(error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
+                >
+                  <DecryptText text={submitting ? 'Initializing...' : 'Create Archive'} active={submitting} />
+                </button>
+              </form>
+            </Motion.div>
+          )}
+
+          {active === 'forgot' && (
+            <Motion.div
+              key="forgot"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="p-5 sm:p-8"
+            >
+              <button
+                type="button"
+                onClick={() => slideTo('login')}
+                className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-white"
+              >
+                <ArrowLeft size={14} /> [ESC] Back to login
+              </button>
+
+              <div className="mb-1 flex items-center gap-2 text-primary">
+                <KeyRound size={18} />
+                <h2 className="heading-display text-xl font-bold text-white sm:text-2xl">
+                  Reset Passkey
+                </h2>
+              </div>
+              <p className="mb-6 text-sm text-muted-foreground font-mono">
+                [RECOVERY_MODE] Requesting link for identity.
+              </p>
+
+              <Alert id="forgot-form-error">{error}</Alert>
+              <Success>{success}</Success>
+
+              <form onSubmit={handleForgot} className="space-y-4">
+                <div>
+                  <label htmlFor="forgot-email" className={labelClass}>Identity // Email</label>
+                  <input
+                    id="forgot-email"
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    className={inputClass}
+                    placeholder="runner@nexus.net"
+                    autoComplete="email"
+                    required
+                    {...(error ? { 'aria-describedby': 'forgot-form-error', 'aria-invalid': true } : {})}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={submitting || forgotSent}
+                  className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
+                >
+                  <DecryptText
+                    text={submitting ? 'Transmitting...' : forgotSent ? 'Link Sent' : 'Send Recovery Link'}
+                    active={submitting}
+                  />
+                </button>
+              </form>
+            </Motion.div>
+          )}
+        </AnimatePresence>
+      </Motion.div>
     </div>
   )
 }

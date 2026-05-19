@@ -1,5 +1,30 @@
 # Change Log
 
+### 2026-05-20 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Comprehensive test suite expansion (Frontend & Backend).
+- **Summary:** Added behavior-anchored tests for the `AuthPanel` UI, responsive layout logic, backend auth schema validation, and data privacy invariants. Verified that sensitive fields are stripped from user payloads and rate limiting is active on auth endpoints.
+- **Files Changed:**
+  - `frontend/src/components/features/__tests__/AuthPanel.test.jsx` [NEW]
+  - `frontend/src/App.test.jsx` [MODIFY]
+  - `tests/test_auth_logic.py` [NEW]
+  - `tests/test_data_privacy.py` [NEW]
+  - `tests/conftest.py` [MODIFY]
+- **Verification:** Frontend Vitest suite (7 new tests) and Backend Pytest suite (79 total tests) passing (excluding pre-existing environment-related frontend failures).
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Enhanced login page responsiveness and cyberpunk visual excellence.
+- **Summary:** Refactored `AuthPanel` with Framer Motion for fluid transitions and dynamic height. Added cyber-brackets, terminal-style inputs, and decryption loading animations. Improved mobile hero section layout to maintain brand presence on small screens.
+- **Files Changed:**
+  - `frontend/src/components/features/AuthPanel.jsx`
+  - `frontend/src/App.jsx`
+  - `frontend/src/components/features/ResetPasswordPage.jsx`
+  - `frontend/src/index.css`
+- **Verification:** Verified smooth choreography between panels and improved mobile layout flow. Renamed `motion` to `Motion` to satisfy strict lint rules.
+- **Follow-ups:** None.
+
 ### 2026-04-17 (Australia/Sydney) — Fix: card shake on status change + stalled modal exit
 **Raouf:**
 - **Scope:** User-reported: changing status from the detail modal made the card shake, then the X button appeared broken.

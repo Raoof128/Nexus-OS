@@ -86,4 +86,17 @@ describe('App', () => {
     useAuth.mockReturnValue({ session: null, loading: false, signIn: vi.fn().mockResolvedValue({ error: null }), signOut: vi.fn() })
     useMedia.mockReturnValue({ items: [], loading: false, error: null, addMedia: vi.fn(), updateMedia: vi.fn(), deleteMedia: vi.fn() })
   })
+
+  it('renders mobile-specific auth header on small screens', () => {
+    window.innerWidth = 500
+    render(<App />)
+    expect(screen.getByText(/nexus archive \/\/ auth/i)).toBeTruthy()
+  })
+
+  it('hides mobile-specific auth header on large screens', () => {
+    window.innerWidth = 1200
+    render(<App />)
+    const mobileHeader = screen.queryByText(/nexus archive \/\/ auth/i)
+    expect(mobileHeader).toBeNull()
+  })
 })

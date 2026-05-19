@@ -4,6 +4,13 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 ---
 
 # Agent Rules
+### 2026-05-20 (Australia/Sydney) — Test Suite Expansion
+**Raouf:**
+- **Scope:** Expanded test coverage across full stack.
+- **Summary:** Implemented `AuthPanel.test.jsx` for UI behavior/transitions and `test_auth_logic.py` / `test_data_privacy.py` for backend security/PII invariants. Updated `conftest.py` for stable module-level environment seeding.
+- **Files Changed:** `frontend/src/components/features/__tests__/AuthPanel.test.jsx`, `frontend/src/App.test.jsx`, `tests/test_auth_logic.py`, `tests/test_data_privacy.py`, `tests/conftest.py`.
+- **Verification:** Frontend (Vitest) and Backend (Pytest) suites verified.
+- **Follow-ups:** None.
 
 1. **Framework Strictness:**
    - **Frontend:** React + Vite + Tailwind CSS. Follow component-driven architecture (e.g., `/src/components/layout`, `/src/components/features`).
@@ -21,6 +28,18 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
    - Ensure all secrets and env vars are securely tracked via local `.env`. Do not hardcode secrets.
 
 ## Change Log
+
+### 2026-05-20 (Australia/Sydney)
+**Raouf:**
+- **Scope:** Enhanced login page responsiveness and cyberpunk visual excellence.
+- **Summary:** Refactored `AuthPanel` with Framer Motion for fluid transitions and dynamic height. Added cyber-brackets, terminal-style inputs, and decryption loading animations. Improved mobile hero section layout to maintain brand presence on small screens.
+- **Files Changed:**
+  - `frontend/src/components/features/AuthPanel.jsx`
+  - `frontend/src/App.jsx`
+  - `frontend/src/components/features/ResetPasswordPage.jsx`
+  - `frontend/src/index.css`
+- **Verification:** Verified smooth choreography between panels and improved mobile layout flow. Renamed `motion` to `Motion` to satisfy strict lint rules.
+- **Follow-ups:** None.
 
 ### 2026-04-17 (Australia/Sydney) — Fix: card shake on status change + stalled modal exit
 **Raouf:**

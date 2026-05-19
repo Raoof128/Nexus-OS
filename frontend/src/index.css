@@ -166,6 +166,54 @@
   pointer-events: none;
 }
 
+/* ── Cyber Brackets ─────────────────────────────────────── */
+.cyber-bracket {
+  position: relative;
+}
+.cyber-bracket::before,
+.cyber-bracket::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: hsl(var(--neon-yellow) / 0.5);
+  pointer-events: none;
+}
+.cyber-bracket-tl::before {
+  top: 0;
+  left: 0;
+  border-top: 1.5px solid;
+  border-left: 1.5px solid;
+}
+.cyber-bracket-tr::before {
+  top: 0;
+  right: 0;
+  border-top: 1.5px solid;
+  border-right: 1.5px solid;
+}
+.cyber-bracket-bl::after {
+  bottom: 0;
+  left: 0;
+  border-bottom: 1.5px solid;
+  border-left: 1.5px solid;
+}
+.cyber-bracket-br::after {
+  bottom: 0;
+  right: 0;
+  border-bottom: 1.5px solid;
+  border-right: 1.5px solid;
+}
+
+/* ── Terminal Input ──────────────────────────────────────── */
+.terminal-input {
+  background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(20,20,20,0.4) 100%);
+  border-left: 2px solid transparent;
+}
+.terminal-input:focus {
+  border-left-color: hsl(var(--neon-yellow));
+  box-shadow: inset 2px 0 10px -2px hsl(var(--neon-yellow) / 0.2);
+}
+
 /* ── Glitch text effect ──────────────────────────────────── */
 @keyframes glitch-shift {
   0%, 100% { transform: translateX(0); }
@@ -212,6 +260,16 @@
 .neon-pulse:hover,
 .neon-pulse:focus-visible {
   animation: neon-pulse 6s ease-in-out infinite;
+}
+
+/* ── Decryption Text Animation ───────────────────────────── */
+@keyframes decrypt {
+  0% { opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+.decrypt-effect {
+  animation: decrypt 0.1s steps(1) infinite;
 }
 
 /* ── Glass panel base ────────────────────────────────────── */
