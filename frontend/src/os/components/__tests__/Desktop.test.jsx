@@ -79,9 +79,9 @@ vi.mock('../ContextMenu', () => ({
 
 vi.mock('../BootSequence', () => ({
   default: ({ onComplete }) => {
-    // Use queueMicrotask to call onComplete after render, avoiding setState-during-render warning
-    queueMicrotask(() => onComplete?.())
-    return null
+    // Simply return null and let the test trigger onComplete if needed,
+    // or call it in a way that RTL understands.
+    return <div data-testid="boot-sequence" onClick={onComplete} />
   },
 }))
 

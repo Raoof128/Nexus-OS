@@ -153,7 +153,9 @@ function Taskbar() {
       <div className="ml-3 flex items-center gap-3" data-testid="system-tray">
         <div
           className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.5)]"
-          title="Connected"
+          title="System Online"
+          role="status"
+          aria-label="System Online"
         />
         <NotificationBadge />
         <Clock />

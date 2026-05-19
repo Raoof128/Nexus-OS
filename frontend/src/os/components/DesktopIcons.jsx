@@ -77,16 +77,19 @@ function DesktopIcons() {
           >
             {/* Icon container */}
             <div
-              className={`flex h-14 w-14 items-center justify-center rounded-xl bg-white/[0.02] ring-1 ring-white/[0.04] transition-all duration-150 ${
+              className={`flex h-14 w-14 items-center justify-center rounded-xl bg-white/[0.02] ring-1 ring-white/[0.04] transition-all duration-150 relative overflow-hidden ${
                 isSelected
-                  ? 'bg-primary/[0.08] ring-primary/30 shadow-[0_0_14px_rgba(0,255,255,0.12)]'
-                  : 'hover:shadow-[0_0_12px_rgba(0,255,255,0.08)]'
+                  ? 'bg-primary/[0.08] ring-primary/30 shadow-[0_0_20px_rgba(0,255,255,0.15)]'
+                  : 'hover:bg-white/[0.04] hover:ring-white/[0.1] hover:shadow-[0_0_12px_rgba(0,255,255,0.08)]'
               }`}
             >
+              {isSelected && <div className="absolute inset-0 bg-primary/5 animate-pulse" />}
               <Icon
                 size={32}
-                className={`transition-colors duration-150 ${
-                  isSelected ? 'text-primary' : 'text-white/60'
+                className={`transition-colors duration-150 relative z-10 ${
+                  isSelected
+                    ? 'text-primary drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]'
+                    : 'text-white/60'
                 }`}
               />
             </div>

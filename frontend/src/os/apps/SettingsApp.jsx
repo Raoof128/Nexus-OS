@@ -155,14 +155,29 @@ function AccountTab() {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={signOut}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-destructive ring-1 ring-destructive/20 transition-all hover:bg-destructive/20"
-      >
-        <LogOut size={14} />
-        Disconnect Session
-      </button>
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={signOut}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-destructive ring-1 ring-destructive/20 transition-all hover:bg-destructive/20"
+        >
+          <LogOut size={14} />
+          Disconnect Session
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm('Are you sure? This will wipe all local data and preferences.')) {
+              localStorage.clear()
+              window.location.reload()
+            }
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-white/[0.02] px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest text-white/40 ring-1 ring-white/10 transition-all hover:bg-white/[0.05] hover:text-white/60"
+        >
+          System Reset (Factory)
+        </button>
+      </div>
     </div>
   )
 }

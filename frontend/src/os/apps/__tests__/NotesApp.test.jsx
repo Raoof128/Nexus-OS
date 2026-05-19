@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 
 import NotesApp from '../NotesApp'
 
@@ -18,7 +18,9 @@ describe('NotesApp', () => {
     render(<NotesApp windowId="notes-abc" />)
     const textarea = screen.getByRole('textbox')
     fireEvent.change(textarea, { target: { value: 'Hello world' } })
-    vi.advanceTimersByTime(600)
+    await act(async () => {
+      vi.advanceTimersByTime(600)
+    })
     expect(localStorage.getItem('nexus-os:note-notes-abc')).toContain('Hello world')
     vi.useRealTimers()
   })

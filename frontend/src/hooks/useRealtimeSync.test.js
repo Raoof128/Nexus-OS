@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 
+vi.stubEnv('VITE_API_URL', 'https://api.example.com')
+vi.stubEnv('VITE_SUPABASE_URL', 'https://example.com')
+vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon-key')
+
 // useMedia.js imports realtimeClient at module level; mock it so Supabase's
 // createClient doesn't throw "supabaseUrl is required" in the test environment.
 vi.mock('../lib/realtimeClient', () => ({

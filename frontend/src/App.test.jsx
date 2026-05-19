@@ -1,5 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
+
+vi.stubEnv('VITE_SUPABASE_URL', 'https://example.com')
+vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon-key')
+vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 import App from './App'
 
 vi.mock('./hooks/useAuth', () => ({
@@ -147,7 +151,7 @@ describe('App', () => {
   it('hides mobile-specific auth header on large screens', () => {
     window.innerWidth = 1200
     render(<App />)
-    const mobileHeader = screen.queryByText(/nexus archive \/\/ auth/i)
-    expect(mobileHeader).toBeNull()
+    const mobileHeader = screen.getByText(/nexus archive \/\/ auth/i)
+    expect(mobileHeader.className).toContain('lg:hidden')
   })
 })

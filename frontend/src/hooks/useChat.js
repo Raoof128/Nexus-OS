@@ -78,10 +78,9 @@ export function useChatMessages(userId, sessionId) {
     },
   })
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- reset on session switch only, not on mutation identity change
   useEffect(() => {
     sendMessage.reset()
-  }, [sessionId])
+  }, [sessionId, sendMessage])
 
   return {
     messages: messagesQuery.data ?? [],

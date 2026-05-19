@@ -28,7 +28,6 @@ vi.mock('framer-motion', () => ({
       get: () => {
         return ({ children, ...props }) => {
           // strip motion-specific props
-          // eslint-disable-next-line no-unused-vars
           const {
             _initial,
             _animate,

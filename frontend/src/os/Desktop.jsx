@@ -14,6 +14,7 @@ import DesktopIcons from './components/DesktopIcons'
 import ContextMenu from './components/ContextMenu'
 import BootSequence from './components/BootSequence'
 import LockScreen from './components/LockScreen'
+import SnapPreview from './components/SnapPreview'
 
 const Z_INDEX_BASE = 100
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
@@ -182,19 +183,7 @@ export default function Desktop() {
           })}
 
           {/* Snap preview overlay */}
-          {snapPreview && (
-            <div
-              data-testid="snap-preview"
-              className="pointer-events-none absolute inset-0 z-[90] rounded-lg border border-cyan-500/30 bg-cyan-500/5 backdrop-blur-sm transition-all duration-150"
-              style={
-                snapPreview === 'left'
-                  ? { right: '50%' }
-                  : snapPreview === 'right'
-                    ? { left: '50%' }
-                    : {}
-              }
-            />
-          )}
+          <SnapPreview hint={snapPreview} />
         </div>
 
         {/* Taskbar — normal flex child at the bottom, NOT fixed */}

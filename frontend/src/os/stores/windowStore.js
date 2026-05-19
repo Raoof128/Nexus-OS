@@ -15,18 +15,28 @@ function boundedSize(defaultSize) {
   }
 }
 
-function cascadePosition(zStack, size) {
+function cascadePosition(zStack, _size) {
+  // Simple cascading: each new window is offset by 30px
   const offset = (zStack.length % 10) * 30
   return {
-    x: Math.min(offset + 60, window.innerWidth - size.width),
-    y: Math.min(offset + 40, window.innerHeight - TASKBAR_HEIGHT - size.height),
+    x: Math.min(offset + 60, window.innerWidth - 100),
+    y: Math.min(offset + 40, window.innerHeight - TASKBAR_HEIGHT - 100),
   }
 }
 
-function clampPosition(pos) {
+function clampPosition(pos, size) {
+  // Allow windows to bleed off-screen:
+  // - Left/Right: keep at least 40px of the window visible.
+  // - Bottom: allow most of the window to go off-screen, keeping the titlebar visible.
+  // - Top: clamp to 0 to keep the titlebar always on screen.
+  const titlebarHeight = 36
+  const minVisibleWidth = 40
   return {
-    x: Math.max(-window.innerWidth + 100, Math.min(pos.x, window.innerWidth - 100)),
-    y: Math.max(0, Math.min(pos.y, window.innerHeight - TASKBAR_HEIGHT - 40)),
+    x: Math.max(
+      -size.width + minVisibleWidth,
+      Math.min(pos.x, window.innerWidth - minVisibleWidth),
+    ),
+    y: Math.max(0, Math.min(pos.y, window.innerHeight - TASKBAR_HEIGHT - titlebarHeight)),
   }
 }
 
@@ -203,7 +213,30 @@ export const useWindowStore = create((set, get) => ({
       return {
         windows: {
           ...state.windows,
-          [windowId]: { ...win, position: clampPosition(pos) },
+          [windowId]: { ...win, position: clampPosition(pos, win.size) },
+        },
+      }
+    })
+  },
+
+  updateWindowRect: (windowId, { position, size }) => {
+    set((state) => {
+      const win = state.windows[windowId]
+      if (!win) return state
+
+      const newSize = {
+        width: Math.max(size.width, win.minSize.width),
+        height: Math.max(size.height, win.minSize.height),
+      }
+
+      return {
+        windows: {
+          ...state.windows,
+          [windowId]: {
+            ...win,
+            size: newSize,
+            position: clampPosition(position, newSize),
+          },
         },
       }
     })

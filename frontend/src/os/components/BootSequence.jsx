@@ -231,7 +231,7 @@ export default function BootSequence({ onComplete }) {
               {phase === 2 && (
                 <Motion.div
                   key="boot-log"
-                  className="mt-8 w-[480px] max-w-[90vw] rounded-lg border p-4"
+                  className="mt-8 w-[480px] max-w-[90vw] rounded-lg border p-4 relative"
                   style={{
                     background: 'rgba(0,0,0,0.7)',
                     borderColor: 'hsl(170 76% 63% / 0.2)',
@@ -245,6 +245,22 @@ export default function BootSequence({ onComplete }) {
                     {logLines.map((line, i) => (
                       <BootLine key={line} text={line} delayMs={i * STAGGER_MS} />
                     ))}
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="mt-6 h-1 w-full bg-white/[0.05] rounded-full overflow-hidden">
+                    <Motion.div
+                      className="h-full bg-primary"
+                      initial={{ width: '0%' }}
+                      animate={{ width: '100%' }}
+                      transition={{
+                        duration: (BOOT_LINES.length * STAGGER_MS) / 1000,
+                        ease: 'linear',
+                      }}
+                      style={{
+                        boxShadow: '0 0 10px hsl(var(--neon-yellow)/0.5)',
+                      }}
+                    />
                   </div>
                 </Motion.div>
               )}

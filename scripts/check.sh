@@ -54,7 +54,7 @@ python3 -m ruff check backend tests loadtests
 log "Running security audits..."
 (cd frontend && npm audit --audit-level=high)
 python3 -m bandit -r backend -c bandit.yaml
-python3 -m pip_audit
+python3 -m pip_audit .
 
 # Gate 7: Tests
 log "Running test suites..."
@@ -64,7 +64,7 @@ python3 -m pytest tests
 # Gate 8: Secret Scan (Basic)
 log "Scanning for secrets..."
 # Simple regex to catch common patterns that shouldn't be committed
-if grep -rE "AIza[0-9A-Za-z-_]{35}|sk_live_[0-9a-zA-Z]{24}" . --exclude-dir={node_modules,.git,.pytest_cache,dist}; then
+if grep -rE "AIza[0-9A-Za-z_-]{35}|sk_live_[0-9a-zA-Z]{24}" . --exclude-dir={node_modules,.git,.pytest_cache,dist}; then
     error "Potential secrets detected in codebase!"
 fi
 

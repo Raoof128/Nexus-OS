@@ -12,21 +12,21 @@ const TASKBAR_HEIGHT = 48
 const RESIZE_EDGE_SIZE = 6
 const RESIZE_CORNER_SIZE = 14
 
-function ResizeHandle({ direction, windowId, position, size, minSize }) {
-  const resizeWindow = useWindowStore((s) => s.resizeWindow)
-  const moveWindow = useWindowStore((s) => s.moveWindow)
-  const startRef = useRef(null)
+const CURSOR_MAP = {
+  n: 'ns-resize',
+  s: 'ns-resize',
+  e: 'ew-resize',
+  w: 'ew-resize',
+  ne: 'nesw-resize',
+  nw: 'nwse-resize',
+  se: 'nwse-resize',
+  sw: 'nesw-resize',
+}
 
-  const cursorMap = {
-    n: 'ns-resize',
-    s: 'ns-resize',
-    e: 'ew-resize',
-    w: 'ew-resize',
-    ne: 'nesw-resize',
-    nw: 'nwse-resize',
-    se: 'nwse-resize',
-    sw: 'nesw-resize',
-  }
+function ResizeHandle({ direction, windowId, position, size, minSize }) {
+  const updateWindowRect = useWindowStore((s) => s.updateWindowRect)
+  const isResizingRef = useRef(false)
+  const startRef = useRef(null)
 
   const positionStyles = {
     n: {
@@ -83,56 +83,67 @@ function ResizeHandle({ direction, windowId, position, size, minSize }) {
     (e) => {
       e.preventDefault()
       e.stopPropagation()
-      startRef.current = { x: e.clientX, y: e.clientY, ...position, ...size }
-      const target = e.currentTarget
-      target.setPointerCapture(e.pointerId)
+      isResizingRef.current = true
+      startRef.current = {
+        mouseX: e.clientX,
+        mouseY: e.clientY,
+        x: position.x,
+        y: position.y,
+        w: size.width,
+        h: size.height,
+      }
+      document.body.style.cursor = CURSOR_MAP[direction]
+      document.body.style.userSelect = 'none'
+
+      const onPointerMove = (moveEvent) => {
+        if (!isResizingRef.current || !startRef.current) return
+        const s = startRef.current
+        const dx = moveEvent.clientX - s.mouseX
+        const dy = moveEvent.clientY - s.mouseY
+
+        let newX = s.x,
+          newY = s.y,
+          newW = s.w,
+          newH = s.h
+
+        if (direction.includes('e')) newW = Math.max(minSize.width, s.w + dx)
+        if (direction.includes('w')) {
+          newW = Math.max(minSize.width, s.w - dx)
+          newX = s.x + s.w - newW
+        }
+        if (direction.includes('s')) newH = Math.max(minSize.height, s.h + dy)
+        if (direction.includes('n')) {
+          newH = Math.max(minSize.height, s.h - dy)
+          newY = s.y + s.h - newH
+        }
+
+        updateWindowRect(windowId, {
+          position: { x: newX, y: newY },
+          size: { width: newW, height: newH },
+        })
+      }
+
+      const onPointerUp = () => {
+        isResizingRef.current = false
+        startRef.current = null
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+        window.removeEventListener('pointermove', onPointerMove)
+        window.removeEventListener('pointerup', onPointerUp)
+      }
+
+      window.addEventListener('pointermove', onPointerMove)
+      window.addEventListener('pointerup', onPointerUp)
     },
-    [position, size],
+    [direction, windowId, position, size, minSize, updateWindowRect],
   )
-
-  const handlePointerMove = useCallback(
-    (e) => {
-      if (!startRef.current) return
-      const s = startRef.current
-      const dx = e.clientX - s.x
-      const dy = e.clientY - s.y
-
-      let newX = position.x,
-        newY = position.y,
-        newW = s.width,
-        newH = s.height
-
-      if (direction.includes('e')) newW = Math.max(minSize.width, s.width + dx)
-      if (direction.includes('w')) {
-        newW = Math.max(minSize.width, s.width - dx)
-        newX = s.x + s.width - newW
-      }
-      if (direction.includes('s')) newH = Math.max(minSize.height, s.height + dy)
-      if (direction.includes('n')) {
-        newH = Math.max(minSize.height, s.height - dy)
-        newY = s.y + s.height - newH
-      }
-
-      resizeWindow(windowId, { width: newW, height: newH })
-      if (direction.includes('w') || direction.includes('n')) {
-        moveWindow(windowId, { x: newX, y: newY })
-      }
-    },
-    [direction, windowId, position, minSize, resizeWindow, moveWindow],
-  )
-
-  const handlePointerUp = useCallback(() => {
-    startRef.current = null
-  }, [])
 
   return (
     <div
       onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
       style={{
         position: 'absolute',
-        cursor: cursorMap[direction],
+        cursor: CURSOR_MAP[direction],
         zIndex: 10,
         touchAction: 'none',
         ...positionStyles[direction],
@@ -153,7 +164,6 @@ function Window({
   state: windowState,
   restoredRect: _restoredRect,
   zIndex,
-  desktopRef,
   onSnapHint,
   children,
 }) {
@@ -285,16 +295,24 @@ function Window({
   return (
     <Motion.div
       style={displayStyle}
+      layout="position"
+      transition={{
+        type: 'spring',
+        stiffness: 400,
+        damping: 30,
+        mass: 0.8,
+      }}
       drag={!isLocked}
       dragListener={false}
       dragControls={dragControls}
       dragMomentum={false}
-      dragConstraints={desktopRef}
       onDrag={handleDrag}
       onDragEnd={handleDragEnd}
       onPointerDownCapture={() => focusWindow(windowId)}
       onContextMenu={(e) => e.stopPropagation()}
-      className="flex flex-col"
+      className={`flex flex-col glass-panel shadow-2xl transition-shadow duration-200 ${
+        isFocused ? 'window-active' : 'window-inactive'
+      } ${isMaximized ? 'rounded-none border-none' : 'rounded-lg'}`}
     >
       {/* Window border glow — rounded-lg lives here, not on the outer Motion.div,
          so the absolute-positioned resize handles aren't clipped by the corner
@@ -305,7 +323,6 @@ function Window({
             ? 'border-cyan-500/20 shadow-[0_0_20px_rgba(0,255,255,0.1)]'
             : 'border-white/[0.06]'
         }`}
-        style={{ zIndex: 20 }}
       />
 
       {/* Title bar */}

@@ -8,7 +8,7 @@ import ChatWindow from './ChatWindow'
 export default function ChatLayout() {
   const { session } = useAuth()
   const userId = session?.user?.id ?? null
-  const { sessions, createSession, deleteSession, isCreating } = useChatSessions(userId)
+  const { sessions, createSession, deleteSession, isCreating, isLoading } = useChatSessions(userId)
   const [activeSessionId, setActiveSessionId] = useState(null)
 
   const handleDelete = async (sessionId) => {
@@ -21,6 +21,19 @@ export default function ChatLayout() {
   const handleCreate = async (data) => {
     const newSession = await createSession(data)
     if (newSession?.id) setActiveSessionId(newSession.id)
+  }
+
+  if (isLoading && sessions.length === 0) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-black/20" role="status">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+          <p className="font-mono text-[10px] tracking-widest text-primary/40 uppercase">
+            Initialising_Secure_Channel...
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (

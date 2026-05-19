@@ -11,8 +11,23 @@ function AppLauncher() {
   const toggleLauncher = useWindowStore((s) => s.toggleLauncher)
   const isMobile = useWindowStore((s) => s.isMobile)
   const [query, setQuery] = useState('')
+  const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef(null)
   const trapRef = useFocusTrap(true)
+
+  // Filter apps by query
+  const filtered = query.trim()
+    ? APP_ORDER.filter((appId) => {
+        const manifest = APP_REGISTRY[appId]
+        return manifest?.title.toLowerCase().includes(query.toLowerCase())
+      })
+    : APP_ORDER
+
+  const [prevLength, setPrevLength] = useState(filtered.length)
+  if (filtered.length !== prevLength) {
+    setPrevLength(filtered.length)
+    setSelectedIndex(0)
+  }
 
   // Auto-focus on desktop only
   useEffect(() => {
@@ -26,18 +41,24 @@ function AppLauncher() {
     toggleLauncher()
   }
 
-  // Filter apps by query
-  const filtered = query.trim()
-    ? APP_ORDER.filter((appId) => {
-        const manifest = APP_REGISTRY[appId]
-        return manifest?.title.toLowerCase().includes(query.toLowerCase())
-      })
-    : APP_ORDER
-
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && filtered.length > 0) {
       e.preventDefault()
-      handleLaunch(filtered[0])
+      handleLaunch(filtered[selectedIndex])
+    } else if (e.key === 'ArrowRight') {
+      setSelectedIndex((prev) => (prev + 1) % filtered.length)
+    } else if (e.key === 'ArrowLeft') {
+      setSelectedIndex((prev) => (prev - 1 + filtered.length) % filtered.length)
+    } else if (e.key === 'ArrowDown') {
+      const cols = isMobile ? 3 : 4
+      if (selectedIndex + cols < filtered.length) {
+        setSelectedIndex((prev) => prev + cols)
+      }
+    } else if (e.key === 'ArrowUp') {
+      const cols = isMobile ? 3 : 4
+      if (selectedIndex - cols >= 0) {
+        setSelectedIndex((prev) => prev - cols)
+      }
     }
   }
 
@@ -88,25 +109,26 @@ function AppLauncher() {
               const manifest = APP_REGISTRY[appId]
               if (!manifest) return null
               const Icon = manifest.icon
-              const isFirst = index === 0 && query.trim().length > 0
+              const isSelected = index === selectedIndex
               return (
                 <button
                   key={appId}
                   type="button"
                   onClick={() => handleLaunch(appId)}
                   aria-label={manifest.title}
+                  onMouseEnter={() => setSelectedIndex(index)}
                   className={`group flex flex-col items-center gap-2 rounded-xl p-3 transition-all hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(0,255,255,0.05)] sm:p-4 ${
-                    isFirst ? 'ring-1 ring-primary/40 bg-primary/[0.04]' : ''
+                    isSelected ? 'ring-1 ring-primary/40 bg-primary/[0.04]' : ''
                   }`}
                 >
                   <div
                     className={`flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06] transition-all group-hover:bg-primary/10 group-hover:ring-primary/20 group-hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.15)] ${
-                      isFirst ? 'bg-primary/10 ring-primary/20' : ''
+                      isSelected ? 'bg-primary/10 ring-primary/20' : ''
                     }`}
                   >
                     <Icon
                       size={20}
-                      className={`text-muted-foreground transition-colors group-hover:text-primary ${isFirst ? 'text-primary' : ''}`}
+                      className={`text-muted-foreground transition-colors group-hover:text-primary ${isSelected ? 'text-primary' : ''}`}
                     />
                   </div>
                   <span className="heading-ui text-[11px] font-semibold text-muted-foreground transition-colors group-hover:text-white">

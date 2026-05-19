@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 
 // Mock @supabase/supabase-js before importing
+vi.stubEnv('VITE_SUPABASE_URL', 'https://example.com')
+vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon-key')
+
 vi.mock('@supabase/supabase-js', () => ({
   createClient: vi.fn(() => ({ realtime: { setAuth: vi.fn() } })),
 }))
