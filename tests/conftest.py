@@ -1,4 +1,5 @@
 import os
+
 import pytest
 
 # Set dummy environment variables at module level before litestar/settings are imported

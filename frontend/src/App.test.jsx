@@ -50,41 +50,92 @@ describe('App', () => {
     useAuth.mockReturnValue({ session: null, loading: true, signIn: vi.fn(), signOut: vi.fn() })
     render(<App />)
     expect(screen.getByText(/loading session/i)).toBeTruthy()
-    useAuth.mockReturnValue({ session: null, loading: false, signIn: vi.fn().mockResolvedValue({ error: null }), signOut: vi.fn() })
+    useAuth.mockReturnValue({
+      session: null,
+      loading: false,
+      signIn: vi.fn().mockResolvedValue({ error: null }),
+      signOut: vi.fn(),
+    })
   })
 
   it('renders the desktop OS shell when authenticated', () => {
     useAuth.mockReturnValue({
       session: { user: { id: 'u1', email: 'test@nexus.net' } },
-      loading: false, signIn: vi.fn(), signOut: vi.fn(),
+      loading: false,
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
     useMedia.mockReturnValue({
-      items: [], loading: false, error: null,
-      addMedia: vi.fn(), updateMedia: vi.fn(), deleteMedia: vi.fn(),
+      items: [],
+      loading: false,
+      error: null,
+      addMedia: vi.fn(),
+      updateMedia: vi.fn(),
+      deleteMedia: vi.fn(),
     })
 
     render(<App />)
     expect(screen.getByTestId('desktop')).toBeTruthy()
 
-    useAuth.mockReturnValue({ session: null, loading: false, signIn: vi.fn().mockResolvedValue({ error: null }), signOut: vi.fn() })
-    useMedia.mockReturnValue({ items: [], loading: false, error: null, addMedia: vi.fn(), updateMedia: vi.fn(), deleteMedia: vi.fn() })
+    useAuth.mockReturnValue({
+      session: null,
+      loading: false,
+      signIn: vi.fn().mockResolvedValue({ error: null }),
+      signOut: vi.fn(),
+    })
+    useMedia.mockReturnValue({
+      items: [],
+      loading: false,
+      error: null,
+      addMedia: vi.fn(),
+      updateMedia: vi.fn(),
+      deleteMedia: vi.fn(),
+    })
   })
 
   it('renders the desktop OS shell when authenticated with items', () => {
     useAuth.mockReturnValue({
       session: { user: { id: 'u1', email: 'test@nexus.net' } },
-      loading: false, signIn: vi.fn(), signOut: vi.fn(),
+      loading: false,
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
     useMedia.mockReturnValue({
-      items: [{ id: '1', title: 'Neuromancer', creator: 'Gibson', status: 'Finished', type: 'book', genre: 'Cyberpunk', rating: 5 }],
-      loading: false, error: null, addMedia: vi.fn(), updateMedia: vi.fn(), deleteMedia: vi.fn(),
+      items: [
+        {
+          id: '1',
+          title: 'Neuromancer',
+          creator: 'Gibson',
+          status: 'Finished',
+          type: 'book',
+          genre: 'Cyberpunk',
+          rating: 5,
+        },
+      ],
+      loading: false,
+      error: null,
+      addMedia: vi.fn(),
+      updateMedia: vi.fn(),
+      deleteMedia: vi.fn(),
     })
 
     render(<App />)
     expect(screen.getByTestId('desktop')).toBeTruthy()
 
-    useAuth.mockReturnValue({ session: null, loading: false, signIn: vi.fn().mockResolvedValue({ error: null }), signOut: vi.fn() })
-    useMedia.mockReturnValue({ items: [], loading: false, error: null, addMedia: vi.fn(), updateMedia: vi.fn(), deleteMedia: vi.fn() })
+    useAuth.mockReturnValue({
+      session: null,
+      loading: false,
+      signIn: vi.fn().mockResolvedValue({ error: null }),
+      signOut: vi.fn(),
+    })
+    useMedia.mockReturnValue({
+      items: [],
+      loading: false,
+      error: null,
+      addMedia: vi.fn(),
+      updateMedia: vi.fn(),
+      deleteMedia: vi.fn(),
+    })
   })
 
   it('renders mobile-specific auth header on small screens', () => {

@@ -8,10 +8,11 @@ vi.mock('../../../hooks/useAuth', () => ({
 }))
 
 vi.mock('../../stores/windowStore', () => ({
-  useWindowStore: (selector) => selector({
-    windows: { media: { appId: 'media' }, chat: { appId: 'chat' } },
-    zStack: ['media', 'chat'],
-  }),
+  useWindowStore: (selector) =>
+    selector({
+      windows: { media: { appId: 'media' }, chat: { appId: 'chat' } },
+      zStack: ['media', 'chat'],
+    }),
 }))
 
 import TerminalApp from '../TerminalApp'

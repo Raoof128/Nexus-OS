@@ -15,7 +15,6 @@ const MediaApp = lazy(() => import('../../components/features/MediaApp'))
 const EmailInbox = lazy(() => import('../../components/features/EmailInbox'))
 const ChatLayout = lazy(() => import('../../components/features/ChatLayout'))
 
-
 const SettingsApp = lazy(() => import('../apps/SettingsApp'))
 const SystemMonitorApp = lazy(() => import('../apps/SystemMonitorApp'))
 const NotesApp = lazy(() => import('../apps/NotesApp'))
@@ -98,4 +97,13 @@ export const APP_REGISTRY = {
 }
 
 /** Ordered list of app IDs for the launcher grid */
-export const APP_ORDER = ['media', 'email', 'chat', 'terminal', 'files', 'settings', 'sysmon', 'notes']
+export const APP_ORDER = [
+  'media',
+  'email',
+  'chat',
+  'terminal',
+  'files',
+  'settings',
+  'sysmon',
+  'notes',
+]

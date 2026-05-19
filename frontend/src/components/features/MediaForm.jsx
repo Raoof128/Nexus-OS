@@ -6,7 +6,17 @@ const inputClass =
 
 const labelClass = 'mb-1 block text-xs font-semibold uppercase text-muted-foreground'
 
-export default function MediaForm({ config, defaultValues = {}, onSubmit, submitting, error, submitLabel, submittingLabel = 'Saving...', idPrefix = 'media', placeholders = {} }) {
+export default function MediaForm({
+  config,
+  defaultValues = {},
+  onSubmit,
+  submitting,
+  error,
+  submitLabel,
+  submittingLabel = 'Saving...',
+  idPrefix = 'media',
+  placeholders = {},
+}) {
   const isJob = config.singular === 'Job'
   const [title, setTitle] = useState(defaultValues.title || '')
   const [creator, setCreator] = useState(defaultValues.creator || '')
@@ -44,7 +54,9 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
 
       <div className="space-y-4">
         <div>
-          <label htmlFor={`${idPrefix}-title`} className={labelClass}>Title</label>
+          <label htmlFor={`${idPrefix}-title`} className={labelClass}>
+            Title
+          </label>
           <input
             id={`${idPrefix}-title`}
             type="text"
@@ -54,12 +66,16 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
             placeholder={placeholders.title}
             required
             maxLength={200}
-            {...(error ? { 'aria-describedby': `${idPrefix}-form-error`, 'aria-invalid': true } : {})}
+            {...(error
+              ? { 'aria-describedby': `${idPrefix}-form-error`, 'aria-invalid': true }
+              : {})}
           />
         </div>
 
         <div>
-          <label htmlFor={`${idPrefix}-creator`} className={labelClass}>{config.creatorLabel}</label>
+          <label htmlFor={`${idPrefix}-creator`} className={labelClass}>
+            {config.creatorLabel}
+          </label>
           <input
             id={`${idPrefix}-creator`}
             type="text"
@@ -74,7 +90,9 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
 
         {isJob ? (
           <div>
-            <label htmlFor={`${idPrefix}-status`} className={labelClass}>Status</label>
+            <label htmlFor={`${idPrefix}-status`} className={labelClass}>
+              Status
+            </label>
             <select
               id={`${idPrefix}-status`}
               value={status}
@@ -82,14 +100,18 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
               className={inputClass}
             >
               {config.statuses.map((s) => (
-                <option key={s} value={s} className="bg-gray-900 text-white">{s}</option>
+                <option key={s} value={s} className="bg-gray-900 text-white">
+                  {s}
+                </option>
               ))}
             </select>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 min-[400px]:grid-cols-2">
             <div>
-              <label htmlFor={`${idPrefix}-genre`} className={labelClass}>Genre</label>
+              <label htmlFor={`${idPrefix}-genre`} className={labelClass}>
+                Genre
+              </label>
               <input
                 id={`${idPrefix}-genre`}
                 type="text"
@@ -101,7 +123,9 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
               />
             </div>
             <div>
-              <label htmlFor={`${idPrefix}-status`} className={labelClass}>Status</label>
+              <label htmlFor={`${idPrefix}-status`} className={labelClass}>
+                Status
+              </label>
               <select
                 id={`${idPrefix}-status`}
                 value={status}
@@ -109,7 +133,9 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
                 className={inputClass}
               >
                 {config.statuses.map((s) => (
-                  <option key={s} value={s} className="bg-gray-900 text-white">{s}</option>
+                  <option key={s} value={s} className="bg-gray-900 text-white">
+                    {s}
+                  </option>
                 ))}
               </select>
             </div>
@@ -119,7 +145,9 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
         <div className={isJob ? '' : 'grid grid-cols-1 gap-4 min-[400px]:grid-cols-2'}>
           {!isJob && (
             <div>
-              <label htmlFor={`${idPrefix}-rating`} className={labelClass}>Rating (1-5)</label>
+              <label htmlFor={`${idPrefix}-rating`} className={labelClass}>
+                Rating (1-5)
+              </label>
               <input
                 id={`${idPrefix}-rating`}
                 type="number"
@@ -129,7 +157,7 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
                 value={rating}
                 onChange={(e) => {
                   const v = e.target.value
-                  if (v === '' || (/^[1-5]$/.test(v))) {
+                  if (v === '' || /^[1-5]$/.test(v)) {
                     setRating(v)
                   }
                 }}
@@ -139,7 +167,9 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
             </div>
           )}
           <div>
-            <label htmlFor={`${idPrefix}-subinfo`} className={labelClass}>{config.subInfoLabel}</label>
+            <label htmlFor={`${idPrefix}-subinfo`} className={labelClass}>
+              {config.subInfoLabel}
+            </label>
             <input
               id={`${idPrefix}-subinfo`}
               type="text"
@@ -153,7 +183,9 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
         </div>
 
         <div>
-          <label htmlFor={`${idPrefix}-takeaway`} className={labelClass}>Takeaway</label>
+          <label htmlFor={`${idPrefix}-takeaway`} className={labelClass}>
+            Takeaway
+          </label>
           <textarea
             id={`${idPrefix}-takeaway`}
             value={takeaway}
@@ -175,7 +207,9 @@ export default function MediaForm({ config, defaultValues = {}, onSubmit, submit
               <Loader2 size={14} className="animate-spin" />
               {submittingLabel}
             </span>
-          ) : submitLabel}
+          ) : (
+            submitLabel
+          )}
         </button>
       </div>
     </form>

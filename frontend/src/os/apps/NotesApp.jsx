@@ -15,25 +15,42 @@ function escapeHtml(text) {
 function renderMarkdown(text) {
   if (!text) return ''
   const escaped = escapeHtml(text)
-  return escaped
-    // Code blocks (must come before inline code)
-    .replace(/```([\s\S]*?)```/g, '<pre class="my-2 rounded-lg bg-white/[0.03] p-3 font-mono text-[11px] text-white/70 overflow-x-auto border border-white/[0.06]"><code>$1</code></pre>')
-    // Inline code
-    .replace(/`([^`]+)`/g, '<code class="rounded bg-white/[0.06] px-1 py-0.5 font-mono text-[11px] text-primary/80">$1</code>')
-    // Headers
-    .replace(/^### (.+)$/gm, '<h3 class="heading-ui mt-3 mb-1 text-sm font-semibold text-white">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="heading-display mt-4 mb-1 text-base font-bold text-primary">$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1 class="heading-display mt-4 mb-2 text-lg font-bold text-primary">$1</h1>')
-    // Bold + Italic
-    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em class="text-white/80">$1</em>')
-    // Unordered lists
-    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-muted-foreground">$1</li>')
-    // Horizontal rule
-    .replace(/^---$/gm, '<hr class="my-3 border-white/[0.06]" />')
-    // Line breaks
-    .replace(/\n/g, '<br />')
+  return (
+    escaped
+      // Code blocks (must come before inline code)
+      .replace(
+        /```([\s\S]*?)```/g,
+        '<pre class="my-2 rounded-lg bg-white/[0.03] p-3 font-mono text-[11px] text-white/70 overflow-x-auto border border-white/[0.06]"><code>$1</code></pre>',
+      )
+      // Inline code
+      .replace(
+        /`([^`]+)`/g,
+        '<code class="rounded bg-white/[0.06] px-1 py-0.5 font-mono text-[11px] text-primary/80">$1</code>',
+      )
+      // Headers
+      .replace(
+        /^### (.+)$/gm,
+        '<h3 class="heading-ui mt-3 mb-1 text-sm font-semibold text-white">$1</h3>',
+      )
+      .replace(
+        /^## (.+)$/gm,
+        '<h2 class="heading-display mt-4 mb-1 text-base font-bold text-primary">$1</h2>',
+      )
+      .replace(
+        /^# (.+)$/gm,
+        '<h1 class="heading-display mt-4 mb-2 text-lg font-bold text-primary">$1</h1>',
+      )
+      // Bold + Italic
+      .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em class="text-white/80">$1</em>')
+      // Unordered lists
+      .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-muted-foreground">$1</li>')
+      // Horizontal rule
+      .replace(/^---$/gm, '<hr class="my-3 border-white/[0.06]" />')
+      // Line breaks
+      .replace(/\n/g, '<br />')
+  )
 }
 
 export default function NotesApp({ windowId }) {
@@ -65,16 +82,19 @@ export default function NotesApp({ windowId }) {
   }, [])
 
   // Debounced save
-  const saveToStorage = useCallback((text) => {
-    if (saveTimeout.current) clearTimeout(saveTimeout.current)
-    saveTimeout.current = setTimeout(() => {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify({ content: text }))
-      } catch {
-        // Storage full
-      }
-    }, SAVE_DEBOUNCE_MS)
-  }, [storageKey])
+  const saveToStorage = useCallback(
+    (text) => {
+      if (saveTimeout.current) clearTimeout(saveTimeout.current)
+      saveTimeout.current = setTimeout(() => {
+        try {
+          localStorage.setItem(storageKey, JSON.stringify({ content: text }))
+        } catch {
+          // Storage full
+        }
+      }, SAVE_DEBOUNCE_MS)
+    },
+    [storageKey],
+  )
 
   const handleChange = (e) => {
     const val = e.target.value

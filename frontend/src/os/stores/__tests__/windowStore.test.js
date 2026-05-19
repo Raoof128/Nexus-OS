@@ -64,7 +64,7 @@ describe('windowStore', () => {
       window.innerHeight = 600
       useWindowStore.getState().openApp('media')
       const w = useWindowStore.getState().windows.media
-      expect(w.size.width).toBe(640)  // 800 * 0.8
+      expect(w.size.width).toBe(640) // 800 * 0.8
       expect(w.size.height).toBe(480) // 600 * 0.8
       window.innerWidth = 1440
       window.innerHeight = 900
@@ -78,7 +78,9 @@ describe('windowStore', () => {
       openApp('media') // should focus, not create new
       expect(Object.keys(useWindowStore.getState().windows)).toHaveLength(2)
       expect(useWindowStore.getState().activeWindowId).toBe('media')
-      expect(useWindowStore.getState().zStack[useWindowStore.getState().zStack.length - 1]).toBe('media')
+      expect(useWindowStore.getState().zStack[useWindowStore.getState().zStack.length - 1]).toBe(
+        'media',
+      )
     })
 
     it('creates multiple windows for non-singleton apps', () => {

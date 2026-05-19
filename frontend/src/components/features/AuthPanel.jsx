@@ -8,7 +8,8 @@ import PasswordInput from '../ui/PasswordInput'
 const inputClass =
   'w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/40 focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary terminal-input'
 
-const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground'
+const labelClass =
+  'mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted-foreground'
 
 const linkClass = 'text-xs text-primary transition-colors hover:text-primary/80 cursor-pointer py-2'
 
@@ -198,7 +199,9 @@ export default function AuthPanel() {
 
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
-                  <label htmlFor="login-email" className={labelClass}>Identity // Email</label>
+                  <label htmlFor="login-email" className={labelClass}>
+                    Identity // Email
+                  </label>
                   <input
                     id="login-email"
                     type="email"
@@ -212,7 +215,9 @@ export default function AuthPanel() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="login-password" className={labelClass}>Passkey // Secret</label>
+                  <label htmlFor="login-password" className={labelClass}>
+                    Passkey // Secret
+                  </label>
                   <PasswordInput
                     id="login-password"
                     value={loginPassword}
@@ -229,16 +234,23 @@ export default function AuthPanel() {
                   disabled={submitting}
                   className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
                 >
-                  <DecryptText text={submitting ? 'Connecting...' : 'Authenticate'} active={submitting} />
+                  <DecryptText
+                    text={submitting ? 'Connecting...' : 'Authenticate'}
+                    active={submitting}
+                  />
                 </button>
               </form>
 
               <div className="mt-5 flex items-center justify-between border-t border-white/5 pt-4">
                 <button type="button" onClick={() => slideTo('register')} className={linkClass}>
-                  <span className="flex items-center gap-1.5"><UserPlus size={12} /> Create account</span>
+                  <span className="flex items-center gap-1.5">
+                    <UserPlus size={12} /> Create account
+                  </span>
                 </button>
                 <button type="button" onClick={() => slideTo('forgot')} className={linkClass}>
-                  <span className="flex items-center gap-1.5"><KeyRound size={12} /> Forgot password</span>
+                  <span className="flex items-center gap-1.5">
+                    <KeyRound size={12} /> Forgot password
+                  </span>
                 </button>
               </div>
             </Motion.div>
@@ -276,7 +288,9 @@ export default function AuthPanel() {
 
               <form onSubmit={handleRegister} className="space-y-4">
                 <div>
-                  <label htmlFor="reg-email" className={labelClass}>Identity // Email</label>
+                  <label htmlFor="reg-email" className={labelClass}>
+                    Identity // Email
+                  </label>
                   <input
                     id="reg-email"
                     type="email"
@@ -286,11 +300,15 @@ export default function AuthPanel() {
                     placeholder="runner@nexus.net"
                     autoComplete="email"
                     required
-                    {...(error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
+                    {...(error
+                      ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true }
+                      : {})}
                   />
                 </div>
                 <div>
-                  <label htmlFor="reg-password" className={labelClass}>Passkey // Secret</label>
+                  <label htmlFor="reg-password" className={labelClass}>
+                    Passkey // Secret
+                  </label>
                   <PasswordInput
                     id="reg-password"
                     value={regPassword}
@@ -300,11 +318,15 @@ export default function AuthPanel() {
                     autoComplete="new-password"
                     minLength={8}
                     required
-                    {...(error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
+                    {...(error
+                      ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true }
+                      : {})}
                   />
                 </div>
                 <div>
-                  <label htmlFor="reg-confirm" className={labelClass}>Confirm // Passkey</label>
+                  <label htmlFor="reg-confirm" className={labelClass}>
+                    Confirm // Passkey
+                  </label>
                   <PasswordInput
                     id="reg-confirm"
                     value={regConfirm}
@@ -314,7 +336,9 @@ export default function AuthPanel() {
                     autoComplete="new-password"
                     minLength={8}
                     required
-                    {...(error ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true } : {})}
+                    {...(error
+                      ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true }
+                      : {})}
                   />
                 </div>
                 <button
@@ -322,7 +346,10 @@ export default function AuthPanel() {
                   disabled={submitting}
                   className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
                 >
-                  <DecryptText text={submitting ? 'Initializing...' : 'Create Archive'} active={submitting} />
+                  <DecryptText
+                    text={submitting ? 'Initializing...' : 'Create Archive'}
+                    active={submitting}
+                  />
                 </button>
               </form>
             </Motion.div>
@@ -360,7 +387,9 @@ export default function AuthPanel() {
 
               <form onSubmit={handleForgot} className="space-y-4">
                 <div>
-                  <label htmlFor="forgot-email" className={labelClass}>Identity // Email</label>
+                  <label htmlFor="forgot-email" className={labelClass}>
+                    Identity // Email
+                  </label>
                   <input
                     id="forgot-email"
                     type="email"
@@ -370,7 +399,9 @@ export default function AuthPanel() {
                     placeholder="runner@nexus.net"
                     autoComplete="email"
                     required
-                    {...(error ? { 'aria-describedby': 'forgot-form-error', 'aria-invalid': true } : {})}
+                    {...(error
+                      ? { 'aria-describedby': 'forgot-form-error', 'aria-invalid': true }
+                      : {})}
                   />
                 </div>
                 <button
@@ -379,7 +410,13 @@ export default function AuthPanel() {
                   className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
                 >
                   <DecryptText
-                    text={submitting ? 'Transmitting...' : forgotSent ? 'Link Sent' : 'Send Recovery Link'}
+                    text={
+                      submitting
+                        ? 'Transmitting...'
+                        : forgotSent
+                          ? 'Link Sent'
+                          : 'Send Recovery Link'
+                    }
                     active={submitting}
                   />
                 </button>

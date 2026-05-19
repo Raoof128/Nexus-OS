@@ -30,7 +30,14 @@ export default function EmailInbox() {
   const searchDebounceRef = useRef(null)
 
   const { accounts } = useEmailAccounts(userId)
-  const { emails, loading: emailsLoading, error, refetch, loadMore, search } = useEmails(session, activeFolder, activeAccountId)
+  const {
+    emails,
+    loading: emailsLoading,
+    error,
+    refetch,
+    loadMore,
+    search,
+  } = useEmails(session, activeFolder, activeAccountId)
   const actions = useEmailActions(userId, activeFolder, activeAccountId)
 
   const selectedEmail = emails.find((e) => e.id === selectedEmailId) || null
@@ -221,9 +228,7 @@ export default function EmailInbox() {
             role="alert"
             className="flex items-center justify-between gap-2 border-b border-red-500/20 bg-red-500/10 px-4 py-2"
           >
-            <span className="font-mono text-[10px] text-red-400">
-              error:: {error}
-            </span>
+            <span className="font-mono text-[10px] text-red-400">error:: {error}</span>
             <button
               type="button"
               onClick={() => refetch()}

@@ -24,7 +24,14 @@ function readInitialType() {
 export default function MediaApp() {
   const { session } = useAuth()
   const [activeType, setActiveType] = useState(readInitialType)
-  const { items, loading: dataLoading, error, addMedia, updateMedia, deleteMedia } = useMedia(session, activeType)
+  const {
+    items,
+    loading: dataLoading,
+    error,
+    addMedia,
+    updateMedia,
+    deleteMedia,
+  } = useMedia(session, activeType)
 
   // Mirror activeType into the URL so refresh/back buttons preserve context.
   useEffect(() => {
@@ -39,7 +46,7 @@ export default function MediaApp() {
   const [vaultState, setVaultState] = useState(null)
 
   const selectedItem = useMemo(
-    () => (selectedItemId ? items.find((i) => i.id === selectedItemId) ?? null : null),
+    () => (selectedItemId ? (items.find((i) => i.id === selectedItemId) ?? null) : null),
     [selectedItemId, items],
   )
 
@@ -68,8 +75,10 @@ export default function MediaApp() {
           aria-label="Media types"
           className="flex items-center gap-1 overflow-x-auto px-3 py-1.5"
           style={{
-            maskImage: 'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
-            WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
+            maskImage:
+              'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
+            WebkitMaskImage:
+              'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
           }}
         >
           {MEDIA_TYPES.map((type) => {
@@ -81,7 +90,10 @@ export default function MediaApp() {
                 role="tab"
                 aria-selected={isActive}
                 type="button"
-                onClick={() => { setActiveType(type); setVaultState(null) }}
+                onClick={() => {
+                  setActiveType(type)
+                  setVaultState(null)
+                }}
                 className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 heading-ui text-[11px] font-semibold uppercase tracking-wider transition-all ${
                   isActive
                     ? 'bg-primary/20 text-primary'
@@ -103,7 +115,10 @@ export default function MediaApp() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : error ? (
-          <div role="alert" className="p-6 text-center font-bold uppercase tracking-widest text-destructive">
+          <div
+            role="alert"
+            className="p-6 text-center font-bold uppercase tracking-widest text-destructive"
+          >
             API Error: {error}
           </div>
         ) : (

@@ -30,12 +30,7 @@ function MenuItem({ icon: Icon, label, onClick, danger }) {
           : 'text-white/60 hover:bg-primary/10 hover:text-primary'
       }`}
     >
-      {Icon && (
-        <Icon
-          size={12}
-          className="shrink-0 opacity-70"
-        />
-      )}
+      {Icon && <Icon size={12} className="shrink-0 opacity-70" />}
       <span className="heading-ui text-[10px]">{label}</span>
     </button>
   )
@@ -129,51 +124,22 @@ function ContextMenu({ x, y, onClose }) {
         {/* Accent line at top */}
         <div className="absolute inset-x-0 top-0 h-px rounded-t-lg bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
-        <MenuItem
-          icon={AppWindow}
-          label="Open App Launcher"
-          onClick={() => run(toggleLauncher)}
-        />
+        <MenuItem icon={AppWindow} label="Open App Launcher" onClick={() => run(toggleLauncher)} />
 
         <Separator />
 
-        <MenuItem
-          icon={Layers}
-          label="Arrange Windows"
-          onClick={() => run(cascadeWindows)}
-        />
-        <MenuItem
-          icon={Minus}
-          label="Minimize All"
-          onClick={() => run(minimizeAll)}
-        />
-        <MenuItem
-          icon={X}
-          label="Close All"
-          onClick={() => run(closeAll)}
-          danger
-        />
+        <MenuItem icon={Layers} label="Arrange Windows" onClick={() => run(cascadeWindows)} />
+        <MenuItem icon={Minus} label="Minimize All" onClick={() => run(minimizeAll)} />
+        <MenuItem icon={X} label="Close All" onClick={() => run(closeAll)} danger />
 
         <Separator />
 
-        <MenuItem
-          icon={ScanLine}
-          label="Toggle Scanlines"
-          onClick={() => run(toggleScanlines)}
-        />
-        <MenuItem
-          icon={Sparkles}
-          label="Toggle Orbs"
-          onClick={() => run(toggleOrbs)}
-        />
+        <MenuItem icon={ScanLine} label="Toggle Scanlines" onClick={() => run(toggleScanlines)} />
+        <MenuItem icon={Sparkles} label="Toggle Orbs" onClick={() => run(toggleOrbs)} />
 
         <Separator />
 
-        <MenuItem
-          icon={Settings}
-          label="Settings"
-          onClick={() => run(() => openApp('settings'))}
-        />
+        <MenuItem icon={Settings} label="Settings" onClick={() => run(() => openApp('settings'))} />
       </Motion.div>
     </AnimatePresence>
   )

@@ -68,7 +68,10 @@ export default function EditMediaDialog({ item, onUpdate, onClose }) {
           <X size={18} />
         </button>
 
-        <h2 id="edit-media-title" className="heading-display mb-6 text-lg font-bold text-primary sm:text-xl">
+        <h2
+          id="edit-media-title"
+          className="heading-display mb-6 text-lg font-bold text-primary sm:text-xl"
+        >
           <span aria-hidden="true">// </span>Edit {config.singular}
         </h2>
 
@@ -77,7 +80,7 @@ export default function EditMediaDialog({ item, onUpdate, onClose }) {
           config={config}
           defaultValues={{
             title: item.title || '',
-            creator: item.creator === '—' ? '' : (item.creator || ''),
+            creator: item.creator === '—' ? '' : item.creator || '',
             genre: item.genre || '',
             status: item.status || config.defaultStatus,
             rating: item.rating || '',
@@ -92,6 +95,6 @@ export default function EditMediaDialog({ item, onUpdate, onClose }) {
         />
       </div>
     </div>,
-    document.getElementById('modal-root') || document.body
+    document.getElementById('modal-root') || document.body,
   )
 }

@@ -12,6 +12,7 @@ A singleton app for theme customization, account info display, and OS preference
 ### Tabs
 
 **Appearance:**
+
 - Theme color picker: switch primary accent between preset neon colors (yellow, cyan, magenta, green, orange). Each preset updates the CSS `--primary` and `--neon-yellow` variables via `document.documentElement.style.setProperty`
 - Font size toggle: compact / default / large (adjusts a `--ui-scale` CSS variable)
 - Toggle scanlines overlay on/off
@@ -19,11 +20,13 @@ A singleton app for theme customization, account info display, and OS preference
 - Persisted to `localStorage` key `nexus-os:settings`
 
 **Account:**
+
 - Display current user email (from `useAuth` session)
 - Display session info (provider, last sign-in)
 - Logout button (calls existing auth disconnect)
 
 **About:**
+
 - App name, version, build info
 - Links to GitHub repo
 - Keyboard shortcuts reference table (all `Alt+key` shortcuts)
@@ -52,24 +55,28 @@ A singleton read-only dashboard showing system health and connection status.
 ### Panels
 
 **API Health:**
+
 - Healthcheck ping to `/healthz` endpoint (existing)
 - Display: status (online/offline), response time in ms, last checked timestamp
 - Auto-refresh every 30 seconds
 - Green/red status indicator with neon glow
 
 **Realtime Connection:**
+
 - Read Supabase Realtime client connection state
 - Display: connected/disconnected/connecting status
 - Channel count (if available from the client)
 - Last event timestamp
 
 **Session Info:**
+
 - Current user ID, email, provider
 - Session expiry time (if available from JWT)
 - Active window count (from windowStore)
 - Open app list with instance counts
 
 **Performance:**
+
 - `window.performance.memory` (Chrome only) — JS heap size/limit
 - `navigator.connection` info (if available) — effective type, downlink
 - Page load time from `performance.timing`
@@ -168,6 +175,7 @@ Keep apps separate from OS components. The `os/components/` dir is for the shell
 ## 5. Dependencies
 
 No new npm packages. Everything uses existing deps:
+
 - `zustand` (settings store)
 - `lucide-react` (icons)
 - Tailwind CSS v4 (styling)

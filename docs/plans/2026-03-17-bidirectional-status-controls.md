@@ -13,6 +13,7 @@
 ### Task 1: Add `getStatusNav` utility to mediaConfig.js
 
 **Files:**
+
 - Modify: `frontend/src/lib/mediaConfig.js:31` (append after MEDIA_CONFIG)
 - Create: `frontend/src/lib/mediaConfig.test.js`
 
@@ -113,24 +114,31 @@ git commit -m "feat: add getStatusNav utility to mediaConfig"
 ### Task 2: Update CyberCard with bidirectional controls
 
 **Files:**
+
 - Modify: `frontend/src/components/features/CyberCard.jsx`
 
 **Step 1: Update imports**
 
 Replace line 2:
+
 ```jsx
 import { BookOpen, ChevronRight, Film, Sparkles, Trash2 } from 'lucide-react'
 ```
+
 With:
+
 ```jsx
 import { BookOpen, ChevronLeft, ChevronRight, Film, Sparkles, Trash2 } from 'lucide-react'
 ```
 
 Replace line 3:
+
 ```jsx
 import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 ```
+
 With:
+
 ```jsx
 import { getStatusNav } from '../../lib/mediaConfig'
 ```
@@ -140,10 +148,13 @@ import { getStatusNav } from '../../lib/mediaConfig'
 Delete lines 11-16 (the `nextStatus` function).
 
 Replace line 21:
+
 ```jsx
 const next = nextStatus(item.status, mediaType)
 ```
+
 With:
+
 ```jsx
 const { prev, next } = getStatusNav(mediaType, item.status)
 ```
@@ -151,6 +162,7 @@ const { prev, next } = getStatusNav(mediaType, item.status)
 **Step 3: Add handleRevert handler**
 
 After `handleAdvance` (after line 27), add:
+
 ```jsx
 const handleRevert = async (event) => {
   event.stopPropagation()
@@ -162,18 +174,21 @@ const handleRevert = async (event) => {
 **Step 4: Add prev button before the next button**
 
 Inside the actions div (line 73), before the `{next && (` block, add:
+
 ```jsx
-{prev && (
-  <button
-    type="button"
-    onClick={handleRevert}
-    className="rounded-md bg-white/5 p-1 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary sm:p-1.5"
-    title={`Back to ${prev}`}
-    aria-label={`Back to ${prev}`}
-  >
-    <ChevronLeft size={14} />
-  </button>
-)}
+{
+  prev && (
+    <button
+      type="button"
+      onClick={handleRevert}
+      className="rounded-md bg-white/5 p-1 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary sm:p-1.5"
+      title={`Back to ${prev}`}
+      aria-label={`Back to ${prev}`}
+    >
+      <ChevronLeft size={14} />
+    </button>
+  )
+}
 ```
 
 **Step 5: Run existing tests and verify app builds**
@@ -193,24 +208,40 @@ git commit -m "feat: add backward status control to CyberCard"
 ### Task 3: Update MediaVault with bidirectional controls
 
 **Files:**
+
 - Modify: `frontend/src/components/features/MediaVault.jsx`
 
 **Step 1: Update imports**
 
 Replace line 3:
+
 ```jsx
 import { ArrowLeft, BookOpen, ChevronRight, Film, Search, Sparkles, Trash2 } from 'lucide-react'
 ```
+
 With:
+
 ```jsx
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Film, Search, Sparkles, Trash2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  Film,
+  Search,
+  Sparkles,
+  Trash2,
+} from 'lucide-react'
 ```
 
 Replace line 4:
+
 ```jsx
 import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 ```
+
 With:
+
 ```jsx
 import { MEDIA_CONFIG, getStatusNav } from '../../lib/mediaConfig'
 ```
@@ -220,6 +251,7 @@ Note: Keep `MEDIA_CONFIG` imported — it's still used for `config.label`, `conf
 **Step 2: Replace handleAdvance with bidirectional handler**
 
 Replace lines 30-36 (the `handleAdvance` function):
+
 ```jsx
 const handleAdvance = async (event, item) => {
   event.stopPropagation()
@@ -229,7 +261,9 @@ const handleAdvance = async (event, item) => {
   await onUpdate({ mediaId: item.id, data: { status: statuses[idx + 1] } })
 }
 ```
+
 With:
+
 ```jsx
 const handleStatusChange = async (event, item, newStatus) => {
   event.stopPropagation()
@@ -241,18 +275,25 @@ const handleStatusChange = async (event, item, newStatus) => {
 **Step 3: Replace status cell and actions in table rows**
 
 Replace the Status column (lines 128-133):
+
 ```jsx
-{/* Status */}
-<div className="mb-1 sm:mb-0">
+{
+  /* Status */
+}
+;<div className="mb-1 sm:mb-0">
   <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-mono text-primary">
     {item.status}
   </span>
 </div>
 ```
+
 With:
+
 ```jsx
-{/* Status */}
-<div className="mb-1 flex items-center gap-1 sm:mb-0">
+{
+  /* Status */
+}
+;<div className="mb-1 flex items-center gap-1 sm:mb-0">
   {(() => {
     const { prev, next } = getStatusNav(mediaType, item.status)
     return (
@@ -285,9 +326,12 @@ With:
 ```
 
 Replace the Actions column (lines 140-160) — remove the old advance button, keep only delete:
+
 ```jsx
-{/* Actions */}
-<div className="flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+{
+  /* Actions */
+}
+;<div className="flex gap-1 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
   <button
     type="button"
     onClick={(e) => handleDelete(e, item)}
@@ -317,24 +361,31 @@ git commit -m "feat: add bidirectional status controls to MediaVault table"
 ### Task 4: Replace MediaDetailModal advance button with clickable stepper
 
 **Files:**
+
 - Modify: `frontend/src/components/features/MediaDetailModal.jsx`
 
 **Step 1: Update imports**
 
 Replace line 3:
+
 ```jsx
 import { BookOpen, ChevronRight, Film, Sparkles, Star, Trash2, X } from 'lucide-react'
 ```
+
 With:
+
 ```jsx
 import { BookOpen, Film, Sparkles, Star, Trash2, X } from 'lucide-react'
 ```
 
 Replace line 4:
+
 ```jsx
 import { MEDIA_CONFIG } from '../../lib/mediaConfig'
 ```
+
 With:
+
 ```jsx
 import { MEDIA_CONFIG, getStatusNav } from '../../lib/mediaConfig'
 ```
@@ -344,15 +395,19 @@ import { MEDIA_CONFIG, getStatusNav } from '../../lib/mediaConfig'
 Delete lines 15-20 (the `nextStatus` function).
 
 Replace line 26:
+
 ```jsx
 const next = item ? nextStatus(item.status, mediaType) : null
 ```
+
 With:
+
 ```jsx
 const statusNav = item ? getStatusNav(mediaType, item.status) : null
 ```
 
 Replace lines 36-40 (the `handleAdvance` function):
+
 ```jsx
 const handleAdvance = async () => {
   if (!next || !onUpdate || !item) return
@@ -360,7 +415,9 @@ const handleAdvance = async () => {
   onClose()
 }
 ```
+
 With:
+
 ```jsx
 const handleStatusChange = async (newStatus) => {
   if (!newStatus || !onUpdate || !item || newStatus === item.status) return
@@ -371,9 +428,12 @@ const handleStatusChange = async (newStatus) => {
 **Step 3: Replace the status badge with clickable stepper**
 
 Replace the status badge in the "Creator + Status row" (lines 103-113):
+
 ```jsx
-{/* Creator + Status row */}
-<div className="flex flex-wrap items-center gap-3">
+{
+  /* Creator + Status row */
+}
+;<div className="flex flex-wrap items-center gap-3">
   <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-mono text-xs font-medium text-primary">
     {item.status}
   </span>
@@ -384,77 +444,92 @@ Replace the status badge in the "Creator + Status row" (lines 103-113):
   )}
 </div>
 ```
+
 With:
+
 ```jsx
-{/* Creator */}
-{item.creator && item.creator !== '—' && (
-  <div className="font-mono text-sm text-muted-foreground">
-    {config?.creatorLabel}: {sanitize(item.creator)}
-  </div>
-)}
+{
+  /* Creator */
+}
+{
+  item.creator && item.creator !== '—' && (
+    <div className="font-mono text-sm text-muted-foreground">
+      {config?.creatorLabel}: {sanitize(item.creator)}
+    </div>
+  )
+}
 
-{/* Status Stepper */}
-{statusNav && (
-  <div className="flex items-center gap-1 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-4">
-    {statusNav.flow.map((stepStatus, index) => {
-      const isCurrent = index === statusNav.currentIndex
-      const isPast = index < statusNav.currentIndex
+{
+  /* Status Stepper */
+}
+{
+  statusNav && (
+    <div className="flex items-center gap-1 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-4">
+      {statusNav.flow.map((stepStatus, index) => {
+        const isCurrent = index === statusNav.currentIndex
+        const isPast = index < statusNav.currentIndex
 
-      return (
-        <div key={stepStatus} className="flex flex-1 items-center last:flex-none">
-          <button
-            type="button"
-            onClick={() => handleStatusChange(stepStatus)}
-            disabled={isCurrent}
-            aria-label={isCurrent ? `Current status: ${stepStatus}` : `Change status to ${stepStatus}`}
-            className="relative flex flex-col items-center group outline-none disabled:cursor-default"
-          >
-            <Motion.div
-              whileHover={isCurrent ? {} : { scale: 1.3 }}
-              whileTap={isCurrent ? {} : { scale: 0.9 }}
-              className={`h-3.5 w-3.5 rotate-45 border transition-all duration-300 ${
-                isCurrent
-                  ? 'bg-primary border-primary/60 shadow-[0_0_12px_hsl(var(--neon-cyan)/0.6)]'
-                  : isPast
-                    ? 'bg-primary/30 border-primary/40'
-                    : 'bg-zinc-900 border-zinc-700 group-hover:border-primary/50 group-hover:bg-primary/10'
-              }`}
-            />
-            <span
-              className={`absolute top-5 whitespace-nowrap font-mono text-[9px] uppercase tracking-widest transition-colors ${
-                isCurrent
-                  ? 'text-primary'
-                  : isPast
-                    ? 'text-primary/40'
-                    : 'text-zinc-600 group-hover:text-primary/50'
-              }`}
+        return (
+          <div key={stepStatus} className="flex flex-1 items-center last:flex-none">
+            <button
+              type="button"
+              onClick={() => handleStatusChange(stepStatus)}
+              disabled={isCurrent}
+              aria-label={
+                isCurrent ? `Current status: ${stepStatus}` : `Change status to ${stepStatus}`
+              }
+              className="relative flex flex-col items-center group outline-none disabled:cursor-default"
             >
-              {stepStatus}
-            </span>
-          </button>
-          {index < statusNav.flow.length - 1 && (
-            <div className="relative mx-2 h-px flex-1 bg-zinc-800">
               <Motion.div
-                initial={false}
-                animate={{ width: isPast ? '100%' : '0%' }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className="absolute inset-y-0 left-0 bg-primary/50 shadow-[0_0_6px_hsl(var(--neon-cyan)/0.4)]"
+                whileHover={isCurrent ? {} : { scale: 1.3 }}
+                whileTap={isCurrent ? {} : { scale: 0.9 }}
+                className={`h-3.5 w-3.5 rotate-45 border transition-all duration-300 ${
+                  isCurrent
+                    ? 'bg-primary border-primary/60 shadow-[0_0_12px_hsl(var(--neon-cyan)/0.6)]'
+                    : isPast
+                      ? 'bg-primary/30 border-primary/40'
+                      : 'bg-zinc-900 border-zinc-700 group-hover:border-primary/50 group-hover:bg-primary/10'
+                }`}
               />
-            </div>
-          )}
-        </div>
-      )
-    })}
-  </div>
-)}
+              <span
+                className={`absolute top-5 whitespace-nowrap font-mono text-[9px] uppercase tracking-widest transition-colors ${
+                  isCurrent
+                    ? 'text-primary'
+                    : isPast
+                      ? 'text-primary/40'
+                      : 'text-zinc-600 group-hover:text-primary/50'
+                }`}
+              >
+                {stepStatus}
+              </span>
+            </button>
+            {index < statusNav.flow.length - 1 && (
+              <div className="relative mx-2 h-px flex-1 bg-zinc-800">
+                <Motion.div
+                  initial={false}
+                  animate={{ width: isPast ? '100%' : '0%' }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="absolute inset-y-0 left-0 bg-primary/50 shadow-[0_0_6px_hsl(var(--neon-cyan)/0.4)]"
+                />
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 ```
 
 **Step 4: Replace the actions row — remove advance button, keep delete**
 
 Replace lines 159-179 (the actions div):
+
 ```jsx
-{/* Actions */}
-<div className="flex items-center gap-2 border-t border-white/5 pt-4">
+{
+  /* Actions */
+}
+;<div className="flex items-center gap-2 border-t border-white/5 pt-4">
   {next && (
     <button
       type="button"
@@ -475,10 +550,14 @@ Replace lines 159-179 (the actions div):
   </button>
 </div>
 ```
+
 With:
+
 ```jsx
-{/* Actions */}
-<div className="flex items-center gap-2 border-t border-white/5 pt-4">
+{
+  /* Actions */
+}
+;<div className="flex items-center gap-2 border-t border-white/5 pt-4">
   <button
     type="button"
     onClick={handleDelete}

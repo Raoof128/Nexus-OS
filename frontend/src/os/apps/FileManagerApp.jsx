@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
-  ArrowLeft, File, FilePlus, Folder, FolderPlus,
-  Home, Pencil, Trash2, X,
+  ArrowLeft,
+  File,
+  FilePlus,
+  Folder,
+  FolderPlus,
+  Home,
+  Pencil,
+  Trash2,
+  X,
 } from 'lucide-react'
 import { useFileSystemStore } from '../stores/fileSystemStore'
 
@@ -23,7 +30,11 @@ function NewEntryDialog({ type, onSubmit, onCancel }) {
         autoFocus
         className="flex-1 bg-transparent font-mono text-[11px] text-white/80 placeholder-muted-foreground/30 focus:outline-none"
       />
-      <button type="button" onClick={() => name.trim() && onSubmit(name.trim())} className="text-primary hover:text-white">
+      <button
+        type="button"
+        onClick={() => name.trim() && onSubmit(name.trim())}
+        className="text-primary hover:text-white"
+      >
         <FilePlus size={12} />
       </button>
       <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-white">
@@ -69,28 +80,33 @@ export default function FileManagerApp() {
 
   useEffect(() => {
     hydrateFileSystem()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const currentFolder = files[currentPath]
   const children = currentFolder?.children || []
 
-  const parentPath = currentPath === '/'
-    ? null
-    : currentPath.split('/').slice(0, -1).join('/') || '/'
+  const parentPath =
+    currentPath === '/' ? null : currentPath.split('/').slice(0, -1).join('/') || '/'
 
-  const handleCreate = useCallback((name) => {
-    if (creating === 'file') {
-      createFile(currentPath, name, '')
-    } else {
-      createFolder(currentPath, name)
-    }
-    setCreating(null)
-  }, [creating, currentPath, createFile, createFolder])
+  const handleCreate = useCallback(
+    (name) => {
+      if (creating === 'file') {
+        createFile(currentPath, name, '')
+      } else {
+        createFolder(currentPath, name)
+      }
+      setCreating(null)
+    },
+    [creating, currentPath, createFile, createFolder],
+  )
 
-  const handleDelete = useCallback((name) => {
-    deleteEntry(currentPath, name)
-  }, [currentPath, deleteEntry])
+  const handleDelete = useCallback(
+    (name) => {
+      deleteEntry(currentPath, name)
+    },
+    [currentPath, deleteEntry],
+  )
 
   const handleRenameStart = useCallback((name) => {
     setRenamingEntry(name)
@@ -104,7 +120,7 @@ export default function FileManagerApp() {
     setRenamingEntry(null)
   }, [currentPath, renamingEntry, renameValue, renameEntry])
 
-  const buildEntryPath = (name) => currentPath === '/' ? `/${name}` : `${currentPath}/${name}`
+  const buildEntryPath = (name) => (currentPath === '/' ? `/${name}` : `${currentPath}/${name}`)
 
   useEffect(() => {
     if (viewingFile && !files[viewingFile]) {
@@ -194,7 +210,10 @@ export default function FileManagerApp() {
             >
               {renamingEntry === name ? (
                 <div className="flex flex-1 items-center gap-2">
-                  <Icon size={14} className={isFolder ? 'text-primary/60' : 'text-muted-foreground'} />
+                  <Icon
+                    size={14}
+                    className={isFolder ? 'text-primary/60' : 'text-muted-foreground'}
+                  />
                   <input
                     type="text"
                     value={renameValue}
@@ -217,7 +236,10 @@ export default function FileManagerApp() {
                   }}
                   className="flex flex-1 items-center gap-2 text-left"
                 >
-                  <Icon size={14} className={isFolder ? 'text-primary/60' : 'text-muted-foreground'} />
+                  <Icon
+                    size={14}
+                    className={isFolder ? 'text-primary/60' : 'text-muted-foreground'}
+                  />
                   <span className="font-mono text-[11px] text-white/80">{name}</span>
                   {!isFolder && entry.updatedAt && (
                     <span className="ml-auto font-mono text-[9px] text-muted-foreground/40">

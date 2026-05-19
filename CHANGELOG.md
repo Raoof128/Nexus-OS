@@ -2,6 +2,19 @@
 
 ### 2026-05-20 (Australia/Sydney)
 **Raouf:**
+- **Scope:** Project Configuration & Git Hygiene
+- **Summary:** Professionalized `.gitignore` with organized sections and standard exclusions (Node, Python, IDEs, OS). Added root-level `node_modules/` to ignore list. Ensured `AGENT.md` and `CHANGELOG.md` are unignored to maintain project protocol tracking. Staged and tracked new root configuration files (`package.json`, `.prettierrc`, `.prettierignore`, `scripts/`).
+- **Files Changed:**
+  - `.gitignore` [MODIFY]
+  - `.prettierignore` [ADD]
+  - `.prettierrc` [ADD]
+  - `package.json` [ADD]
+  - `scripts/` [ADD]
+- **Verification:** `git status` confirmed clean of unwanted untracked files. All new configuration files are correctly staged.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+**Raouf:**
 - **Scope:** Comprehensive test suite expansion (Frontend & Backend).
 - **Summary:** Added behavior-anchored tests for the `AuthPanel` UI, responsive layout logic, backend auth schema validation, and data privacy invariants. Verified that sensitive fields are stripped from user payloads and rate limiting is active on auth endpoints.
 - **Files Changed:**

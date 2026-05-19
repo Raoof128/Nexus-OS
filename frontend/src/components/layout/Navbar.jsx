@@ -26,9 +26,7 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             <div className="hidden items-center gap-2 sm:flex">
               <div className="h-1.5 w-1.5 rounded-full bg-green-400 shadow-[0_0_6px_theme(colors.green.400)]" />
-              <span className="text-xs text-muted-foreground">
-                {session.user.email}
-              </span>
+              <span className="text-xs text-muted-foreground">{session.user.email}</span>
             </div>
             <button
               type="button"

@@ -34,12 +34,12 @@ Expand Nexus Archive from books-only to a unified media engine supporting books,
 
 ## Schema Reference
 
-| Feature | Book | Movie | Anime | Job |
-|---|---|---|---|---|
-| Creator Label | Author | Director | Studio | Company |
-| Sub-Info Label | Pages | Year | Episodes | Salary/Location |
-| Status 1 | To Read | To Watch | To Watch | Applied |
-| Status 2 | Reading | Watching | Watching | Answered |
-| Status 3 | Finished | Finished | Finished | Rejected |
-| Status 4 | — | — | — | Got the Job |
-| Icon | BookOpen | Film | Sparkles | Briefcase |
+| Feature        | Book     | Movie    | Anime    | Job             |
+| -------------- | -------- | -------- | -------- | --------------- |
+| Creator Label  | Author   | Director | Studio   | Company         |
+| Sub-Info Label | Pages    | Year     | Episodes | Salary/Location |
+| Status 1       | To Read  | To Watch | To Watch | Applied         |
+| Status 2       | Reading  | Watching | Watching | Answered        |
+| Status 3       | Finished | Finished | Finished | Rejected        |
+| Status 4       | —        | —        | —        | Got the Job     |
+| Icon           | BookOpen | Film     | Sparkles | Briefcase       |

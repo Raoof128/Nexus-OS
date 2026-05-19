@@ -39,7 +39,9 @@ function AppearanceTab() {
               type="button"
               onClick={() => setAccentColor(key)}
               className={`flex flex-col items-center gap-1.5 rounded-lg p-2 transition-all ${
-                accentColor === key ? 'bg-white/[0.06] ring-1 ring-white/20' : 'hover:bg-white/[0.03]'
+                accentColor === key
+                  ? 'bg-white/[0.06] ring-1 ring-white/20'
+                  : 'hover:bg-white/[0.03]'
               }`}
             >
               <div
@@ -95,9 +97,11 @@ function AppearanceTab() {
                 scanlinesEnabled ? 'bg-primary/40' : 'bg-white/10'
               }`}
             >
-              <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
-                scanlinesEnabled ? 'translate-x-4' : 'translate-x-0.5'
-              }`} />
+              <div
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+                  scanlinesEnabled ? 'translate-x-4' : 'translate-x-0.5'
+                }`}
+              />
             </button>
           </label>
           <label className="flex items-center justify-between">
@@ -112,9 +116,11 @@ function AppearanceTab() {
                 orbsEnabled ? 'bg-primary/40' : 'bg-white/10'
               }`}
             >
-              <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
-                orbsEnabled ? 'translate-x-4' : 'translate-x-0.5'
-              }`} />
+              <div
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+                  orbsEnabled ? 'translate-x-4' : 'translate-x-0.5'
+                }`}
+              />
             </button>
           </label>
         </div>

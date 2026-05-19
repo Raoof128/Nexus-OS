@@ -99,10 +99,15 @@ function AppLauncher() {
                     isFirst ? 'ring-1 ring-primary/40 bg-primary/[0.04]' : ''
                   }`}
                 >
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06] transition-all group-hover:bg-primary/10 group-hover:ring-primary/20 group-hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.15)] ${
-                    isFirst ? 'bg-primary/10 ring-primary/20' : ''
-                  }`}>
-                    <Icon size={20} className={`text-muted-foreground transition-colors group-hover:text-primary ${isFirst ? 'text-primary' : ''}`} />
+                  <div
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06] transition-all group-hover:bg-primary/10 group-hover:ring-primary/20 group-hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.15)] ${
+                      isFirst ? 'bg-primary/10 ring-primary/20' : ''
+                    }`}
+                  >
+                    <Icon
+                      size={20}
+                      className={`text-muted-foreground transition-colors group-hover:text-primary ${isFirst ? 'text-primary' : ''}`}
+                    />
                   </div>
                   <span className="heading-ui text-[11px] font-semibold text-muted-foreground transition-colors group-hover:text-white">
                     {manifest.title}

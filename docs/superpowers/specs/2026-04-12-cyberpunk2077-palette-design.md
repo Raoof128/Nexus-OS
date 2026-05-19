@@ -9,25 +9,25 @@
 
 ### Core Palette (5 colors from user)
 
-| Token | Hex | RGB | Role |
-|---|---|---|---|
-| `--cp-black` | `#000000` | (0,0,0) | Page background |
-| `--cp-yellow` | `#f3e600` | (243,230,0) | Primary accent — buttons, active tabs, focus rings, glows |
-| `--cp-teal` | `#55ead4` | (85,234,212) | Secondary accent — links, info badges, secondary highlights |
-| `--cp-red` | `#c5003c` | (197,0,60) | Destructive — delete buttons, errors, warnings |
-| `--cp-darkred` | `#880425` | (136,4,37) | Destructive hover/pressed, subtle danger border glows |
+| Token          | Hex       | RGB          | Role                                                        |
+| -------------- | --------- | ------------ | ----------------------------------------------------------- |
+| `--cp-black`   | `#000000` | (0,0,0)      | Page background                                             |
+| `--cp-yellow`  | `#f3e600` | (243,230,0)  | Primary accent — buttons, active tabs, focus rings, glows   |
+| `--cp-teal`    | `#55ead4` | (85,234,212) | Secondary accent — links, info badges, secondary highlights |
+| `--cp-red`     | `#c5003c` | (197,0,60)   | Destructive — delete buttons, errors, warnings              |
+| `--cp-darkred` | `#880425` | (136,4,37)   | Destructive hover/pressed, subtle danger border glows       |
 
 ### Derived Tokens
 
-| Token | Value | Role |
-|---|---|---|
-| `--cp-panel` | `#111111` | Solid card/sidebar backgrounds |
-| `--cp-panel-glass` | `rgba(20,20,20,0.85)` | Modal/overlay backgrounds (with backdrop-blur) |
-| `--cp-foreground` | `#e8e8e8` | Primary text (off-white) |
-| `--cp-muted` | `#999999` | Secondary/muted text — 7.2:1 contrast on `#111111` |
-| `--cp-border-yellow` | `rgba(243,230,0,0.15)` | Default border (yellow at low opacity) |
-| `--cp-border-teal` | `rgba(85,234,212,0.15)` | Alternate border (teal at low opacity) |
-| `--cp-input` | `#0a0a0a` | Input field backgrounds (slightly off-black) |
+| Token                | Value                   | Role                                               |
+| -------------------- | ----------------------- | -------------------------------------------------- |
+| `--cp-panel`         | `#111111`               | Solid card/sidebar backgrounds                     |
+| `--cp-panel-glass`   | `rgba(20,20,20,0.85)`   | Modal/overlay backgrounds (with backdrop-blur)     |
+| `--cp-foreground`    | `#e8e8e8`               | Primary text (off-white)                           |
+| `--cp-muted`         | `#999999`               | Secondary/muted text — 7.2:1 contrast on `#111111` |
+| `--cp-border-yellow` | `rgba(243,230,0,0.15)`  | Default border (yellow at low opacity)             |
+| `--cp-border-teal`   | `rgba(85,234,212,0.15)` | Alternate border (teal at low opacity)             |
+| `--cp-input`         | `#0a0a0a`               | Input field backgrounds (slightly off-black)       |
 
 ### Accessibility Notes
 
@@ -41,14 +41,14 @@
 
 ## 2. Surface Rules
 
-| Surface Type | Background | Border | Blur | Examples |
-|---|---|---|---|---|
-| Page | `#000000` | None | None | Body, root container |
-| Cards, sidebars, panels | `#111111` (solid) | 1px `rgba(243,230,0,0.15)` | None | CyberCard, KanbanBoard columns, sidebar nav |
-| Modals, overlays, dropdowns | `rgba(20,20,20,0.85)` | 1px `rgba(243,230,0,0.15)` | `backdrop-blur(12px)` | MediaDetailModal, AddMediaDialog, EditMediaDialog, ConfirmDialog, AICmdPalette |
-| Hover/active cards | `#111111` | Border opacity bumps to `0.4` | None | CyberCard hover state |
-| Input fields | `#0a0a0a` | 1px `rgba(243,230,0,0.2)` | None | Form inputs, search bar |
-| Input focus | `#0a0a0a` | 1px `#f3e600` | None | Focused form inputs |
+| Surface Type                | Background            | Border                        | Blur                  | Examples                                                                       |
+| --------------------------- | --------------------- | ----------------------------- | --------------------- | ------------------------------------------------------------------------------ |
+| Page                        | `#000000`             | None                          | None                  | Body, root container                                                           |
+| Cards, sidebars, panels     | `#111111` (solid)     | 1px `rgba(243,230,0,0.15)`    | None                  | CyberCard, KanbanBoard columns, sidebar nav                                    |
+| Modals, overlays, dropdowns | `rgba(20,20,20,0.85)` | 1px `rgba(243,230,0,0.15)`    | `backdrop-blur(12px)` | MediaDetailModal, AddMediaDialog, EditMediaDialog, ConfirmDialog, AICmdPalette |
+| Hover/active cards          | `#111111`             | Border opacity bumps to `0.4` | None                  | CyberCard hover state                                                          |
+| Input fields                | `#0a0a0a`             | 1px `rgba(243,230,0,0.2)`     | None                  | Form inputs, search bar                                                        |
+| Input focus                 | `#0a0a0a`             | 1px `#f3e600`                 | None                  | Focused form inputs                                                            |
 
 ---
 
@@ -93,13 +93,13 @@
 
 Replace all current cyan/magenta glow values:
 
-| Glow Type | Value |
-|---|---|
-| Primary glow | `0 0 20px rgba(243,230,0,0.3)` |
+| Glow Type              | Value                                                        |
+| ---------------------- | ------------------------------------------------------------ |
+| Primary glow           | `0 0 20px rgba(243,230,0,0.3)`                               |
 | Primary glow (intense) | `0 0 30px rgba(243,230,0,0.5), 0 0 60px rgba(243,230,0,0.2)` |
-| Secondary glow | `0 0 20px rgba(85,234,212,0.3)` |
-| Danger glow | `0 0 15px rgba(197,0,60,0.25)` |
-| Danger glow (intense) | `0 0 20px rgba(136,4,37,0.4)` |
+| Secondary glow         | `0 0 20px rgba(85,234,212,0.3)`                              |
+| Danger glow            | `0 0 15px rgba(197,0,60,0.25)`                               |
+| Danger glow (intense)  | `0 0 20px rgba(136,4,37,0.4)`                                |
 
 ---
 
@@ -119,20 +119,29 @@ Use CSS `text-shadow` or pseudo-elements (`::before`, `::after`) for the two off
 
 ```css
 @keyframes glitch {
-  0%, 100% {
+  0%,
+  100% {
     text-shadow: none;
   }
   20% {
-    text-shadow: -3px 0 #f3e600, 3px 0 #55ead4;
+    text-shadow:
+      -3px 0 #f3e600,
+      3px 0 #55ead4;
   }
   40% {
-    text-shadow: 3px 0 #f3e600, -3px 0 #c5003c;
+    text-shadow:
+      3px 0 #f3e600,
+      -3px 0 #c5003c;
   }
   60% {
-    text-shadow: -2px 0 #55ead4, 2px 0 #f3e600;
+    text-shadow:
+      -2px 0 #55ead4,
+      2px 0 #f3e600;
   }
   80% {
-    text-shadow: 2px 0 #c5003c, -2px 0 #f3e600;
+    text-shadow:
+      2px 0 #c5003c,
+      -2px 0 #f3e600;
   }
 }
 ```
@@ -149,14 +158,22 @@ Shift from cyan pulse to yellow pulse:
 
 ```css
 @keyframes neon-pulse {
-  0%, 100% { box-shadow: 0 0 5px rgba(243,230,0,0.3); }
-  50% { box-shadow: 0 0 20px rgba(243,230,0,0.6), 0 0 40px rgba(243,230,0,0.3); }
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(243, 230, 0, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(243, 230, 0, 0.6),
+      0 0 40px rgba(243, 230, 0, 0.3);
+  }
 }
 ```
 
 ### Ambient Orbs
 
 Current floating orbs use cyan and magenta. Replace with:
+
 - Orb 1: `rgba(243,230,0,0.08)` (yellow, subtle)
 - Orb 2: `rgba(85,234,212,0.06)` (teal, subtle)
 
@@ -170,12 +187,12 @@ Keep the scanline overlay effect. Shift its tint from cyan to a neutral `rgba(25
 
 ### Buttons
 
-| Variant | Normal | Hover | Active |
-|---|---|---|---|
-| Primary | bg `#f3e600`, text `#000000` | Brighten 10%, glow appears | Darken 5% |
-| Secondary | border `#55ead4`, text `#55ead4`, bg transparent | bg `rgba(85,234,212,0.1)` | bg `rgba(85,234,212,0.2)` |
-| Destructive | bg `#c5003c`, text `#e8e8e8` | bg `#880425` | Darken further |
-| Ghost | text `#999999`, bg transparent | text `#e8e8e8`, bg `rgba(255,255,255,0.05)` | bg `rgba(255,255,255,0.1)` |
+| Variant     | Normal                                           | Hover                                       | Active                     |
+| ----------- | ------------------------------------------------ | ------------------------------------------- | -------------------------- |
+| Primary     | bg `#f3e600`, text `#000000`                     | Brighten 10%, glow appears                  | Darken 5%                  |
+| Secondary   | border `#55ead4`, text `#55ead4`, bg transparent | bg `rgba(85,234,212,0.1)`                   | bg `rgba(85,234,212,0.2)`  |
+| Destructive | bg `#c5003c`, text `#e8e8e8`                     | bg `#880425`                                | Darken further             |
+| Ghost       | text `#999999`, bg transparent                   | text `#e8e8e8`, bg `rgba(255,255,255,0.05)` | bg `rgba(255,255,255,0.1)` |
 
 ### CyberCard
 

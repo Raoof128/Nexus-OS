@@ -1,9 +1,7 @@
 import * as Sentry from '@sentry/react'
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN
-const tracesSampleRate = Number(
-  import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE ?? '0',
-)
+const tracesSampleRate = Number(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE ?? '0')
 const SENSITIVE_RECOVERY_KEYS = ['access_token', 'refresh_token']
 
 let initialized = false
@@ -14,8 +12,7 @@ function sanitizeUrl(rawUrl) {
   }
 
   try {
-    const baseOrigin =
-      typeof window !== 'undefined' ? window.location.origin : 'https://localhost'
+    const baseOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://localhost'
     const url = new URL(rawUrl, baseOrigin)
     let changed = false
 

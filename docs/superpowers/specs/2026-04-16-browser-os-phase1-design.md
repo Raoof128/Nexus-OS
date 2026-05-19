@@ -12,6 +12,7 @@
 Nexus Archive becomes a cyberpunk browser OS. The current tab navigation is replaced by a windowed desktop environment where each feature (Media, Email, Chat, and future apps) runs as a standalone "application" inside a managed window.
 
 **Phased rollout:**
+
 - **Phase 1** (this spec): OS shell, window manager, taskbar, app launcher. Migrate 3 existing apps into windows.
 - **Phase 2**: Full app framework hardening, edge-snap tiling, migrate all window behaviors, define app lifecycle contract.
 - **Phase 3**: Build 5 new apps (Terminal, File Manager, Settings, System Monitor, Notes).
@@ -36,6 +37,7 @@ frontend/src/os/
 ```
 
 **Existing files modified:**
+
 - `App.jsx` — post-auth render delegates to `<Desktop />` instead of tab layout
 - `index.html` — add `<div id="modal-root"></div>` for portal targets
 - `KanbanBoard.jsx`, `MediaVault.jsx` — container query migration
@@ -80,18 +82,18 @@ Note: `snapped-left` and `snapped-right` states are defined in the schema for fo
 
 ### Actions
 
-| Action | Behavior |
-|---|---|
-| `openApp(appId)` | Looks up manifest in `appRegistry`. If `singleton: true` and window already exists for this `appId`, calls `focusWindow` (and `restoreWindow` if minimized). Otherwise, creates a new `WindowState` with bounded defaults: `width: Math.min(manifest.defaultSize.width, window.innerWidth * 0.8)`, same for height. Position cascaded from last opened window (+30px offset). Generates `windowId` as `appId` for singletons, `appId-${nanoid(6)}` for multi-instance. Pushes to `zStack`, sets as `activeWindowId`. |
-| `closeWindow(windowId)` | Removes from `windows` and `zStack`. If `windowId === activeWindowId`, sets `activeWindowId` to the new topmost window in `zStack` (or `null` if none remain). |
-| `focusWindow(windowId)` | Moves `windowId` to end of `zStack`. Sets `activeWindowId`. If minimized, calls `restoreWindow` first. |
-| `minimizeWindow(windowId)` | Sets `state` to `'minimized'`. If `windowId === activeWindowId`, focus passes to next topmost visible window. |
-| `maximizeWindow(windowId)` | Saves current `{position, size}` to `restoredRect`. Sets `state` to `'maximized'`. |
-| `restoreWindow(windowId)` | Restores `position` and `size` from `restoredRect`. Sets `state` to `'normal'`. |
-| `moveWindow(windowId, {x, y})` | Updates `position`. Clamped so at least 100px of the title bar remains within the desktop bounds (prevents losing windows off-screen). |
-| `resizeWindow(windowId, {width, height})` | Updates `size`. Clamped to `minSize` floor. |
-| `setMobile(bool)` | Sets `isMobile`. When `true`, all windows render full-screen; drag/resize is disabled. |
-| `toggleLauncher()` | Toggles `launcherOpen`. |
+| Action                                    | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `openApp(appId)`                          | Looks up manifest in `appRegistry`. If `singleton: true` and window already exists for this `appId`, calls `focusWindow` (and `restoreWindow` if minimized). Otherwise, creates a new `WindowState` with bounded defaults: `width: Math.min(manifest.defaultSize.width, window.innerWidth * 0.8)`, same for height. Position cascaded from last opened window (+30px offset). Generates `windowId` as `appId` for singletons, `appId-${nanoid(6)}` for multi-instance. Pushes to `zStack`, sets as `activeWindowId`. |
+| `closeWindow(windowId)`                   | Removes from `windows` and `zStack`. If `windowId === activeWindowId`, sets `activeWindowId` to the new topmost window in `zStack` (or `null` if none remain).                                                                                                                                                                                                                                                                                                                                                       |
+| `focusWindow(windowId)`                   | Moves `windowId` to end of `zStack`. Sets `activeWindowId`. If minimized, calls `restoreWindow` first.                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `minimizeWindow(windowId)`                | Sets `state` to `'minimized'`. If `windowId === activeWindowId`, focus passes to next topmost visible window.                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `maximizeWindow(windowId)`                | Saves current `{position, size}` to `restoredRect`. Sets `state` to `'maximized'`.                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `restoreWindow(windowId)`                 | Restores `position` and `size` from `restoredRect`. Sets `state` to `'normal'`.                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `moveWindow(windowId, {x, y})`            | Updates `position`. Clamped so at least 100px of the title bar remains within the desktop bounds (prevents losing windows off-screen).                                                                                                                                                                                                                                                                                                                                                                               |
+| `resizeWindow(windowId, {width, height})` | Updates `size`. Clamped to `minSize` floor.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `setMobile(bool)`                         | Sets `isMobile`. When `true`, all windows render full-screen; drag/resize is disabled.                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `toggleLauncher()`                        | Toggles `launcherOpen`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
 ### Z-Index Derivation
 
@@ -119,16 +121,16 @@ A static JS object (not a store). Each entry is an `AppManifest`:
 
 ### Registry entries
 
-| id | title | icon | singleton | defaultSize | minSize |
-|---|---|---|---|---|---|
-| `media` | Media Vault | `BookOpen` | yes | 1000 x 700 | 600 x 400 |
-| `email` | Email | `Mail` | yes | 1000 x 700 | 500 x 400 |
-| `chat` | AI Chat | `MessageSquare` | yes | 800 x 600 | 400 x 400 |
-| `terminal` | Terminal | `TerminalSquare` | no | 700 x 450 | 400 x 250 |
-| `files` | File Manager | `FolderOpen` | yes | 800 x 550 | 500 x 350 |
-| `settings` | Settings | `Settings` | yes | 600 x 500 | 450 x 400 |
-| `sysmon` | System Monitor | `Activity` | yes | 650 x 450 | 400 x 300 |
-| `notes` | Notes | `StickyNote` | no | 600 x 500 | 350 x 300 |
+| id         | title          | icon             | singleton | defaultSize | minSize   |
+| ---------- | -------------- | ---------------- | --------- | ----------- | --------- |
+| `media`    | Media Vault    | `BookOpen`       | yes       | 1000 x 700  | 600 x 400 |
+| `email`    | Email          | `Mail`           | yes       | 1000 x 700  | 500 x 400 |
+| `chat`     | AI Chat        | `MessageSquare`  | yes       | 800 x 600   | 400 x 400 |
+| `terminal` | Terminal       | `TerminalSquare` | no        | 700 x 450   | 400 x 250 |
+| `files`    | File Manager   | `FolderOpen`     | yes       | 800 x 550   | 500 x 350 |
+| `settings` | Settings       | `Settings`       | yes       | 600 x 500   | 450 x 400 |
+| `sysmon`   | System Monitor | `Activity`       | yes       | 650 x 450   | 400 x 300 |
+| `notes`    | Notes          | `StickyNote`     | no        | 600 x 500   | 350 x 300 |
 
 All 8 apps are registered. In Phase 1, only `media`, `email`, and `chat` have real components. The other 5 render a placeholder "Coming Soon" panel. Their `component` fields still use `React.lazy` so the code-split boundary is established from day one.
 
@@ -143,19 +145,22 @@ File: `frontend/src/os/components/Window.jsx`
 ### DOM Structure
 
 ```jsx
-<motion.div                              // positioned absolute, drag target
+<motion.div // positioned absolute, drag target
   style={{ x, y, width, height, zIndex }}
   drag
-  dragListener={false}                   // content drags don't move window
-  dragControls={dragControls}            // controlled from title bar
-  dragConstraints={desktopRef}           // passed from Desktop.jsx
-  onPointerDownCapture={() => focusWindow(windowId)}  // capture phase avoids stopPropagation issues
+  dragListener={false} // content drags don't move window
+  dragControls={dragControls} // controlled from title bar
+  dragConstraints={desktopRef} // passed from Desktop.jsx
+  onPointerDownCapture={() => focusWindow(windowId)} // capture phase avoids stopPropagation issues
 >
-  <div className="window-titlebar"
-       onPointerDown={(e) => dragControls.start(e)}   // title bar is the drag handle
-       onDoubleClick={toggleMaximize}                  // double-click = maximize/restore
+  <div
+    className="window-titlebar"
+    onPointerDown={(e) => dragControls.start(e)} // title bar is the drag handle
+    onDoubleClick={toggleMaximize} // double-click = maximize/restore
   >
-    <span><AppIcon /> {title}</span>
+    <span>
+      <AppIcon /> {title}
+    </span>
     <div>
       <button onClick={minimize}>—</button>
       <button onClick={toggleMaximize}>□</button>
@@ -163,8 +168,9 @@ File: `frontend/src/os/components/Window.jsx`
     </div>
   </div>
 
-  <div className="window-content"
-       style={{ containerType: 'inline-size' }}        // CSS container for @container queries
+  <div
+    className="window-content"
+    style={{ containerType: 'inline-size' }} // CSS container for @container queries
   >
     <Suspense fallback={<LoadingSpinner />}>
       <AppComponent windowId={windowId} isFocused={isFocused} />
@@ -189,16 +195,17 @@ Each handle is an invisible hit zone (8px wide/tall) positioned along the window
 
 ### State-Dependent Rendering
 
-| Window state | Behavior |
-|---|---|
-| `normal` | Free drag + resize. Position/size from store. |
-| `minimized` | Not rendered on desktop. Visible only as a taskbar tab. |
-| `maximized` | Position locks to `(0, 0)`. Size fills desktop area (viewport height minus taskbar 48px). Drag disabled. Resize disabled. Double-click title bar or click maximize button to restore. |
-| `snapped-left/right` | Phase 2 — not implemented. Falls back to `normal` if somehow set. |
+| Window state         | Behavior                                                                                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `normal`             | Free drag + resize. Position/size from store.                                                                                                                                         |
+| `minimized`          | Not rendered on desktop. Visible only as a taskbar tab.                                                                                                                               |
+| `maximized`          | Position locks to `(0, 0)`. Size fills desktop area (viewport height minus taskbar 48px). Drag disabled. Resize disabled. Double-click title bar or click maximize button to restore. |
+| `snapped-left/right` | Phase 2 — not implemented. Falls back to `normal` if somehow set.                                                                                                                     |
 
 ### Mobile Override
 
 When `isMobile` is `true`:
+
 - Window renders as `fixed inset-0` (full screen)
 - No drag, no resize, no resize handles
 - Title bar simplified: app icon + title + close button only (no min/max)
@@ -276,7 +283,7 @@ The root OS component. Rendered by `App.jsx` after successful authentication.
   <div className="wallpaper" />
 
   {/* Windows — only non-minimized, ordered by zStack */}
-  {visibleWindows.map(w => (
+  {visibleWindows.map((w) => (
     <Window key={w.windowId} {...w} desktopRef={desktopRef} />
   ))}
 
@@ -284,9 +291,7 @@ The root OS component. Rendered by `App.jsx` after successful authentication.
   <Taskbar />
 
   {/* App Launcher — conditional overlay */}
-  <AnimatePresence>
-    {launcherOpen && <AppLauncher />}
-  </AnimatePresence>
+  <AnimatePresence>{launcherOpen && <AppLauncher />}</AnimatePresence>
 </div>
 ```
 
@@ -321,21 +326,25 @@ Existing apps must respond to their window dimensions, not the browser viewport.
 ### Per-app changes
 
 **KanbanBoard.jsx:**
+
 - Remove `min-h-screen` or any viewport height classes from root
 - Root becomes `h-full w-full overflow-auto`
 - `md:grid-cols-3` → `@md:grid-cols-3` for column layout
 - `lg:grid-cols-3` → `@lg:grid-cols-3`
 
 **MediaVault.jsx:**
+
 - Same pattern: strip viewport heights, use `h-full`
 - Table/grid responsive breakpoints → container variants
 
 **EmailInbox.jsx:**
+
 - Root: `h-full` instead of `h-screen`
 - 3-pane layout sidebar visibility toggle: `md:block` → `@md:block`
 - Already uses flex, so width distribution should adapt naturally
 
 **ChatLayout.jsx:**
+
 - Root: `h-full` instead of any viewport height
 - Sidebar toggle breakpoint: `md:` → `@md:`
 
@@ -357,14 +366,14 @@ All existing modals and dialogs must use `createPortal` to render into a `#modal
 
 ### Files affected
 
-| Component | Current behavior | Change |
-|---|---|---|
-| `MediaDetailModal.jsx` | `fixed` overlay | Wrap return in `createPortal(jsx, document.getElementById('modal-root'))` |
-| `EditMediaDialog.jsx` | `fixed` overlay | Same portal wrapping |
-| `AddMediaDialog.jsx` | `fixed` overlay + FAB button | Portal the dialog overlay only; FAB stays inside the window |
-| `ConfirmDialog.jsx` | `fixed` overlay | Same portal wrapping |
-| `ComposeModal.jsx` | `fixed` overlay | Same portal wrapping |
-| `AICmdPalette.jsx` | `fixed` overlay | Same portal wrapping |
+| Component              | Current behavior             | Change                                                                    |
+| ---------------------- | ---------------------------- | ------------------------------------------------------------------------- |
+| `MediaDetailModal.jsx` | `fixed` overlay              | Wrap return in `createPortal(jsx, document.getElementById('modal-root'))` |
+| `EditMediaDialog.jsx`  | `fixed` overlay              | Same portal wrapping                                                      |
+| `AddMediaDialog.jsx`   | `fixed` overlay + FAB button | Portal the dialog overlay only; FAB stays inside the window               |
+| `ConfirmDialog.jsx`    | `fixed` overlay              | Same portal wrapping                                                      |
+| `ComposeModal.jsx`     | `fixed` overlay              | Same portal wrapping                                                      |
+| `AICmdPalette.jsx`     | `fixed` overlay              | Same portal wrapping                                                      |
 
 ### index.html change
 
@@ -380,10 +389,10 @@ Portal-rendered modals use z-index 1000+ to sit above all windows, taskbar, and 
 
 ### New
 
-| Package | Purpose |
-|---|---|
+| Package   | Purpose                                                                 |
+| --------- | ----------------------------------------------------------------------- |
 | `zustand` | Window manager state. Lightweight, no boilerplate, works with React 19. |
-| `nanoid` | Generate short unique IDs for multi-instance window IDs. |
+| `nanoid`  | Generate short unique IDs for multi-instance window IDs.                |
 
 ### Already installed (no changes)
 
@@ -444,6 +453,7 @@ Explicitly deferred to keep scope tight:
 ## 14. Rollback Plan
 
 If Phase 1 causes stability issues, `App.jsx` still has the auth check as the entry point. Reverting means:
+
 1. Restore the tab-based render in `App.jsx` (git revert the relevant commit)
 2. Remove `<Desktop />` render
 3. The existing apps are only modified with `h-full` and container queries — both are backward-compatible changes

@@ -1,7 +1,15 @@
 import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 
-export default function PasswordInput({ id, value, onChange, className, placeholder, autoComplete, ...props }) {
+export default function PasswordInput({
+  id,
+  value,
+  onChange,
+  className,
+  placeholder,
+  autoComplete,
+  ...props
+}) {
   const [visible, setVisible] = useState(false)
   return (
     <div className="relative">

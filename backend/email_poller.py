@@ -87,7 +87,7 @@ async def refresh_token_if_needed(account: dict, settings) -> str:
     provider_name = account.get("provider", "")
 
     if provider_name == "google":
-        token_url = "https://oauth2.googleapis.com/token"
+        token_url = "https://oauth2.googleapis.com/token"  # nosec B105
         payload = {
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
@@ -95,15 +95,13 @@ async def refresh_token_if_needed(account: dict, settings) -> str:
             "client_secret": settings.google_oauth_client_secret,
         }
     elif provider_name == "microsoft":
-        token_url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+        token_url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"  # nosec B105
         payload = {
             "grant_type": "refresh_token",
             "refresh_token": refresh_token,
             "client_id": settings.microsoft_oauth_client_id,
             "client_secret": settings.microsoft_oauth_client_secret,
-            "scope": (
-                "Mail.ReadWrite Mail.Send MailboxSettings.Read offline_access"
-            ),
+            "scope": ("Mail.ReadWrite Mail.Send MailboxSettings.Read offline_access"),
         }
     else:
         logger.warning("Unknown provider '%s', skipping token refresh", provider_name)
@@ -115,9 +113,7 @@ async def refresh_token_if_needed(account: dict, settings) -> str:
             resp.raise_for_status()
             token_data = resp.json()
     except Exception:
-        logger.exception(
-            "Token refresh failed for account %s", account.get("id")
-        )
+        logger.exception("Token refresh failed for account %s", account.get("id"))
         return access_token  # Best-effort: use existing token
 
     new_access_token = token_data.get("access_token", access_token)
@@ -210,9 +206,7 @@ async def sync_account(account: dict, settings) -> None:
             remote_ids.add(msg.provider_id)
             rows.append(msg.to_supabase_row())
         except Exception:
-            logger.exception(
-                "Failed to parse message for account %s", account_id
-            )
+            logger.exception("Failed to parse message for account %s", account_id)
 
     if rows:
         try:
@@ -221,9 +215,7 @@ async def sync_account(account: dict, settings) -> None:
                 rows, on_conflict="account_id,provider_id"
             ).execute()
         except Exception:
-            logger.exception(
-                "Failed to upsert messages for account %s", account_id
-            )
+            logger.exception("Failed to upsert messages for account %s", account_id)
 
     # Ghost detection
     try:
@@ -240,19 +232,13 @@ async def sync_account(account: dict, settings) -> None:
             logger.info(
                 "Detected %d ghost email(s) for account %s", len(ghosts), account_id
             )
-            db.postgrest.from_("email_messages").update(
-                {"folder": "deleted"}
-            ).in_("provider_id", list(ghosts)).eq(
-                "account_id", account_id
-            ).execute()
+            db.postgrest.from_("email_messages").update({"folder": "deleted"}).in_(
+                "provider_id", list(ghosts)
+            ).eq("account_id", account_id).execute()
     except Exception:
-        logger.exception(
-            "Ghost detection failed for account %s", account_id
-        )
+        logger.exception("Ghost detection failed for account %s", account_id)
 
-    logger.debug(
-        "Synced %d message(s) for account %s", len(rows), account_id
-    )
+    logger.debug("Synced %d message(s) for account %s", len(rows), account_id)
 
 
 # ---------------------------------------------------------------------------
@@ -282,9 +268,7 @@ async def poll_all_accounts() -> None:
         try:
             await sync_account(account, settings)
         except Exception:
-            logger.exception(
-                "Unexpected error syncing account %s", account.get("id")
-            )
+            logger.exception("Unexpected error syncing account %s", account.get("id"))
 
 
 async def _poller_loop(interval: int) -> None:
@@ -315,9 +299,7 @@ async def start_email_poller(app: "Litestar") -> None:
 
     settings = get_settings()
     if not settings.google_oauth_client_id and not settings.microsoft_oauth_client_id:
-        logger.info(
-            "Email poller disabled: no OAuth client IDs configured"
-        )
+        logger.info("Email poller disabled: no OAuth client IDs configured")
         return
 
     task = asyncio.create_task(

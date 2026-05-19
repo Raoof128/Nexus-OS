@@ -22,14 +22,12 @@ export function useChatSessions(userId) {
   })
 
   const createSession = useMutation({
-    mutationFn: (data) =>
-      apiFetch('/chat/sessions', { method: 'POST', body: data }),
+    mutationFn: (data) => apiFetch('/chat/sessions', { method: 'POST', body: data }),
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   })
 
   const deleteSession = useMutation({
-    mutationFn: (sessionId) =>
-      apiFetch(`/chat/sessions/${sessionId}`, { method: 'DELETE' }),
+    mutationFn: (sessionId) => apiFetch(`/chat/sessions/${sessionId}`, { method: 'DELETE' }),
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   })
 
@@ -81,7 +79,9 @@ export function useChatMessages(userId, sessionId) {
   })
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reset on session switch only, not on mutation identity change
-  useEffect(() => { sendMessage.reset() }, [sessionId])
+  useEffect(() => {
+    sendMessage.reset()
+  }, [sessionId])
 
   return {
     messages: messagesQuery.data ?? [],

@@ -15,9 +15,11 @@
 ## File Structure
 
 ### Database
+
 - Create: `supabase/migrations/20260410000001_email_inbox.sql`
 
 ### Backend
+
 - Create: `backend/email_schemas.py` — Pydantic models for email requests/responses
 - Create: `backend/email_service.py` — Provider abstraction, token management, unified model
 - Create: `backend/oauth_controller.py` — OAuth2 PKCE + state flow for Google/Microsoft
@@ -27,6 +29,7 @@
 - Modify: `backend/app.py` — Register controllers + poller startup hook
 
 ### Backend Tests
+
 - Create: `tests/test_email_schemas.py`
 - Create: `tests/test_email_service.py`
 - Create: `tests/test_oauth_controller.py`
@@ -34,6 +37,7 @@
 - Create: `tests/test_email_poller.py`
 
 ### Frontend
+
 - Create: `frontend/src/lib/emailConfig.js` — Folder icons, provider colors, config
 - Create: `frontend/src/hooks/useEmailAccounts.js` — Account CRUD hook
 - Create: `frontend/src/hooks/useEmails.js` — Email query + Realtime subscription
@@ -48,6 +52,7 @@
 - Modify: `frontend/src/App.jsx:228-295` — Add Email view rendering
 
 ### Frontend Tests
+
 - Create: `frontend/src/hooks/useEmails.test.js`
 - Create: `frontend/src/components/features/EmailInbox.test.jsx`
 
@@ -56,6 +61,7 @@
 ## Task 1: Database Migration
 
 **Files:**
+
 - Create: `supabase/migrations/20260410000001_email_inbox.sql`
 
 - [ ] **Step 1: Write the migration SQL**
@@ -173,6 +179,7 @@ git commit -m "feat(db): add email_accounts and nexus_emails tables with RLS, FT
 ## Task 2: Backend Config — OAuth Environment Variables
 
 **Files:**
+
 - Modify: `backend/config.py:24-57` (BackendSettings dataclass)
 - Modify: `backend/config.py:110-181` (get_settings function)
 
@@ -274,6 +281,7 @@ git commit -m "feat(config): add email OAuth env vars to BackendSettings"
 ## Task 3: Backend Schemas — Email Pydantic Models
 
 **Files:**
+
 - Create: `backend/email_schemas.py`
 - Create: `tests/test_email_schemas.py`
 
@@ -473,6 +481,7 @@ git commit -m "feat(schemas): add Pydantic models for email inbox"
 ## Task 4: Backend Email Service — Token Encryption + Provider Protocol
 
 **Files:**
+
 - Create: `backend/email_service.py`
 - Create: `tests/test_email_service.py`
 
@@ -818,6 +827,7 @@ git commit -m "feat(email): add email service with token encryption, unified mod
 ## Task 5: Backend Email Service — Gmail and Graph HTTP Clients
 
 **Files:**
+
 - Modify: `backend/email_service.py` (add GmailProvider and GraphProvider classes)
 - Modify: `tests/test_email_service.py` (add provider tests)
 
@@ -1159,6 +1169,7 @@ git commit -m "feat(email): add Gmail and Graph provider implementations"
 ## Task 6: Backend OAuth Controller
 
 **Files:**
+
 - Create: `backend/oauth_controller.py`
 - Create: `tests/test_oauth_controller.py`
 
@@ -1446,6 +1457,7 @@ git commit -m "feat(oauth): add PKCE + state OAuth controller for Google and Mic
 ## Task 7: Backend Email Controller
 
 **Files:**
+
 - Create: `backend/email_controller.py`
 - Create: `tests/test_email_controller.py`
 
@@ -1735,6 +1747,7 @@ git commit -m "feat(email): add email controller with all CRUD, AI, and HTML end
 ## Task 8: Backend Poller — Background Sync Worker
 
 **Files:**
+
 - Create: `backend/email_poller.py`
 - Create: `tests/test_email_poller.py`
 
@@ -1956,6 +1969,7 @@ git commit -m "feat(email): add background poller with ghost email detection"
 ## Task 9: Register Email Modules in app.py
 
 **Files:**
+
 - Modify: `backend/app.py:7-26` (imports)
 - Modify: `backend/app.py:56-62` (route handlers + on_startup)
 
@@ -1999,6 +2013,7 @@ git commit -m "feat(app): register email controllers and poller startup hook"
 ## Task 10: Frontend Email Config
 
 **Files:**
+
 - Create: `frontend/src/lib/emailConfig.js`
 
 - [ ] **Step 1: Write the config module**
@@ -2065,6 +2080,7 @@ git commit -m "feat(frontend): add email config with folder/provider mappings"
 ## Task 11: Frontend Hooks — useEmailAccounts, useEmails, useEmailActions
 
 **Files:**
+
 - Create: `frontend/src/hooks/useEmailAccounts.js`
 - Create: `frontend/src/hooks/useEmails.js`
 - Create: `frontend/src/hooks/useEmailActions.js`
@@ -2127,8 +2143,7 @@ export function useEmailAccounts(session) {
   })
 
   const disconnectMutation = useMutation({
-    mutationFn: (accountId) =>
-      apiFetch(`/api/email/accounts/${accountId}`, { method: 'DELETE' }),
+    mutationFn: (accountId) => apiFetch(`/api/email/accounts/${accountId}`, { method: 'DELETE' }),
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   })
 
@@ -2258,10 +2273,7 @@ export function useEmails(session, folder = 'inbox', accountId = null) {
       const { data, error } = await query
       if (error) throw new Error(error.message)
 
-      queryClient.setQueryData(queryKey, (current) => [
-        ...(current ?? []),
-        ...(data ?? []),
-      ])
+      queryClient.setQueryData(queryKey, (current) => [...(current ?? []), ...(data ?? [])])
     }
   }, [queryClient, queryKey, userId, folder, accountId])
 
@@ -2366,8 +2378,7 @@ export function useEmailActions(session, folder = 'inbox', accountId = null) {
 
   // NOT optimistic: send email (wait for 200 OK)
   const sendEmail = useMutation({
-    mutationFn: (data) =>
-      apiFetch('/api/email/send', { method: 'POST', body: data }),
+    mutationFn: (data) => apiFetch('/api/email/send', { method: 'POST', body: data }),
   })
 
   // NOT optimistic: reply
@@ -2384,14 +2395,12 @@ export function useEmailActions(session, folder = 'inbox', accountId = null) {
 
   // AI draft
   const aiDraft = useMutation({
-    mutationFn: (data) =>
-      apiFetch('/api/email/ai/draft', { method: 'POST', body: data }),
+    mutationFn: (data) => apiFetch('/api/email/ai/draft', { method: 'POST', body: data }),
   })
 
   // AI summarize
   const aiSummarize = useMutation({
-    mutationFn: (data) =>
-      apiFetch('/api/email/ai/summarize', { method: 'POST', body: data }),
+    mutationFn: (data) => apiFetch('/api/email/ai/summarize', { method: 'POST', body: data }),
   })
 
   return {
@@ -2426,6 +2435,7 @@ git commit -m "feat(frontend): add email hooks — accounts, Realtime reads, and
 ## Task 12: Frontend Components — FolderSidebar + EmailList
 
 **Files:**
+
 - Create: `frontend/src/components/features/FolderSidebar.jsx`
 - Create: `frontend/src/components/features/EmailList.jsx`
 
@@ -2437,12 +2447,21 @@ import { memo, useState } from 'react'
 import { EMAIL_FOLDERS, PROVIDER_CONFIG } from '../../lib/emailConfig'
 import { Plus } from 'lucide-react'
 
-function FolderSidebar({ accounts, activeFolder, activeAccountId, onFolderChange, onAccountChange, onConnectAccount }) {
+function FolderSidebar({
+  accounts,
+  activeFolder,
+  activeAccountId,
+  onFolderChange,
+  onAccountChange,
+  onConnectAccount,
+}) {
   return (
     <aside className="w-56 flex-shrink-0 border-r border-cyan-500/10 bg-zinc-950/50 flex flex-col overflow-y-auto">
       {/* Account Switcher */}
       <div className="p-3 border-b border-cyan-500/10">
-        <label className="text-[10px] uppercase tracking-widest text-cyan-500/60 font-medium">Account</label>
+        <label className="text-[10px] uppercase tracking-widest text-cyan-500/60 font-medium">
+          Account
+        </label>
         <select
           className="mt-1 w-full bg-zinc-900 border border-cyan-500/20 rounded px-2 py-1.5 text-sm text-zinc-200 focus:border-cyan-400 focus:outline-none"
           value={activeAccountId || 'all'}
@@ -2554,9 +2573,7 @@ function EmailList({ emails, selectedId, loading, onSelect, onToggleStar, onLoad
             key={email.id}
             layoutId={`email-${email.id}`}
             className={`w-full text-left px-3 py-2.5 border-b border-zinc-800/50 transition-colors ${
-              isSelected
-                ? 'bg-cyan-500/10 border-l-2 border-l-cyan-400'
-                : 'hover:bg-zinc-800/50'
+              isSelected ? 'bg-cyan-500/10 border-l-2 border-l-cyan-400' : 'hover:bg-zinc-800/50'
             } ${!email.is_read ? 'font-medium' : ''}`}
             onClick={() => onSelect(email.id)}
             role="option"
@@ -2565,19 +2582,21 @@ function EmailList({ emails, selectedId, loading, onSelect, onToggleStar, onLoad
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className={`text-sm truncate ${!email.is_read ? 'text-zinc-100' : 'text-zinc-400'}`}>
+                  <span
+                    className={`text-sm truncate ${!email.is_read ? 'text-zinc-100' : 'text-zinc-400'}`}
+                  >
                     {email.from_name || email.from_address}
                   </span>
                   {!email.is_read && (
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0" />
                   )}
                 </div>
-                <div className={`text-sm truncate ${!email.is_read ? 'text-zinc-200' : 'text-zinc-500'}`}>
+                <div
+                  className={`text-sm truncate ${!email.is_read ? 'text-zinc-200' : 'text-zinc-500'}`}
+                >
                   {email.subject}
                 </div>
-                <div className="text-xs text-zinc-600 truncate mt-0.5">
-                  {email.snippet}
-                </div>
+                <div className="text-xs text-zinc-600 truncate mt-0.5">{email.snippet}</div>
               </div>
               <div className="flex flex-col items-end gap-1 flex-shrink-0">
                 <span className="text-[10px] text-zinc-600">
@@ -2619,6 +2638,7 @@ git commit -m "feat(frontend): add FolderSidebar and EmailList components"
 ## Task 13: Frontend Components — EmailReader + EmailToolbar
 
 **Files:**
+
 - Create: `frontend/src/components/features/EmailReader.jsx`
 - Create: `frontend/src/components/features/EmailToolbar.jsx`
 
@@ -2714,9 +2734,7 @@ function EmailReader({ email, onArchive, onTrash, onToggleRead, onReply }) {
     FORBID_TAGS: showImages ? ['script', 'form'] : ['script', 'form', 'img'],
     FORBID_ATTR: ['onerror', 'onload', 'onmouseover', 'onclick'],
   }
-  const cleanHtml = htmlContent
-    ? DOMPurify.sanitize(htmlContent, sanitizeConfig)
-    : null
+  const cleanHtml = htmlContent ? DOMPurify.sanitize(htmlContent, sanitizeConfig) : null
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -2732,9 +2750,7 @@ function EmailReader({ email, onArchive, onTrash, onToggleRead, onReply }) {
       <div className="px-4 py-3 border-b border-zinc-800/50">
         <h2 className="text-lg font-semibold text-zinc-100">{email.subject}</h2>
         <div className="flex items-center gap-2 mt-1.5">
-          <span className="text-sm text-fuchsia-400">
-            {email.from_name || email.from_address}
-          </span>
+          <span className="text-sm text-fuchsia-400">{email.from_name || email.from_address}</span>
           <span className="text-xs text-zinc-600">&lt;{email.from_address}&gt;</span>
         </div>
         <div className="flex items-center gap-2 mt-1 text-xs text-zinc-600">
@@ -2794,6 +2810,7 @@ git commit -m "feat(frontend): add EmailReader with sandboxed HTML and EmailTool
 ## Task 14: Frontend Components — ComposeModal
 
 **Files:**
+
 - Create: `frontend/src/components/features/ComposeModal.jsx`
 
 - [ ] **Step 1: Write ComposeModal**
@@ -2814,11 +2831,21 @@ function ComposeModal({ isOpen, onClose, accounts, onSend, onAiDraft, isSending,
   const [aiLoading, setAiLoading] = useState(false)
 
   const handleSend = useCallback(async () => {
-    const recipients = toInput ? toInput.split(',').map((e) => e.trim()).filter(Boolean) : to
+    const recipients = toInput
+      ? toInput
+          .split(',')
+          .map((e) => e.trim())
+          .filter(Boolean)
+      : to
     await onSend({
       account_id: accountId,
       to: recipients,
-      cc: cc ? cc.split(',').map((e) => e.trim()).filter(Boolean) : [],
+      cc: cc
+        ? cc
+            .split(',')
+            .map((e) => e.trim())
+            .filter(Boolean)
+        : [],
       subject,
       body_html: bodyHtml || `<p>${bodyHtml}</p>`,
       in_reply_to: replyTo?.provider_id || null,
@@ -2858,9 +2885,7 @@ function ComposeModal({ isOpen, onClose, accounts, onSend, onAiDraft, isSending,
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-cyan-500/10">
-            <h3 className="text-sm font-medium text-zinc-200">
-              {replyTo ? 'Reply' : 'New Email'}
-            </h3>
+            <h3 className="text-sm font-medium text-zinc-200">{replyTo ? 'Reply' : 'New Email'}</h3>
             <button
               className="p-1 rounded text-zinc-500 hover:text-zinc-200 transition-colors"
               onClick={onClose}
@@ -2933,7 +2958,11 @@ function ComposeModal({ isOpen, onClose, accounts, onSend, onAiDraft, isSending,
                   disabled={aiLoading}
                   aria-label="AI draft reply"
                 >
-                  {aiLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                  {aiLoading ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={12} />
+                  )}
                   AI Draft
                 </button>
               )}
@@ -2978,6 +3007,7 @@ git commit -m "feat(frontend): add ComposeModal with AI draft button"
 ## Task 15: Frontend — EmailInbox Layout + App.jsx Integration
 
 **Files:**
+
 - Create: `frontend/src/components/features/EmailInbox.jsx`
 - Modify: `frontend/src/App.jsx:1-18` (imports)
 - Modify: `frontend/src/App.jsx:143-225` (tab navigation)
@@ -3006,18 +3036,25 @@ export default function EmailInbox() {
   const [replyTo, setReplyTo] = useState(null)
 
   const { accounts, loading: accountsLoading } = useEmailAccounts(session)
-  const { emails, loading: emailsLoading, loadMore } = useEmails(session, activeFolder, activeAccountId)
+  const {
+    emails,
+    loading: emailsLoading,
+    loadMore,
+  } = useEmails(session, activeFolder, activeAccountId)
   const actions = useEmailActions(session, activeFolder, activeAccountId)
 
   const selectedEmail = emails.find((e) => e.id === selectedEmailId) || null
 
-  const handleSelect = useCallback((id) => {
-    setSelectedEmailId(id)
-    const email = emails.find((e) => e.id === id)
-    if (email && !email.is_read) {
-      actions.markRead({ emailId: id, isRead: true })
-    }
-  }, [emails, actions])
+  const handleSelect = useCallback(
+    (id) => {
+      setSelectedEmailId(id)
+      const email = emails.find((e) => e.id === id)
+      if (email && !email.is_read) {
+        actions.markRead({ emailId: id, isRead: true })
+      }
+    },
+    [emails, actions],
+  )
 
   const handleReply = useCallback(() => {
     if (selectedEmail) {
@@ -3038,8 +3075,14 @@ export default function EmailInbox() {
         accounts={accounts}
         activeFolder={activeFolder}
         activeAccountId={activeAccountId}
-        onFolderChange={(f) => { setActiveFolder(f); setSelectedEmailId(null) }}
-        onAccountChange={(id) => { setActiveAccountId(id); setSelectedEmailId(null) }}
+        onFolderChange={(f) => {
+          setActiveFolder(f)
+          setSelectedEmailId(null)
+        }}
+        onAccountChange={(id) => {
+          setActiveAccountId(id)
+          setSelectedEmailId(null)
+        }}
         onConnectAccount={handleConnectAccount}
       />
 
@@ -3051,7 +3094,10 @@ export default function EmailInbox() {
           </span>
           <button
             className="px-2 py-1 rounded text-xs text-cyan-400 hover:bg-cyan-500/10 transition-colors"
-            onClick={() => { setReplyTo(null); setComposeOpen(true) }}
+            onClick={() => {
+              setReplyTo(null)
+              setComposeOpen(true)
+            }}
             aria-label="Compose new email"
           >
             Compose
@@ -3070,16 +3116,28 @@ export default function EmailInbox() {
       {/* Right: Email Reader */}
       <EmailReader
         email={selectedEmail}
-        onArchive={() => selectedEmail && actions.moveToFolder({ emailId: selectedEmail.id, targetFolder: 'archive' })}
-        onTrash={() => selectedEmail && actions.moveToFolder({ emailId: selectedEmail.id, targetFolder: 'trash' })}
-        onToggleRead={() => selectedEmail && actions.markRead({ emailId: selectedEmail.id, isRead: !selectedEmail.is_read })}
+        onArchive={() =>
+          selectedEmail &&
+          actions.moveToFolder({ emailId: selectedEmail.id, targetFolder: 'archive' })
+        }
+        onTrash={() =>
+          selectedEmail &&
+          actions.moveToFolder({ emailId: selectedEmail.id, targetFolder: 'trash' })
+        }
+        onToggleRead={() =>
+          selectedEmail &&
+          actions.markRead({ emailId: selectedEmail.id, isRead: !selectedEmail.is_read })
+        }
         onReply={handleReply}
       />
 
       {/* Compose Modal */}
       <ComposeModal
         isOpen={composeOpen}
-        onClose={() => { setComposeOpen(false); setReplyTo(null) }}
+        onClose={() => {
+          setComposeOpen(false)
+          setReplyTo(null)
+        }}
         accounts={accounts}
         onSend={actions.sendEmail}
         onAiDraft={actions.aiDraft}
@@ -3166,6 +3224,7 @@ git commit -m "feat(frontend): integrate EmailInbox as new tab in Nexus"
 ## Task 16: Frontend — EmailInbox Integration Test
 
 **Files:**
+
 - Create: `frontend/src/components/features/EmailInbox.test.jsx`
 
 - [ ] **Step 1: Write the integration test**
@@ -3183,7 +3242,9 @@ vi.mock('../../hooks/useAuth', () => ({
 
 vi.mock('../../hooks/useEmailAccounts', () => ({
   useEmailAccounts: () => ({
-    accounts: [{ id: 'acct-1', email_address: 'raoof@gmail.com', provider: 'google', status: 'connected' }],
+    accounts: [
+      { id: 'acct-1', email_address: 'raoof@gmail.com', provider: 'google', status: 'connected' },
+    ],
     loading: false,
     error: null,
   }),
@@ -3232,11 +3293,7 @@ import EmailInbox from './EmailInbox'
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
 
 function renderWithProviders(ui) {
-  return render(
-    <QueryClientProvider client={queryClient}>
-      {ui}
-    </QueryClientProvider>,
-  )
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>)
 }
 
 describe('EmailInbox', () => {
@@ -3283,6 +3340,7 @@ git commit -m "test(frontend): add EmailInbox integration test"
 ## Task 17: Add httpx Dependency + Final Verification
 
 **Files:**
+
 - Modify: `pyproject.toml` (add httpx to dependencies)
 
 - [ ] **Step 1: Add httpx to pyproject.toml**

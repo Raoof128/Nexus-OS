@@ -11,7 +11,9 @@ function LoadingDialog() {
       <div className="neon-border fixed left-1/2 top-1/2 z-[1001] flex w-full max-w-md -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl glass-panel p-10 shadow-[0_0_60px_hsl(var(--neon-yellow)/0.08)]">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <span className="heading-display text-[10px] tracking-[0.3em] text-primary/50">Loading Module</span>
+          <span className="heading-display text-[10px] tracking-[0.3em] text-primary/50">
+            Loading Module
+          </span>
         </div>
       </div>
     </>

@@ -38,12 +38,14 @@ vi.mock('../../stores/appRegistry', () => ({
 import useGlobalShortcuts from '../useGlobalShortcuts'
 
 function fireAltKey(key) {
-  document.dispatchEvent(new KeyboardEvent('keydown', {
-    key,
-    altKey: true,
-    bubbles: true,
-    cancelable: true,
-  }))
+  document.dispatchEvent(
+    new KeyboardEvent('keydown', {
+      key,
+      altKey: true,
+      bubbles: true,
+      cancelable: true,
+    }),
+  )
 }
 
 describe('useGlobalShortcuts', () => {

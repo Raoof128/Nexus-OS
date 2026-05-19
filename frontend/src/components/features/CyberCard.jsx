@@ -67,7 +67,10 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
 
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex justify-between items-start mb-3">
-          <Icon className="h-5 w-5 text-primary drop-shadow-[0_0_8px_hsl(var(--neon-yellow)/0.8)] sm:h-6 sm:w-6" aria-hidden="true" />
+          <Icon
+            className="h-5 w-5 text-primary drop-shadow-[0_0_8px_hsl(var(--neon-yellow)/0.8)] sm:h-6 sm:w-6"
+            aria-hidden="true"
+          />
           <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-mono font-medium text-primary sm:text-xs">
             {item.status}
           </span>
@@ -151,14 +154,16 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
   )
 }
 
-export default memo(CyberCard, (prev, next) =>
-  prev.item.id === next.item.id &&
-  prev.item.status === next.item.status &&
-  prev.item.title === next.item.title &&
-  prev.item.creator === next.item.creator &&
-  prev.item.genre === next.item.genre &&
-  prev.item.rating === next.item.rating &&
-  prev.item.takeaway === next.item.takeaway &&
-  prev.item.sub_info === next.item.sub_info &&
-  prev.item.type === next.item.type
+export default memo(
+  CyberCard,
+  (prev, next) =>
+    prev.item.id === next.item.id &&
+    prev.item.status === next.item.status &&
+    prev.item.title === next.item.title &&
+    prev.item.creator === next.item.creator &&
+    prev.item.genre === next.item.genre &&
+    prev.item.rating === next.item.rating &&
+    prev.item.takeaway === next.item.takeaway &&
+    prev.item.sub_info === next.item.sub_info &&
+    prev.item.type === next.item.type,
 )

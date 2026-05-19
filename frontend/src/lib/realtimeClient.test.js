@@ -21,7 +21,7 @@ describe('realtimeClient', () => {
         realtime: expect.objectContaining({
           params: expect.objectContaining({ eventsPerSecond: 10 }),
         }),
-      })
+      }),
     )
   })
 })

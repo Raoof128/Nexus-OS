@@ -26,9 +26,7 @@ export default function Desktop() {
 
   // ── Boot state ────────────────────────────────────────────
   // Skip boot animation if already shown this browser session
-  const [booted, setBooted] = useState(
-    () => sessionStorage.getItem(BOOT_SESSION_KEY) === '1'
-  )
+  const [booted, setBooted] = useState(() => sessionStorage.getItem(BOOT_SESSION_KEY) === '1')
 
   const handleBootComplete = useCallback(() => {
     sessionStorage.setItem(BOOT_SESSION_KEY, '1')
@@ -46,9 +44,7 @@ export default function Desktop() {
       const active = document.activeElement
       if (
         active &&
-        (active.tagName === 'INPUT' ||
-          active.tagName === 'TEXTAREA' ||
-          active.isContentEditable)
+        (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)
       ) {
         resetIdleTimer()
         return
@@ -111,7 +107,7 @@ export default function Desktop() {
         type: 'success',
       })
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useGlobalShortcuts()
@@ -129,9 +125,7 @@ export default function Desktop() {
     setContextMenu(null)
   }, [])
 
-  const visibleWindows = zStack
-    .map((id) => windows[id])
-    .filter((w) => w && w.state !== 'minimized')
+  const visibleWindows = zStack.map((id) => windows[id]).filter((w) => w && w.state !== 'minimized')
 
   return (
     <>
@@ -150,11 +144,7 @@ export default function Desktop() {
         <div className="pointer-events-none absolute inset-0 -z-1 bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
         {/* Work area — takes all space above the taskbar */}
-        <div
-          ref={desktopRef}
-          data-testid="desktop"
-          className="relative flex-1 overflow-hidden"
-        >
+        <div ref={desktopRef} data-testid="desktop" className="relative flex-1 overflow-hidden">
           {/* Desktop icons — behind all windows */}
           <DesktopIcons />
 
@@ -213,21 +203,13 @@ export default function Desktop() {
         {/* Overlays — these use fixed/absolute positioning above everything */}
         {!locked && <NotificationToast />}
 
-        <AnimatePresence>
-          {launcherOpen && <AppLauncher />}
-        </AnimatePresence>
+        <AnimatePresence>{launcherOpen && <AppLauncher />}</AnimatePresence>
 
         {contextMenu && (
-          <ContextMenu
-            x={contextMenu.x}
-            y={contextMenu.y}
-            onClose={closeContextMenu}
-          />
+          <ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={closeContextMenu} />
         )}
 
-        {locked && (
-          <LockScreen onUnlock={() => setLocked(false)} />
-        )}
+        {locked && <LockScreen onUnlock={() => setLocked(false)} />}
       </div>
     </>
   )

@@ -18,10 +18,10 @@ from backend.email_service import (
     get_provider,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _b64url(text: str) -> str:
     """Encode text as base64url (no padding) for Gmail payload stubs."""
@@ -93,6 +93,7 @@ def _graph_payload(
 # 1. Token encryption round-trip
 # ---------------------------------------------------------------------------
 
+
 class TestTokenEncryption:
     def test_round_trip(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Encrypting then decrypting an OAuth token returns the original value."""
@@ -120,12 +121,11 @@ class TestTokenEncryption:
 # 2. EmailMessage.from_gmail
 # ---------------------------------------------------------------------------
 
+
 class TestEmailMessageFromGmail:
     def test_basic_parsing(self) -> None:
         payload = _gmail_payload()
-        msg = EmailMessage.from_gmail(
-            payload, account_id="acc-1", user_id="user-1"
-        )
+        msg = EmailMessage.from_gmail(payload, account_id="acc-1", user_id="user-1")
         assert msg.provider_id == "msg-001"
         assert msg.thread_id == "thread-001"
         assert msg.from_address == "alice@example.com"
@@ -183,12 +183,11 @@ class TestEmailMessageFromGmail:
 # 3. EmailMessage.from_graph
 # ---------------------------------------------------------------------------
 
+
 class TestEmailMessageFromGraph:
     def test_basic_parsing(self) -> None:
         payload = _graph_payload()
-        msg = EmailMessage.from_graph(
-            payload, account_id="acc-2", user_id="user-2"
-        )
+        msg = EmailMessage.from_graph(payload, account_id="acc-2", user_id="user-2")
         assert msg.provider_id == "graph-001"
         assert msg.thread_id == "conv-001"
         assert msg.from_address == "alice@example.com"
@@ -229,14 +228,13 @@ class TestEmailMessageFromGraph:
 # 4. GmailProvider.fetch_message_ids — URL check (mocked httpx)
 # ---------------------------------------------------------------------------
 
+
 class TestGmailProviderFetchMessageIds:
     @pytest.mark.asyncio
     async def test_hits_correct_url(self) -> None:
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
-        mock_response.json.return_value = {
-            "messages": [{"id": "abc"}, {"id": "def"}]
-        }
+        mock_response.json.return_value = {"messages": [{"id": "abc"}, {"id": "def"}]}
 
         mock_client = AsyncMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -259,14 +257,13 @@ class TestGmailProviderFetchMessageIds:
 # 5. GraphProvider.fetch_message_ids — URL check (mocked httpx)
 # ---------------------------------------------------------------------------
 
+
 class TestGraphProviderFetchMessageIds:
     @pytest.mark.asyncio
     async def test_hits_correct_url(self) -> None:
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
-        mock_response.json.return_value = {
-            "value": [{"id": "graph-id-1"}]
-        }
+        mock_response.json.return_value = {"value": [{"id": "graph-id-1"}]}
 
         mock_client = AsyncMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -288,6 +285,7 @@ class TestGraphProviderFetchMessageIds:
 # ---------------------------------------------------------------------------
 # 6. Factory function
 # ---------------------------------------------------------------------------
+
 
 class TestGetProvider:
     def test_returns_gmail_provider(self) -> None:

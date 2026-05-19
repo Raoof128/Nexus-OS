@@ -14,44 +14,45 @@
 
 ### New files
 
-| File | Responsibility |
-|---|---|
-| `frontend/src/os/stores/windowStore.js` | Zustand kernel — window state, z-stack, focus, mobile detection |
-| `frontend/src/os/stores/appRegistry.js` | Static app manifest definitions (id, icon, singleton, sizes, lazy component) |
-| `frontend/src/os/Desktop.jsx` | Root OS component — renders wallpaper, windows, taskbar, launcher |
-| `frontend/src/os/components/Window.jsx` | Draggable/resizable window frame with title bar, resize handles, container query wrapper |
-| `frontend/src/os/components/Taskbar.jsx` | Bottom bar — launcher button, open app tabs, system tray |
-| `frontend/src/os/components/AppLauncher.jsx` | Start menu grid of app icons |
-| `frontend/src/os/components/PlaceholderApp.jsx` | "Coming Soon" placeholder for unbuilt apps |
-| `frontend/src/os/stores/__tests__/windowStore.test.js` | Unit tests for window store |
-| `frontend/src/os/components/__tests__/Window.test.jsx` | Component tests for Window |
-| `frontend/src/os/components/__tests__/Taskbar.test.jsx` | Component tests for Taskbar |
-| `frontend/src/os/components/__tests__/AppLauncher.test.jsx` | Component tests for AppLauncher |
-| `frontend/src/os/components/__tests__/Desktop.test.jsx` | Component tests for Desktop |
+| File                                                        | Responsibility                                                                           |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `frontend/src/os/stores/windowStore.js`                     | Zustand kernel — window state, z-stack, focus, mobile detection                          |
+| `frontend/src/os/stores/appRegistry.js`                     | Static app manifest definitions (id, icon, singleton, sizes, lazy component)             |
+| `frontend/src/os/Desktop.jsx`                               | Root OS component — renders wallpaper, windows, taskbar, launcher                        |
+| `frontend/src/os/components/Window.jsx`                     | Draggable/resizable window frame with title bar, resize handles, container query wrapper |
+| `frontend/src/os/components/Taskbar.jsx`                    | Bottom bar — launcher button, open app tabs, system tray                                 |
+| `frontend/src/os/components/AppLauncher.jsx`                | Start menu grid of app icons                                                             |
+| `frontend/src/os/components/PlaceholderApp.jsx`             | "Coming Soon" placeholder for unbuilt apps                                               |
+| `frontend/src/os/stores/__tests__/windowStore.test.js`      | Unit tests for window store                                                              |
+| `frontend/src/os/components/__tests__/Window.test.jsx`      | Component tests for Window                                                               |
+| `frontend/src/os/components/__tests__/Taskbar.test.jsx`     | Component tests for Taskbar                                                              |
+| `frontend/src/os/components/__tests__/AppLauncher.test.jsx` | Component tests for AppLauncher                                                          |
+| `frontend/src/os/components/__tests__/Desktop.test.jsx`     | Component tests for Desktop                                                              |
 
 ### Modified files
 
-| File | Change |
-|---|---|
-| `frontend/index.html` | Add `<div id="modal-root"></div>` |
-| `frontend/package.json` | Add `zustand` and `nanoid` dependencies |
-| `frontend/src/App.jsx` | Post-auth render delegates to `<Desktop />` |
-| `frontend/src/components/features/KanbanBoard.jsx` | Container query migration (`h-full`, `@md:`, `@lg:`) |
-| `frontend/src/components/features/MediaVault.jsx` | Container query migration |
-| `frontend/src/components/features/EmailInbox.jsx` | Container query migration |
-| `frontend/src/components/features/ChatLayout.jsx` | Container query migration |
-| `frontend/src/components/features/MediaDetailModal.jsx` | Portal to `#modal-root` |
-| `frontend/src/components/features/EditMediaDialog.jsx` | Portal to `#modal-root` |
-| `frontend/src/components/features/AddMediaDialog.jsx` | Portal dialog overlay to `#modal-root` |
-| `frontend/src/components/features/ComposeModal.jsx` | Portal to `#modal-root` |
-| `frontend/src/components/features/AICmdPalette.jsx` | Portal to `#modal-root` |
-| `frontend/vite.config.js` | Add `zustand` to manual chunks |
+| File                                                    | Change                                               |
+| ------------------------------------------------------- | ---------------------------------------------------- |
+| `frontend/index.html`                                   | Add `<div id="modal-root"></div>`                    |
+| `frontend/package.json`                                 | Add `zustand` and `nanoid` dependencies              |
+| `frontend/src/App.jsx`                                  | Post-auth render delegates to `<Desktop />`          |
+| `frontend/src/components/features/KanbanBoard.jsx`      | Container query migration (`h-full`, `@md:`, `@lg:`) |
+| `frontend/src/components/features/MediaVault.jsx`       | Container query migration                            |
+| `frontend/src/components/features/EmailInbox.jsx`       | Container query migration                            |
+| `frontend/src/components/features/ChatLayout.jsx`       | Container query migration                            |
+| `frontend/src/components/features/MediaDetailModal.jsx` | Portal to `#modal-root`                              |
+| `frontend/src/components/features/EditMediaDialog.jsx`  | Portal to `#modal-root`                              |
+| `frontend/src/components/features/AddMediaDialog.jsx`   | Portal dialog overlay to `#modal-root`               |
+| `frontend/src/components/features/ComposeModal.jsx`     | Portal to `#modal-root`                              |
+| `frontend/src/components/features/AICmdPalette.jsx`     | Portal to `#modal-root`                              |
+| `frontend/vite.config.js`                               | Add `zustand` to manual chunks                       |
 
 ---
 
 ## Task 1: Install dependencies and add modal-root
 
 **Files:**
+
 - Modify: `frontend/package.json`
 - Modify: `frontend/index.html`
 - Modify: `frontend/vite.config.js`
@@ -67,9 +68,9 @@ cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm install zustand nanoid
 In `frontend/index.html`, add `<div id="modal-root"></div>` after the existing `<div id="root"></div>`:
 
 ```html
-    <div id="root"></div>
-    <div id="modal-root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+<div id="root"></div>
+<div id="modal-root"></div>
+<script type="module" src="/src/main.jsx"></script>
 ```
 
 - [ ] **Step 3: Add zustand to Vite manual chunks**
@@ -105,6 +106,7 @@ git commit -m "chore: add zustand, nanoid deps and modal-root div for OS shell"
 ## Task 2: Window Store (Zustand kernel)
 
 **Files:**
+
 - Create: `frontend/src/os/stores/windowStore.js`
 - Create: `frontend/src/os/stores/__tests__/windowStore.test.js`
 
@@ -177,7 +179,7 @@ describe('windowStore', () => {
       window.innerHeight = 600
       useWindowStore.getState().openApp('media')
       const w = useWindowStore.getState().windows.media
-      expect(w.size.width).toBe(640)  // 800 * 0.8
+      expect(w.size.width).toBe(640) // 800 * 0.8
       expect(w.size.height).toBe(480) // 600 * 0.8
       window.innerWidth = 1440
       window.innerHeight = 900
@@ -191,7 +193,9 @@ describe('windowStore', () => {
       openApp('media') // should focus, not create new
       expect(Object.keys(useWindowStore.getState().windows)).toHaveLength(2)
       expect(useWindowStore.getState().activeWindowId).toBe('media')
-      expect(useWindowStore.getState().zStack[useWindowStore.getState().zStack.length - 1]).toBe('media')
+      expect(useWindowStore.getState().zStack[useWindowStore.getState().zStack.length - 1]).toBe(
+        'media',
+      )
     })
 
     it('creates multiple windows for non-singleton apps', () => {
@@ -635,6 +639,7 @@ git commit -m "feat: add Zustand window store (OS kernel) with full test coverag
 ## Task 3: App Registry
 
 **Files:**
+
 - Create: `frontend/src/os/stores/appRegistry.js`
 - Create: `frontend/src/os/components/PlaceholderApp.jsx`
 
@@ -649,9 +654,7 @@ export default function PlaceholderApp({ appId }) {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-4 p-8">
       <Construction size={48} className="text-primary/30" />
-      <p className="heading-display text-sm tracking-[0.2em] text-primary/50">
-        Coming Soon
-      </p>
+      <p className="heading-display text-sm tracking-[0.2em] text-primary/50">Coming Soon</p>
       <p className="font-mono text-xs text-muted-foreground/50">
         {appId}::init() — awaiting deployment
       </p>
@@ -761,7 +764,16 @@ export const APP_REGISTRY = {
 }
 
 /** Ordered list of app IDs for the launcher grid */
-export const APP_ORDER = ['media', 'email', 'chat', 'terminal', 'files', 'settings', 'sysmon', 'notes']
+export const APP_ORDER = [
+  'media',
+  'email',
+  'chat',
+  'terminal',
+  'files',
+  'settings',
+  'sysmon',
+  'notes',
+]
 ```
 
 Note: `MediaApp` doesn't exist yet — it will be created in Task 6 as a wrapper that extracts the media-specific logic from `App.jsx` into its own windowed component. For now, the registry references it so the architecture is correct. The test runner won't load this module until Task 6.
@@ -778,6 +790,7 @@ git commit -m "feat: add app registry with 8 manifests and placeholder component
 ## Task 4: Window Component
 
 **Files:**
+
 - Create: `frontend/src/os/components/Window.jsx`
 - Create: `frontend/src/os/components/__tests__/Window.test.jsx`
 
@@ -793,7 +806,12 @@ import { render, screen, fireEvent } from '@testing-library/react'
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, onPointerDownCapture, style, ...rest }) => (
-      <div data-testid="window-frame" onPointerDownCapture={onPointerDownCapture} style={style} {...rest}>
+      <div
+        data-testid="window-frame"
+        onPointerDownCapture={onPointerDownCapture}
+        style={style}
+        {...rest}
+      >
         {children}
       </div>
     ),
@@ -916,13 +934,24 @@ function ResizeHandle({ direction, windowId, position, size, minSize }) {
   const startRef = useRef(null)
 
   const cursorMap = {
-    n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize',
-    ne: 'nesw-resize', nw: 'nwse-resize', se: 'nwse-resize', sw: 'nesw-resize',
+    n: 'ns-resize',
+    s: 'ns-resize',
+    e: 'ew-resize',
+    w: 'ew-resize',
+    ne: 'nesw-resize',
+    nw: 'nwse-resize',
+    se: 'nwse-resize',
+    sw: 'nesw-resize',
   }
 
   const positionStyles = {
     n: { top: 0, left: RESIZE_HANDLE_SIZE, right: RESIZE_HANDLE_SIZE, height: RESIZE_HANDLE_SIZE },
-    s: { bottom: 0, left: RESIZE_HANDLE_SIZE, right: RESIZE_HANDLE_SIZE, height: RESIZE_HANDLE_SIZE },
+    s: {
+      bottom: 0,
+      left: RESIZE_HANDLE_SIZE,
+      right: RESIZE_HANDLE_SIZE,
+      height: RESIZE_HANDLE_SIZE,
+    },
     e: { right: 0, top: RESIZE_HANDLE_SIZE, bottom: RESIZE_HANDLE_SIZE, width: RESIZE_HANDLE_SIZE },
     w: { left: 0, top: RESIZE_HANDLE_SIZE, bottom: RESIZE_HANDLE_SIZE, width: RESIZE_HANDLE_SIZE },
     ne: { top: 0, right: 0, width: RESIZE_HANDLE_SIZE, height: RESIZE_HANDLE_SIZE },
@@ -931,41 +960,50 @@ function ResizeHandle({ direction, windowId, position, size, minSize }) {
     sw: { bottom: 0, left: 0, width: RESIZE_HANDLE_SIZE, height: RESIZE_HANDLE_SIZE },
   }
 
-  const handlePointerDown = useCallback((e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    startRef.current = { x: e.clientX, y: e.clientY, ...position, ...size }
-    const target = e.currentTarget
-    target.setPointerCapture(e.pointerId)
-  }, [position, size])
+  const handlePointerDown = useCallback(
+    (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      startRef.current = { x: e.clientX, y: e.clientY, ...position, ...size }
+      const target = e.currentTarget
+      target.setPointerCapture(e.pointerId)
+    },
+    [position, size],
+  )
 
-  const handlePointerMove = useCallback((e) => {
-    if (!startRef.current) return
-    const s = startRef.current
-    const dx = e.clientX - s.x
-    const dy = e.clientY - s.y
+  const handlePointerMove = useCallback(
+    (e) => {
+      if (!startRef.current) return
+      const s = startRef.current
+      const dx = e.clientX - s.x
+      const dy = e.clientY - s.y
 
-    let newX = s.x, newY = s.y, newW = s.width, newH = s.height
-    // Keep variable names as position coords
-    newX = position.x
-    newY = position.y
+      let newX = s.x,
+        newY = s.y,
+        newW = s.width,
+        newH = s.height
+      // Keep variable names as position coords
+      newX = position.x
+      newY = position.y
 
-    if (direction.includes('e')) newW = Math.max(minSize.width, s.width + dx)
-    if (direction.includes('w')) {
-      newW = Math.max(minSize.width, s.width - dx)
-      newX = s.x + s.width - newW // s.x here is the original position.x
-    }
-    if (direction.includes('s')) newH = Math.max(minSize.height, s.height + dy)
-    if (direction.includes('n')) {
-      newH = Math.max(minSize.height, s.height - dy)
-      newY = s.y + s.height - newH // s.y here is the original position.y
-    }
+      if (direction.includes('e')) newW = Math.max(minSize.width, s.width + dx)
+      if (direction.includes('w')) {
+        newW = Math.max(minSize.width, s.width - dx)
+        newX = s.x + s.width - newW // s.x here is the original position.x
+      }
+      if (direction.includes('s')) newH = Math.max(minSize.height, s.height + dy)
+      if (direction.includes('n')) {
+        newH = Math.max(minSize.height, s.height - dy)
+        newY = s.y + s.height - newH // s.y here is the original position.y
+      }
 
-    resizeWindow(windowId, { width: newW, height: newH })
-    if (direction.includes('w') || direction.includes('n')) {
-      moveWindow(windowId, { x: newX, y: newY })
-    }
-  }, [direction, windowId, position, size, minSize, resizeWindow, moveWindow])
+      resizeWindow(windowId, { width: newW, height: newH })
+      if (direction.includes('w') || direction.includes('n')) {
+        moveWindow(windowId, { x: newX, y: newY })
+      }
+    },
+    [direction, windowId, position, size, minSize, resizeWindow, moveWindow],
+  )
 
   const handlePointerUp = useCallback(() => {
     startRef.current = null
@@ -1014,12 +1052,15 @@ function Window({
   const isMaximized = windowState === 'maximized'
   const AppIcon = APP_REGISTRY[appId]?.icon
 
-  const handleDragEnd = useCallback((_e, info) => {
-    moveWindow(windowId, {
-      x: position.x + info.offset.x,
-      y: position.y + info.offset.y,
-    })
-  }, [windowId, position, moveWindow])
+  const handleDragEnd = useCallback(
+    (_e, info) => {
+      moveWindow(windowId, {
+        x: position.x + info.offset.x,
+        y: position.y + info.offset.y,
+      })
+    },
+    [windowId, position, moveWindow],
+  )
 
   const toggleMaximize = useCallback(() => {
     if (isMaximized) {
@@ -1097,12 +1138,12 @@ function Window({
 
       {/* Title bar */}
       <div
-        onPointerDown={(e) => { if (!isMaximized) dragControls.start(e) }}
+        onPointerDown={(e) => {
+          if (!isMaximized) dragControls.start(e)
+        }}
         onDoubleClick={toggleMaximize}
         className={`glass-panel flex h-9 shrink-0 cursor-grab items-center justify-between border-b px-3 select-none active:cursor-grabbing ${
-          isFocused
-            ? 'border-b-cyan-500/15'
-            : 'border-b-white/[0.04] opacity-60'
+          isFocused ? 'border-b-cyan-500/15' : 'border-b-white/[0.04] opacity-60'
         }`}
         style={{
           borderImage: isFocused
@@ -1145,24 +1186,22 @@ function Window({
       </div>
 
       {/* Content area — container query context */}
-      <div
-        className="flex-1 overflow-hidden bg-[#0a0a0a]"
-        style={{ containerType: 'inline-size' }}
-      >
+      <div className="flex-1 overflow-hidden bg-[#0a0a0a]" style={{ containerType: 'inline-size' }}>
         {children}
       </div>
 
       {/* Resize handles (only when not maximized) */}
-      {!isMaximized && RESIZE_DIRECTIONS.map((dir) => (
-        <ResizeHandle
-          key={dir}
-          direction={dir}
-          windowId={windowId}
-          position={position}
-          size={size}
-          minSize={minSize}
-        />
-      ))}
+      {!isMaximized &&
+        RESIZE_DIRECTIONS.map((dir) => (
+          <ResizeHandle
+            key={dir}
+            direction={dir}
+            windowId={windowId}
+            position={position}
+            size={size}
+            minSize={minSize}
+          />
+        ))}
     </Motion.div>
   )
 }
@@ -1190,6 +1229,7 @@ git commit -m "feat: add Window component with drag, resize, maximize, and mobil
 ## Task 5: Taskbar and App Launcher
 
 **Files:**
+
 - Create: `frontend/src/os/components/Taskbar.jsx`
 - Create: `frontend/src/os/components/AppLauncher.jsx`
 - Create: `frontend/src/os/components/__tests__/Taskbar.test.jsx`
@@ -1227,7 +1267,11 @@ vi.mock('../../stores/windowStore', () => ({
 
 vi.mock('../../stores/appRegistry', () => ({
   APP_REGISTRY: {
-    media: { id: 'media', title: 'Media Vault', icon: () => <span data-testid="icon-media">M</span> },
+    media: {
+      id: 'media',
+      title: 'Media Vault',
+      icon: () => <span data-testid="icon-media">M</span>,
+    },
     chat: { id: 'chat', title: 'AI Chat', icon: () => <span data-testid="icon-chat">C</span> },
   },
 }))
@@ -1311,7 +1355,11 @@ vi.mock('../../stores/appRegistry', () => ({
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, onClick, ...rest }) => <div onClick={onClick} {...rest}>{children}</div>,
+    div: ({ children, onClick, ...rest }) => (
+      <div onClick={onClick} {...rest}>
+        {children}
+      </div>
+    ),
   },
 }))
 
@@ -1375,9 +1423,7 @@ function Clock() {
     return () => clearInterval(interval)
   }, [])
 
-  return (
-    <span className="heading-ui text-[10px] font-semibold text-white/60">{time}</span>
-  )
+  return <span className="heading-ui text-[10px] font-semibold text-white/60">{time}</span>
 }
 
 function Taskbar() {
@@ -1389,9 +1435,7 @@ function Taskbar() {
   const toggleLauncher = useWindowStore((s) => s.toggleLauncher)
 
   // Build ordered list of window entries for tabs
-  const windowEntries = zStack
-    .map((id) => windows[id])
-    .filter(Boolean)
+  const windowEntries = zStack.map((id) => windows[id]).filter(Boolean)
 
   if (isMobile) {
     // Mobile dock: icon-only
@@ -1489,7 +1533,10 @@ function Taskbar() {
       {/* System tray */}
       <div className="ml-3 flex items-center gap-3" data-testid="system-tray">
         {/* Connection indicator */}
-        <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.5)]" title="Connected" />
+        <div
+          className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.5)]"
+          title="Connected"
+        />
         <Clock />
       </div>
     </nav>
@@ -1555,7 +1602,10 @@ function AppLauncher() {
                 className="group flex flex-col items-center gap-2 rounded-xl p-3 transition-all hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(0,255,255,0.05)] sm:p-4"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06] transition-all group-hover:bg-primary/10 group-hover:ring-primary/20 group-hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.15)]">
-                  <Icon size={20} className="text-muted-foreground transition-colors group-hover:text-primary" />
+                  <Icon
+                    size={20}
+                    className="text-muted-foreground transition-colors group-hover:text-primary"
+                  />
                 </div>
                 <span className="heading-ui text-[9px] font-semibold text-muted-foreground transition-colors group-hover:text-white sm:text-[10px]">
                   {manifest.title}
@@ -1592,6 +1642,7 @@ git commit -m "feat: add Taskbar and AppLauncher components with cyberpunk styli
 ## Task 6: MediaApp wrapper and Desktop component
 
 **Files:**
+
 - Create: `frontend/src/components/features/MediaApp.jsx`
 - Create: `frontend/src/os/Desktop.jsx`
 - Create: `frontend/src/os/components/__tests__/Desktop.test.jsx`
@@ -1620,13 +1671,20 @@ const EditMediaDialog = lazy(() => import('./EditMediaDialog'))
 export default function MediaApp() {
   const { session } = useAuth()
   const [activeType, setActiveType] = useState('book')
-  const { items, loading: dataLoading, error, addMedia, updateMedia, deleteMedia } = useMedia(session, activeType)
+  const {
+    items,
+    loading: dataLoading,
+    error,
+    addMedia,
+    updateMedia,
+    deleteMedia,
+  } = useMedia(session, activeType)
   const [selectedItemId, setSelectedItemId] = useState(null)
   const [editItem, setEditItem] = useState(null)
   const [vaultState, setVaultState] = useState(null)
 
   const selectedItem = useMemo(
-    () => (selectedItemId ? items.find((i) => i.id === selectedItemId) ?? null : null),
+    () => (selectedItemId ? (items.find((i) => i.id === selectedItemId) ?? null) : null),
     [selectedItemId, items],
   )
 
@@ -1643,7 +1701,11 @@ export default function MediaApp() {
     <div className="flex h-full w-full flex-col overflow-hidden">
       {/* Media type tabs — inside the window */}
       <nav className="shrink-0 border-b border-white/[0.04] bg-black/20">
-        <div role="tablist" aria-label="Media types" className="flex items-center gap-1 overflow-x-auto px-3 py-1.5">
+        <div
+          role="tablist"
+          aria-label="Media types"
+          className="flex items-center gap-1 overflow-x-auto px-3 py-1.5"
+        >
           {MEDIA_TYPES.map((type) => {
             const Icon = TYPE_ICONS[type]
             const isActive = activeType === type
@@ -1653,7 +1715,10 @@ export default function MediaApp() {
                 role="tab"
                 aria-selected={isActive}
                 type="button"
-                onClick={() => { setActiveType(type); setVaultState(null) }}
+                onClick={() => {
+                  setActiveType(type)
+                  setVaultState(null)
+                }}
                 className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 heading-ui text-[10px] font-semibold uppercase tracking-wider transition-all ${
                   isActive
                     ? 'bg-primary/20 text-primary'
@@ -1675,7 +1740,10 @@ export default function MediaApp() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : error ? (
-          <div role="alert" className="p-6 text-center font-bold uppercase tracking-widest text-destructive">
+          <div
+            role="alert"
+            className="p-6 text-center font-bold uppercase tracking-widest text-destructive"
+          >
             API Error: {error}
           </div>
         ) : (
@@ -1775,7 +1843,9 @@ vi.mock('../../stores/windowStore', () => ({
 vi.mock('../../stores/appRegistry', () => ({
   APP_REGISTRY: {
     media: {
-      id: 'media', title: 'Media Vault', singleton: true,
+      id: 'media',
+      title: 'Media Vault',
+      singleton: true,
       icon: () => <span>M</span>,
       component: () => <div>Media Content</div>,
     },
@@ -1830,9 +1900,13 @@ describe('Desktop', () => {
   it('renders windows for non-minimized entries', () => {
     mockWindows = {
       media: {
-        windowId: 'media', appId: 'media', title: 'Media Vault',
-        position: { x: 0, y: 0 }, size: { width: 800, height: 600 },
-        minSize: { width: 400, height: 300 }, state: 'normal',
+        windowId: 'media',
+        appId: 'media',
+        title: 'Media Vault',
+        position: { x: 0, y: 0 },
+        size: { width: 800, height: 600 },
+        minSize: { width: 400, height: 300 },
+        state: 'normal',
         restoredRect: { x: 0, y: 0, width: 800, height: 600 },
       },
     }
@@ -1844,9 +1918,13 @@ describe('Desktop', () => {
   it('does not render minimized windows', () => {
     mockWindows = {
       media: {
-        windowId: 'media', appId: 'media', title: 'Media Vault',
-        position: { x: 0, y: 0 }, size: { width: 800, height: 600 },
-        minSize: { width: 400, height: 300 }, state: 'minimized',
+        windowId: 'media',
+        appId: 'media',
+        title: 'Media Vault',
+        position: { x: 0, y: 0 },
+        size: { width: 800, height: 600 },
+        minSize: { width: 400, height: 300 },
+        state: 'minimized',
         restoredRect: { x: 0, y: 0, width: 800, height: 600 },
       },
     }
@@ -1915,13 +1993,11 @@ export default function Desktop() {
     if (Object.keys(windows).length === 0) {
       openApp('media')
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // intentionally runs only once on mount
 
   // Build visible (non-minimized) windows ordered by zStack
-  const visibleWindows = zStack
-    .map((id) => windows[id])
-    .filter((w) => w && w.state !== 'minimized')
+  const visibleWindows = zStack.map((id) => windows[id]).filter((w) => w && w.state !== 'minimized')
 
   return (
     <div
@@ -1971,9 +2047,7 @@ export default function Desktop() {
       <Taskbar />
 
       {/* App Launcher overlay */}
-      <AnimatePresence>
-        {launcherOpen && <AppLauncher />}
-      </AnimatePresence>
+      <AnimatePresence>{launcherOpen && <AppLauncher />}</AnimatePresence>
     </div>
   )
 }
@@ -1999,6 +2073,7 @@ git commit -m "feat: add Desktop shell, MediaApp wrapper, and Desktop tests"
 ## Task 7: Wire Desktop into App.jsx
 
 **Files:**
+
 - Modify: `frontend/src/App.jsx`
 
 - [ ] **Step 1: Replace post-auth render with Desktop**
@@ -2008,11 +2083,11 @@ Replace the entire authenticated `return` block (the one starting `return (<div 
 In `frontend/src/App.jsx`, replace the final `return` block (the one after `if (!session)`) with:
 
 ```jsx
-  return (
-    <>
-      <Desktop />
-    </>
-  )
+return (
+  <>
+    <Desktop />
+  </>
+)
 ```
 
 Also add the import at the top of the file:
@@ -2022,6 +2097,7 @@ import Desktop from './os/Desktop'
 ```
 
 Remove now-unused imports that were only used in the authenticated view:
+
 - Remove: `AnimatePresence, motion as Motion` from framer-motion import (keep if used elsewhere — check: they're not used in the auth/loading views)
 - Remove: `Loader2, MessageCircle` from lucide-react (Loader2 is still used in auth loading)
 - Remove: `AddMediaDialog`, `LazyAICmdPalette`, `MediaVault`, `KanbanBoard`, `Navbar` imports (Navbar is used in unauth view — keep it)
@@ -2071,7 +2147,10 @@ function App() {
   if (!session) {
     return (
       <div className="relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground">
-        <a href="#auth-panel" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-primary-foreground">
+        <a
+          href="#auth-panel"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-primary-foreground"
+        >
           Skip to login
         </a>
         <div className="ambient-orbs" />
@@ -2089,9 +2168,9 @@ function App() {
                 One archive for everything you care about.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:mt-6 md:text-base">
-                Nexus Archive replaces scattered lists with one identity-driven
-                dashboard. Track books, movies, anime, and job applications — what
-                you finished, what you are pursuing now, and the notes that matter.
+                Nexus Archive replaces scattered lists with one identity-driven dashboard. Track
+                books, movies, anime, and job applications — what you finished, what you are
+                pursuing now, and the notes that matter.
               </p>
               <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4">
                 {['Books', 'Movies', 'Anime', 'Jobs'].map((label) => (
@@ -2105,7 +2184,10 @@ function App() {
               </div>
             </section>
 
-            <div id="auth-panel" className="relative z-10 order-1 md:order-2 w-full max-w-md mx-auto md:max-w-none">
+            <div
+              id="auth-panel"
+              className="relative z-10 order-1 md:order-2 w-full max-w-md mx-auto md:max-w-none"
+            >
               <p className="heading-display mb-6 text-center text-lg font-bold text-white truncate md:hidden">
                 Nexus Archive
               </p>
@@ -2147,6 +2229,7 @@ git commit -m "feat: wire Desktop shell into App.jsx, replace tab navigation"
 ## Task 8: Modal portal migration
 
 **Files:**
+
 - Modify: `frontend/src/components/features/MediaDetailModal.jsx`
 - Modify: `frontend/src/components/features/EditMediaDialog.jsx`
 - Modify: `frontend/src/components/features/AddMediaDialog.jsx`
@@ -2160,11 +2243,13 @@ Note: `ConfirmDialog.jsx` already uses `createPortal(... , document.body)`. Chan
 In `frontend/src/components/features/MediaDetailModal.jsx`, add `createPortal` import and wrap the rendered content:
 
 Add at top:
+
 ```jsx
 import { createPortal } from 'react-dom'
 ```
 
 Wrap the entire `return` statement's JSX in a portal. Replace:
+
 ```jsx
   return (
     <AnimatePresence>
@@ -2175,6 +2260,7 @@ Wrap the entire `return` statement's JSX in a portal. Replace:
 ```
 
 With:
+
 ```jsx
   return createPortal(
     <AnimatePresence>
@@ -2185,12 +2271,14 @@ With:
 ```
 
 And close the portal at the very end, replacing the final:
+
 ```jsx
     </AnimatePresence>
   )
 ```
 
 With:
+
 ```jsx
     </AnimatePresence>,
     document.getElementById('modal-root') || document.body
@@ -2202,6 +2290,7 @@ With:
 In `frontend/src/components/features/EditMediaDialog.jsx`, add portal import and wrap the `if (!item) return null` to also return null from portal. Then wrap the dialog return:
 
 Add at top:
+
 ```jsx
 import { createPortal } from 'react-dom'
 ```
@@ -2209,19 +2298,19 @@ import { createPortal } from 'react-dom'
 Replace the return block (after `if (!item) return null`) — wrap the entire div in a portal:
 
 ```jsx
-  return createPortal(
-    <div
-      ref={trapRef}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="edit-media-title"
-    >
-      {/* ... existing content unchanged ... */}
-    </div>,
-    document.getElementById('modal-root') || document.body
-  )
+return createPortal(
+  <div
+    ref={trapRef}
+    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+    onClick={onClose}
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="edit-media-title"
+  >
+    {/* ... existing content unchanged ... */}
+  </div>,
+  document.getElementById('modal-root') || document.body,
+)
 ```
 
 - [ ] **Step 3: Migrate AddMediaDialog dialog overlay to portal**
@@ -2229,6 +2318,7 @@ Replace the return block (after `if (!item) return null`) — wrap the entire di
 In `frontend/src/components/features/AddMediaDialog.jsx`, the FAB button stays inside the window. Only the `AnimatePresence` dialog overlay gets portaled.
 
 Add at top:
+
 ```jsx
 import { createPortal } from 'react-dom'
 ```
@@ -2236,25 +2326,25 @@ import { createPortal } from 'react-dom'
 Wrap the `<AnimatePresence>` block (not the FAB button) in a portal:
 
 ```jsx
-  return (
-    <>
-      {/* FAB button — stays inside the window */}
-      <button type="button" onClick={handleOpen} className="neon-pulse fixed bottom-...">
-        ...
-      </button>
+return (
+  <>
+    {/* FAB button — stays inside the window */}
+    <button type="button" onClick={handleOpen} className="neon-pulse fixed bottom-...">
+      ...
+    </button>
 
-      {createPortal(
-        <AnimatePresence>
-          {open && (
-            <Motion.div ref={trapRef} className="fixed inset-0 z-[100]...">
-              {/* ... existing dialog content unchanged ... */}
-            </Motion.div>
-          )}
-        </AnimatePresence>,
-        document.getElementById('modal-root') || document.body
-      )}
-    </>
-  )
+    {createPortal(
+      <AnimatePresence>
+        {open && (
+          <Motion.div ref={trapRef} className="fixed inset-0 z-[100]...">
+            {/* ... existing dialog content unchanged ... */}
+          </Motion.div>
+        )}
+      </AnimatePresence>,
+      document.getElementById('modal-root') || document.body,
+    )}
+  </>
+)
 ```
 
 - [ ] **Step 4: Migrate ComposeModal to portal**
@@ -2262,23 +2352,25 @@ Wrap the `<AnimatePresence>` block (not the FAB button) in a portal:
 In `frontend/src/components/features/ComposeModal.jsx`, add portal import and wrap the `AnimatePresence` return:
 
 Add at top:
+
 ```jsx
 import { createPortal } from 'react-dom'
 ```
 
 Replace the return:
+
 ```jsx
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Overlay */}
-          ...
-        </>
-      )}
-    </AnimatePresence>,
-    document.getElementById('modal-root') || document.body
-  )
+return createPortal(
+  <AnimatePresence>
+    {isOpen && (
+      <>
+        {/* Overlay */}
+        ...
+      </>
+    )}
+  </AnimatePresence>,
+  document.getElementById('modal-root') || document.body,
+)
 ```
 
 - [ ] **Step 5: Migrate AICmdPalette to portal**
@@ -2286,11 +2378,13 @@ Replace the return:
 In `frontend/src/components/features/AICmdPalette.jsx`, the `cmdk` `Command.Dialog` already creates its own overlay. Wrap the entire return in a portal:
 
 Add at top:
+
 ```jsx
 import { createPortal } from 'react-dom'
 ```
 
 Wrap the return:
+
 ```jsx
   return createPortal(
     <Command.Dialog ... >
@@ -2305,12 +2399,14 @@ Wrap the return:
 In `frontend/src/components/features/ConfirmDialog.jsx`, change the portal target from `document.body` to `document.getElementById('modal-root') || document.body`:
 
 Replace:
+
 ```jsx
     document.body
   )
 ```
 
 With:
+
 ```jsx
     document.getElementById('modal-root') || document.body
   )
@@ -2336,6 +2432,7 @@ git commit -m "fix: migrate all modals to portal rendering for window transform 
 ## Task 9: Container query migration
 
 **Files:**
+
 - Modify: `frontend/src/components/features/KanbanBoard.jsx`
 - Modify: `frontend/src/components/features/MediaVault.jsx`
 - Modify: `frontend/src/components/features/EmailInbox.jsx`
@@ -2346,26 +2443,31 @@ git commit -m "fix: migrate all modals to portal rendering for window transform 
 In `frontend/src/components/features/KanbanBoard.jsx`:
 
 1. In the `KanbanBoard` component's root `<div>`, change the grid classes that use viewport breakpoints to container query variants. Replace:
+
 ```jsx
 <div className={`grid h-full auto-rows-min grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 ${gridColsClass}`}>
 ```
+
 With:
+
 ```jsx
 <div className={`grid h-full auto-rows-min grid-cols-1 gap-4 @sm:grid-cols-2 @sm:gap-6 ${gridColsClass}`}>
 ```
 
 2. Update `gridColsClass` to use container variants:
+
 ```js
-const gridColsClass = mediaType === 'job'
-  ? '@md:grid-cols-2 @lg:grid-cols-3'
-  : '@md:grid-cols-3'
+const gridColsClass = mediaType === 'job' ? '@md:grid-cols-2 @lg:grid-cols-3' : '@md:grid-cols-3'
 ```
 
 3. In the `DroppableColumn` component, update the max-height classes. Replace:
+
 ```jsx
 className={`neon-border flex flex-col gap-3 rounded-xl glass-panel p-3 relative max-h-[50dvh] sm:max-h-[60dvh] sm:gap-4 sm:p-4 md:max-h-[calc(100dvh-12rem)] transition-colors ${isOver ? 'ring-2 ring-primary/40 bg-primary/5' : ''}`}
 ```
+
 With:
+
 ```jsx
 className={`neon-border flex flex-col gap-3 rounded-xl glass-panel p-3 relative max-h-[50cqh] @sm:max-h-[60cqh] @sm:gap-4 @sm:p-4 transition-colors ${isOver ? 'ring-2 ring-primary/40 bg-primary/5' : ''}`}
 ```
@@ -2377,6 +2479,7 @@ Note: `cqh` units may not be supported in Tailwind v4 arbitrary values. If they 
 In `frontend/src/components/features/MediaVault.jsx`:
 
 1. Replace the root wrapper `<div className="mx-auto max-w-7xl p-3 sm:p-4 md:p-6 xl:p-8">` with:
+
 ```jsx
 <div className="h-full w-full overflow-auto custom-scrollbar p-3 @sm:p-4 @md:p-6">
 ```
@@ -2396,16 +2499,20 @@ In `frontend/src/components/features/MediaVault.jsx`:
 In `frontend/src/components/features/EmailInbox.jsx`:
 
 1. Replace the root `h-[calc(100dvh-7rem)]` with `h-full w-full`:
+
 ```jsx
-className="neon-border relative flex h-full w-full overflow-hidden rounded-none glass-panel @sm:rounded-2xl"
+className =
+  'neon-border relative flex h-full w-full overflow-hidden rounded-none glass-panel @sm:rounded-2xl'
 ```
 
 2. Replace `md:flex` on sidebar with `@md:flex`:
+
 ```jsx
 <div className="hidden @md:flex">
 ```
 
 3. Replace `md:w-80` on email list with `@md:w-80`:
+
 ```jsx
 className={`flex w-full shrink-0 flex-col border-r border-white/[0.06] @md:w-80 ${
   mobileView === 'reader' ? 'hidden @md:flex' : 'flex'
@@ -2419,21 +2526,25 @@ className={`flex w-full shrink-0 flex-col border-r border-white/[0.06] @md:w-80 
 In `frontend/src/components/features/ChatLayout.jsx`:
 
 1. Replace root `h-[calc(100dvh-7rem)]` with `h-full w-full`:
+
 ```jsx
 <div className="flex h-full w-full overflow-hidden">
 ```
 
 2. Replace `md:block` on desktop sidebar with `@md:block`:
+
 ```jsx
 <div className="hidden w-[240px] shrink-0 @md:block @lg:w-[280px]">
 ```
 
 3. Replace `md:hidden` on mobile toggle with `@md:hidden`:
+
 ```jsx
 <div className="flex flex-1 flex-col @md:hidden">
 ```
 
 4. Replace `md:block` on desktop chat window with `@md:block`:
+
 ```jsx
 <div className="hidden flex-1 @md:block">
 ```
@@ -2466,6 +2577,7 @@ git commit -m "refactor: migrate viewport breakpoints to container queries for w
 ## Task 10: Final integration test and cleanup
 
 **Files:**
+
 - No new files
 - Potential fixes to any file from Tasks 1-9
 
@@ -2500,6 +2612,7 @@ cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run dev
 ```
 
 Manual checks:
+
 1. Login → Desktop renders with wallpaper, taskbar, and Media Vault auto-opens in a window
 2. Drag the Media Vault window by its title bar
 3. Resize from bottom-right corner
@@ -2516,6 +2629,7 @@ Manual checks:
 - [ ] **Step 5: Fix any issues found during smoke test**
 
 Address any visual or functional issues. Common things to watch:
+
 - FAB button positioning (AddMediaDialog) inside window vs fixed viewport
 - Scrolling inside windowed apps
 - Z-index conflicts between windows and modals
@@ -2532,16 +2646,16 @@ git commit -m "chore: Phase 1 complete — Nexus browser OS shell with windowed 
 
 ## Summary
 
-| Task | What it builds | Est. time |
-|---|---|---|
-| 1 | Dependencies + modal-root | 5 min |
-| 2 | Window Store (Zustand kernel) + tests | 20 min |
-| 3 | App Registry + Placeholder | 10 min |
-| 4 | Window component + tests | 25 min |
-| 5 | Taskbar + AppLauncher + tests | 25 min |
-| 6 | MediaApp wrapper + Desktop + tests | 20 min |
-| 7 | Wire Desktop into App.jsx | 10 min |
-| 8 | Modal portal migration (6 files) | 15 min |
-| 9 | Container query migration (4 files) | 20 min |
-| 10 | Integration test + smoke test + fixes | 20 min |
-| **Total** | | **~170 min** |
+| Task      | What it builds                        | Est. time    |
+| --------- | ------------------------------------- | ------------ |
+| 1         | Dependencies + modal-root             | 5 min        |
+| 2         | Window Store (Zustand kernel) + tests | 20 min       |
+| 3         | App Registry + Placeholder            | 10 min       |
+| 4         | Window component + tests              | 25 min       |
+| 5         | Taskbar + AppLauncher + tests         | 25 min       |
+| 6         | MediaApp wrapper + Desktop + tests    | 20 min       |
+| 7         | Wire Desktop into App.jsx             | 10 min       |
+| 8         | Modal portal migration (6 files)      | 15 min       |
+| 9         | Container query migration (4 files)   | 20 min       |
+| 10        | Integration test + smoke test + fixes | 20 min       |
+| **Total** |                                       | **~170 min** |

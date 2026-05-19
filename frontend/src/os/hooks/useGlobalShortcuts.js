@@ -23,9 +23,7 @@ export default function useGlobalShortcuts() {
       const active = document.activeElement
       if (
         active &&
-        (active.tagName === 'INPUT' ||
-          active.tagName === 'TEXTAREA' ||
-          active.isContentEditable)
+        (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)
       ) {
         return
       }
@@ -35,10 +33,16 @@ export default function useGlobalShortcuts() {
 
       switch (key) {
         case 'w':
-          if (activeWindowId) { e.preventDefault(); closeWindow(activeWindowId) }
+          if (activeWindowId) {
+            e.preventDefault()
+            closeWindow(activeWindowId)
+          }
           break
         case 'm':
-          if (activeWindowId) { e.preventDefault(); minimizeWindow(activeWindowId) }
+          if (activeWindowId) {
+            e.preventDefault()
+            minimizeWindow(activeWindowId)
+          }
           break
         case 'arrowup':
           if (activeWindowId) {
@@ -48,24 +52,36 @@ export default function useGlobalShortcuts() {
           }
           break
         case 'arrowleft':
-          if (activeWindowId) { e.preventDefault(); snapWindow(activeWindowId, 'left') }
+          if (activeWindowId) {
+            e.preventDefault()
+            snapWindow(activeWindowId, 'left')
+          }
           break
         case 'arrowright':
-          if (activeWindowId) { e.preventDefault(); snapWindow(activeWindowId, 'right') }
+          if (activeWindowId) {
+            e.preventDefault()
+            snapWindow(activeWindowId, 'right')
+          }
           break
         case ']':
-          e.preventDefault(); cycleWindow('next')
+          e.preventDefault()
+          cycleWindow('next')
           break
         case '[':
-          e.preventDefault(); cycleWindow('prev')
+          e.preventDefault()
+          cycleWindow('prev')
           break
         case 'l':
-          e.preventDefault(); toggleLauncher()
+          e.preventDefault()
+          toggleLauncher()
           break
         default:
           if (key >= '1' && key <= '8') {
             const idx = parseInt(key, 10) - 1
-            if (idx < APP_ORDER.length) { e.preventDefault(); openApp(APP_ORDER[idx]) }
+            if (idx < APP_ORDER.length) {
+              e.preventDefault()
+              openApp(APP_ORDER[idx])
+            }
           }
           break
       }
@@ -73,5 +89,16 @@ export default function useGlobalShortcuts() {
 
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [activeWindowId, windows, closeWindow, minimizeWindow, maximizeWindow, restoreWindow, snapWindow, cycleWindow, openApp, toggleLauncher])
+  }, [
+    activeWindowId,
+    windows,
+    closeWindow,
+    minimizeWindow,
+    maximizeWindow,
+    restoreWindow,
+    snapWindow,
+    cycleWindow,
+    openApp,
+    toggleLauncher,
+  ])
 }

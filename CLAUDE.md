@@ -86,27 +86,33 @@ supabase/
 ## Key Patterns
 
 ### Auth: Zero-trust cookie model
+
 Backend manages HttpOnly cookies. Frontend never touches tokens directly. `apiClient.js` handles 401 → silent refresh → retry automatically. Supabase JS SDK is only used for Realtime subscriptions (separate client in `realtimeClient.js`), NOT for auth.
 
 ### Data flow: Optimistic + Realtime
+
 1. Mutation fires → `onMutate` applies optimistic update to React Query cache
 2. Server responds → `onSuccess` replaces optimistic item with server record (NO `invalidateQueries` for updates — this was a deliberate fix to prevent a race condition with Realtime)
 3. Supabase Realtime fires → `handleRealtimeEvent` deduplicates by comparing ALL user-visible fields (status, title, creator, genre, rating, takeaway, sub_info)
 
 ### Media types: Single source of truth
+
 `lib/mediaConfig.js` exports `MEDIA_TYPES`, `MEDIA_CONFIG`, `TYPE_ICONS`, and `getStatusNav()`. All components import from here — never define local icon maps or status lists.
 
 ### Components: Shared form pattern
+
 `MediaForm.jsx` is the single form used by both `AddMediaDialog` and `EditMediaDialog`. Never duplicate form fields between them.
 
 ## Environment Variables
 
 ### Backend (`backend/.env`)
+
 Required: `SUPABASE_URL`, `SUPABASE_AUTH_KEY`, `SUPABASE_JWT_SECRET`, `GEMINI_API_KEY`, `AUDIT_LOG_SALT`
 Optional: `TAKEAWAY_ENCRYPTION_KEY` (Fernet key for at-rest encryption), `REDIS_URL`, `TRUSTED_PROXY_IPS`
 Local override: `backend/.env.local` (gitignored, loaded second with override=True)
 
 ### Frontend (`frontend/.env`)
+
 Required: `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
 Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`
 

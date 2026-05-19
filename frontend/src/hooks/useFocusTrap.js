@@ -7,7 +7,8 @@ export function useFocusTrap(isActive) {
     if (!isActive || !containerRef.current) return
 
     const container = containerRef.current
-    const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    const focusableSelector =
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     const previouslyFocused = document.activeElement
 
     // Focus first focusable element

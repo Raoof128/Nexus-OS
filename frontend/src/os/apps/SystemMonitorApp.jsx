@@ -33,7 +33,9 @@ function DataRow({ label, value, mono = true }) {
   return (
     <div className="flex items-center justify-between py-0.5">
       <span className="font-mono text-[10px] text-muted-foreground">{label}</span>
-      <span className={`text-[10px] text-white/80 ${mono ? 'font-mono' : 'heading-ui'}`}>{value}</span>
+      <span className={`text-[10px] text-white/80 ${mono ? 'font-mono' : 'heading-ui'}`}>
+        {value}
+      </span>
     </div>
   )
 }
@@ -56,11 +58,25 @@ export default function SystemMonitorApp() {
       const latency = Math.round(performance.now() - start)
       setApiLatency(latency)
       setApiStatus(res.ok ? 'online' : 'offline')
-      setLastCheck(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
+      setLastCheck(
+        new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        }),
+      )
     } catch {
       setApiLatency(null)
       setApiStatus('offline')
-      setLastCheck(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
+      setLastCheck(
+        new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        }),
+      )
     }
   }, [])
 
@@ -98,7 +114,11 @@ export default function SystemMonitorApp() {
             <div className="mb-2 flex items-center gap-2">
               <StatusDot status={apiStatus} />
               <span className="heading-display text-sm font-bold text-white">
-                {apiStatus === 'online' ? 'ONLINE' : apiStatus === 'offline' ? 'OFFLINE' : 'CHECKING'}
+                {apiStatus === 'online'
+                  ? 'ONLINE'
+                  : apiStatus === 'offline'
+                    ? 'OFFLINE'
+                    : 'CHECKING'}
               </span>
             </div>
             <DataRow label="Latency" value={apiLatency != null ? `${apiLatency}ms` : '—'} />

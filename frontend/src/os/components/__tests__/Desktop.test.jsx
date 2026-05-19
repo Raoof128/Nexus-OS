@@ -26,11 +26,12 @@ vi.mock('../../stores/windowStore', () => {
 })
 
 vi.mock('../../stores/settingsStore', () => ({
-  useSettingsStore: (selector) => selector({
-    scanlinesEnabled: false,
-    orbsEnabled: false,
-    hydrateSettings: vi.fn(),
-  }),
+  useSettingsStore: (selector) =>
+    selector({
+      scanlinesEnabled: false,
+      orbsEnabled: false,
+      hydrateSettings: vi.fn(),
+    }),
 }))
 
 vi.mock('../../stores/notificationStore', () => ({
@@ -42,7 +43,9 @@ vi.mock('../../stores/notificationStore', () => ({
 vi.mock('../../stores/appRegistry', () => ({
   APP_REGISTRY: {
     media: {
-      id: 'media', title: 'Media Vault', singleton: true,
+      id: 'media',
+      title: 'Media Vault',
+      singleton: true,
       icon: () => <span>M</span>,
       component: () => <div>Media Content</div>,
     },
@@ -84,7 +87,9 @@ vi.mock('../BootSequence', () => ({
 
 vi.mock('../LockScreen', () => ({
   default: ({ onUnlock }) => (
-    <div data-testid="lock-screen" onClick={onUnlock}>Locked</div>
+    <div data-testid="lock-screen" onClick={onUnlock}>
+      Locked
+    </div>
   ),
 }))
 
@@ -98,9 +103,14 @@ vi.mock('framer-motion', () => ({
   motion: new Proxy(
     {},
     {
-      get: (_t, tag) =>
-        ({ children, ...rest }) => <div data-motion={String(tag)} {...rest}>{children}</div>,
-    }
+      get:
+        (_t, tag) =>
+        ({ children, ...rest }) => (
+          <div data-motion={String(tag)} {...rest}>
+            {children}
+          </div>
+        ),
+    },
   ),
 }))
 
@@ -137,9 +147,13 @@ describe('Desktop', () => {
   it('renders windows for non-minimized entries', () => {
     mockWindows = {
       media: {
-        windowId: 'media', appId: 'media', title: 'Media Vault',
-        position: { x: 0, y: 0 }, size: { width: 800, height: 600 },
-        minSize: { width: 400, height: 300 }, state: 'normal',
+        windowId: 'media',
+        appId: 'media',
+        title: 'Media Vault',
+        position: { x: 0, y: 0 },
+        size: { width: 800, height: 600 },
+        minSize: { width: 400, height: 300 },
+        state: 'normal',
         restoredRect: { x: 0, y: 0, width: 800, height: 600 },
       },
     }
@@ -151,9 +165,13 @@ describe('Desktop', () => {
   it('does not render minimized windows', () => {
     mockWindows = {
       media: {
-        windowId: 'media', appId: 'media', title: 'Media Vault',
-        position: { x: 0, y: 0 }, size: { width: 800, height: 600 },
-        minSize: { width: 400, height: 300 }, state: 'minimized',
+        windowId: 'media',
+        appId: 'media',
+        title: 'Media Vault',
+        position: { x: 0, y: 0 },
+        size: { width: 800, height: 600 },
+        minSize: { width: 400, height: 300 },
+        state: 'minimized',
         restoredRect: { x: 0, y: 0, width: 800, height: 600 },
       },
     }

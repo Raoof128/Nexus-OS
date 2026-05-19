@@ -5,7 +5,12 @@ import { render, screen, fireEvent } from '@testing-library/react'
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, onPointerDownCapture, style, ...rest }) => (
-      <div data-testid="window-frame" onPointerDownCapture={onPointerDownCapture} style={style} {...rest}>
+      <div
+        data-testid="window-frame"
+        onPointerDownCapture={onPointerDownCapture}
+        style={style}
+        {...rest}
+      >
         {children}
       </div>
     ),

@@ -18,8 +18,7 @@ export function useEmailAccounts(userId) {
   })
 
   const disconnectMutation = useMutation({
-    mutationFn: (accountId) =>
-      apiFetch(`/api/email/accounts/${accountId}`, { method: 'DELETE' }),
+    mutationFn: (accountId) => apiFetch(`/api/email/accounts/${accountId}`, { method: 'DELETE' }),
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   })
 

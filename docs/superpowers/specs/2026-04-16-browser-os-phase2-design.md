@@ -13,17 +13,18 @@ When a user drags a window's title bar near a screen edge, the window snaps into
 
 ### Snap Zones
 
-| Cursor position | Snap behavior | Window state |
-|---|---|---|
-| Within 20px of left edge | Fill left 50% of desktop | `snapped-left` |
-| Within 20px of right edge | Fill right 50% of desktop | `snapped-right` |
-| Within 20px of top edge | Maximize | `maximized` (reuses existing action) |
+| Cursor position           | Snap behavior             | Window state                         |
+| ------------------------- | ------------------------- | ------------------------------------ |
+| Within 20px of left edge  | Fill left 50% of desktop  | `snapped-left`                       |
+| Within 20px of right edge | Fill right 50% of desktop | `snapped-right`                      |
+| Within 20px of top edge   | Maximize                  | `maximized` (reuses existing action) |
 
 ### Snap Preview
 
 While dragging, if the cursor enters a snap zone, a translucent preview overlay appears showing where the window will land. This preview is driven entirely by Framer Motion `useMotionValue` and `useTransform` — not React state — to avoid layout thrashing from frequent pointer events during drag.
 
 The preview is a single `<div>` in `Desktop.jsx` that's normally invisible. Its position/size are computed from the cursor's motion values:
+
 - Cursor near left edge → preview shows `left: 0, top: 0, width: 50%, height: calc(100% - 48px)` with a semi-transparent cyan fill
 - Cursor near right edge → preview shows `left: 50%, top: 0, width: 50%, height: calc(100% - 48px)`
 - Cursor near top edge → preview shows full desktop area
@@ -32,11 +33,13 @@ The preview is a single `<div>` in `Desktop.jsx` that's normally invisible. Its 
 ### Snap Behavior
 
 On drag end inside a snap zone:
+
 1. Save current position/size to `restoredRect`
 2. Set `state` to `snapped-left` or `snapped-right`
 3. Position and size are NOT stored as absolute pixels — the Window component renders snapped state using CSS percentage-based layout (`width: 50%`, `height: calc(100% - 48px)`, `left: 0` or `left: 50%`). This ensures correct behavior on browser resize.
 
 On dragging away from a snapped state:
+
 1. Restore to `normal` state using `restoredRect`
 2. Free drag resumes
 
@@ -59,11 +62,11 @@ snapWindow(windowId, side):
 
 ### Files Changed
 
-| File | Change |
-|---|---|
-| `frontend/src/os/stores/windowStore.js` | Add `snapWindow` action |
+| File                                    | Change                                                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `frontend/src/os/stores/windowStore.js` | Add `snapWindow` action                                                                           |
 | `frontend/src/os/components/Window.jsx` | CSS percentage rendering for snapped states, disable drag when snapped, title-bar tear-away logic |
-| `frontend/src/os/Desktop.jsx` | Add snap preview overlay div, pass motion values to Window for edge detection |
+| `frontend/src/os/Desktop.jsx`           | Add snap preview overlay div, pass motion values to Window for edge detection                     |
 
 ---
 
@@ -73,18 +76,18 @@ Global keyboard shortcuts using `Alt` (Windows) / `Option` (Mac) as the Nexus mo
 
 ### Shortcut Map
 
-| Shortcut | Action |
-|---|---|
-| `Alt + W` | Close active window |
-| `Alt + M` | Minimize active window |
-| `Alt + Up` | Maximize / restore active window (toggle) |
-| `Alt + Left` | Snap active window to left half |
-| `Alt + Right` | Snap active window to right half |
-| `Alt + [` | Cycle focus to previous window in zStack |
-| `Alt + ]` | Cycle focus to next window in zStack |
-| `Alt + 1` through `Alt + 8` | Open/focus app by position in `APP_ORDER` |
-| `Alt + L` | Toggle app launcher |
-| `Cmd/Ctrl + K` | Toggle AI Command Palette (unchanged — stays inside Media Vault) |
+| Shortcut                    | Action                                                           |
+| --------------------------- | ---------------------------------------------------------------- |
+| `Alt + W`                   | Close active window                                              |
+| `Alt + M`                   | Minimize active window                                           |
+| `Alt + Up`                  | Maximize / restore active window (toggle)                        |
+| `Alt + Left`                | Snap active window to left half                                  |
+| `Alt + Right`               | Snap active window to right half                                 |
+| `Alt + [`                   | Cycle focus to previous window in zStack                         |
+| `Alt + ]`                   | Cycle focus to next window in zStack                             |
+| `Alt + 1` through `Alt + 8` | Open/focus app by position in `APP_ORDER`                        |
+| `Alt + L`                   | Toggle app launcher                                              |
+| `Cmd/Ctrl + K`              | Toggle AI Command Palette (unchanged — stays inside Media Vault) |
 
 ### Focus Cycling
 
@@ -99,6 +102,7 @@ Skip minimized windows during cycling — only focus visible windows.
 New file: `frontend/src/os/hooks/useGlobalShortcuts.js`
 
 A custom hook that:
+
 1. Sets up a single `keydown` listener on `document`
 2. Checks `e.altKey` + `e.key` (or `e.code` for arrow keys)
 3. Calls `e.preventDefault()` for matched shortcuts
@@ -109,11 +113,11 @@ Called from `Desktop.jsx`: `useGlobalShortcuts()`
 
 ### Files Changed
 
-| File | Change |
-|---|---|
-| `frontend/src/os/hooks/useGlobalShortcuts.js` | New file — keyboard shortcut handler |
-| `frontend/src/os/Desktop.jsx` | Import and call `useGlobalShortcuts()` |
-| `frontend/src/os/stores/windowStore.js` | Add `cycleWindow(direction)` action for next/prev focus cycling |
+| File                                          | Change                                                          |
+| --------------------------------------------- | --------------------------------------------------------------- |
+| `frontend/src/os/hooks/useGlobalShortcuts.js` | New file — keyboard shortcut handler                            |
+| `frontend/src/os/Desktop.jsx`                 | Import and call `useGlobalShortcuts()`                          |
+| `frontend/src/os/stores/windowStore.js`       | Add `cycleWindow(direction)` action for next/prev focus cycling |
 
 ---
 
@@ -141,8 +145,8 @@ Add a text filter to the AppLauncher so users can type to find apps by name.
 
 ### Files Changed
 
-| File | Change |
-|---|---|
+| File                                         | Change                                                                 |
+| -------------------------------------------- | ---------------------------------------------------------------------- |
 | `frontend/src/os/components/AppLauncher.jsx` | Add search input, filter logic, Enter-to-launch, active tile highlight |
 
 ---
@@ -188,6 +192,7 @@ On Desktop mount, `hydrateFromStorage()` is called once:
 ### Clamping Logic
 
 For each window during hydration:
+
 ```
 x = Math.min(saved.x, window.innerWidth - 100)
 x = Math.max(0, x)
@@ -200,6 +205,7 @@ height = Math.min(saved.height, (window.innerHeight - TASKBAR_HEIGHT) * 0.95)
 ### Zustand Implementation
 
 Using a manual `subscribe` + debounce rather than Zustand's `persist` middleware. Reasons:
+
 - We need custom serialization (strip minimized, regenerate IDs)
 - We need the mobile guard
 - We need clamping on hydrate
@@ -207,16 +213,17 @@ Using a manual `subscribe` + debounce rather than Zustand's `persist` middleware
 
 ### Files Changed
 
-| File | Change |
-|---|---|
+| File                                    | Change                                                                                                      |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `frontend/src/os/stores/windowStore.js` | Add `hydrateFromStorage()` action, add debounced `subscribe` for persistence, add `SCHEMA_VERSION` constant |
-| `frontend/src/os/Desktop.jsx` | Call `hydrateFromStorage()` on mount (replace or precede the current "open media if empty" logic) |
+| `frontend/src/os/Desktop.jsx`           | Call `hydrateFromStorage()` on mount (replace or precede the current "open media if empty" logic)           |
 
 ---
 
 ## 5. Dependencies
 
 No new packages. Everything is built with existing deps:
+
 - `zustand` (store)
 - `framer-motion` (drag, motion values for snap preview)
 - `nanoid` (ID regeneration on hydrate)
@@ -226,6 +233,7 @@ No new packages. Everything is built with existing deps:
 ## 6. What Is NOT In Phase 2
 
 Explicitly deferred:
+
 - New apps — Terminal, File Manager, Settings, System Monitor, Notes (Phase 3)
 - Desktop icons (Phase 4)
 - Right-click context menus (Phase 4)
@@ -265,6 +273,7 @@ Explicitly deferred:
 ## 8. Rollback Plan
 
 Each section is independently revertible:
+
 - Snap tiling: `snapWindow` action + Window.jsx CSS changes can be reverted; `snapped-left/right` states fall back to `normal`
 - Keyboard shortcuts: remove `useGlobalShortcuts` hook call from Desktop
 - Launcher search: revert AppLauncher.jsx to the non-search version

@@ -35,7 +35,10 @@ function App() {
   if (!session) {
     return (
       <div className="relative flex min-h-screen flex-col overflow-hidden bg-background text-foreground">
-        <a href="#auth-panel" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-primary-foreground">
+        <a
+          href="#auth-panel"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-primary-foreground"
+        >
           Skip to login
         </a>
         <div className="ambient-orbs" />
@@ -48,7 +51,7 @@ function App() {
             <section className="neon-border glass-panel flex flex-col justify-center rounded-2xl p-6 shadow-2xl sm:rounded-[2rem] sm:p-8 lg:p-10">
               <div className="cyber-bracket cyber-bracket-tl" />
               <div className="cyber-bracket cyber-bracket-br" />
-              
+
               <p className="heading-ui mb-3 text-[10px] font-semibold uppercase tracking-[0.4em] text-primary sm:text-xs">
                 personal media vault
               </p>
@@ -56,9 +59,9 @@ function App() {
                 One archive for <span className="text-primary">everything</span> you care about.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:mt-6 md:text-base">
-                Nexus Archive replaces scattered lists with one identity-driven
-                dashboard. Track books, movies, anime, and job applications — what
-                you finished, what you are pursuing now, and the notes that matter.
+                Nexus Archive replaces scattered lists with one identity-driven dashboard. Track
+                books, movies, anime, and job applications — what you finished, what you are
+                pursuing now, and the notes that matter.
               </p>
               <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 lg:grid-cols-4">
                 {['Books', 'Movies', 'Anime', 'Jobs'].map((label) => (
@@ -72,7 +75,10 @@ function App() {
               </div>
             </section>
 
-            <div id="auth-panel" className="relative z-10 flex w-full flex-col justify-center max-w-md mx-auto lg:max-w-none lg:mx-0">
+            <div
+              id="auth-panel"
+              className="relative z-10 flex w-full flex-col justify-center max-w-md mx-auto lg:max-w-none lg:mx-0"
+            >
               <p className="heading-display mb-6 text-center text-lg font-bold text-white truncate lg:hidden">
                 Nexus Archive // Auth
               </p>

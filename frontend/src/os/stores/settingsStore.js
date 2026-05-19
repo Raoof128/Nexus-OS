@@ -3,21 +3,24 @@ import { create } from 'zustand'
 const STORAGE_KEY = 'nexus-os:settings'
 
 export const ACCENT_PRESETS = {
-  yellow:  { primary: '56 100% 48%',  neon: '56 100% 48%',  label: 'Neon Yellow' },
-  cyan:    { primary: '180 100% 50%', neon: '180 100% 50%', label: 'Cyber Cyan' },
+  yellow: { primary: '56 100% 48%', neon: '56 100% 48%', label: 'Neon Yellow' },
+  cyan: { primary: '180 100% 50%', neon: '180 100% 50%', label: 'Cyber Cyan' },
   magenta: { primary: '300 100% 50%', neon: '300 100% 50%', label: 'Hot Magenta' },
-  green:   { primary: '120 100% 40%', neon: '120 100% 40%', label: 'Matrix Green' },
-  orange:  { primary: '30 100% 50%',  neon: '30 100% 50%',  label: 'Blaze Orange' },
+  green: { primary: '120 100% 40%', neon: '120 100% 40%', label: 'Matrix Green' },
+  orange: { primary: '30 100% 50%', neon: '30 100% 50%', label: 'Blaze Orange' },
 }
 
 function saveToStorage(state) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      accentColor: state.accentColor,
-      uiScale: state.uiScale,
-      scanlinesEnabled: state.scanlinesEnabled,
-      orbsEnabled: state.orbsEnabled,
-    }))
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        accentColor: state.accentColor,
+        uiScale: state.uiScale,
+        scanlinesEnabled: state.scanlinesEnabled,
+        orbsEnabled: state.orbsEnabled,
+      }),
+    )
   } catch {
     // Storage unavailable
   }

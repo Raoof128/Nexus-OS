@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,md,json}\"",
+    "prettier:check": "prettier --check \"**/*.{js,jsx,ts,tsx,css,md,json}\"",
     "check": "npm run lint && npm run build"
   },
   "dependencies": {
@@ -42,6 +44,7 @@
     "globals": "^17.4.0",
     "jsdom": "^26.1.0",
     "postcss": "^8.5.8",
+    "prettier": "^3.8.3",
     "tailwindcss": "^4.2.1",
     "vite": "^7.3.1",
     "vitest": "^3.2.4"

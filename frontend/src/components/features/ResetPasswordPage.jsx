@@ -9,7 +9,8 @@ import PasswordInput from '../ui/PasswordInput'
 const inputClass =
   'w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/40 focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary terminal-input'
 
-const labelClass = 'mb-1.5 block heading-ui text-xs font-semibold uppercase tracking-wider text-muted-foreground'
+const labelClass =
+  'mb-1.5 block heading-ui text-xs font-semibold uppercase tracking-wider text-muted-foreground'
 
 function GlitchLine() {
   return (
@@ -31,7 +32,12 @@ function DecryptText({ text, active }) {
   )
 }
 
-export default function ResetPasswordPage({ accessToken: initialAccessToken, refreshToken: initialRefreshToken, tokenHash, onComplete }) {
+export default function ResetPasswordPage({
+  accessToken: initialAccessToken,
+  refreshToken: initialRefreshToken,
+  tokenHash,
+  onComplete,
+}) {
   const [accessToken, setAccessToken] = useState(initialAccessToken || '')
   const [refreshToken, setRefreshToken] = useState(initialRefreshToken || '')
   const [password, setPassword] = useState('')
@@ -45,7 +51,8 @@ export default function ResetPasswordPage({ accessToken: initialAccessToken, ref
   useEffect(() => {
     if (!tokenHash || accessToken) return
     let cancelled = false
-    realtimeClient.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+    realtimeClient.auth
+      .verifyOtp({ token_hash: tokenHash, type: 'recovery' })
       .then(({ data, error: otpError }) => {
         if (cancelled) return
         if (otpError || !data?.session) {
@@ -63,7 +70,9 @@ export default function ResetPasswordPage({ accessToken: initialAccessToken, ref
           setExchanging(false)
         }
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [tokenHash, accessToken])
 
   if (exchanging) {
@@ -85,18 +94,16 @@ export default function ResetPasswordPage({ accessToken: initialAccessToken, ref
         <div className="absolute inset-0 z-[1] bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.03)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
         <Navbar />
         <main className="relative z-10 flex flex-1 items-center justify-center p-4 sm:p-6">
-          <Motion.div 
+          <Motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="neon-border glass-panel relative w-full max-w-md rounded-2xl p-6 text-center shadow-2xl sm:rounded-[2rem] sm:p-10"
           >
             <div className="cyber-bracket cyber-bracket-tl" />
             <div className="cyber-bracket cyber-bracket-br" />
-            
+
             <ShieldCheck className="mx-auto mb-4 h-12 w-12 text-destructive" aria-hidden="true" />
-            <h2 className="heading-display mb-2 text-lg font-bold text-white">
-              Session Expired
-            </h2>
+            <h2 className="heading-display mb-2 text-lg font-bold text-white">Session Expired</h2>
             <p className="mb-6 text-sm text-muted-foreground font-mono">
               [RECOVERY_FAILED] Recovery link is invalid or has expired.
             </p>
@@ -151,7 +158,7 @@ export default function ResetPasswordPage({ accessToken: initialAccessToken, ref
       <Navbar />
       <main className="relative z-10 flex flex-1 items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-md">
-          <Motion.div 
+          <Motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="neon-border glass-panel relative overflow-hidden rounded-2xl p-6 shadow-2xl sm:rounded-[2rem] sm:p-8"
@@ -159,7 +166,7 @@ export default function ResetPasswordPage({ accessToken: initialAccessToken, ref
             <GlitchLine />
             <div className="cyber-bracket cyber-bracket-tl" />
             <div className="cyber-bracket cyber-bracket-br" />
-            
+
             <button
               type="button"
               onClick={onComplete}
@@ -194,7 +201,9 @@ export default function ResetPasswordPage({ accessToken: initialAccessToken, ref
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="new-password" className={labelClass}>New Passkey</label>
+                <label htmlFor="new-password" className={labelClass}>
+                  New Passkey
+                </label>
                 <PasswordInput
                   id="new-password"
                   value={password}
@@ -208,7 +217,9 @@ export default function ResetPasswordPage({ accessToken: initialAccessToken, ref
                 />
               </div>
               <div>
-                <label htmlFor="confirm-password" className={labelClass}>Confirm Passkey</label>
+                <label htmlFor="confirm-password" className={labelClass}>
+                  Confirm Passkey
+                </label>
                 <PasswordInput
                   id="confirm-password"
                   value={confirm}
@@ -225,7 +236,10 @@ export default function ResetPasswordPage({ accessToken: initialAccessToken, ref
                 disabled={submitting}
                 className="heading-ui mt-4 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
               >
-                <DecryptText text={submitting ? 'Encrypting...' : 'Set New Passkey'} active={submitting} />
+                <DecryptText
+                  text={submitting ? 'Encrypting...' : 'Set New Passkey'}
+                  active={submitting}
+                />
               </button>
             </form>
           </Motion.div>

@@ -13,7 +13,12 @@ const WELCOME = [
 ]
 
 function formatTimestamp() {
-  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+  return new Date().toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  })
 }
 
 function buildCommands({ session, windows, zStack }) {
@@ -57,10 +62,12 @@ function buildCommands({ session, windows, zStack }) {
     windows: {
       description: 'List open windows',
       run: () => {
-        const lines = zStack.map((id) => {
-          const w = windows[id]
-          return w ? `  ${w.windowId.padEnd(20)} ${w.title.padEnd(16)} [${w.state}]` : null
-        }).filter(Boolean)
+        const lines = zStack
+          .map((id) => {
+            const w = windows[id]
+            return w ? `  ${w.windowId.padEnd(20)} ${w.title.padEnd(16)} [${w.state}]` : null
+          })
+          .filter(Boolean)
         return { type: 'info', text: lines.length > 0 ? lines.join('\n') : 'No windows open' }
       },
     },
@@ -163,29 +170,32 @@ export default function TerminalApp({ windowId: _windowId }) {
     setLines((prev) => [...prev, result])
   }, [])
 
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      executeCommand(input)
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      if (history.length === 0) return
-      const newIdx = historyIdx === -1 ? history.length - 1 : Math.max(0, historyIdx - 1)
-      setHistoryIdx(newIdx)
-      setInput(history[newIdx])
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      if (historyIdx === -1) return
-      const newIdx = historyIdx + 1
-      if (newIdx >= history.length) {
-        setHistoryIdx(-1)
-        setInput('')
-      } else {
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        executeCommand(input)
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        if (history.length === 0) return
+        const newIdx = historyIdx === -1 ? history.length - 1 : Math.max(0, historyIdx - 1)
         setHistoryIdx(newIdx)
         setInput(history[newIdx])
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        if (historyIdx === -1) return
+        const newIdx = historyIdx + 1
+        if (newIdx >= history.length) {
+          setHistoryIdx(-1)
+          setInput('')
+        } else {
+          setHistoryIdx(newIdx)
+          setInput(history[newIdx])
+        }
       }
-    }
-  }, [input, history, historyIdx, executeCommand])
+    },
+    [input, history, historyIdx, executeCommand],
+  )
 
   const lineColors = {
     command: 'text-primary',
@@ -205,11 +215,11 @@ export default function TerminalApp({ windowId: _windowId }) {
         {lines.map((line, i) => (
           <div key={i} className="flex">
             {line.type === 'command' && (
-              <span className="mr-2 text-primary/60 select-none">
-                {formatTimestamp()} $
-              </span>
+              <span className="mr-2 text-primary/60 select-none">{formatTimestamp()} $</span>
             )}
-            <pre className={`whitespace-pre-wrap break-all ${lineColors[line.type] || 'text-white/70'}`}>
+            <pre
+              className={`whitespace-pre-wrap break-all ${lineColors[line.type] || 'text-white/70'}`}
+            >
               {line.text}
             </pre>
           </div>

@@ -140,11 +140,14 @@ useFileSystemStore.subscribe((state) => {
   fsSaveTimeout = setTimeout(() => {
     lastSavedFiles = state.files
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        schemaVersion: SCHEMA_VERSION,
-        files: state.files,
-        currentPath: state.currentPath,
-      }))
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          schemaVersion: SCHEMA_VERSION,
+          files: state.files,
+          currentPath: state.currentPath,
+        }),
+      )
     } catch {
       // Storage full — silently ignore
     }

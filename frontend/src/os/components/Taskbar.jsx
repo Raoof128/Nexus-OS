@@ -18,7 +18,10 @@ function Clock() {
       const msToNext = 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds())
       timeoutId = setTimeout(tick, msToNext + 50) // +50ms buffer to avoid edge cases
     }
-    timeoutId = setTimeout(tick, 60_000 - (new Date().getSeconds() * 1000 + new Date().getMilliseconds()) + 50)
+    timeoutId = setTimeout(
+      tick,
+      60_000 - (new Date().getSeconds() * 1000 + new Date().getMilliseconds()) + 50,
+    )
     return () => clearTimeout(timeoutId)
   }, [])
 
@@ -49,9 +52,7 @@ function Taskbar() {
   const focusWindow = useWindowStore((s) => s.focusWindow)
   const toggleLauncher = useWindowStore((s) => s.toggleLauncher)
 
-  const windowEntries = zStack
-    .map((id) => windows[id])
-    .filter(Boolean)
+  const windowEntries = zStack.map((id) => windows[id]).filter(Boolean)
 
   if (isMobile) {
     return (
@@ -115,8 +116,10 @@ function Taskbar() {
       <div
         className="flex flex-1 items-center gap-1 overflow-x-auto custom-scrollbar"
         style={{
-          maskImage: 'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
+          maskImage:
+            'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
+          WebkitMaskImage:
+            'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
         }}
       >
         {windowEntries.map((win) => {
@@ -148,7 +151,10 @@ function Taskbar() {
       </div>
 
       <div className="ml-3 flex items-center gap-3" data-testid="system-tray">
-        <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.5)]" title="Connected" />
+        <div
+          className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.5)]"
+          title="Connected"
+        />
         <NotificationBadge />
         <Clock />
       </div>

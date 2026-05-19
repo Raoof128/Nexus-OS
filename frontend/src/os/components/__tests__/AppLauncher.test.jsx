@@ -25,7 +25,11 @@ vi.mock('../../stores/appRegistry', () => ({
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, onClick, ...rest }) => <div onClick={onClick} {...rest}>{children}</div>,
+    div: ({ children, onClick, ...rest }) => (
+      <div onClick={onClick} {...rest}>
+        {children}
+      </div>
+    ),
   },
 }))
 

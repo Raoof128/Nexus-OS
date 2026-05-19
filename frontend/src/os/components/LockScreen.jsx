@@ -32,8 +32,7 @@ function LockClock() {
           fontSize: 'clamp(4rem, 10vw, 7rem)',
           fontWeight: 900,
           color: 'hsl(56 100% 48%)',
-          textShadow:
-            '0 0 20px hsl(56 100% 48% / 0.6), 0 0 60px hsl(56 100% 48% / 0.2)',
+          textShadow: '0 0 20px hsl(56 100% 48% / 0.6), 0 0 60px hsl(56 100% 48% / 0.2)',
           lineHeight: 1,
           letterSpacing: '0.04em',
         }}
@@ -73,11 +72,7 @@ function UnlockHint() {
 /** CSS-only animated circuit pattern rendered as a background div */
 function CircuitBackground() {
   return (
-    <div
-      className="pointer-events-none absolute inset-0"
-      style={{ zIndex: 0 }}
-      aria-hidden
-    >
+    <div className="pointer-events-none absolute inset-0" style={{ zIndex: 0 }} aria-hidden>
       {/* Base grid */}
       <div
         className="absolute inset-0"
@@ -228,9 +223,7 @@ export default function LockScreen({ onUnlock }) {
       const active = document.activeElement
       if (
         active &&
-        (active.tagName === 'INPUT' ||
-          active.tagName === 'TEXTAREA' ||
-          active.isContentEditable)
+        (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)
       ) {
         return
       }
@@ -283,10 +276,7 @@ export default function LockScreen({ onUnlock }) {
           />
 
           {/* Center content */}
-          <div
-            className="relative flex flex-col items-center gap-6"
-            style={{ zIndex: 5 }}
-          >
+          <div className="relative flex flex-col items-center gap-6" style={{ zIndex: 5 }}>
             <LockLogo />
             <LockClock />
             <UnlockHint />

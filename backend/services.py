@@ -144,8 +144,7 @@ LOCAL_FALLBACKS: dict[str, dict[str, tuple[str, str, str, str]]] = {
             "Senior Software Engineer @ Cloudflare",
             "Cloudflare",
             "Edge Computing",
-            "Push code to 300 cities in under a second."
-            " The edge is the new origin.",
+            "Push code to 300 cities in under a second. The edge is the new origin.",
         ),
     },
 }

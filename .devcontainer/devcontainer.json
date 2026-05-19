@@ -12,11 +12,7 @@
   "postCreateCommand": "python3 -m pip install -e '.[dev]' && cd frontend && npm install",
   "customizations": {
     "vscode": {
-      "extensions": [
-        "ms-python.python",
-        "dbaeumer.vscode-eslint",
-        "hashicorp.terraform"
-      ]
+      "extensions": ["ms-python.python", "dbaeumer.vscode-eslint", "hashicorp.terraform"]
     }
   }
 }

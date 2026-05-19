@@ -7,9 +7,14 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 MediaType = Literal["book", "movie", "anime", "job"]
 MediaStatus = Literal[
-    "To Read", "Reading", "Finished",
-    "To Watch", "Watching",
-    "Applied", "Rejected", "Got the Job",
+    "To Read",
+    "Reading",
+    "Finished",
+    "To Watch",
+    "Watching",
+    "Applied",
+    "Rejected",
+    "Got the Job",
 ]
 
 CONTROL_CHARS_PATTERN = re.compile(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]")

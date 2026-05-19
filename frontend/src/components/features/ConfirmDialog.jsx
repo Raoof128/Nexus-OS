@@ -60,10 +60,7 @@ export default function ConfirmDialog({
             >
               {title}
             </h2>
-            <p
-              id={`${id}-dialog-message`}
-              className="mb-6 text-sm text-muted-foreground"
-            >
+            <p id={`${id}-dialog-message`} className="mb-6 text-sm text-muted-foreground">
               {message}
             </p>
 
@@ -91,6 +88,6 @@ export default function ConfirmDialog({
         </Motion.div>
       )}
     </AnimatePresence>,
-    document.getElementById('modal-root') || document.body
+    document.getElementById('modal-root') || document.body,
   )
 }

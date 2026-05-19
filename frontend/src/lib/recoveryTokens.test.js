@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import {
-  bootstrapRecoveryTokens,
-  clearRecoveryTokens,
-  getRecoveryTokens,
-} from './recoveryTokens'
+import { bootstrapRecoveryTokens, clearRecoveryTokens, getRecoveryTokens } from './recoveryTokens'
 
 afterEach(() => {
   window.history.replaceState({}, '', '/')

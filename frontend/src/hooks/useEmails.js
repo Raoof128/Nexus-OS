@@ -94,9 +94,8 @@ export function useEmails(session, folder = 'inbox', accountId = 'all') {
         },
         (payload) => {
           if (payload.eventType === 'DELETE') {
-            queryClient.setQueryData(
-              emailsQueryKey,
-              (current) => handleEmailRealtimeDelete(current ?? [], payload),
+            queryClient.setQueryData(emailsQueryKey, (current) =>
+              handleEmailRealtimeDelete(current ?? [], payload),
             )
             setExtraEmails((prev) => handleEmailRealtimeDelete(prev, payload))
           } else {

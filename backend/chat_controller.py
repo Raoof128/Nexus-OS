@@ -279,9 +279,7 @@ class ChatController(Controller):
         if not genai_client:
             ai_reply = "AI is not configured. Set GEMINI_API_KEY in environment."
         elif not breaker.allows_requests():
-            logger.warning(
-                "Gemini circuit breaker open; returning fallback chat reply"
-            )
+            logger.warning("Gemini circuit breaker open; returning fallback chat reply")
             ai_reply = (
                 "AI service is temporarily unavailable. Please try again shortly."
             )

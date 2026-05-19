@@ -1,0 +1,13 @@
+{
+  "name": "nexus-os-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,md,json,html,yml,yaml,sh}\"",
+    "prettier:check": "prettier --check \"**/*.{js,jsx,ts,tsx,css,md,json,html,yml,yaml,sh}\""
+  },
+  "devDependencies": {
+    "prettier": "latest",
+    "prettier-plugin-sh": "latest"
+  }
+}

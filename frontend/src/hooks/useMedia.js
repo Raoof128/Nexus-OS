@@ -64,9 +64,8 @@ export function useMedia(session, type = 'book') {
           // update + onSuccess pattern. External changes are picked up when the
           // query becomes stale (staleTime: 60s).
           if (payload.eventType === 'DELETE') {
-            queryClient.setQueryData(
-              mediaQueryKey,
-              (current) => handleRealtimeDelete(current ?? [], payload),
+            queryClient.setQueryData(mediaQueryKey, (current) =>
+              handleRealtimeDelete(current ?? [], payload),
             )
           }
         },
@@ -118,9 +117,7 @@ export function useMedia(session, type = 'book') {
       const previous = queryClient.getQueryData(mediaQueryKey) ?? []
       queryClient.setQueryData(
         mediaQueryKey,
-        previous.map((item) =>
-          item.id === mediaId ? { ...item, ...data } : item,
-        ),
+        previous.map((item) => (item.id === mediaId ? { ...item, ...data } : item)),
       )
       return { previous }
     },
@@ -129,16 +126,13 @@ export function useMedia(session, type = 'book') {
     },
     onSuccess: (serverData, { mediaId }) => {
       queryClient.setQueryData(mediaQueryKey, (current) =>
-        (current ?? []).map((item) =>
-          item.id === mediaId ? serverData : item,
-        ),
+        (current ?? []).map((item) => (item.id === mediaId ? serverData : item)),
       )
     },
   })
 
   const deleteMediaMutation = useMutation({
-    mutationFn: (mediaId) =>
-      apiFetch(`/media/${mediaId}`, { method: 'DELETE' }),
+    mutationFn: (mediaId) => apiFetch(`/media/${mediaId}`, { method: 'DELETE' }),
     onMutate: async (mediaId) => {
       await queryClient.cancelQueries({ queryKey: mediaQueryKey })
       const previous = queryClient.getQueryData(mediaQueryKey) ?? []
@@ -159,11 +153,12 @@ export function useMedia(session, type = 'book') {
   return {
     items: mediaQuery.data ?? [],
     loading: mediaQuery.isPending,
-    error: mediaQuery.error?.message
-      ?? addMediaMutation.error?.message
-      ?? updateMediaMutation.error?.message
-      ?? deleteMediaMutation.error?.message
-      ?? null,
+    error:
+      mediaQuery.error?.message ??
+      addMediaMutation.error?.message ??
+      updateMediaMutation.error?.message ??
+      deleteMediaMutation.error?.message ??
+      null,
     refetch: mediaQuery.refetch,
     addMedia: addMediaMutation.mutateAsync,
     updateMedia: updateMediaMutation.mutateAsync,

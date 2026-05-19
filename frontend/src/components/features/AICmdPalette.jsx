@@ -48,13 +48,22 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
   return createPortal(
     <Command.Dialog
       open={open}
-      onOpenChange={(v) => { if (!v) { setResult(null); resetSuggest(); setAddedIndices(new Set()) } onOpenChange(v) }}
+      onOpenChange={(v) => {
+        if (!v) {
+          setResult(null)
+          resetSuggest()
+          setAddedIndices(new Set())
+        }
+        onOpenChange(v)
+      }}
       label="Global AI Command Menu"
       contentClassName="fixed inset-0 z-[1001] flex items-center justify-center p-3 sm:p-4"
       className="neon-border flex w-full max-w-lg sm:max-w-xl md:max-w-2xl max-h-[85dvh] flex-col overflow-hidden rounded-2xl glass-panel p-0 shadow-[0_0_80px_hsl(var(--neon-yellow)/0.08)]"
       overlayClassName="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-md"
     >
-      <span className="sr-only" role="heading" aria-level="2">AI Command Menu</span>
+      <span className="sr-only" role="heading" aria-level="2">
+        AI Command Menu
+      </span>
       <p className="sr-only">Search commands or request AI-powered media suggestions.</p>
 
       {/* Header bar */}
@@ -109,7 +118,10 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
           <div className="my-4 flex flex-col items-center gap-3 py-6">
             <div className="relative">
               <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-              <Bot size={16} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
+              <Bot
+                size={16}
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-primary"
+              />
             </div>
             <p className="heading-display text-[10px] tracking-[0.3em] text-primary/70 animate-pulse">
               Neural Link Active
@@ -120,7 +132,9 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
         {/* Error */}
         {suggestError && (
           <div className="neon-border mx-1 rounded-xl bg-destructive/[0.06] p-4">
-            <p className="heading-display text-[10px] tracking-wider text-destructive/70 mb-1">SYS_ERROR</p>
+            <p className="heading-display text-[10px] tracking-wider text-destructive/70 mb-1">
+              SYS_ERROR
+            </p>
             <p className="text-sm text-destructive">{suggestError}</p>
           </div>
         )}
@@ -132,11 +146,13 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
               <p className="heading-display text-[10px] tracking-[0.2em] text-primary/50">
                 Recommendations
               </p>
-              <span className={`rounded-full px-2.5 py-0.5 text-[9px] heading-ui font-semibold uppercase tracking-wider ${
-                result.source === 'gemini'
-                  ? 'bg-primary/15 text-primary ring-1 ring-primary/20'
-                  : 'bg-accent/15 text-accent ring-1 ring-accent/20'
-              }`}>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-[9px] heading-ui font-semibold uppercase tracking-wider ${
+                  result.source === 'gemini'
+                    ? 'bg-primary/15 text-primary ring-1 ring-primary/20'
+                    : 'bg-accent/15 text-accent ring-1 ring-accent/20'
+                }`}
+              >
                 {result.source === 'local' ? 'Fallback' : 'Gemini Live'}
               </span>
             </div>
@@ -152,12 +168,14 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
                     <div className="flex items-start gap-2.5">
                       <Sparkles size={14} className="mt-0.5 shrink-0 text-accent" />
                       <div>
-                        <h4 className="heading-ui text-sm font-bold text-white">
-                          {s.title}
-                        </h4>
+                        <h4 className="heading-ui text-sm font-bold text-white">{s.title}</h4>
                         {(s.creator || s.year) && (
                           <p className="mt-0.5 text-[11px] text-muted-foreground">
-                            {s.creator && <>{config?.creatorLabel}: {s.creator}</>}
+                            {s.creator && (
+                              <>
+                                {config?.creatorLabel}: {s.creator}
+                              </>
+                            )}
                             {s.creator && s.year && ' · '}
                             {s.year && s.year}
                           </p>
@@ -180,23 +198,29 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
                   {added ? (
                     <div className="ml-6 flex items-center gap-2 text-green-400">
                       <Check size={14} />
-                      <span className="heading-ui text-[11px] tracking-wider">Added to Archive</span>
+                      <span className="heading-ui text-[11px] tracking-wider">
+                        Added to Archive
+                      </span>
                     </div>
-                  ) : onAdd && (
-                    <div className="ml-6 flex flex-wrap items-center gap-1.5">
-                      <span className="mr-1 text-[10px] text-muted-foreground/60 heading-ui tracking-wider">Add as:</span>
-                      {config?.statuses.map((status) => (
-                        <button
-                          key={status}
-                          type="button"
-                          onClick={() => handleAddToArchive(s, status, i)}
-                          className="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[10px] font-semibold heading-ui tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_8px_hsl(var(--neon-yellow)/0.15)]"
-                        >
-                          <Plus size={10} />
-                          {status}
-                        </button>
-                      ))}
-                    </div>
+                  ) : (
+                    onAdd && (
+                      <div className="ml-6 flex flex-wrap items-center gap-1.5">
+                        <span className="mr-1 text-[10px] text-muted-foreground/60 heading-ui tracking-wider">
+                          Add as:
+                        </span>
+                        {config?.statuses.map((status) => (
+                          <button
+                            key={status}
+                            type="button"
+                            onClick={() => handleAddToArchive(s, status, i)}
+                            className="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[10px] font-semibold heading-ui tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_8px_hsl(var(--neon-yellow)/0.15)]"
+                          >
+                            <Plus size={10} />
+                            {status}
+                          </button>
+                        ))}
+                      </div>
+                    )
                   )}
                 </div>
               )
@@ -205,6 +229,6 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
         )}
       </Command.List>
     </Command.Dialog>,
-    document.getElementById('modal-root') || document.body
+    document.getElementById('modal-root') || document.body,
   )
 }

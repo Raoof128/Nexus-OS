@@ -91,8 +91,7 @@ export function useEmailActions(userId, folder, accountId) {
   // --- Non-optimistic mutations ---
 
   const sendEmail = useMutation({
-    mutationFn: (data) =>
-      apiFetch('/api/email/send', { method: 'POST', body: data }),
+    mutationFn: (data) => apiFetch('/api/email/send', { method: 'POST', body: data }),
     onError: (error) => setSendError(error.message),
     onSuccess: () => {
       setSendError(null)
@@ -118,17 +117,14 @@ export function useEmailActions(userId, folder, accountId) {
   })
 
   const aiDraft = useMutation({
-    mutationFn: (data) =>
-      apiFetch('/api/email/ai/draft', { method: 'POST', body: data }),
+    mutationFn: (data) => apiFetch('/api/email/ai/draft', { method: 'POST', body: data }),
   })
 
   const aiSummarize = useMutation({
-    mutationFn: (data) =>
-      apiFetch('/api/email/ai/summarize', { method: 'POST', body: data }),
+    mutationFn: (data) => apiFetch('/api/email/ai/summarize', { method: 'POST', body: data }),
   })
 
-  const isSending =
-    sendEmail.isPending || replyEmail.isPending || forwardEmail.isPending
+  const isSending = sendEmail.isPending || replyEmail.isPending || forwardEmail.isPending
 
   return {
     markRead: markRead.mutateAsync,

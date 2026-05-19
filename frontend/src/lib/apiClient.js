@@ -1,5 +1,7 @@
 let onAuthExpired = null
-export function setAuthExpiredCallback(cb) { onAuthExpired = cb }
+export function setAuthExpiredCallback(cb) {
+  onAuthExpired = cb
+}
 
 const API_URL = import.meta.env.VITE_API_URL
 

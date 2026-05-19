@@ -12,20 +12,26 @@ function DesktopIcons() {
   const isMobile = useWindowStore((s) => s.isMobile)
   const [selectedId, setSelectedId] = useState(null)
 
-  const handleClick = useCallback((e, appId) => {
-    e.stopPropagation()
-    if (isMobile) {
-      openApp(appId)
-    } else {
-      setSelectedId(appId)
-    }
-  }, [isMobile, openApp])
+  const handleClick = useCallback(
+    (e, appId) => {
+      e.stopPropagation()
+      if (isMobile) {
+        openApp(appId)
+      } else {
+        setSelectedId(appId)
+      }
+    },
+    [isMobile, openApp],
+  )
 
-  const handleDoubleClick = useCallback((e, appId) => {
-    e.stopPropagation()
-    openApp(appId)
-    setSelectedId(null)
-  }, [openApp])
+  const handleDoubleClick = useCallback(
+    (e, appId) => {
+      e.stopPropagation()
+      openApp(appId)
+      setSelectedId(null)
+    },
+    [openApp],
+  )
 
   // Deselect when clicking desktop background (bubbled up, but we stop propagation on icons)
   // Selection is cleared by Desktop.jsx onClick
@@ -61,9 +67,7 @@ function DesktopIcons() {
               }
             }}
             className={`pointer-events-auto absolute flex flex-col items-center gap-1 rounded-lg p-1 cursor-default select-none transition-all duration-150 ${
-              isSelected
-                ? 'ring-1 ring-primary/40 bg-primary/[0.06]'
-                : ''
+              isSelected ? 'ring-1 ring-primary/40 bg-primary/[0.06]' : ''
             }`}
             style={{
               left: x,
@@ -88,9 +92,7 @@ function DesktopIcons() {
             </div>
 
             {/* Label */}
-            <span
-              className="heading-ui w-full truncate text-center text-[11px] text-white/70 leading-tight"
-            >
+            <span className="heading-ui w-full truncate text-center text-[11px] text-white/70 leading-tight">
               {manifest.title}
             </span>
           </div>

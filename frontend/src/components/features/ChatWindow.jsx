@@ -84,7 +84,10 @@ export default function ChatWindow({ sessionId, userId }) {
           <div className="flex justify-center py-10" role="status">
             <div className="relative">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-              <Bot size={12} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-primary" />
+              <Bot
+                size={12}
+                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-primary"
+              />
             </div>
             <span className="sr-only">Loading messages</span>
           </div>
@@ -102,15 +105,18 @@ export default function ChatWindow({ sessionId, userId }) {
             key={msg.id || `${msg.created_at}-${msg.role}`}
             className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
           >
-            <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ring-1 ${
-              msg.role === 'user'
-                ? 'bg-primary/15 ring-primary/20'
-                : 'bg-accent/15 ring-accent/20'
-            }`}>
-              {msg.role === 'user'
-                ? <User size={12} className="text-primary" />
-                : <Bot size={12} className="text-accent" />
-              }
+            <div
+              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ring-1 ${
+                msg.role === 'user'
+                  ? 'bg-primary/15 ring-primary/20'
+                  : 'bg-accent/15 ring-accent/20'
+              }`}
+            >
+              {msg.role === 'user' ? (
+                <User size={12} className="text-primary" />
+              ) : (
+                <Bot size={12} className="text-accent" />
+              )}
             </div>
 
             <div
@@ -120,15 +126,22 @@ export default function ChatWindow({ sessionId, userId }) {
                   : 'rounded-tl-md glass-panel text-neutral-200'
               }`}
             >
-              <div className={`mb-1.5 heading-ui text-[10px] tracking-wider ${
-                msg.role === 'user' ? 'text-primary/40' : 'text-accent/40'
-              }`}>
+              <div
+                className={`mb-1.5 heading-ui text-[10px] tracking-wider ${
+                  msg.role === 'user' ? 'text-primary/40' : 'text-accent/40'
+                }`}
+              >
                 {msg.role === 'user' ? 'Operator' : 'Nexus AI'}
               </div>
               <div className="whitespace-pre-wrap break-words">{msg.content}</div>
             </div>
-            <span className={`hidden sm:block self-end text-[9px] font-mono text-muted-foreground/50 mt-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <span
+              className={`hidden sm:block self-end text-[9px] font-mono text-muted-foreground/50 mt-1 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}
+            >
+              {new Date(msg.created_at).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
             </span>
           </div>
         ))}
@@ -141,11 +154,22 @@ export default function ChatWindow({ sessionId, userId }) {
             <div className="glass-panel rounded-2xl rounded-tl-md px-4 py-3">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent/60" style={{ animationDelay: '0ms' }} />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent/60" style={{ animationDelay: '150ms' }} />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent/60" style={{ animationDelay: '300ms' }} />
+                  <span
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent/60"
+                    style={{ animationDelay: '0ms' }}
+                  />
+                  <span
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent/60"
+                    style={{ animationDelay: '150ms' }}
+                  />
+                  <span
+                    className="h-1.5 w-1.5 animate-bounce rounded-full bg-accent/60"
+                    style={{ animationDelay: '300ms' }}
+                  />
                 </div>
-                <span className="heading-ui text-[10px] tracking-wider text-accent/50">Processing</span>
+                <span className="heading-ui text-[10px] tracking-wider text-accent/50">
+                  Processing
+                </span>
               </div>
             </div>
           </div>
@@ -153,7 +177,10 @@ export default function ChatWindow({ sessionId, userId }) {
       </div>
 
       {error && (
-        <div role="alert" className="mx-4 mb-2 neon-border rounded-lg bg-destructive/[0.06] px-4 py-2">
+        <div
+          role="alert"
+          className="mx-4 mb-2 neon-border rounded-lg bg-destructive/[0.06] px-4 py-2"
+        >
           <p className="heading-ui text-[10px] text-destructive/60 mb-0.5">Error</p>
           <p className="text-xs text-destructive">{error}</p>
         </div>

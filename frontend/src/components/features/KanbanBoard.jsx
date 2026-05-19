@@ -46,7 +46,17 @@ function SortableCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
   )
 }
 
-function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSelect, onEdit, onHeaderClick, onAiSuggest, onAddRequest }) {
+function KanbanBoard({
+  items = [],
+  mediaType = 'book',
+  onUpdate,
+  onDelete,
+  onSelect,
+  onEdit,
+  onHeaderClick,
+  onAiSuggest,
+  onAddRequest,
+}) {
   const statuses = MEDIA_CONFIG[mediaType]?.statuses || ['To Read', 'Reading', 'Finished']
   const [activeItem, setActiveItem] = useState(null)
 
@@ -56,8 +66,8 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
     useSensor(KeyboardSensor),
   )
 
-  const grouped = statuses.map(status => {
-    const all = items.filter(item => item.status === status)
+  const grouped = statuses.map((status) => {
+    const all = items.filter((item) => item.status === status)
     return {
       status,
       items: all.slice(0, MAX_PREVIEW),
@@ -66,26 +76,32 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
     }
   })
 
-  const handleDragStart = useCallback((event) => {
-    const draggedItem = items.find(i => i.id === event.active.id)
-    setActiveItem(draggedItem || null)
-  }, [items])
+  const handleDragStart = useCallback(
+    (event) => {
+      const draggedItem = items.find((i) => i.id === event.active.id)
+      setActiveItem(draggedItem || null)
+    },
+    [items],
+  )
 
-  const handleDragEnd = useCallback((event) => {
-    setActiveItem(null)
-    const { active, over } = event
-    if (!over || !onUpdate) return
+  const handleDragEnd = useCallback(
+    (event) => {
+      setActiveItem(null)
+      const { active, over } = event
+      if (!over || !onUpdate) return
 
-    const draggedId = active.id
-    const overData = over.data?.current
-    const targetStatus = overData?.status || overData?.columnStatus
-    if (!targetStatus) return
+      const draggedId = active.id
+      const overData = over.data?.current
+      const targetStatus = overData?.status || overData?.columnStatus
+      if (!targetStatus) return
 
-    const draggedItem = items.find(i => i.id === draggedId)
-    if (!draggedItem || draggedItem.status === targetStatus) return
+      const draggedItem = items.find((i) => i.id === draggedId)
+      if (!draggedItem || draggedItem.status === targetStatus) return
 
-    onUpdate({ mediaId: draggedId, data: { status: targetStatus } })
-  }, [items, onUpdate])
+      onUpdate({ mediaId: draggedId, data: { status: targetStatus } })
+    },
+    [items, onUpdate],
+  )
 
   const handleDragCancel = useCallback(() => {
     setActiveItem(null)
@@ -93,11 +109,12 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
 
   // Derive column count from the config's status list so new statuses don't wrap.
   const statusCount = statuses.length
-  const gridColsClass = statusCount >= 4
-    ? '@md:grid-cols-2 @lg:grid-cols-4'
-    : statusCount === 3
-      ? '@md:grid-cols-3'
-      : '@md:grid-cols-2'
+  const gridColsClass =
+    statusCount >= 4
+      ? '@md:grid-cols-2 @lg:grid-cols-4'
+      : statusCount === 3
+        ? '@md:grid-cols-3'
+        : '@md:grid-cols-2'
 
   return (
     <DndContext
@@ -107,7 +124,9 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className={`grid h-full auto-rows-min grid-cols-1 gap-4 @sm:grid-cols-2 @sm:gap-6 ${gridColsClass}`}>
+      <div
+        className={`grid h-full auto-rows-min grid-cols-1 gap-4 @sm:grid-cols-2 @sm:gap-6 ${gridColsClass}`}
+      >
         {grouped.map(({ status, items: columnItems, total, hasMore }) => (
           <DroppableColumn
             key={status}
@@ -138,7 +157,20 @@ function KanbanBoard({ items = [], mediaType = 'book', onUpdate, onDelete, onSel
   )
 }
 
-function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpdate, onDelete, onSelect, onEdit, onHeaderClick, onAiSuggest, onAddRequest }) {
+function DroppableColumn({
+  status,
+  columnItems,
+  total,
+  hasMore,
+  mediaType,
+  onUpdate,
+  onDelete,
+  onSelect,
+  onEdit,
+  onHeaderClick,
+  onAiSuggest,
+  onAddRequest,
+}) {
   const config = MEDIA_CONFIG[mediaType]
   const singular = config?.singular || 'entry'
   const { setNodeRef, isOver } = useDroppable({
@@ -162,7 +194,8 @@ function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpd
         className="flex items-center justify-between px-2 pt-2 text-left transition-colors hover:opacity-80"
       >
         <h2 className="heading-display text-xs font-bold text-white @sm:text-sm">
-          <span aria-hidden="true">// </span>{status}
+          <span aria-hidden="true">// </span>
+          {status}
         </h2>
         <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-white/10 text-[10px] font-bold font-mono @sm:h-6 @sm:w-6 @sm:text-xs">
           {total}
@@ -170,7 +203,7 @@ function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpd
       </button>
 
       <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar @sm:space-y-4 @sm:pr-2">
-        {columnItems.map(item => (
+        {columnItems.map((item) => (
           <SortableCard
             key={item.id}
             item={item}
@@ -182,7 +215,9 @@ function DroppableColumn({ status, columnItems, total, hasMore, mediaType, onUpd
         ))}
         {columnItems.length === 0 && (
           <div className="border border-dashed border-white/10 rounded-xl p-6 text-center flex flex-col items-center justify-center gap-3 h-28 @sm:p-8 @sm:h-40">
-            <p className="font-mono text-[11px] tracking-wide text-muted-foreground/60 @sm:text-xs">Empty — no {singular.toLowerCase()}s here yet.</p>
+            <p className="font-mono text-[11px] tracking-wide text-muted-foreground/60 @sm:text-xs">
+              Empty — no {singular.toLowerCase()}s here yet.
+            </p>
             <div className="flex flex-wrap items-center justify-center gap-2">
               {onAddRequest && (
                 <button

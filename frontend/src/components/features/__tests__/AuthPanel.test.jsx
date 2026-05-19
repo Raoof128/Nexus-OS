@@ -72,7 +72,9 @@ describe('AuthPanel', () => {
   })
 
   it('shows loading state during login', async () => {
-    mockSignIn.mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve({ error: null }), 100)))
+    mockSignIn.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({ error: null }), 100)),
+    )
     render(<AuthPanel />)
 
     const emailInput = screen.getByLabelText(/identity \/\/ email/i)
@@ -106,7 +108,7 @@ describe('AuthPanel', () => {
   it('handles successful registration and switches to login', async () => {
     vi.mocked(authFetch).mockResolvedValue({ user: { id: '123' } })
     mockSignIn.mockResolvedValue({ error: null })
-    
+
     render(<AuthPanel />)
     fireEvent.click(screen.getByText(/create account/i))
 

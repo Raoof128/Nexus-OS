@@ -6,7 +6,6 @@ import logging
 
 from litestar import Controller, Request, Response, delete, get, patch, post
 from litestar.exceptions import HTTPException
-from litestar.response import Stream
 
 try:
     from .config import get_settings
@@ -14,7 +13,6 @@ try:
         AIDraftRequest,
         AISummarizeRequest,
         ComposeEmailRequest,
-        EmailAccountResponse,
         LabelEmailRequest,
         MoveEmailRequest,
     )
@@ -26,7 +24,6 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
         AIDraftRequest,
         AISummarizeRequest,
         ComposeEmailRequest,
-        EmailAccountResponse,
         LabelEmailRequest,
         MoveEmailRequest,
     )
@@ -124,16 +121,14 @@ class EmailController(Controller):
         return resp.data or []
 
     @delete("/accounts/{account_id:str}", status_code=204)
-    async def disconnect_account(
-        self, account_id: str, request: Request
-    ) -> None:
+    async def disconnect_account(self, account_id: str, request: Request) -> None:
         """Disconnect (delete) a linked email account."""
 
         user_id, access_token = _require_auth(request)
         try:
-            _db(access_token).from_("email_accounts").delete().eq(
-                "id", account_id
-            ).eq("user_id", user_id).execute()
+            _db(access_token).from_("email_accounts").delete().eq("id", account_id).eq(
+                "user_id", user_id
+            ).execute()
         except Exception as exc:  # pragma: no cover
             logger.exception(
                 "Failed to disconnect account %s for user %s", account_id, user_id
@@ -412,9 +407,7 @@ class EmailController(Controller):
         token = decrypt_oauth_token(account["access_token_enc"])
 
         try:
-            html = await provider.fetch_message_html(
-                token, email_row["provider_id"]
-            )
+            html = await provider.fetch_message_html(token, email_row["provider_id"])
         except Exception as exc:  # pragma: no cover
             logger.exception("HTML fetch failed for email %s", email_id)
             raise HTTPException(status_code=502, detail="HTML fetch failed") from exc
@@ -482,9 +475,7 @@ class EmailController(Controller):
         return Response(
             content=raw,
             media_type="application/octet-stream",
-            headers={
-                "Content-Disposition": f'attachment; filename="{attachment_id}"'
-            },
+            headers={"Content-Disposition": f'attachment; filename="{attachment_id}"'},
         )
 
     # ------------------------------------------------------------------
@@ -501,11 +492,7 @@ class EmailController(Controller):
 
         client = get_genai_client()
         if not client:
-            raise HTTPException(
-                status_code=503, detail="AI service not configured"
-            )
-
-        from .config import get_settings as _gs
+            raise HTTPException(status_code=503, detail="AI service not configured")
 
         subject = email_row.get("subject", "")
         body = email_row.get("body_text", "")
@@ -527,16 +514,12 @@ class EmailController(Controller):
             )
         except Exception as exc:  # pragma: no cover
             logger.exception("Gemini draft failed for email %s", data.email_id)
-            raise HTTPException(
-                status_code=502, detail="AI draft failed"
-            ) from exc
+            raise HTTPException(status_code=502, detail="AI draft failed") from exc
 
         return {"draft": response.text or ""}
 
     @post("/ai/summarize")
-    async def ai_summarize(
-        self, data: AISummarizeRequest, request: Request
-    ) -> dict:
+    async def ai_summarize(self, data: AISummarizeRequest, request: Request) -> dict:
         """Use Gemini to summarize a thread of emails."""
 
         user_id, access_token = _require_auth(request)
@@ -563,9 +546,7 @@ class EmailController(Controller):
 
         client = get_genai_client()
         if not client:
-            raise HTTPException(
-                status_code=503, detail="AI service not configured"
-            )
+            raise HTTPException(status_code=503, detail="AI service not configured")
 
         thread_text = "\n\n---\n\n".join(
             f"From: {e.get('from_address', '')}\n"
@@ -589,8 +570,6 @@ class EmailController(Controller):
             )
         except Exception as exc:  # pragma: no cover
             logger.exception("Gemini summarize failed")
-            raise HTTPException(
-                status_code=502, detail="AI summarize failed"
-            ) from exc
+            raise HTTPException(status_code=502, detail="AI summarize failed") from exc
 
         return {"summary": response.text or ""}

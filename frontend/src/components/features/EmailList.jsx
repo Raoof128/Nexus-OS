@@ -37,7 +37,10 @@ const EmailList = React.memo(function EmailList({
 
   if (!loading && emails.length === 0) {
     return (
-      <div aria-live="polite" className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+      <div
+        aria-live="polite"
+        className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center"
+      >
         <span className="heading-display text-[10px] tracking-[0.3em] text-muted-foreground/50">
           NO_SIGNALS_FOUND
         </span>
@@ -78,9 +81,7 @@ const EmailList = React.memo(function EmailList({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: DURATION.base, delay: index < 20 ? index * 0.02 : 0 }}
               className={`group relative cursor-pointer border-b border-white/[0.04] px-4 py-3 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50 ${
-                isSelected
-                  ? 'bg-primary/[0.07]'
-                  : 'hover:bg-white/[0.025]'
+                isSelected ? 'bg-primary/[0.07]' : 'hover:bg-white/[0.025]'
               }`}
               aria-selected={isSelected}
             >
@@ -108,9 +109,7 @@ const EmailList = React.memo(function EmailList({
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className={`truncate font-mono text-xs ${
-                        email.is_read
-                          ? 'text-white/50'
-                          : 'font-semibold text-white'
+                        email.is_read ? 'text-white/50' : 'font-semibold text-white'
                       }`}
                     >
                       {email.from_name || email.from_address || 'Unknown'}
@@ -133,9 +132,7 @@ const EmailList = React.memo(function EmailList({
                     <div className="min-w-0 flex-1">
                       <p
                         className={`truncate text-xs ${
-                          email.is_read
-                            ? 'text-white/40'
-                            : 'font-medium text-white/75'
+                          email.is_read ? 'text-white/40' : 'font-medium text-white/75'
                         }`}
                       >
                         {email.subject || '(no subject)'}
@@ -178,9 +175,18 @@ const EmailList = React.memo(function EmailList({
 
       {loading && (
         <div aria-live="polite" className="flex items-center justify-center gap-2 py-4">
-          <span className="h-1 w-1 animate-bounce rounded-full bg-primary" style={{ animationDelay: '0ms' }} />
-          <span className="h-1 w-1 animate-bounce rounded-full bg-primary" style={{ animationDelay: '150ms' }} />
-          <span className="h-1 w-1 animate-bounce rounded-full bg-primary" style={{ animationDelay: '300ms' }} />
+          <span
+            className="h-1 w-1 animate-bounce rounded-full bg-primary"
+            style={{ animationDelay: '0ms' }}
+          />
+          <span
+            className="h-1 w-1 animate-bounce rounded-full bg-primary"
+            style={{ animationDelay: '150ms' }}
+          />
+          <span
+            className="h-1 w-1 animate-bounce rounded-full bg-primary"
+            style={{ animationDelay: '300ms' }}
+          />
         </div>
       )}
     </div>

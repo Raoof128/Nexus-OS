@@ -20,7 +20,14 @@ const CATEGORY_CONFIG = Object.fromEntries([
 
 const CATEGORIES = [...MEDIA_TYPES.map((type) => MEDIA_CONFIG[type].label.toLowerCase()), 'general']
 
-export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCreate, onDelete, isCreating }) {
+export default function ChatSidebar({
+  sessions,
+  activeSessionId,
+  onSelect,
+  onCreate,
+  onDelete,
+  isCreating,
+}) {
   const [newTitle, setNewTitle] = useState('')
   const [newCategory, setNewCategory] = useState('general')
   const [showCreate, setShowCreate] = useState(false)
@@ -47,12 +54,13 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/[0.04] p-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 ring-1 ring-primary/20" aria-hidden="true">
+          <div
+            className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 ring-1 ring-primary/20"
+            aria-hidden="true"
+          >
             <MessageCircle size={12} className="text-primary" />
           </div>
-          <span className="heading-display text-xs font-bold text-white">
-            Nexus AI
-          </span>
+          <span className="heading-display text-xs font-bold text-white">Nexus AI</span>
         </div>
         <button
           type="button"
@@ -85,7 +93,9 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
             className="w-full appearance-none rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 heading-ui text-xs text-white focus:border-primary/30 focus:outline-none"
           >
             {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat} className="bg-neutral-900 text-white">{CATEGORY_CONFIG[cat].label}</option>
+              <option key={cat} value={cat} className="bg-neutral-900 text-white">
+                {CATEGORY_CONFIG[cat].label}
+              </option>
             ))}
           </select>
           <button
@@ -107,7 +117,9 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
           const { label, icon: Icon, color } = CATEGORY_CONFIG[cat]
           return (
             <div key={cat}>
-              <div className={`mb-1.5 flex items-center gap-1.5 px-2 heading-ui text-[10px] tracking-wider ${color} opacity-80`}>
+              <div
+                className={`mb-1.5 flex items-center gap-1.5 px-2 heading-ui text-[10px] tracking-wider ${color} opacity-80`}
+              >
                 <Icon size={10} aria-hidden="true" />
                 {label}
               </div>
@@ -151,7 +163,13 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
           <div className="flex flex-col items-center gap-3 py-10">
             <MessageCircle size={24} className="text-muted-foreground/40" />
             <p className="heading-ui text-[10px] text-muted-foreground/50">No sessions</p>
-            <button type="button" onClick={() => setShowCreate(true)} className="mt-3 text-xs text-primary hover:text-primary/80">Create your first session</button>
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="mt-3 text-xs text-primary hover:text-primary/80"
+            >
+              Create your first session
+            </button>
           </div>
         )}
       </div>
@@ -160,7 +178,10 @@ export default function ChatSidebar({ sessions, activeSessionId, onSelect, onCre
         open={deleteSessionId !== null}
         title="Delete Session"
         message="This will permanently delete this chat session."
-        onConfirm={() => { onDelete(deleteSessionId); setDeleteSessionId(null); }}
+        onConfirm={() => {
+          onDelete(deleteSessionId)
+          setDeleteSessionId(null)
+        }}
         onCancel={() => setDeleteSessionId(null)}
       />
     </div>

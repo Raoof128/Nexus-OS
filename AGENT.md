@@ -4,6 +4,14 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 ---
 
 # Agent Rules
+### 2026-05-20 (Australia/Sydney) — Project Configuration & Quality Gate Hardening
+**Raouf:**
+- **Scope:** Hardened project configuration and formalized quality gates.
+- **Summary:** Professionalized `.gitignore` to exclude root `node_modules/` and OS junk while ensuring protocol files (`AGENT.md`, `CHANGELOG.md`) are tracked. Staged and added root-level `package.json`, `.prettierrc`, `.prettierignore`, and `scripts/check.sh` to the repository to lock in the quality gate system.
+- **Files Changed:** `.gitignore`, `package.json`, `.prettierignore`, `.prettierrc`, `scripts/check.sh`.
+- **Verification:** Verified `git status` shows zero unwanted untracked files and all configuration files are staged.
+- **Follow-ups:** Ensure CI/CD is updated to use the new `scripts/check.sh`.
+
 ### 2026-05-20 (Australia/Sydney) — Test Suite Expansion
 **Raouf:**
 - **Scope:** Expanded test coverage across full stack.

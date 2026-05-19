@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --color-background: hsl(var(--background));
@@ -121,9 +121,16 @@
 }
 
 @keyframes float-orb {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(30px, -40px) scale(1.05); }
-  66% { transform: translate(-20px, 30px) scale(0.95); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -40px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 30px) scale(0.95);
+  }
 }
 
 /* ── Scanline overlay ────────────────────────────────────── */
@@ -159,9 +166,13 @@
     transparent 60%,
     hsl(var(--neon-teal) / 0.3)
   );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
   pointer-events: none;
 }
@@ -206,7 +217,7 @@
 
 /* ── Terminal Input ──────────────────────────────────────── */
 .terminal-input {
-  background: linear-gradient(90deg, rgba(0,0,0,0.6) 0%, rgba(20,20,20,0.4) 100%);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.6) 0%, rgba(20, 20, 20, 0.4) 100%);
   border-left: 2px solid transparent;
 }
 .terminal-input:focus {
@@ -216,44 +227,69 @@
 
 /* ── Glitch text effect ──────────────────────────────────── */
 @keyframes glitch-shift {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-2px); }
-  40% { transform: translateX(2px); }
-  60% { transform: translateX(-1px); }
-  80% { transform: translateX(1px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-2px);
+  }
+  40% {
+    transform: translateX(2px);
+  }
+  60% {
+    transform: translateX(-1px);
+  }
+  80% {
+    transform: translateX(1px);
+  }
 }
 
 @keyframes glitch-chromatic {
-  0%, 100% {
+  0%,
+  100% {
     text-shadow: none;
   }
   20% {
-    text-shadow: -3px 0 #f3e600, 3px 0 #55ead4;
+    text-shadow:
+      -3px 0 #f3e600,
+      3px 0 #55ead4;
   }
   40% {
-    text-shadow: 3px 0 #f3e600, -3px 0 #c5003c;
+    text-shadow:
+      3px 0 #f3e600,
+      -3px 0 #c5003c;
   }
   60% {
-    text-shadow: -2px 0 #55ead4, 2px 0 #f3e600;
+    text-shadow:
+      -2px 0 #55ead4,
+      2px 0 #f3e600;
   }
   80% {
-    text-shadow: 2px 0 #c5003c, -2px 0 #f3e600;
+    text-shadow:
+      2px 0 #c5003c,
+      -2px 0 #f3e600;
   }
 }
 
 .glitch-hover:hover {
-  animation: glitch-shift 0.3s ease-in-out, glitch-chromatic 0.3s ease-in-out;
+  animation:
+    glitch-shift 0.3s ease-in-out,
+    glitch-chromatic 0.3s ease-in-out;
 }
 
 /* ── Neon pulse animation ────────────────────────────────── */
 @keyframes neon-pulse {
-  0%, 100% {
-    box-shadow: 0 0 5px hsl(var(--neon-yellow) / 0.3),
-                0 0 20px hsl(var(--neon-yellow) / 0.1);
+  0%,
+  100% {
+    box-shadow:
+      0 0 5px hsl(var(--neon-yellow) / 0.3),
+      0 0 20px hsl(var(--neon-yellow) / 0.1);
   }
   50% {
-    box-shadow: 0 0 10px hsl(var(--neon-yellow) / 0.5),
-                0 0 40px hsl(var(--neon-yellow) / 0.15);
+    box-shadow:
+      0 0 10px hsl(var(--neon-yellow) / 0.5),
+      0 0 40px hsl(var(--neon-yellow) / 0.15);
   }
 }
 
@@ -264,9 +300,15 @@
 
 /* ── Decryption Text Animation ───────────────────────────── */
 @keyframes decrypt {
-  0% { opacity: 0.3; }
-  50% { opacity: 1; }
-  100% { opacity: 0.3; }
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+  }
 }
 .decrypt-effect {
   animation: decrypt 0.1s steps(1) infinite;

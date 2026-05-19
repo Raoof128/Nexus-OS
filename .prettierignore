@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+dist/
+build/
+.pytest_cache/
+__pycache__/
+
+# Non-supported files
+*.py
+*.sql
+*.yaml
+*.yml
+*.toml
+*.lock
+LICENSE
+
+# Scripts
+scripts/check.sh

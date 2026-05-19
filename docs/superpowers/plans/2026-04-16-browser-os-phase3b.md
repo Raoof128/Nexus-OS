@@ -14,18 +14,18 @@
 
 ### New files
 
-| File | Responsibility |
-|---|---|
-| `frontend/src/os/apps/TerminalApp.jsx` | Terminal with command parser, history, output rendering |
-| `frontend/src/os/apps/FileManagerApp.jsx` | Virtual filesystem with folder tree, file list, viewer |
-| `frontend/src/os/stores/fileSystemStore.js` | VFS state — folders, files, CRUD operations, localStorage persistence |
-| `frontend/src/os/apps/__tests__/TerminalApp.test.jsx` | Terminal tests |
-| `frontend/src/os/stores/__tests__/fileSystemStore.test.js` | VFS store tests |
+| File                                                       | Responsibility                                                        |
+| ---------------------------------------------------------- | --------------------------------------------------------------------- |
+| `frontend/src/os/apps/TerminalApp.jsx`                     | Terminal with command parser, history, output rendering               |
+| `frontend/src/os/apps/FileManagerApp.jsx`                  | Virtual filesystem with folder tree, file list, viewer                |
+| `frontend/src/os/stores/fileSystemStore.js`                | VFS state — folders, files, CRUD operations, localStorage persistence |
+| `frontend/src/os/apps/__tests__/TerminalApp.test.jsx`      | Terminal tests                                                        |
+| `frontend/src/os/stores/__tests__/fileSystemStore.test.js` | VFS store tests                                                       |
 
 ### Modified files
 
-| File | Change |
-|---|---|
+| File                                    | Change                                                 |
+| --------------------------------------- | ------------------------------------------------------ |
 | `frontend/src/os/stores/appRegistry.js` | Swap PlaceholderApp for TerminalApp and FileManagerApp |
 
 ---
@@ -33,6 +33,7 @@
 ## Task 1: Terminal App
 
 **Files:**
+
 - Create: `frontend/src/os/apps/TerminalApp.jsx`
 - Create: `frontend/src/os/apps/__tests__/TerminalApp.test.jsx`
 
@@ -51,10 +52,11 @@ vi.mock('../../../hooks/useAuth', () => ({
 }))
 
 vi.mock('../../stores/windowStore', () => ({
-  useWindowStore: (selector) => selector({
-    windows: { media: { appId: 'media' }, chat: { appId: 'chat' } },
-    zStack: ['media', 'chat'],
-  }),
+  useWindowStore: (selector) =>
+    selector({
+      windows: { media: { appId: 'media' }, chat: { appId: 'chat' } },
+      zStack: ['media', 'chat'],
+    }),
 }))
 
 import TerminalApp from '../TerminalApp'
@@ -153,7 +155,12 @@ const WELCOME = [
 ]
 
 function formatTimestamp() {
-  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+  return new Date().toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  })
 }
 
 function buildCommands({ session, windows, zStack }) {
@@ -197,10 +204,12 @@ function buildCommands({ session, windows, zStack }) {
     windows: {
       description: 'List open windows',
       run: () => {
-        const lines = zStack.map((id) => {
-          const w = windows[id]
-          return w ? `  ${w.windowId.padEnd(20)} ${w.title.padEnd(16)} [${w.state}]` : null
-        }).filter(Boolean)
+        const lines = zStack
+          .map((id) => {
+            const w = windows[id]
+            return w ? `  ${w.windowId.padEnd(20)} ${w.title.padEnd(16)} [${w.state}]` : null
+          })
+          .filter(Boolean)
         return { type: 'info', text: lines.length > 0 ? lines.join('\n') : 'No windows open' }
       },
     },
@@ -271,58 +280,64 @@ export default function TerminalApp({ windowId }) {
     inputRef.current?.focus()
   }, [])
 
-  const executeCommand = useCallback(async (raw) => {
-    const trimmed = raw.trim()
-    if (!trimmed) return
+  const executeCommand = useCallback(
+    async (raw) => {
+      const trimmed = raw.trim()
+      if (!trimmed) return
 
-    // Add command to output
-    setLines((prev) => [...prev, { type: 'command', text: trimmed }])
-    setHistory((prev) => [...prev, trimmed])
-    setHistoryIdx(-1)
-    setInput('')
+      // Add command to output
+      setLines((prev) => [...prev, { type: 'command', text: trimmed }])
+      setHistory((prev) => [...prev, trimmed])
+      setHistoryIdx(-1)
+      setInput('')
 
-    const [cmdName, ...argParts] = trimmed.split(/\s+/)
-    const args = argParts.join(' ')
-    const cmd = commands[cmdName.toLowerCase()]
+      const [cmdName, ...argParts] = trimmed.split(/\s+/)
+      const args = argParts.join(' ')
+      const cmd = commands[cmdName.toLowerCase()]
 
-    if (!cmd) {
-      setLines((prev) => [...prev, { type: 'error', text: `command not found: ${cmdName}` }])
-      return
-    }
+      if (!cmd) {
+        setLines((prev) => [...prev, { type: 'error', text: `command not found: ${cmdName}` }])
+        return
+      }
 
-    const result = await cmd.run(args)
+      const result = await cmd.run(args)
 
-    if (result.type === 'clear') {
-      setLines([])
-      return
-    }
+      if (result.type === 'clear') {
+        setLines([])
+        return
+      }
 
-    setLines((prev) => [...prev, result])
-  }, [commands])
+      setLines((prev) => [...prev, result])
+    },
+    [commands],
+  )
 
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      executeCommand(input)
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      if (history.length === 0) return
-      const newIdx = historyIdx === -1 ? history.length - 1 : Math.max(0, historyIdx - 1)
-      setHistoryIdx(newIdx)
-      setInput(history[newIdx])
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      if (historyIdx === -1) return
-      const newIdx = historyIdx + 1
-      if (newIdx >= history.length) {
-        setHistoryIdx(-1)
-        setInput('')
-      } else {
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        executeCommand(input)
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        if (history.length === 0) return
+        const newIdx = historyIdx === -1 ? history.length - 1 : Math.max(0, historyIdx - 1)
         setHistoryIdx(newIdx)
         setInput(history[newIdx])
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        if (historyIdx === -1) return
+        const newIdx = historyIdx + 1
+        if (newIdx >= history.length) {
+          setHistoryIdx(-1)
+          setInput('')
+        } else {
+          setHistoryIdx(newIdx)
+          setInput(history[newIdx])
+        }
       }
-    }
-  }, [input, history, historyIdx, executeCommand])
+    },
+    [input, history, historyIdx, executeCommand],
+  )
 
   const lineColors = {
     command: 'text-primary',
@@ -342,11 +357,11 @@ export default function TerminalApp({ windowId }) {
         {lines.map((line, i) => (
           <div key={i} className="flex">
             {line.type === 'command' && (
-              <span className="mr-2 text-primary/60 select-none">
-                {formatTimestamp()} $
-              </span>
+              <span className="mr-2 text-primary/60 select-none">{formatTimestamp()} $</span>
             )}
-            <pre className={`whitespace-pre-wrap break-all ${lineColors[line.type] || 'text-white/70'}`}>
+            <pre
+              className={`whitespace-pre-wrap break-all ${lineColors[line.type] || 'text-white/70'}`}
+            >
               {line.text}
             </pre>
           </div>
@@ -391,6 +406,7 @@ git commit -m "feat: add Terminal app with command parser, history, and API comm
 ## Task 2: File System Store
 
 **Files:**
+
 - Create: `frontend/src/os/stores/fileSystemStore.js`
 - Create: `frontend/src/os/stores/__tests__/fileSystemStore.test.js`
 
@@ -623,11 +639,14 @@ useFileSystemStore.subscribe((state) => {
   if (fsSaveTimeout) clearTimeout(fsSaveTimeout)
   fsSaveTimeout = setTimeout(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        schemaVersion: SCHEMA_VERSION,
-        files: state.files,
-        currentPath: state.currentPath,
-      }))
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          schemaVersion: SCHEMA_VERSION,
+          files: state.files,
+          currentPath: state.currentPath,
+        }),
+      )
     } catch {
       // Storage full
     }
@@ -653,6 +672,7 @@ git commit -m "feat: add virtual filesystem store with CRUD, persistence, and hy
 ## Task 3: File Manager App
 
 **Files:**
+
 - Create: `frontend/src/os/apps/FileManagerApp.jsx`
 
 - [ ] **Step 1: Create the File Manager app**
@@ -662,8 +682,15 @@ Create `frontend/src/os/apps/FileManagerApp.jsx`:
 ```jsx
 import { useCallback, useEffect, useState } from 'react'
 import {
-  ArrowLeft, File, FilePlus, Folder, FolderPlus,
-  Home, Pencil, Trash2, X,
+  ArrowLeft,
+  File,
+  FilePlus,
+  Folder,
+  FolderPlus,
+  Home,
+  Pencil,
+  Trash2,
+  X,
 } from 'lucide-react'
 import { useFileSystemStore } from '../stores/fileSystemStore'
 
@@ -685,7 +712,11 @@ function NewEntryDialog({ type, onSubmit, onCancel }) {
         autoFocus
         className="flex-1 bg-transparent font-mono text-[11px] text-white/80 placeholder-muted-foreground/30 focus:outline-none"
       />
-      <button type="button" onClick={() => name.trim() && onSubmit(name.trim())} className="text-primary hover:text-white">
+      <button
+        type="button"
+        onClick={() => name.trim() && onSubmit(name.trim())}
+        className="text-primary hover:text-white"
+      >
         <FilePlus size={12} />
       </button>
       <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-white">
@@ -731,28 +762,33 @@ export default function FileManagerApp() {
 
   useEffect(() => {
     hydrateFileSystem()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const currentFolder = files[currentPath]
   const children = currentFolder?.children || []
 
-  const parentPath = currentPath === '/'
-    ? null
-    : currentPath.split('/').slice(0, -1).join('/') || '/'
+  const parentPath =
+    currentPath === '/' ? null : currentPath.split('/').slice(0, -1).join('/') || '/'
 
-  const handleCreate = useCallback((name) => {
-    if (creating === 'file') {
-      createFile(currentPath, name, '')
-    } else {
-      createFolder(currentPath, name)
-    }
-    setCreating(null)
-  }, [creating, currentPath, createFile, createFolder])
+  const handleCreate = useCallback(
+    (name) => {
+      if (creating === 'file') {
+        createFile(currentPath, name, '')
+      } else {
+        createFolder(currentPath, name)
+      }
+      setCreating(null)
+    },
+    [creating, currentPath, createFile, createFolder],
+  )
 
-  const handleDelete = useCallback((name) => {
-    deleteEntry(currentPath, name)
-  }, [currentPath, deleteEntry])
+  const handleDelete = useCallback(
+    (name) => {
+      deleteEntry(currentPath, name)
+    },
+    [currentPath, deleteEntry],
+  )
 
   const handleRenameStart = useCallback((name) => {
     setRenamingEntry(name)
@@ -766,7 +802,7 @@ export default function FileManagerApp() {
     setRenamingEntry(null)
   }, [currentPath, renamingEntry, renameValue, renameEntry])
 
-  const buildPath = (name) => currentPath === '/' ? `/${name}` : `${currentPath}/${name}`
+  const buildPath = (name) => (currentPath === '/' ? `/${name}` : `${currentPath}/${name}`)
 
   if (viewingFile) {
     const fileData = files[viewingFile]
@@ -854,7 +890,10 @@ export default function FileManagerApp() {
             >
               {renamingEntry === name ? (
                 <div className="flex flex-1 items-center gap-2">
-                  <Icon size={14} className={isFolder ? 'text-primary/60' : 'text-muted-foreground'} />
+                  <Icon
+                    size={14}
+                    className={isFolder ? 'text-primary/60' : 'text-muted-foreground'}
+                  />
                   <input
                     type="text"
                     value={renameValue}
@@ -877,7 +916,10 @@ export default function FileManagerApp() {
                   }}
                   className="flex flex-1 items-center gap-2 text-left"
                 >
-                  <Icon size={14} className={isFolder ? 'text-primary/60' : 'text-muted-foreground'} />
+                  <Icon
+                    size={14}
+                    className={isFolder ? 'text-primary/60' : 'text-muted-foreground'}
+                  />
                   <span className="font-mono text-[11px] text-white/80">{name}</span>
                   {!isFolder && entry.updatedAt && (
                     <span className="ml-auto font-mono text-[9px] text-muted-foreground/40">
@@ -939,6 +981,7 @@ git commit -m "feat: add File Manager app with virtual filesystem, folder naviga
 ## Task 4: Wire into registry + final test + push
 
 **Files:**
+
 - Modify: `frontend/src/os/stores/appRegistry.js`
 
 - [ ] **Step 1: Update app registry**
@@ -946,12 +989,14 @@ git commit -m "feat: add File Manager app with virtual filesystem, folder naviga
 In `frontend/src/os/stores/appRegistry.js`:
 
 1. Add lazy imports:
+
 ```js
 const TerminalApp = lazy(() => import('../apps/TerminalApp'))
 const FileManagerApp = lazy(() => import('../apps/FileManagerApp'))
 ```
 
 2. Update entries:
+
 - `terminal`: change `component: PlaceholderApp` to `component: TerminalApp`
 - `files`: change `component: PlaceholderApp` to `component: FileManagerApp`
 
@@ -980,10 +1025,10 @@ git push nexus-os codex/bootstrap
 
 ## Summary
 
-| Task | What it builds | Est. time |
-|---|---|---|
-| 1 | Terminal app (command parser, history, 9 commands) + tests | 20 min |
-| 2 | File system store (VFS CRUD, persistence) + tests | 15 min |
-| 3 | File Manager app (folder nav, file viewer, create/rename/delete) | 20 min |
-| 4 | Registry wiring + integration test + push | 10 min |
-| **Total** | | **~65 min** |
+| Task      | What it builds                                                   | Est. time   |
+| --------- | ---------------------------------------------------------------- | ----------- |
+| 1         | Terminal app (command parser, history, 9 commands) + tests       | 20 min      |
+| 2         | File system store (VFS CRUD, persistence) + tests                | 15 min      |
+| 3         | File Manager app (folder nav, file viewer, create/rename/delete) | 20 min      |
+| 4         | Registry wiring + integration test + push                        | 10 min      |
+| **Total** |                                                                  | **~65 min** |

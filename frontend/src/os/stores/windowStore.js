@@ -275,11 +275,17 @@ export const useWindowStore = create((set, get) => ({
         idMap[oldId] = newId
 
         const x = Math.max(0, Math.min(win.position?.x ?? 0, window.innerWidth - 100))
-        const y = Math.max(0, Math.min(win.position?.y ?? 0, window.innerHeight - TASKBAR_HEIGHT - 40))
+        const y = Math.max(
+          0,
+          Math.min(win.position?.y ?? 0, window.innerHeight - TASKBAR_HEIGHT - 40),
+        )
         const width = Math.min(win.size?.width ?? 600, window.innerWidth * 0.95)
-        const height = Math.min(win.size?.height ?? 400, (window.innerHeight - TASKBAR_HEIGHT) * 0.95)
+        const height = Math.min(
+          win.size?.height ?? 400,
+          (window.innerHeight - TASKBAR_HEIGHT) * 0.95,
+        )
 
-        const state = win.state === 'minimized' ? 'normal' : (win.state || 'normal')
+        const state = win.state === 'minimized' ? 'normal' : win.state || 'normal'
 
         restoredWindows[newId] = {
           windowId: newId,
@@ -306,9 +312,10 @@ export const useWindowStore = create((set, get) => ({
 
       if (Object.keys(restoredWindows).length === 0) return
 
-      const newActive = saved.activeWindowId && idMap[saved.activeWindowId]
-        ? idMap[saved.activeWindowId]
-        : newZStack[newZStack.length - 1] || null
+      const newActive =
+        saved.activeWindowId && idMap[saved.activeWindowId]
+          ? idMap[saved.activeWindowId]
+          : newZStack[newZStack.length - 1] || null
 
       set({
         windows: restoredWindows,
@@ -322,9 +329,7 @@ export const useWindowStore = create((set, get) => ({
 
   cycleWindow: (direction) => {
     const { zStack, windows, activeWindowId } = get()
-    const visible = zStack.filter(
-      (id) => windows[id] && windows[id].state !== 'minimized',
-    )
+    const visible = zStack.filter((id) => windows[id] && windows[id].state !== 'minimized')
     if (visible.length <= 1) return
     const currentIdx = visible.indexOf(activeWindowId)
     let nextIdx

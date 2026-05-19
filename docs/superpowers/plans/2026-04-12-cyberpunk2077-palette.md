@@ -14,22 +14,23 @@
 
 ## File Map
 
-| File | Action | Responsibility |
-|---|---|---|
-| `frontend/src/index.css` | Modify | All CSS variables, @theme block, animations, effects |
-| `frontend/src/App.jsx` | Modify | 3 hardcoded color refs (grid bg, button glow, email tab shadow) |
-| `frontend/src/components/features/CyberCard.jsx` | Modify | 2 hardcoded refs (hover shadow, icon drop shadow) |
-| `frontend/src/components/features/MediaDetailModal.jsx` | Modify | 3 hardcoded refs (shadow glow, diamond shadow, progress line) |
-| `frontend/src/components/features/AddMediaDialog.jsx` | Modify | 2 hardcoded refs (button shadow + hover) |
-| `frontend/src/components/features/AICmdPalette.jsx` | Modify | 3 hardcoded refs (shadow glow, hover shadows) |
-| `frontend/src/components/features/ChatLayout.jsx` | Modify | 2 refs (border/bg opacity whites — verify if they need color shift) |
-| `frontend/src/components/features/KanbanBoard.jsx` | Modify | 1 ref (top border shadow glow) |
+| File                                                    | Action | Responsibility                                                      |
+| ------------------------------------------------------- | ------ | ------------------------------------------------------------------- |
+| `frontend/src/index.css`                                | Modify | All CSS variables, @theme block, animations, effects                |
+| `frontend/src/App.jsx`                                  | Modify | 3 hardcoded color refs (grid bg, button glow, email tab shadow)     |
+| `frontend/src/components/features/CyberCard.jsx`        | Modify | 2 hardcoded refs (hover shadow, icon drop shadow)                   |
+| `frontend/src/components/features/MediaDetailModal.jsx` | Modify | 3 hardcoded refs (shadow glow, diamond shadow, progress line)       |
+| `frontend/src/components/features/AddMediaDialog.jsx`   | Modify | 2 hardcoded refs (button shadow + hover)                            |
+| `frontend/src/components/features/AICmdPalette.jsx`     | Modify | 3 hardcoded refs (shadow glow, hover shadows)                       |
+| `frontend/src/components/features/ChatLayout.jsx`       | Modify | 2 refs (border/bg opacity whites — verify if they need color shift) |
+| `frontend/src/components/features/KanbanBoard.jsx`      | Modify | 1 ref (top border shadow glow)                                      |
 
 ---
 
 ### Task 1: Replace CSS Variables and @theme Block
 
 **Files:**
+
 - Modify: `frontend/src/index.css:1-56`
 
 This is the core change — updates ~80% of the UI automatically.
@@ -75,31 +76,32 @@ Replace the existing `:root` block with:
 
 ```css
 :root {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 91%;
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 91%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 91%;
-    --primary: 56 100% 48%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 170 76% 63%;
-    --secondary-foreground: 0 0% 0%;
-    --muted: 0 0% 7%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 56 100% 48%;
-    --accent-foreground: 0 0% 0%;
-    --destructive: 345 100% 39%;
-    --destructive-foreground: 0 0% 91%;
-    --border: 56 100% 48% / 0.15;
-    --input: 0 0% 4%;
-    --ring: 56 100% 48%;
-    --neon-yellow: 56 100% 48%;
-    --neon-teal: 170 76% 63%;
-  }
+  --background: 0 0% 0%;
+  --foreground: 0 0% 91%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 91%;
+  --popover: 0 0% 8%;
+  --popover-foreground: 0 0% 91%;
+  --primary: 56 100% 48%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 170 76% 63%;
+  --secondary-foreground: 0 0% 0%;
+  --muted: 0 0% 7%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 56 100% 48%;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 345 100% 39%;
+  --destructive-foreground: 0 0% 91%;
+  --border: 56 100% 48% / 0.15;
+  --input: 0 0% 4%;
+  --ring: 56 100% 48%;
+  --neon-yellow: 56 100% 48%;
+  --neon-teal: 170 76% 63%;
+}
 ```
 
 Color mapping explanation:
+
 - `--background: 0 0% 0%` = `#000000` (black)
 - `--foreground: 0 0% 91%` = `#e8e8e8` (off-white)
 - `--card: 0 0% 7%` = `#111111` (panel dark grey)
@@ -131,6 +133,7 @@ git commit -m "style: replace CSS variables with CP2077 palette (yellow/teal/red
 ### Task 2: Update Scrollbar, Ambient Orbs, Scanlines, and Neon Border
 
 **Files:**
+
 - Modify: `frontend/src/index.css:70-169`
 
 These CSS utility classes reference the old `--neon-cyan` and `--neon-magenta` variables.
@@ -249,9 +252,13 @@ Replace cyan→magenta gradient with yellow→teal:
     transparent 60%,
     hsl(var(--neon-teal) / 0.3)
   );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
   pointer-events: none;
 }
@@ -269,6 +276,7 @@ git commit -m "style: update scrollbar, orbs, scanlines, neon border to CP2077 p
 ### Task 3: Update Glitch and Neon Pulse Animations
 
 **Files:**
+
 - Modify: `frontend/src/index.css:171-202`
 
 - [ ] **Step 1: Replace glitch animation with chromatic aberration (lines 171-185)**
@@ -278,33 +286,55 @@ Replace the single-color glitch with the two-color chromatic split from the spec
 ```css
 /* ── Glitch text effect ──────────────────────────────────── */
 @keyframes glitch-shift {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-2px); }
-  40% { transform: translateX(2px); }
-  60% { transform: translateX(-1px); }
-  80% { transform: translateX(1px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-2px);
+  }
+  40% {
+    transform: translateX(2px);
+  }
+  60% {
+    transform: translateX(-1px);
+  }
+  80% {
+    transform: translateX(1px);
+  }
 }
 
 @keyframes glitch-chromatic {
-  0%, 100% {
+  0%,
+  100% {
     text-shadow: none;
   }
   20% {
-    text-shadow: -3px 0 #f3e600, 3px 0 #55ead4;
+    text-shadow:
+      -3px 0 #f3e600,
+      3px 0 #55ead4;
   }
   40% {
-    text-shadow: 3px 0 #f3e600, -3px 0 #c5003c;
+    text-shadow:
+      3px 0 #f3e600,
+      -3px 0 #c5003c;
   }
   60% {
-    text-shadow: -2px 0 #55ead4, 2px 0 #f3e600;
+    text-shadow:
+      -2px 0 #55ead4,
+      2px 0 #f3e600;
   }
   80% {
-    text-shadow: 2px 0 #c5003c, -2px 0 #f3e600;
+    text-shadow:
+      2px 0 #c5003c,
+      -2px 0 #f3e600;
   }
 }
 
 .glitch-hover:hover {
-  animation: glitch-shift 0.3s ease-in-out, glitch-chromatic 0.3s ease-in-out;
+  animation:
+    glitch-shift 0.3s ease-in-out,
+    glitch-chromatic 0.3s ease-in-out;
 }
 ```
 
@@ -317,13 +347,16 @@ Shift from cyan to yellow:
 ```css
 /* ── Neon pulse animation ────────────────────────────────── */
 @keyframes neon-pulse {
-  0%, 100% {
-    box-shadow: 0 0 5px hsl(var(--neon-yellow) / 0.3),
-                0 0 20px hsl(var(--neon-yellow) / 0.1);
+  0%,
+  100% {
+    box-shadow:
+      0 0 5px hsl(var(--neon-yellow) / 0.3),
+      0 0 20px hsl(var(--neon-yellow) / 0.1);
   }
   50% {
-    box-shadow: 0 0 10px hsl(var(--neon-yellow) / 0.5),
-                0 0 40px hsl(var(--neon-yellow) / 0.15);
+    box-shadow:
+      0 0 10px hsl(var(--neon-yellow) / 0.5),
+      0 0 40px hsl(var(--neon-yellow) / 0.15);
   }
 }
 
@@ -349,6 +382,7 @@ git commit -m "style: chromatic aberration glitch + yellow neon pulse"
 ### Task 4: Update Glass Panel
 
 **Files:**
+
 - Modify: `frontend/src/index.css:204-220`
 
 - [ ] **Step 1: Update glass panel to use the new panel-glass spec**
@@ -386,6 +420,7 @@ git commit -m "style: update glass panel to CP2077 translucent dark with yellow 
 ### Task 5: Update App.jsx Hardcoded Colors
 
 **Files:**
+
 - Modify: `frontend/src/App.jsx` (lines ~88, ~140, ~159, ~178)
 
 - [ ] **Step 1: Read the current file**
@@ -395,6 +430,7 @@ git commit -m "style: update glass panel to CP2077 translucent dark with yellow 
 ```
 
 Read `frontend/src/App.jsx` and locate the 3 hardcoded color references:
+
 1. `hsl(var(--neon-cyan)/0.03)` — grid background pattern (~line 88)
 2. `hsl(var(--neon-cyan)/0.02)` — grid background pattern (~line 140)
 3. `var(--color-primary)` — button shadow glow (~line 159) — this one auto-updates via CSS var, verify only
@@ -428,11 +464,13 @@ git commit -m "style: replace hardcoded cyan/magenta in App.jsx with CP2077 yell
 ### Task 6: Update CyberCard.jsx Hardcoded Colors
 
 **Files:**
+
 - Modify: `frontend/src/components/features/CyberCard.jsx` (lines ~56, ~63)
 
 - [ ] **Step 1: Read the file and locate hardcoded refs**
 
 Read `frontend/src/components/features/CyberCard.jsx`. Find:
+
 1. `hsl(var(--neon-cyan)/0.15)` — hover shadow (~line 56)
 2. `hsl(var(--neon-cyan)/0.8)` — icon drop shadow (~line 63)
 
@@ -461,11 +499,13 @@ git commit -m "style: CyberCard hover/icon shadows to CP2077 yellow"
 ### Task 7: Update MediaDetailModal.jsx Hardcoded Colors
 
 **Files:**
+
 - Modify: `frontend/src/components/features/MediaDetailModal.jsx` (lines ~69, ~129, ~153)
 
 - [ ] **Step 1: Read the file and locate hardcoded refs**
 
 Read `frontend/src/components/features/MediaDetailModal.jsx`. Find:
+
 1. `rgba(56,189,248,0.08)` — shadow glow (~line 69) — this is a hardcoded RGB cyan
 2. `hsl(var(--neon-cyan)/0.6)` — diamond shadow on current status (~line 129)
 3. `hsl(var(--neon-cyan)/0.4)` — progress line shadow (~line 153)
@@ -496,6 +536,7 @@ git commit -m "style: MediaDetailModal shadows to CP2077 yellow"
 ### Task 8: Update AddMediaDialog.jsx and AICmdPalette.jsx
 
 **Files:**
+
 - Modify: `frontend/src/components/features/AddMediaDialog.jsx` (lines ~66)
 - Modify: `frontend/src/components/features/AICmdPalette.jsx` (lines ~44, ~83, ~183)
 
@@ -510,6 +551,7 @@ Replace both `hsl(var(--neon-cyan)/0.4)` and `hsl(var(--neon-cyan)/0.6)` → `hs
 - [ ] **Step 3: Update AICmdPalette.jsx**
 
 Replace:
+
 - `hsl(var(--neon-cyan)/0.08)` → `hsl(var(--neon-yellow)/0.08)` (shadow glow)
 - `hsl(var(--neon-cyan)/0.2)` → `hsl(var(--neon-yellow)/0.2)` (hover shadow)
 - `hsl(var(--neon-cyan)/0.15)` → `hsl(var(--neon-yellow)/0.15)` (hover shadow)
@@ -534,6 +576,7 @@ git commit -m "style: AddMediaDialog + AICmdPalette shadows to CP2077 yellow"
 ### Task 9: Update ChatLayout.jsx and KanbanBoard.jsx
 
 **Files:**
+
 - Modify: `frontend/src/components/features/ChatLayout.jsx` (lines ~56)
 - Modify: `frontend/src/components/features/KanbanBoard.jsx` (line ~150)
 
@@ -544,6 +587,7 @@ Read `ChatLayout.jsx` and `KanbanBoard.jsx` to locate exact refs.
 - [ ] **Step 2: Update ChatLayout.jsx**
 
 The `white/[0.04]` and `white/[0.01]` values are neutral white opacity. Check if these should shift to yellow-tinted borders per the spec. If they are generic panel borders, replace:
+
 - `white/[0.04]` → `neon-yellow/[0.04]`
 - `white/[0.01]` → leave as-is if it's a background tint (near-invisible, neutral is fine)
 
@@ -573,6 +617,7 @@ git commit -m "style: ChatLayout + KanbanBoard borders to CP2077 palette"
 ### Task 10: Full Sweep — Find Any Remaining Old Palette References
 
 **Files:**
+
 - All files in `frontend/src/`
 
 - [ ] **Step 1: Search the entire frontend for old color references**
@@ -586,6 +631,7 @@ Expected: zero matches. If any are found, update them following the same pattern
 - [ ] **Step 2: Visual verification in browser**
 
 Open `http://localhost:5173` and check:
+
 1. Page background is pure black
 2. Cards/panels are dark grey `#111111` (solid, no blur)
 3. Modals are translucent dark with backdrop blur

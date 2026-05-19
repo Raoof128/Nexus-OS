@@ -4,7 +4,16 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Pencil, Search, Trash2 } from 'lu
 import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../lib/mediaConfig'
 import ConfirmDialog from './ConfirmDialog'
 
-function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete, onSelect, onEdit }) {
+function MediaVault({
+  items,
+  mediaType,
+  filterStatus,
+  onBack,
+  onUpdate,
+  onDelete,
+  onSelect,
+  onEdit,
+}) {
   const [search, setSearch] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
 
@@ -63,7 +72,8 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
           <div className="flex items-center gap-2">
             <Icon size={18} className="text-primary" />
             <h2 className="heading-display text-sm font-bold text-white @sm:text-lg">
-              <span aria-hidden="true">// </span>{filterStatus || 'All'} — {config?.label}
+              <span aria-hidden="true">// </span>
+              {filterStatus || 'All'} — {config?.label}
             </h2>
             <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-xs text-muted-foreground">
               {filtered.length}
@@ -73,7 +83,10 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
 
         {/* Search */}
         <div className="relative max-w-sm flex-1 @sm:max-w-xs">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
           <input
             type="text"
             value={search}
@@ -88,13 +101,15 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
       {/* Table */}
       <div className="neon-border flex flex-col flex-1 min-h-0 overflow-hidden rounded-xl glass-panel mx-3 mb-3 @sm:mx-4 @sm:mb-4 @md:mx-6 @md:mb-6">
         {/* Table header */}
-        <div className={`shrink-0 hidden border-b border-white/5 bg-white/[0.02] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground @sm:grid ${isJob ? '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'}`}>
+        <div
+          className={`shrink-0 hidden border-b border-white/5 bg-white/[0.02] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground @sm:grid ${isJob ? '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'}`}
+        >
           <span>Title</span>
           <span>{config?.creatorLabel || 'Creator'}</span>
           {!isJob && <span>Genre</span>}
           <span>Status</span>
           {!isJob && <span>Rating</span>}
-          <span>{isJob ? (config?.subInfoLabel || 'Info') : ''}</span>
+          <span>{isJob ? config?.subInfoLabel || 'Info' : ''}</span>
         </div>
 
         {/* Rows */}
@@ -180,7 +195,10 @@ function MediaVault({ items, mediaType, filterStatus, onBack, onUpdate, onDelete
               <div className="flex gap-1 @sm:opacity-0 @sm:transition-opacity @sm:group-hover:opacity-100 @sm:group-focus-within:opacity-100">
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onEdit?.(item) }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit?.(item)
+                  }}
                   className="rounded p-1 text-muted-foreground hover:bg-primary/20 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   title="Edit"
                   aria-label="Edit"

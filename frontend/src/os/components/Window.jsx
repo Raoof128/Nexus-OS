@@ -18,53 +18,108 @@ function ResizeHandle({ direction, windowId, position, size, minSize }) {
   const startRef = useRef(null)
 
   const cursorMap = {
-    n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize',
-    ne: 'nesw-resize', nw: 'nwse-resize', se: 'nwse-resize', sw: 'nesw-resize',
+    n: 'ns-resize',
+    s: 'ns-resize',
+    e: 'ew-resize',
+    w: 'ew-resize',
+    ne: 'nesw-resize',
+    nw: 'nwse-resize',
+    se: 'nwse-resize',
+    sw: 'nesw-resize',
   }
 
   const positionStyles = {
-    n: { top: -RESIZE_EDGE_SIZE / 2, left: RESIZE_CORNER_SIZE, right: RESIZE_CORNER_SIZE, height: RESIZE_EDGE_SIZE },
-    s: { bottom: -RESIZE_EDGE_SIZE / 2, left: RESIZE_CORNER_SIZE, right: RESIZE_CORNER_SIZE, height: RESIZE_EDGE_SIZE },
-    e: { right: -RESIZE_EDGE_SIZE / 2, top: RESIZE_CORNER_SIZE, bottom: RESIZE_CORNER_SIZE, width: RESIZE_EDGE_SIZE },
-    w: { left: -RESIZE_EDGE_SIZE / 2, top: RESIZE_CORNER_SIZE, bottom: RESIZE_CORNER_SIZE, width: RESIZE_EDGE_SIZE },
-    ne: { top: -RESIZE_EDGE_SIZE / 2, right: -RESIZE_EDGE_SIZE / 2, width: RESIZE_CORNER_SIZE, height: RESIZE_CORNER_SIZE },
-    nw: { top: -RESIZE_EDGE_SIZE / 2, left: -RESIZE_EDGE_SIZE / 2, width: RESIZE_CORNER_SIZE, height: RESIZE_CORNER_SIZE },
-    se: { bottom: -RESIZE_EDGE_SIZE / 2, right: -RESIZE_EDGE_SIZE / 2, width: RESIZE_CORNER_SIZE, height: RESIZE_CORNER_SIZE },
-    sw: { bottom: -RESIZE_EDGE_SIZE / 2, left: -RESIZE_EDGE_SIZE / 2, width: RESIZE_CORNER_SIZE, height: RESIZE_CORNER_SIZE },
+    n: {
+      top: -RESIZE_EDGE_SIZE / 2,
+      left: RESIZE_CORNER_SIZE,
+      right: RESIZE_CORNER_SIZE,
+      height: RESIZE_EDGE_SIZE,
+    },
+    s: {
+      bottom: -RESIZE_EDGE_SIZE / 2,
+      left: RESIZE_CORNER_SIZE,
+      right: RESIZE_CORNER_SIZE,
+      height: RESIZE_EDGE_SIZE,
+    },
+    e: {
+      right: -RESIZE_EDGE_SIZE / 2,
+      top: RESIZE_CORNER_SIZE,
+      bottom: RESIZE_CORNER_SIZE,
+      width: RESIZE_EDGE_SIZE,
+    },
+    w: {
+      left: -RESIZE_EDGE_SIZE / 2,
+      top: RESIZE_CORNER_SIZE,
+      bottom: RESIZE_CORNER_SIZE,
+      width: RESIZE_EDGE_SIZE,
+    },
+    ne: {
+      top: -RESIZE_EDGE_SIZE / 2,
+      right: -RESIZE_EDGE_SIZE / 2,
+      width: RESIZE_CORNER_SIZE,
+      height: RESIZE_CORNER_SIZE,
+    },
+    nw: {
+      top: -RESIZE_EDGE_SIZE / 2,
+      left: -RESIZE_EDGE_SIZE / 2,
+      width: RESIZE_CORNER_SIZE,
+      height: RESIZE_CORNER_SIZE,
+    },
+    se: {
+      bottom: -RESIZE_EDGE_SIZE / 2,
+      right: -RESIZE_EDGE_SIZE / 2,
+      width: RESIZE_CORNER_SIZE,
+      height: RESIZE_CORNER_SIZE,
+    },
+    sw: {
+      bottom: -RESIZE_EDGE_SIZE / 2,
+      left: -RESIZE_EDGE_SIZE / 2,
+      width: RESIZE_CORNER_SIZE,
+      height: RESIZE_CORNER_SIZE,
+    },
   }
 
-  const handlePointerDown = useCallback((e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    startRef.current = { x: e.clientX, y: e.clientY, ...position, ...size }
-    const target = e.currentTarget
-    target.setPointerCapture(e.pointerId)
-  }, [position, size])
+  const handlePointerDown = useCallback(
+    (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      startRef.current = { x: e.clientX, y: e.clientY, ...position, ...size }
+      const target = e.currentTarget
+      target.setPointerCapture(e.pointerId)
+    },
+    [position, size],
+  )
 
-  const handlePointerMove = useCallback((e) => {
-    if (!startRef.current) return
-    const s = startRef.current
-    const dx = e.clientX - s.x
-    const dy = e.clientY - s.y
+  const handlePointerMove = useCallback(
+    (e) => {
+      if (!startRef.current) return
+      const s = startRef.current
+      const dx = e.clientX - s.x
+      const dy = e.clientY - s.y
 
-    let newX = position.x, newY = position.y, newW = s.width, newH = s.height
+      let newX = position.x,
+        newY = position.y,
+        newW = s.width,
+        newH = s.height
 
-    if (direction.includes('e')) newW = Math.max(minSize.width, s.width + dx)
-    if (direction.includes('w')) {
-      newW = Math.max(minSize.width, s.width - dx)
-      newX = s.x + s.width - newW
-    }
-    if (direction.includes('s')) newH = Math.max(minSize.height, s.height + dy)
-    if (direction.includes('n')) {
-      newH = Math.max(minSize.height, s.height - dy)
-      newY = s.y + s.height - newH
-    }
+      if (direction.includes('e')) newW = Math.max(minSize.width, s.width + dx)
+      if (direction.includes('w')) {
+        newW = Math.max(minSize.width, s.width - dx)
+        newX = s.x + s.width - newW
+      }
+      if (direction.includes('s')) newH = Math.max(minSize.height, s.height + dy)
+      if (direction.includes('n')) {
+        newH = Math.max(minSize.height, s.height - dy)
+        newY = s.y + s.height - newH
+      }
 
-    resizeWindow(windowId, { width: newW, height: newH })
-    if (direction.includes('w') || direction.includes('n')) {
-      moveWindow(windowId, { x: newX, y: newY })
-    }
-  }, [direction, windowId, position, minSize, resizeWindow, moveWindow])
+      resizeWindow(windowId, { width: newW, height: newH })
+      if (direction.includes('w') || direction.includes('n')) {
+        moveWindow(windowId, { x: newX, y: newY })
+      }
+    },
+    [direction, windowId, position, minSize, resizeWindow, moveWindow],
+  )
 
   const handlePointerUp = useCallback(() => {
     startRef.current = null
@@ -119,38 +174,44 @@ function Window({
   const isLocked = isMaximized || isSnapped
   const AppIcon = APP_REGISTRY[appId]?.icon
 
-  const handleDrag = useCallback((_e, info) => {
-    const cursorX = position.x + info.offset.x
-    const cursorY = position.y + info.offset.y
-    const SNAP_THRESHOLD = 20
+  const handleDrag = useCallback(
+    (_e, info) => {
+      const cursorX = position.x + info.offset.x
+      const cursorY = position.y + info.offset.y
+      const SNAP_THRESHOLD = 20
 
-    if (cursorX <= SNAP_THRESHOLD) {
-      onSnapHint?.('left')
-    } else if (cursorX + size.width >= window.innerWidth - SNAP_THRESHOLD) {
-      onSnapHint?.('right')
-    } else if (cursorY <= SNAP_THRESHOLD) {
-      onSnapHint?.('top')
-    } else {
+      if (cursorX <= SNAP_THRESHOLD) {
+        onSnapHint?.('left')
+      } else if (cursorX + size.width >= window.innerWidth - SNAP_THRESHOLD) {
+        onSnapHint?.('right')
+      } else if (cursorY <= SNAP_THRESHOLD) {
+        onSnapHint?.('top')
+      } else {
+        onSnapHint?.(null)
+      }
+    },
+    [position, size, onSnapHint],
+  )
+
+  const handleDragEnd = useCallback(
+    (_e, info) => {
+      const newX = position.x + info.offset.x
+      const newY = position.y + info.offset.y
+      const SNAP_THRESHOLD = 20
+
+      if (newX <= SNAP_THRESHOLD) {
+        snapWindow(windowId, 'left')
+      } else if (newX + size.width >= window.innerWidth - SNAP_THRESHOLD) {
+        snapWindow(windowId, 'right')
+      } else if (newY <= SNAP_THRESHOLD) {
+        maximizeWindow(windowId)
+      } else {
+        moveWindow(windowId, { x: newX, y: newY })
+      }
       onSnapHint?.(null)
-    }
-  }, [position, size, onSnapHint])
-
-  const handleDragEnd = useCallback((_e, info) => {
-    const newX = position.x + info.offset.x
-    const newY = position.y + info.offset.y
-    const SNAP_THRESHOLD = 20
-
-    if (newX <= SNAP_THRESHOLD) {
-      snapWindow(windowId, 'left')
-    } else if (newX + size.width >= window.innerWidth - SNAP_THRESHOLD) {
-      snapWindow(windowId, 'right')
-    } else if (newY <= SNAP_THRESHOLD) {
-      maximizeWindow(windowId)
-    } else {
-      moveWindow(windowId, { x: newX, y: newY })
-    }
-    onSnapHint?.(null)
-  }, [windowId, position, size, moveWindow, snapWindow, maximizeWindow, onSnapHint])
+    },
+    [windowId, position, size, moveWindow, snapWindow, maximizeWindow, onSnapHint],
+  )
 
   const toggleMaximize = useCallback(() => {
     if (isMaximized) {
@@ -267,9 +328,7 @@ function Window({
           toggleMaximize()
         }}
         className={`glass-panel flex h-9 shrink-0 cursor-grab items-center justify-between border-b rounded-t-lg px-3 select-none active:cursor-grabbing ${
-          isFocused
-            ? 'border-b-cyan-500/15'
-            : 'border-b-white/[0.04] bg-white/[0.01]'
+          isFocused ? 'border-b-cyan-500/15' : 'border-b-white/[0.04] bg-white/[0.01]'
         }`}
         style={{
           borderImage: isFocused
@@ -279,7 +338,9 @@ function Window({
       >
         <div className="flex items-center gap-2 overflow-hidden">
           {AppIcon && <AppIcon size={12} className="shrink-0 text-primary" />}
-          <span className={`heading-ui truncate text-[11px] font-semibold ${isFocused ? 'text-white/80' : 'text-white/50'}`}>
+          <span
+            className={`heading-ui truncate text-[11px] font-semibold ${isFocused ? 'text-white/80' : 'text-white/50'}`}
+          >
             {title}
           </span>
         </div>
@@ -321,16 +382,17 @@ function Window({
       </div>
 
       {/* Resize handles */}
-      {!isLocked && RESIZE_DIRECTIONS.map((dir) => (
-        <ResizeHandle
-          key={dir}
-          direction={dir}
-          windowId={windowId}
-          position={position}
-          size={size}
-          minSize={minSize}
-        />
-      ))}
+      {!isLocked &&
+        RESIZE_DIRECTIONS.map((dir) => (
+          <ResizeHandle
+            key={dir}
+            direction={dir}
+            windowId={windowId}
+            position={position}
+            size={size}
+            minSize={minSize}
+          />
+        ))}
     </Motion.div>
   )
 }

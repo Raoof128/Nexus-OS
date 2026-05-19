@@ -9,6 +9,7 @@
 ## 1. Requirements
 
 ### Functional
+
 - **Providers:** Gmail and Microsoft Outlook, multiple accounts per provider
 - **Features:** Full client — read, reply, compose, search, labels/folders, drafts, delete, archive
 - **Layout:** Three-column (folder sidebar | email list | reading pane)
@@ -18,6 +19,7 @@
 - **Search:** Full-text search across cached emails using Postgres GIN index
 
 ### Non-Functional
+
 - Zero-trust: OAuth tokens never touch the browser
 - RLS on all email tables, scoped to `user_id = auth.uid()`
 - Lazy-loaded tab (no impact on initial bundle size)
@@ -36,6 +38,7 @@ Sync path:  Background poller → Gmail/Graph API → Supabase upsert → Realti
 ```
 
 **Why Hybrid over Backend-First:**
+
 - Leverages Supabase Realtime for instant UI updates (same as media items)
 - No unnecessary round-trip through Litestar for reads
 - Poller runs as isolated async task, doesn't block API routes
@@ -47,42 +50,42 @@ Sync path:  Background poller → Gmail/Graph API → Supabase upsert → Realti
 
 ### 3.1 `email_accounts` table
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | uuid PK | |
-| `user_id` | uuid FK → auth.users | RLS anchor |
-| `provider` | text | `'google'` or `'microsoft'` |
-| `email_address` | text | Display address |
-| `encrypted_access_token` | text | Fernet-encrypted |
-| `encrypted_refresh_token` | text | Fernet-encrypted |
-| `token_expires_at` | timestamptz | For proactive refresh |
-| `status` | text | `'connected'` or `'disconnected'` |
-| `created_at` | timestamptz | |
+| Column                    | Type                 | Notes                             |
+| ------------------------- | -------------------- | --------------------------------- |
+| `id`                      | uuid PK              |                                   |
+| `user_id`                 | uuid FK → auth.users | RLS anchor                        |
+| `provider`                | text                 | `'google'` or `'microsoft'`       |
+| `email_address`           | text                 | Display address                   |
+| `encrypted_access_token`  | text                 | Fernet-encrypted                  |
+| `encrypted_refresh_token` | text                 | Fernet-encrypted                  |
+| `token_expires_at`        | timestamptz          | For proactive refresh             |
+| `status`                  | text                 | `'connected'` or `'disconnected'` |
+| `created_at`              | timestamptz          |                                   |
 
 ### 3.2 `nexus_emails` table
 
-| Column | Type | Notes |
-|---|---|---|
-| `id` | uuid PK | |
-| `user_id` | uuid FK → auth.users | RLS anchor |
-| `account_id` | uuid FK → email_accounts | Source account |
-| `provider_id` | text | Gmail/Graph message ID (dedup key) |
-| `thread_id` | text | Conversation grouping |
-| `folder` | text | `'inbox'`, `'sent'`, `'drafts'`, `'archive'`, `'trash'` |
-| `labels` | text[] | Label names |
-| `from_address` | text | |
-| `from_name` | text | |
-| `to_addresses` | jsonb | `[{name, email}]` |
-| `cc_addresses` | jsonb | |
-| `subject` | text | |
-| `body_text` | text | Plain text only (for search + snippets) |
-| `snippet` | text | Preview text for list view |
-| `is_read` | boolean | |
-| `is_starred` | boolean | |
-| `has_attachments` | boolean | |
-| `attachments_meta` | jsonb | `[{name, size, mime_type}]` metadata only |
-| `provider_date` | timestamptz | Original send date |
-| `synced_at` | timestamptz | Last sync timestamp |
+| Column             | Type                     | Notes                                                   |
+| ------------------ | ------------------------ | ------------------------------------------------------- |
+| `id`               | uuid PK                  |                                                         |
+| `user_id`          | uuid FK → auth.users     | RLS anchor                                              |
+| `account_id`       | uuid FK → email_accounts | Source account                                          |
+| `provider_id`      | text                     | Gmail/Graph message ID (dedup key)                      |
+| `thread_id`        | text                     | Conversation grouping                                   |
+| `folder`           | text                     | `'inbox'`, `'sent'`, `'drafts'`, `'archive'`, `'trash'` |
+| `labels`           | text[]                   | Label names                                             |
+| `from_address`     | text                     |                                                         |
+| `from_name`        | text                     |                                                         |
+| `to_addresses`     | jsonb                    | `[{name, email}]`                                       |
+| `cc_addresses`     | jsonb                    |                                                         |
+| `subject`          | text                     |                                                         |
+| `body_text`        | text                     | Plain text only (for search + snippets)                 |
+| `snippet`          | text                     | Preview text for list view                              |
+| `is_read`          | boolean                  |                                                         |
+| `is_starred`       | boolean                  |                                                         |
+| `has_attachments`  | boolean                  |                                                         |
+| `attachments_meta` | jsonb                    | `[{name, size, mime_type}]` metadata only               |
+| `provider_date`    | timestamptz              | Original send date                                      |
+| `synced_at`        | timestamptz              | Last sync timestamp                                     |
 
 **No `body_html` column.** Full HTML is fetched on-demand from the provider via `GET /api/email/{id}/html` to keep Supabase lean.
 
@@ -139,39 +142,40 @@ Exposes account metadata to the frontend without leaking encrypted tokens. `secu
 
 ### 4.1 New Modules
 
-| Module | Purpose |
-|---|---|
-| `email_controller.py` | REST endpoints for email actions |
-| `oauth_controller.py` | OAuth2 PKCE flow for Google/Microsoft |
-| `email_service.py` | Provider abstraction (Gmail + Graph clients) |
-| `email_poller.py` | Background sync worker |
+| Module                | Purpose                                      |
+| --------------------- | -------------------------------------------- |
+| `email_controller.py` | REST endpoints for email actions             |
+| `oauth_controller.py` | OAuth2 PKCE flow for Google/Microsoft        |
+| `email_service.py`    | Provider abstraction (Gmail + Graph clients) |
+| `email_poller.py`     | Background sync worker                       |
 
 ### 4.2 Endpoints
 
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/api/email/accounts` | GET | List connected accounts |
-| `/api/email/accounts/connect` | POST | Start OAuth flow (returns redirect URL) |
-| `/api/email/accounts/callback` | GET | OAuth callback — exchanges code, encrypts tokens |
-| `/api/email/accounts/{id}` | DELETE | Disconnect account, revoke tokens |
-| `/api/email/send` | POST | Send email via provider |
-| `/api/email/{id}/reply` | POST | Reply via provider |
-| `/api/email/{id}/forward` | POST | Forward via provider |
-| `/api/email/draft` | POST | Save draft via provider |
-| `/api/email/{id}/move` | PATCH | Move to folder |
-| `/api/email/{id}/labels` | PATCH | Add/remove labels |
-| `/api/email/{id}/read` | PATCH | Mark read/unread |
-| `/api/email/{id}/star` | PATCH | Toggle star |
-| `/api/email/{id}/html` | GET | Fetch full HTML body on-demand from provider |
-| `/api/email/{id}/attachments/{att_id}` | GET | Stream attachment from provider |
-| `/api/email/ai/draft` | POST | Gemini drafts a reply |
-| `/api/email/ai/summarize` | POST | Gemini summarizes email/thread |
+| Endpoint                               | Method | Purpose                                          |
+| -------------------------------------- | ------ | ------------------------------------------------ |
+| `/api/email/accounts`                  | GET    | List connected accounts                          |
+| `/api/email/accounts/connect`          | POST   | Start OAuth flow (returns redirect URL)          |
+| `/api/email/accounts/callback`         | GET    | OAuth callback — exchanges code, encrypts tokens |
+| `/api/email/accounts/{id}`             | DELETE | Disconnect account, revoke tokens                |
+| `/api/email/send`                      | POST   | Send email via provider                          |
+| `/api/email/{id}/reply`                | POST   | Reply via provider                               |
+| `/api/email/{id}/forward`              | POST   | Forward via provider                             |
+| `/api/email/draft`                     | POST   | Save draft via provider                          |
+| `/api/email/{id}/move`                 | PATCH  | Move to folder                                   |
+| `/api/email/{id}/labels`               | PATCH  | Add/remove labels                                |
+| `/api/email/{id}/read`                 | PATCH  | Mark read/unread                                 |
+| `/api/email/{id}/star`                 | PATCH  | Toggle star                                      |
+| `/api/email/{id}/html`                 | GET    | Fetch full HTML body on-demand from provider     |
+| `/api/email/{id}/attachments/{att_id}` | GET    | Stream attachment from provider                  |
+| `/api/email/ai/draft`                  | POST   | Gemini drafts a reply                            |
+| `/api/email/ai/summarize`              | POST   | Gemini summarizes email/thread                   |
 
 **No `GET /api/email/list` endpoint.** The frontend reads directly from Supabase Realtime.
 
 ### 4.3 Email Service Layer
 
 `EmailProvider` protocol with `GmailProvider` and `GraphProvider` implementations:
+
 - Token decryption + proactive refresh (reuses Fernet pattern from `data_protection.py`)
 - Gmail <-> Graph API translation (folder names, label formats, message structure)
 - Rate limiting per provider (Gmail: 250 quota units/sec, Graph: 10,000 requests/10min)
@@ -197,19 +201,19 @@ Error handling: catch-all around each poll iteration, log errors, continue loop.
 
 ### 5.1 New Files
 
-| File | Purpose |
-|---|---|
-| `components/features/EmailInbox.jsx` | Top-level email tab — three-column layout |
-| `components/features/FolderSidebar.jsx` | Left column — folders + account switcher |
-| `components/features/EmailList.jsx` | Middle column — message list with snippets |
-| `components/features/EmailReader.jsx` | Right column — email view with HTML rendering |
-| `components/features/ComposeModal.jsx` | New/reply/forward compose modal |
-| `components/features/EmailToolbar.jsx` | Action bar (archive, delete, label, star) |
-| `hooks/useEmails.js` | React Query + Supabase Realtime on `nexus_emails` |
-| `hooks/useEmailAccounts.js` | React Query for account CRUD |
-| `hooks/useEmailActions.js` | Mutations hitting Litestar write endpoints |
-| `hooks/useEmailPolling.js` | Manual refresh trigger + sync status |
-| `lib/emailConfig.js` | Folder icons, provider colors, mappings (single source of truth) |
+| File                                    | Purpose                                                          |
+| --------------------------------------- | ---------------------------------------------------------------- |
+| `components/features/EmailInbox.jsx`    | Top-level email tab — three-column layout                        |
+| `components/features/FolderSidebar.jsx` | Left column — folders + account switcher                         |
+| `components/features/EmailList.jsx`     | Middle column — message list with snippets                       |
+| `components/features/EmailReader.jsx`   | Right column — email view with HTML rendering                    |
+| `components/features/ComposeModal.jsx`  | New/reply/forward compose modal                                  |
+| `components/features/EmailToolbar.jsx`  | Action bar (archive, delete, label, star)                        |
+| `hooks/useEmails.js`                    | React Query + Supabase Realtime on `nexus_emails`                |
+| `hooks/useEmailAccounts.js`             | React Query for account CRUD                                     |
+| `hooks/useEmailActions.js`              | Mutations hitting Litestar write endpoints                       |
+| `hooks/useEmailPolling.js`              | Manual refresh trigger + sync status                             |
+| `lib/emailConfig.js`                    | Folder icons, provider colors, mappings (single source of truth) |
 
 ### 5.2 Data Flow
 
@@ -243,6 +247,7 @@ User action → useEmailActions → Litestar API → Provider API
 ### 5.4 AI Integration
 
 Extends existing `ChatController` and `AICmdPalette`:
+
 - Cmd+K: "Draft reply to [subject]" → `POST /api/email/ai/draft` → text inserted into compose modal
 - Cmd+K: "Summarize this thread" → `POST /api/email/ai/summarize` → summary in chat sidebar
 - Context passed to Gemini: `subject + body_text + snippet` (never full HTML)
@@ -272,9 +277,9 @@ Extends existing `ChatController` and `AICmdPalette`:
 
 ### 6.2 Scopes (Principle of Least Privilege)
 
-| Provider | Scopes |
-|---|---|
-| Google | `gmail.modify`, `gmail.compose`, `gmail.labels` |
+| Provider  | Scopes                                                |
+| --------- | ----------------------------------------------------- |
+| Google    | `gmail.modify`, `gmail.compose`, `gmail.labels`       |
 | Microsoft | `Mail.ReadWrite`, `Mail.Send`, `MailboxSettings.Read` |
 
 ### 6.3 Token Lifecycle
@@ -290,15 +295,15 @@ Extends existing `ChatController` and `AICmdPalette`:
 
 ### 6.5 Security Summary
 
-| Layer | Protection |
-|---|---|
-| Browser | Never sees OAuth tokens. Read-only Supabase access via RLS |
-| Transport | HTTPS only. HttpOnly + Secure cookies for OAuth state |
-| OAuth | PKCE prevents code interception. State parameter prevents CSRF |
-| Storage | Fernet encryption at rest. Postgres view hides tokens from frontend |
-| RLS | `user_id = auth.uid()` on all tables. Service role for writes |
-| Email HTML | DOMPurify + sandboxed iframe. Images blocked by default |
-| AI | Only plain text context sent to Gemini. Never raw HTML |
+| Layer      | Protection                                                          |
+| ---------- | ------------------------------------------------------------------- |
+| Browser    | Never sees OAuth tokens. Read-only Supabase access via RLS          |
+| Transport  | HTTPS only. HttpOnly + Secure cookies for OAuth state               |
+| OAuth      | PKCE prevents code interception. State parameter prevents CSRF      |
+| Storage    | Fernet encryption at rest. Postgres view hides tokens from frontend |
+| RLS        | `user_id = auth.uid()` on all tables. Service role for writes       |
+| Email HTML | DOMPurify + sandboxed iframe. Images blocked by default             |
+| AI         | Only plain text context sent to Gemini. Never raw HTML              |
 
 ---
 

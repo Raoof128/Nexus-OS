@@ -116,7 +116,10 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
                   <X size={18} />
                 </button>
 
-                <h2 id="add-media-title" className="heading-display mb-6 text-lg font-bold text-primary sm:text-xl">
+                <h2
+                  id="add-media-title"
+                  className="heading-display mb-6 text-lg font-bold text-primary sm:text-xl"
+                >
                   <span aria-hidden="true">// </span>Register New {config.singular}
                 </h2>
 
@@ -135,7 +138,7 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
             </Motion.div>
           )}
         </AnimatePresence>,
-        document.getElementById('modal-root') || document.body
+        document.getElementById('modal-root') || document.body,
       )}
     </>
   )

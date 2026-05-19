@@ -146,9 +146,7 @@ const EmailReader = React.memo(function EmailReader({
                 From
               </dt>
               <dd className="truncate text-accent">
-                {email.from_name && (
-                  <span className="text-white/80">{email.from_name} </span>
-                )}
+                {email.from_name && <span className="text-white/80">{email.from_name} </span>}
                 <span className="text-muted-foreground">
                   &lt;{email.from_address || 'unknown'}&gt;
                 </span>

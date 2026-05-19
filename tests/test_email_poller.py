@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-
 from backend.email_poller import detect_ghost_emails
-
 
 # ---------------------------------------------------------------------------
 # detect_ghost_emails

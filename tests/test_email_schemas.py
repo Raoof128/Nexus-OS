@@ -1,10 +1,11 @@
 import pytest
+
 from backend.email_schemas import (
+    ComposeEmailRequest,
     EmailAccountResponse,
     EmailMessageResponse,
-    ComposeEmailRequest,
-    MoveEmailRequest,
     LabelEmailRequest,
+    MoveEmailRequest,
 )
 
 
@@ -58,7 +59,9 @@ def test_compose_email_request_strips_whitespace():
 
 
 def test_compose_email_request_rejects_empty_to():
-    with pytest.raises(Exception):
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
         ComposeEmailRequest(
             account_id="acct-1",
             to=[],

@@ -13,6 +13,7 @@
 ### Task 1: Install `@supabase/supabase-js` and add env vars
 
 **Files:**
+
 - Modify: `frontend/package.json`
 - Modify: `frontend/.env`
 
@@ -44,6 +45,7 @@ git commit -m "chore: add @supabase/supabase-js and realtime env vars"
 ### Task 2: Create `realtimeClient.js`
 
 **Files:**
+
 - Create: `frontend/src/lib/realtimeClient.js`
 - Create: `frontend/src/lib/realtimeClient.test.js`
 
@@ -75,7 +77,7 @@ describe('realtimeClient', () => {
         realtime: expect.objectContaining({
           params: expect.objectContaining({ eventsPerSecond: 10 }),
         }),
-      })
+      }),
     )
   })
 })
@@ -124,6 +126,7 @@ git commit -m "feat(realtime): add Supabase Realtime client module"
 The backend needs to return the raw Supabase access token alongside the session data so the frontend can authenticate the Realtime WebSocket. The access token is already available — it's the cookie value itself. We just need to include it in the JSON response.
 
 **Files:**
+
 - Modify: `backend/schemas.py:45-49` — add `access_token` field to `AuthSessionResponse`
 - Modify: `backend/auth_controller.py:60-70` — pass the token into the response builder
 
@@ -180,11 +183,13 @@ git commit -m "feat(auth): include access_token in session response for Realtime
 The `AuthContext` already stores the full session response object, so `session.access_token` will be automatically available once the backend returns it. However, we should verify this and ensure the token refreshes properly.
 
 **Files:**
+
 - Modify: `frontend/src/context/AuthContext.jsx` — no code changes needed (session object already stored as-is), but verify the flow
 
 **Step 1: Verify the auth flow passes through the token**
 
 Read `frontend/src/context/AuthContext.jsx` and confirm:
+
 - `loadCurrentSession()` calls `authFetch('/auth/session')` and returns the full response → stored in `setSession(currentSession)` ✓
 - `signIn` calls `authFetch('/auth/login', ...)` and stores the full response → `setSession(authenticatedSession)` ✓
 - The session object is passed through `AuthContext.Provider` to all consumers ✓
@@ -202,6 +207,7 @@ No commit needed for this task — the existing code already passes the full ses
 This is the core task. Add a `useEffect` to `useMedia` that subscribes to Postgres Changes on the `media` table and directly mutates the React Query cache.
 
 **Files:**
+
 - Modify: `frontend/src/hooks/useMedia.js:1-100`
 - Create: `frontend/src/hooks/useRealtimeSync.test.js`
 
@@ -367,9 +373,8 @@ export function useMedia(session, type = 'book') {
           const targetType = payload.new?.type || payload.old?.type
           if (targetType !== type) return
 
-          queryClient.setQueryData(
-            mediaQueryKey,
-            (current) => handleRealtimeEvent(current ?? [], payload),
+          queryClient.setQueryData(mediaQueryKey, (current) =>
+            handleRealtimeEvent(current ?? [], payload),
           )
         },
       )
@@ -416,9 +421,7 @@ export function useMedia(session, type = 'book') {
       const previous = queryClient.getQueryData(mediaQueryKey) ?? []
       queryClient.setQueryData(
         mediaQueryKey,
-        previous.map((item) =>
-          item.id === mediaId ? { ...item, ...data } : item,
-        ),
+        previous.map((item) => (item.id === mediaId ? { ...item, ...data } : item)),
       )
       return { previous }
     },
@@ -431,8 +434,7 @@ export function useMedia(session, type = 'book') {
   })
 
   const deleteMediaMutation = useMutation({
-    mutationFn: (mediaId) =>
-      apiFetch(`/media/${mediaId}`, { method: 'DELETE' }),
+    mutationFn: (mediaId) => apiFetch(`/media/${mediaId}`, { method: 'DELETE' }),
     onMutate: async (mediaId) => {
       await queryClient.cancelQueries({ queryKey: mediaQueryKey })
       const previous = queryClient.getQueryData(mediaQueryKey) ?? []
@@ -486,6 +488,7 @@ git commit -m "feat(realtime): add live Supabase Realtime sync to useMedia hook"
 Supabase Realtime requires the `media` table to have replication enabled. This is a one-time database configuration.
 
 **Files:**
+
 - None (SQL executed in Supabase dashboard or via migration)
 
 **Step 1: Run this SQL in the Supabase SQL editor**
@@ -510,11 +513,13 @@ In the Supabase Dashboard → Database → Replication, confirm the `media` tabl
 ### Task 7: Set production env vars in Cloudflare Pages
 
 **Files:**
+
 - None (Cloudflare dashboard configuration)
 
 **Step 1: Get your Supabase project URL and anon key**
 
 Go to Supabase Dashboard → Settings → API. Copy:
+
 - **Project URL** (e.g., `https://abc123.supabase.co`)
 - **anon public key** (starts with `eyJ...`)
 

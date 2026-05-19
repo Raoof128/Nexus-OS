@@ -25,7 +25,11 @@ vi.mock('../../stores/windowStore', () => ({
 
 vi.mock('../../stores/appRegistry', () => ({
   APP_REGISTRY: {
-    media: { id: 'media', title: 'Media Vault', icon: () => <span data-testid="icon-media">M</span> },
+    media: {
+      id: 'media',
+      title: 'Media Vault',
+      icon: () => <span data-testid="icon-media">M</span>,
+    },
     chat: { id: 'chat', title: 'AI Chat', icon: () => <span data-testid="icon-chat">C</span> },
   },
 }))

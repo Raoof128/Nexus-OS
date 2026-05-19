@@ -15,10 +15,10 @@ const BOOT_LINES = [
 const STAGGER_MS = 150
 
 // Phase timings
-const PHASE2_START = 1000     // Log starts scrolling (after logo fade-in)
+const PHASE2_START = 1000 // Log starts scrolling (after logo fade-in)
 // PHASE3_START is calculated dynamically: log finishes typing + 300ms pause
-const PHASE3_START = PHASE2_START + (BOOT_LINES.length * STAGGER_MS) + 300
-const PHASE3_END = PHASE3_START + 1500  // Sweep + fade-out (1.5s after log done)
+const PHASE3_START = PHASE2_START + BOOT_LINES.length * STAGGER_MS + 300
+const PHASE3_END = PHASE3_START + 1500 // Sweep + fade-out (1.5s after log done)
 
 /** One typed-out boot log line */
 function BootLine({ text, delayMs }) {
@@ -48,10 +48,7 @@ function BootLine({ text, delayMs }) {
 
   return (
     <div className="flex items-baseline gap-1 leading-snug">
-      <span
-        className="font-mono text-[11px]"
-        style={{ color: 'hsl(170 76% 63%)' }}
-      >
+      <span className="font-mono text-[11px]" style={{ color: 'hsl(170 76% 63%)' }}>
         {displayed}
       </span>
       {displayed.length === text.length && isOk && (
@@ -175,7 +172,6 @@ export default function BootSequence({ onComplete }) {
 
           {/* Content layer */}
           <div className="relative flex flex-col items-center" style={{ zIndex: 5 }}>
-
             {/* ── Phase 1 & 2: Logo ── */}
             <AnimatePresence mode="wait">
               {phase === 1 && (
@@ -247,11 +243,7 @@ export default function BootSequence({ onComplete }) {
                 >
                   <div className="space-y-1">
                     {logLines.map((line, i) => (
-                      <BootLine
-                        key={line}
-                        text={line}
-                        delayMs={i * STAGGER_MS}
-                      />
+                      <BootLine key={line} text={line} delayMs={i * STAGGER_MS} />
                     ))}
                   </div>
                 </Motion.div>
@@ -269,8 +261,7 @@ export default function BootSequence({ onComplete }) {
                   zIndex: 20,
                   background:
                     'linear-gradient(90deg, transparent, hsl(56 100% 48% / 0.8), hsl(170 76% 63% / 0.6), transparent)',
-                  boxShadow:
-                    '0 0 20px hsl(56 100% 48% / 0.6), 0 0 60px hsl(170 76% 63% / 0.3)',
+                  boxShadow: '0 0 20px hsl(56 100% 48% / 0.6), 0 0 60px hsl(170 76% 63% / 0.3)',
                   willChange: 'transform',
                 }}
                 initial={{ y: '-2px' }}
@@ -339,9 +330,7 @@ function NexusLogo({ size = 'lg', glitch = false }) {
         style={{
           fontSize,
           color: 'hsl(56 100% 48%)',
-          textShadow: isLg
-            ? '0 0 20px hsl(56 100% 48% / 0.8)'
-            : '0 0 8px hsl(56 100% 48% / 0.6)',
+          textShadow: isLg ? '0 0 20px hsl(56 100% 48% / 0.8)' : '0 0 8px hsl(56 100% 48% / 0.6)',
           lineHeight: 1,
         }}
       >

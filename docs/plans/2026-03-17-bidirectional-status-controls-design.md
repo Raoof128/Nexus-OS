@@ -7,6 +7,7 @@ Status progression is forward-only across all three media surfaces (CyberCard, M
 ## Approach: Centralized utility + component updates (Approach B)
 
 Chosen over:
+
 - **A (Minimal):** Just adds `prevStatus()` but keeps duplication across 3 files.
 - **C (State machine):** Over-engineered. Backend `MediaStatus` Literal already constrains valid values. All transitions between valid statuses are intentionally allowed.
 
@@ -23,6 +24,7 @@ Add `getStatusNav(type, currentStatus)` to `frontend/src/lib/mediaConfig.js`. Re
 **MediaVault** (table view): Left arrow | status label | right arrow in status column. Compact inline controls.
 
 **MediaDetailModal** (detail view): Replace "Move to {next}" button with a clickable stepper bar:
+
 - Diamond nodes for each status, connected by lines
 - Completed steps glow cyan, future steps dim, current highlighted
 - Each node is a `<button>` with `aria-label`
@@ -39,11 +41,11 @@ Add `getStatusNav(type, currentStatus)` to `frontend/src/lib/mediaConfig.js`. Re
 
 ## Files Touched
 
-| File | Change |
-|------|--------|
-| `frontend/src/lib/mediaConfig.js` | Add `getStatusNav()` |
-| `frontend/src/components/features/CyberCard.jsx` | Replace `nextStatus()`, add prev button |
-| `frontend/src/components/features/MediaVault.jsx` | Replace `nextStatus()`, add prev button |
+| File                                                    | Change                                        |
+| ------------------------------------------------------- | --------------------------------------------- |
+| `frontend/src/lib/mediaConfig.js`                       | Add `getStatusNav()`                          |
+| `frontend/src/components/features/CyberCard.jsx`        | Replace `nextStatus()`, add prev button       |
+| `frontend/src/components/features/MediaVault.jsx`       | Replace `nextStatus()`, add prev button       |
 | `frontend/src/components/features/MediaDetailModal.jsx` | Replace advance button with clickable stepper |
 
 4 files modified, 0 created, 0 deleted.

@@ -87,7 +87,10 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                     <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/70">
                       {config?.label || 'Media'} // Deep Dive
                     </p>
-                    <h2 id="detail-modal-title" className="heading-display text-lg font-bold text-white sm:text-xl">
+                    <h2
+                      id="detail-modal-title"
+                      className="heading-display text-lg font-bold text-white sm:text-xl"
+                    >
                       {item.title}
                     </h2>
                   </div>
@@ -124,7 +127,11 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                             type="button"
                             onClick={() => handleStatusChange(stepStatus)}
                             disabled={isCurrent}
-                            aria-label={isCurrent ? `Current status: ${stepStatus}` : `Change status to ${stepStatus}`}
+                            aria-label={
+                              isCurrent
+                                ? `Current status: ${stepStatus}`
+                                : `Change status to ${stepStatus}`
+                            }
                             className="relative flex flex-col items-center group outline-none disabled:cursor-default"
                           >
                             <Motion.div
@@ -170,19 +177,25 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                 <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:grid-cols-3 sm:gap-3">
                   {item.type !== 'job' && item.genre && (
                     <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                      <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Genre</p>
+                      <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Genre
+                      </p>
                       <p className="text-sm font-medium text-white">{item.genre}</p>
                     </div>
                   )}
                   {item.type !== 'job' && item.rating != null && item.rating > 0 && (
                     <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                      <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Rating</p>
+                      <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Rating
+                      </p>
                       <div className="flex items-center gap-1">
                         {Array.from({ length: 5 }, (_, i) => (
                           <Star
                             key={i}
                             size={14}
-                            className={i < item.rating ? 'fill-yellow-500 text-yellow-500' : 'text-white/10'}
+                            className={
+                              i < item.rating ? 'fill-yellow-500 text-yellow-500' : 'text-white/10'
+                            }
                           />
                         ))}
                       </div>
@@ -204,9 +217,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                     <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                       Takeaway // Notes
                     </p>
-                    <div className="text-sm leading-relaxed text-neutral-300">
-                      {item.takeaway}
-                    </div>
+                    <div className="text-sm leading-relaxed text-neutral-300">{item.takeaway}</div>
                   </div>
                 )}
 
@@ -214,7 +225,10 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                 <div className="flex items-center gap-2 border-t border-white/5 pt-4">
                   <button
                     type="button"
-                    onClick={() => { onClose(); requestAnimationFrame(() => onEdit?.(item)) }}
+                    onClick={() => {
+                      onClose()
+                      requestAnimationFrame(() => onEdit?.(item))
+                    }}
                     className="flex items-center justify-center gap-2 rounded-lg bg-primary/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   >
                     <Pencil size={14} />
@@ -247,6 +261,6 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
         </>
       )}
     </AnimatePresence>,
-    document.getElementById('modal-root') || document.body
+    document.getElementById('modal-root') || document.body,
   )
 }

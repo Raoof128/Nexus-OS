@@ -181,8 +181,11 @@ def get_settings() -> BackendSettings:
         google_oauth_client_id=_get_env("GOOGLE_OAUTH_CLIENT_ID", "") or "",
         google_oauth_client_secret=_get_env("GOOGLE_OAUTH_CLIENT_SECRET", "") or "",
         microsoft_oauth_client_id=_get_env("MICROSOFT_OAUTH_CLIENT_ID", "") or "",
-        microsoft_oauth_client_secret=_get_env("MICROSOFT_OAUTH_CLIENT_SECRET", "") or "",
-        email_poll_interval_seconds=int(_get_env("EMAIL_POLL_INTERVAL_SECONDS", "60") or "60"),
+        microsoft_oauth_client_secret=_get_env("MICROSOFT_OAUTH_CLIENT_SECRET", "")
+        or "",
+        email_poll_interval_seconds=int(
+            _get_env("EMAIL_POLL_INTERVAL_SECONDS", "60") or "60"
+        ),
     )
 
     if settings.environment != "development" and not settings.cookie_secure:

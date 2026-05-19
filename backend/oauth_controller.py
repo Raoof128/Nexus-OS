@@ -31,22 +31,16 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-_GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+_GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"  # nosec B105
 _GOOGLE_SCOPES = (
     "https://www.googleapis.com/auth/gmail.modify "
     "https://www.googleapis.com/auth/gmail.compose "
     "https://www.googleapis.com/auth/gmail.labels"
 )
 
-_MICROSOFT_AUTH_URL = (
-    "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
-)
-_MICROSOFT_TOKEN_URL = (
-    "https://login.microsoftonline.com/common/oauth2/v2.0/token"
-)
-_MICROSOFT_SCOPES = (
-    "Mail.ReadWrite Mail.Send MailboxSettings.Read offline_access"
-)
+_MICROSOFT_AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+_MICROSOFT_TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"  # nosec B105
+_MICROSOFT_SCOPES = "Mail.ReadWrite Mail.Send MailboxSettings.Read offline_access"
 
 _OAUTH_COOKIE = "nexus_oauth_state"
 _COOKIE_TTL = 600  # 10 minutes
@@ -62,11 +56,9 @@ def _generate_pkce_pair() -> tuple[str, str]:
 
     verifier = secrets.token_urlsafe(64)
     digest = hashlib.sha256(verifier.encode("ascii")).digest()
-    challenge = (
-        urllib.parse.quote(
-            __import__("base64").urlsafe_b64encode(digest).rstrip(b"=").decode("ascii"),
-            safe="",
-        )
+    challenge = urllib.parse.quote(
+        __import__("base64").urlsafe_b64encode(digest).rstrip(b"=").decode("ascii"),
+        safe="",
     )
     return verifier, challenge
 
@@ -266,8 +258,7 @@ class OAuthController(Controller):
         import datetime as dt
 
         token_expires_at = (
-            dt.datetime.now(dt.timezone.utc)
-            + dt.timedelta(seconds=int(expires_in))
+            dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=int(expires_in))
         ).isoformat()
 
         row = {

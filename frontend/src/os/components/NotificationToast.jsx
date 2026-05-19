@@ -4,10 +4,30 @@ import { SPRING } from '../../lib/motion'
 import { useNotificationStore } from '../stores/notificationStore'
 
 const TYPE_CONFIG = {
-  info:    { icon: Info,          accentColor: '#06b6d4', borderClass: 'border-l-cyan-500',  bgClass: 'bg-cyan-500/5'  },
-  success: { icon: CheckCircle,   accentColor: '#22c55e', borderClass: 'border-l-green-500', bgClass: 'bg-green-500/5' },
-  warning: { icon: AlertTriangle, accentColor: '#f59e0b', borderClass: 'border-l-amber-500', bgClass: 'bg-amber-500/5' },
-  error:   { icon: AlertCircle,   accentColor: '#ef4444', borderClass: 'border-l-red-500',   bgClass: 'bg-red-500/5'   },
+  info: {
+    icon: Info,
+    accentColor: '#06b6d4',
+    borderClass: 'border-l-cyan-500',
+    bgClass: 'bg-cyan-500/5',
+  },
+  success: {
+    icon: CheckCircle,
+    accentColor: '#22c55e',
+    borderClass: 'border-l-green-500',
+    bgClass: 'bg-green-500/5',
+  },
+  warning: {
+    icon: AlertTriangle,
+    accentColor: '#f59e0b',
+    borderClass: 'border-l-amber-500',
+    bgClass: 'bg-amber-500/5',
+  },
+  error: {
+    icon: AlertCircle,
+    accentColor: '#ef4444',
+    borderClass: 'border-l-red-500',
+    bgClass: 'bg-red-500/5',
+  },
 }
 
 function formatTime(timestamp) {
@@ -27,8 +47,8 @@ function Toast({ notification }) {
     <Motion.div
       layout
       initial={{ opacity: 0, x: 60, scale: 0.95 }}
-      animate={{ opacity: 1, x: 0,  scale: 1    }}
-      exit={{    opacity: 0, x: 60, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 60, scale: 0.95 }}
       transition={SPRING.snappy}
       className={`glass-panel relative w-[300px] overflow-hidden rounded-lg border border-white/10 shadow-lg ${config.bgClass}`}
       role="alert"
@@ -37,16 +57,15 @@ function Toast({ notification }) {
       {/* Left accent bar */}
       <div
         className="absolute inset-y-0 left-0 w-[3px]"
-        style={{ backgroundColor: config.accentColor, boxShadow: `0 0 6px ${config.accentColor}80` }}
+        style={{
+          backgroundColor: config.accentColor,
+          boxShadow: `0 0 6px ${config.accentColor}80`,
+        }}
       />
 
       <div className="flex items-start gap-2.5 px-3 py-2.5 pl-4">
         {/* Icon */}
-        <Icon
-          size={13}
-          className="mt-[1px] shrink-0"
-          style={{ color: config.accentColor }}
-        />
+        <Icon size={13} className="mt-[1px] shrink-0" style={{ color: config.accentColor }} />
 
         {/* Body */}
         <div className="min-w-0 flex-1">
@@ -58,9 +77,7 @@ function Toast({ notification }) {
               {notification.message}
             </p>
           )}
-          <p className="mono mt-1 text-[9px] text-white/30">
-            {formatTime(notification.timestamp)}
-          </p>
+          <p className="mono mt-1 text-[9px] text-white/30">{formatTime(notification.timestamp)}</p>
         </div>
 
         {/* Close button */}

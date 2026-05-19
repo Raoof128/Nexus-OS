@@ -21,9 +21,7 @@ export const useNotificationStore = create((set, get) => ({
 
   dismissToast: (id) => {
     set((state) => ({
-      notifications: state.notifications.map((n) =>
-        n.id === id ? { ...n, read: true } : n
-      ),
+      notifications: state.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
     }))
   },
 

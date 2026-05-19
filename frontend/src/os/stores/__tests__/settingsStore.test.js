@@ -43,12 +43,15 @@ describe('settingsStore', () => {
   })
 
   it('hydrateSettings restores from localStorage', () => {
-    localStorage.setItem('nexus-os:settings', JSON.stringify({
-      accentColor: 'magenta',
-      uiScale: 'compact',
-      scanlinesEnabled: false,
-      orbsEnabled: false,
-    }))
+    localStorage.setItem(
+      'nexus-os:settings',
+      JSON.stringify({
+        accentColor: 'magenta',
+        uiScale: 'compact',
+        scanlinesEnabled: false,
+        orbsEnabled: false,
+      }),
+    )
     useSettingsStore.getState().hydrateSettings()
     const state = useSettingsStore.getState()
     expect(state.accentColor).toBe('magenta')

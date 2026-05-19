@@ -1,19 +1,19 @@
-"""Email service: token encryption, unified message model, and provider implementations."""
+"""Email service: token encryption and provider implementations."""
 
 from __future__ import annotations
 
 import base64
 import email.utils
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Protocol
 
 import httpx
 
 try:
-    from .data_protection import encrypt_takeaway, decrypt_takeaway
+    from .data_protection import decrypt_takeaway, encrypt_takeaway
 except ImportError:  # pragma: no cover - supports backend cwd execution
-    from data_protection import encrypt_takeaway, decrypt_takeaway
+    from data_protection import decrypt_takeaway, encrypt_takeaway
 
 # ---------------------------------------------------------------------------
 # Token encryption helpers
@@ -23,9 +23,19 @@ _GMAIL_BASE = "https://gmail.googleapis.com/gmail/v1/users/me"
 _GRAPH_BASE = "https://graph.microsoft.com/v1.0/me"
 
 _GMAIL_SYSTEM_LABELS = {
-    "INBOX", "UNREAD", "STARRED", "IMPORTANT", "SENT", "DRAFT",
-    "TRASH", "SPAM", "CATEGORY_PERSONAL", "CATEGORY_SOCIAL",
-    "CATEGORY_PROMOTIONS", "CATEGORY_UPDATES", "CATEGORY_FORUMS",
+    "INBOX",
+    "UNREAD",
+    "STARRED",
+    "IMPORTANT",
+    "SENT",
+    "DRAFT",
+    "TRASH",
+    "SPAM",
+    "CATEGORY_PERSONAL",
+    "CATEGORY_SOCIAL",
+    "CATEGORY_PROMOTIONS",
+    "CATEGORY_UPDATES",
+    "CATEGORY_FORUMS",
 }
 
 
@@ -42,6 +52,7 @@ def decrypt_oauth_token(ciphertext: str) -> str:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _decode_base64url(data: str) -> str:
     """Decode a base64url-encoded string to UTF-8 text."""
@@ -88,6 +99,7 @@ def _gmail_folder(label_ids: list[str]) -> str:
 # ---------------------------------------------------------------------------
 # Unified EmailMessage dataclass
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class EmailMessage:
@@ -193,12 +205,14 @@ class EmailMessage:
         attachments_meta: list[dict] = []
         for part in parts:
             if part.get("filename") and part.get("body", {}).get("attachmentId"):
-                attachments_meta.append({
-                    "filename": part["filename"],
-                    "mime_type": part.get("mimeType", ""),
-                    "size": part.get("body", {}).get("size", 0),
-                    "attachment_id": part["body"]["attachmentId"],
-                })
+                attachments_meta.append(
+                    {
+                        "filename": part["filename"],
+                        "mime_type": part.get("mimeType", ""),
+                        "size": part.get("body", {}).get("size", 0),
+                        "attachment_id": part["body"]["attachmentId"],
+                    }
+                )
         has_attachments = bool(attachments_meta)
 
         return cls(
@@ -294,6 +308,7 @@ class EmailMessage:
 # Provider protocol
 # ---------------------------------------------------------------------------
 
+
 class EmailProvider(Protocol):
     """Async interface every email backend must satisfy."""
 
@@ -301,13 +316,9 @@ class EmailProvider(Protocol):
         self, access_token: str, *, since: str | None = None
     ) -> list[dict]: ...
 
-    async def fetch_message_html(
-        self, access_token: str, message_id: str
-    ) -> str: ...
+    async def fetch_message_html(self, access_token: str, message_id: str) -> str: ...
 
-    async def send_message(
-        self, access_token: str, message: dict
-    ) -> dict: ...
+    async def send_message(self, access_token: str, message: dict) -> dict: ...
 
     async def move_message(
         self, access_token: str, message_id: str, folder: str
@@ -329,18 +340,15 @@ class EmailProvider(Protocol):
         self, access_token: str, message_id: str, is_starred: bool
     ) -> None: ...
 
-    async def delete_message(
-        self, access_token: str, message_id: str
-    ) -> None: ...
+    async def delete_message(self, access_token: str, message_id: str) -> None: ...
 
-    async def fetch_message_ids(
-        self, access_token: str
-    ) -> list[str]: ...
+    async def fetch_message_ids(self, access_token: str) -> list[str]: ...
 
 
 # ---------------------------------------------------------------------------
 # Gmail provider
 # ---------------------------------------------------------------------------
+
 
 class GmailProvider:
     """Email provider backed by the Gmail REST API."""
@@ -383,9 +391,7 @@ class GmailProvider:
             resp.raise_for_status()
             return [m["id"] for m in resp.json().get("messages", [])]
 
-    async def fetch_message_html(
-        self, access_token: str, message_id: str
-    ) -> str:
+    async def fetch_message_html(self, access_token: str, message_id: str) -> str:
         async with httpx.AsyncClient() as client:
             resp = await client.get(
                 f"{_GMAIL_BASE}/messages/{message_id}",
@@ -395,9 +401,7 @@ class GmailProvider:
             resp.raise_for_status()
             return _extract_html(resp.json().get("payload", {}))
 
-    async def send_message(
-        self, access_token: str, message: dict
-    ) -> dict:
+    async def send_message(self, access_token: str, message: dict) -> dict:
         raw = base64.urlsafe_b64encode(
             message.get("raw", "").encode("utf-8")
             if isinstance(message.get("raw"), str)
@@ -440,9 +444,7 @@ class GmailProvider:
             )
             resp.raise_for_status()
 
-    async def set_read(
-        self, access_token: str, message_id: str, is_read: bool
-    ) -> None:
+    async def set_read(self, access_token: str, message_id: str, is_read: bool) -> None:
         if is_read:
             await self.update_labels(access_token, message_id, [], ["UNREAD"])
         else:
@@ -456,9 +458,7 @@ class GmailProvider:
         else:
             await self.update_labels(access_token, message_id, [], ["STARRED"])
 
-    async def delete_message(
-        self, access_token: str, message_id: str
-    ) -> None:
+    async def delete_message(self, access_token: str, message_id: str) -> None:
         async with httpx.AsyncClient() as client:
             resp = await client.delete(
                 f"{_GMAIL_BASE}/messages/{message_id}",
@@ -470,6 +470,7 @@ class GmailProvider:
 # ---------------------------------------------------------------------------
 # Microsoft Graph provider
 # ---------------------------------------------------------------------------
+
 
 class GraphProvider:
     """Email provider backed by the Microsoft Graph REST API."""
@@ -502,9 +503,7 @@ class GraphProvider:
             resp.raise_for_status()
             return [m["id"] for m in resp.json().get("value", [])]
 
-    async def fetch_message_html(
-        self, access_token: str, message_id: str
-    ) -> str:
+    async def fetch_message_html(self, access_token: str, message_id: str) -> str:
         async with httpx.AsyncClient() as client:
             resp = await client.get(
                 f"{_GRAPH_BASE}/messages/{message_id}",
@@ -514,9 +513,7 @@ class GraphProvider:
             resp.raise_for_status()
             return resp.json().get("body", {}).get("content", "")
 
-    async def send_message(
-        self, access_token: str, message: dict
-    ) -> dict:
+    async def send_message(self, access_token: str, message: dict) -> dict:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"{_GRAPH_BASE}/sendMail",
@@ -547,9 +544,7 @@ class GraphProvider:
         # Graph doesn't have a direct label concept — no-op for now
         pass
 
-    async def set_read(
-        self, access_token: str, message_id: str, is_read: bool
-    ) -> None:
+    async def set_read(self, access_token: str, message_id: str, is_read: bool) -> None:
         async with httpx.AsyncClient() as client:
             resp = await client.patch(
                 f"{_GRAPH_BASE}/messages/{message_id}",
@@ -570,9 +565,7 @@ class GraphProvider:
             )
             resp.raise_for_status()
 
-    async def delete_message(
-        self, access_token: str, message_id: str
-    ) -> None:
+    async def delete_message(self, access_token: str, message_id: str) -> None:
         async with httpx.AsyncClient() as client:
             resp = await client.delete(
                 f"{_GRAPH_BASE}/messages/{message_id}",
@@ -584,6 +577,7 @@ class GraphProvider:
 # ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
+
 
 def get_provider(provider_name: str) -> GmailProvider | GraphProvider:
     """Return the correct provider instance for the given provider name."""
