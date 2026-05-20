@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Command } from 'cmdk'
 import { Bot, Check, Cpu, Plus, Sparkles, Terminal, Zap } from 'lucide-react'
-import { useSuggest } from '../../hooks/useSuggest'
-import { MEDIA_CONFIG } from '../../lib/mediaConfig'
+import { useSuggest } from '../../../hooks/useSuggest'
+import { MEDIA_CONFIG } from '../../../lib/mediaConfig'
 
 export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', onAdd }) {
   const [result, setResult] = useState(null)

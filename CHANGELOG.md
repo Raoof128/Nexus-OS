@@ -4,6 +4,38 @@
 
 **Raouf:**
 
+- **Scope:** Frontend Directory Reorganization & Unified Tooling
+- **Summary:** Completed full repository professionalisation. Restructured the React frontend by moving core apps (Library, Email, Chat, Auth) into dedicated modular packages under `src/os/apps/`. Reorganized shared UI components (CyberCard, ConfirmDialog) under `components/ui/`. Standardized and fixed all broken relative imports. Upgraded root tooling by overhauling the unified `Makefile` (adding clean, dev, install targets) and integrating standard GitHub Actions workflow with pip/npm caching. Standardized brand name to **Nexus OS** across all package configurations, source files, tests, and AI system instructions.
+- **Files Changed:**
+  - `Makefile` - Unified developer targets.
+  - `.github/workflows/ci.yml` - CI configuration with caching and robust steps.
+  - `frontend/package.json` / `pyproject.toml` - Standardized metadata.
+  - `frontend/src/App.jsx` / `frontend/src/App.test.jsx` - Updated imports and test assertions.
+  - `frontend/src/os/apps/...` - Reorganized application codebase.
+  - `backend/__init__.py` / `backend/chat_controller.py` - Updated brand name and system instructions.
+  - `scripts/check.sh` - Integrated Makefile test harness.
+- **Verification:** Completed full `scripts/check.sh` quality gate: 92/92 pytest tests passed, 87/87 vitest tests passed. Linters, formatting, and security scans are green.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
+- **Scope:** Full Documentation Audit & Professionalisation
+- **Summary:** Standardized project naming to **Nexus OS**. Overhauled the root README, Contributing guide, and documentation folder to reflect the current state of the project. Added a comprehensive Design Guidelines document. Standardized all documentation formatting with Prettier.
+- **Files Changed:**
+  - `README.md` - Brand standardization and aesthetic highlights.
+  - `CONTRIBUTING.md` - Integrated Raouf Protocol and Design Principles.
+  - `docs/architecture.md` - Updated diagrams for Zero-Trust and OS Shell engine.
+  - `docs/api-reference.md` - Cleaned up and added planned settings endpoints.
+  - `docs/design-guidelines.md` - New guide for cyberpunk aesthetic.
+- **Verification:** Full project quality gate passed (`scripts/check.sh`). 186/186 tests green.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
 - **Scope:** Wallpaper and Theme Selection Feature
 - **Summary:** Implemented a comprehensive wallpaper selection system with 5 premium cyberpunk patterns (Matrix Grid, Circuit Dots, Deep Void, Neural Mesh, Starfield). Integrated the feature into the `settingsStore` with localStorage persistence and added a high-end selection UI in the `SettingsApp`. Leveraged the View Transitions API (2026 best practice) for silky-smooth theme switches.
 - **Files Changed:**

@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react'
 import { ChevronDown, Plus, Zap } from 'lucide-react'
-import { EMAIL_FOLDERS, getProviderBadge } from '../../lib/emailConfig'
+import { EMAIL_FOLDERS, getProviderBadge } from '../../../lib/emailConfig'
 
 const FolderSidebar = React.memo(function FolderSidebar({
   accounts = [],

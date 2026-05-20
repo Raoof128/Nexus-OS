@@ -1,6 +1,6 @@
 import { Loader2 } from 'lucide-react'
-import AuthPanel from './components/features/AuthPanel'
-import ResetPasswordPage from './components/features/ResetPasswordPage'
+import AuthPanel from './os/apps/Auth/AuthPanel'
+import ResetPasswordPage from './os/apps/Auth/ResetPasswordPage'
 import Navbar from './components/layout/Navbar'
 import Desktop from './os/Desktop'
 import { useAuth } from './hooks/useAuth'
@@ -59,9 +59,9 @@ function App() {
                 One archive for <span className="text-primary">everything</span> you care about.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:mt-6 md:text-base">
-                Nexus Archive replaces scattered lists with one identity-driven dashboard. Track
-                books, movies, anime, and job applications — what you finished, what you are
-                pursuing now, and the notes that matter.
+                Nexus OS replaces scattered lists with one identity-driven dashboard. Track books,
+                movies, anime, and job applications — what you finished, what you are pursuing now,
+                and the notes that matter.
               </p>
               <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 lg:grid-cols-4">
                 {['Books', 'Movies', 'Anime', 'Jobs'].map((label) => (
@@ -80,7 +80,7 @@ function App() {
               className="relative z-10 flex w-full flex-col justify-center max-w-md mx-auto lg:max-w-none lg:mx-0"
             >
               <p className="heading-display mb-6 text-center text-lg font-bold text-white truncate lg:hidden">
-                Nexus Archive // Auth
+                Nexus OS // Auth
               </p>
               <AuthPanel />
             </div>
@@ -89,7 +89,7 @@ function App() {
 
         <footer className="relative z-10 py-6 text-center font-mono text-[10px] tracking-wider text-muted-foreground/30">
           <div className="mb-2 h-px w-full bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-          Nexus Archive &copy; {new Date().getFullYear()} // v2.0.4
+          Nexus OS &copy; {new Date().getFullYear()} // v2.0.4
         </footer>
       </div>
     )

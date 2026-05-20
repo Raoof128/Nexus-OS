@@ -1,11 +1,29 @@
-# Contributing
+# Contributing to Nexus OS
+
+Thank you for contributing to Nexus OS! This project maintains a high standard for visual excellence, security, and protocol adherence.
 
 ## Development Principles
 
-- Keep backend code modular: config, auth, services, controllers, schemas.
-- Preserve the cyberpunk visual direction in the frontend.
-- Do not commit secrets, generated build output, or local virtual environments.
-- Prefer small, reviewable changes with tests when backend behavior changes.
+### 1. Visual Excellence (Cyberpunk Aesthetic)
+
+- **Neon-Glow**: Use HSL-based variables for neon effects. Avoid generic hex colors.
+- **Motion**: Every interaction should feel "alive". Use `framer-motion` for choreographed entrances and `View Transitions API` for state changes.
+- **Glassmorphism**: Use `backdrop-blur` and subtle borders to create depth.
+
+### 2. Raouf Protocol (Mandatory)
+
+Before making any code changes, you must:
+
+1.  Read `AGENT.md` for foundational rules.
+2.  Read `CHANGELOG.md` to understand the recent context.
+3.  Implement changes following the file-by-file audit rule (no skimming).
+4.  Update both `AGENT.md` and `CHANGELOG.md` with your changes using the `Raouf:` template.
+
+### 3. Backend Integrity
+
+- **Modular Design**: Keep code in appropriate layers: `controllers`, `schemas`, `services`, `auth`.
+- **Zero-Trust**: Never expose tokens to the frontend. Use `HttpOnly` cookies for session management.
+- **Sanitization**: All user input must be sanitized and validated via Pydantic schemas.
 
 ## Local Setup
 
@@ -15,45 +33,47 @@
 cd frontend
 cp .env.example .env
 npm install
+npm run dev
 ```
 
 ### Backend
 
 ```bash
-cd backend
-cp .env.example .env
-python3 -m venv venv
-source venv/bin/activate
-pip install -e ..
+# Install dependencies using Makefile
+make install
+
+# Or manually
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e '.[dev]'
+litestar run --app backend.app:app --reload
 ```
 
-## Before Opening a Pull Request
+## Testing & Quality Gates
 
-Run:
+Nexus OS uses a "Quality Gate" script to ensure all invariants are met.
 
 ```bash
-make lint
-make test
-make build-frontend
+# Run the full quality gate
+./scripts/check.sh
+
+# Individual checks
+make lint       # Ruff (Python) + ESLint (JS)
+make test       # Pytest (Backend) + Vitest (Frontend)
+make security   # Bandit + pip-audit + Gitleaks
 ```
-
-## Pull Request Expectations
-
-- Explain the user-facing or architectural impact.
-- Reference any docs updated alongside the code.
-- Include screenshots for frontend changes when relevant.
-- Add or update tests for backend logic changes.
 
 ## Commit Messages
 
-Use the format:
+Use conventional commits:
 
-```text
-type(scope): concise imperative description
-```
+- `feat(ui): add neural mesh wallpaper`
+- `fix(auth): resolve refresh token race condition`
+- `docs(api): document chat session endpoints`
 
-Example:
+## Pull Request Process
 
-```text
-fix(api): validate missing media status
-```
+1.  Ensure all tests pass.
+2.  Include screenshots for any UI/UX changes.
+3.  Update the `CHANGELOG.md` entry for your change.
+4.  Link to any related issues or design discussions.

@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { ArrowLeft, MessageSquare } from 'lucide-react'
-import { useAuth } from '../../hooks/useAuth'
-import { useChatSessions } from '../../hooks/useChat'
+import { useAuth } from '../../../hooks/useAuth'
+import { useChatSessions } from '../../../hooks/useChat'
 import ChatSidebar from './ChatSidebar'
 import ChatWindow from './ChatWindow'
 
-export default function ChatLayout() {
+export default function ChatApp() {
   const { session } = useAuth()
   const userId = session?.user?.id ?? null
   const { sessions, createSession, deleteSession, isCreating, isLoading } = useChatSessions(userId)

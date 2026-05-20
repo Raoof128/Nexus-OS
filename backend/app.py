@@ -48,10 +48,10 @@ _openapi_config: OpenAPIConfig | None = (
     None
     if settings.environment == "production"
     else OpenAPIConfig(
-        title="Nexus Archive API",
+        title="Nexus OS API",
         version="0.3.0",
         description=(
-            "Authenticated API for the Nexus cyberpunk book library, including"
+            "Authenticated API for the Nexus cyberpunk OS, including"
             " cookie-backed auth, health probes, and AI-assisted recommendation"
             " workflows."
         ),

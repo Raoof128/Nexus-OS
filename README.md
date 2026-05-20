@@ -1,25 +1,48 @@
-# Nexus Archive
+# Nexus OS
 
-Nexus Archive is a cyberpunk-styled personal media vault and job tracker. It combines a React frontend, a Litestar API, and Supabase-backed identity and persistence so a user can manage books, movies, anime, job applications, ratings, takeaways, chat sessions, and AI-assisted recommendations from a single interface.
+Nexus OS is a premium, cyberpunk-styled personal media vault and job tracker. It combines a high-performance React frontend, a Litestar API, and Supabase-backed identity and persistence to manage books, movies, anime, job applications, ratings, takeaways, and AI-assisted recommendations within a unified, immersive interface.
+
+## Visual Aesthetic
+
+Nexus OS is built with a **Cyberpunk-First** design philosophy. It features:
+
+- **Neon-Glow Design System**: Tailored HSL color palettes with high-contrast accents.
+- **Glassmorphism**: Translucent windowing system with backdrop filters and depth.
+- **Dynamic Backgrounds**: High-performance CSS patterns and 4K cyberpunk wallpapers.
+- **Silky Transitions**: View Transitions API (2026) for seamless theme and state changes.
 
 ## Security Upgrade Highlights
 
-This repository now includes a stronger defensive posture:
+This repository includes a hardened defensive posture:
 
-- backend-managed `HttpOnly` auth cookies instead of frontend-readable Supabase tokens
-- strict cookie refresh flow with short-lived access tokens and silent rotation
-- AI prompt isolation with XML delimiters, string scrubbing, and PII masking
-- shared server-side AI rate limiting for `/media/suggest` and chat message generation
-- encrypted `takeaway` persistence when `TAKEAWAY_ENCRYPTION_KEY` is configured
-- Bandit, pip-audit, npm audit, and secret scanning in CI
+- **Zero-Trust Auth**: Backend-managed `HttpOnly` cookies; no sensitive tokens in browser storage.
+- **Silent Rotation**: Strict cookie refresh flow with short-lived access tokens.
+- **AI Isolation**: Prompt scrubbing, XML delimiters, and PII masking for Gemini interactions.
+- **Rate Limiting**: Shared server-side AI quotas enforced via Redis-backed sliding windows.
+- **Encrypted Persistence**: Field-level encryption for takeaways and chat content.
 
-## Stack
+## Backend Service Layer
 
-- Frontend: React 19, Vite, Tailwind CSS 4, TanStack Query, Framer Motion
-- Backend: Python 3.12, Litestar, Supabase Python client, PyJWT, Tiktoken
-- Database/Auth: Supabase PostgreSQL with Row Level Security
-- Observability: Sentry, structured audit logs, health probes
-- Tooling: ESLint, Ruff, pytest, Bandit, pip-audit, Locust, Docker, Terraform, GitHub Actions
+- **LiteStar Controllers**: Handle routing and dependency injection.
+- **Service Layer**: Pure business logic (e.g., `media_service.py`, `chat_service.py`) that interacts with Supabase or Gemini.
+- **Data Protection**: Centralized module for encryption and prompt sanitization.
+
+## App Directory Structure (Frontend)
+
+Nexus OS uses a modular application registry. Each "App" is self-contained in `frontend/src/os/apps/`:
+
+- `Library/`: Media tracking (Books, Movies, Anime) and Job Tracker.
+- `Email/`: Secure email client with AI drafting.
+- `Chat/`: Encrypted AI chat assistant.
+- `Auth/`: Unified authentication panels and recovery.
+- `Terminal/`: System console and diagnostics.
+
+## Technology Stack
+
+- **Frontend**: React 19, Vite, Tailwind CSS 4, TanStack Query, Framer Motion
+- **Backend**: Python 3.12, Litestar, Supabase Python, PyJWT, Tiktoken
+- **Database/Auth**: Supabase PostgreSQL with strict Row Level Security (RLS)
+- **Quality Assurance**: ESLint, Ruff, Vitest, Pytest, Bandit, pip-audit, Gitleaks
 
 ## Repository Layout
 
@@ -27,7 +50,7 @@ This repository now includes a stronger defensive posture:
 .
 ├── backend/                 # Litestar API package and backend runtime assets
 ├── docs/                    # Architecture, API, operations, and usage docs
-├── frontend/                # React client
+├── frontend/                # React client (OS Shell + Apps)
 ├── infra/terraform/         # IaC scaffold for Supabase and Vercel
 ├── loadtests/               # Locust performance scenarios
 ├── tests/                   # Backend-focused automated tests
@@ -41,71 +64,46 @@ This repository now includes a stronger defensive posture:
 
 ## Quick Start
 
-### Backend
+### 1. Unified Setup
+
+The easiest way to get started is using the provided `Makefile`:
 
 ```bash
-cp backend/.env.example backend/.env
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e '.[dev]'
-litestar run --app backend.app:app --host 0.0.0.0 --port 8000
+# Install all dependencies (backend + frontend)
+make install
+
+# Start development servers (concurrently)
+make dev
 ```
 
-### Frontend
+The backend will be available at `http://localhost:8000` and the frontend at `http://localhost:5173`.
 
-```bash
-cd frontend
-cp .env.example .env
-npm install
-npm run dev
-```
-
-### Containers
+### 3. Container Orchestration
 
 ```bash
 docker compose up --build backend
 ```
 
-## Core Runtime Guarantees
-
-- `POST /auth/login` issues `HttpOnly`, `SameSite=Strict` cookies.
-- `POST /auth/refresh` silently rotates short-lived access tokens.
-- `GET /healthz` is available for uptime checks.
-- `GET /schema/swagger` exposes live API docs without requiring auth.
-- `AI_RATE_LIMIT_REQUESTS` and `AI_RATE_LIMIT_WINDOW_SECONDS` enforce a shared per-user Gemini quota across recommendations and chat.
-- `GET /media/suggest?type=book|movie|anime|job` is rate-limited and degrades to a local recommendation when Gemini is unavailable.
-- chat transcripts are user-scoped, sanitized before Gemini calls, and protected at rest when `TAKEAWAY_ENCRYPTION_KEY` is configured.
-- `takeaway` notes are stored encrypted when `TAKEAWAY_ENCRYPTION_KEY` is configured.
-
 ## Quality Gates
 
+Nexus OS maintains a strict quality gate via `scripts/check.sh`.
+
 ```bash
-make lint
-make test
-make build-frontend
-make security
-make load-test
-make docker-backend
-make terraform-fmt
+make lint       # Ruff + ESLint
+make test       # Pytest + Vitest
+make security   # Bandit + pip-audit + Gitleaks
+make build      # Production bundle verification
 ```
 
 ## Documentation
 
 - [Architecture Overview](./docs/architecture.md)
 - [API Reference](./docs/api-reference.md)
+- [Design Guidelines](./docs/design-guidelines.md)
 - [Usage Examples](./docs/usage-examples.md)
 - [Operations Guide](./docs/operations.md)
 - [Security Policy](./SECURITY.md)
 - [Contributing Guide](./CONTRIBUTING.md)
-
-## Deployment Notes
-
-- `infra/terraform/` contains the reviewed starting point for Supabase and Vercel-managed infrastructure.
-- `backend/Dockerfile` is the canonical backend runtime image.
-- `vercel.json` codifies frontend security headers for deployed static assets.
-- Sentry DSNs are optional and only activate telemetry when configured.
-- Supabase must enforce RLS, short JWT lifetime, and PITR before public deployment.
-- Production should provide a non-default `AUDIT_LOG_SALT`, `TAKEAWAY_ENCRYPTION_KEY`, `REDIS_URL`, and `TRUSTED_PROXY_IPS`.
 
 ## License
 

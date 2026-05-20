@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { KeyRound, Loader2, ShieldCheck, ArrowLeft } from 'lucide-react'
-import { authFetch } from '../../lib/apiClient'
-import { realtimeClient } from '../../lib/realtimeClient'
-import Navbar from '../layout/Navbar'
-import PasswordInput from '../ui/PasswordInput'
+import { authFetch } from '../../../lib/apiClient'
+import { realtimeClient } from '../../../lib/realtimeClient'
+import Navbar from '../../../components/layout/Navbar'
+import PasswordInput from '../../../components/ui/PasswordInput'
 
 const inputClass =
   'w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/40 focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary terminal-input'

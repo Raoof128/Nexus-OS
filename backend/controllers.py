@@ -9,7 +9,7 @@ from litestar.params import Parameter
 
 try:
     from .audit_logger import log_audit_event
-    from .data_protection import encrypt_takeaway, hydrate_book_record
+    from .data_protection import encrypt_takeaway, hydrate_media_record
     from .rate_limit import enforce_ai_rate_limit
     from .schemas import (
         MediaCreate,
@@ -20,7 +20,7 @@ try:
     from .services import create_supabase_user_client, get_media_suggestion
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from audit_logger import log_audit_event
-    from data_protection import encrypt_takeaway, hydrate_book_record
+    from data_protection import encrypt_takeaway, hydrate_media_record
     from rate_limit import enforce_ai_rate_limit
     from schemas import (
         MediaCreate,
@@ -78,7 +78,7 @@ class MediaController(Controller):
             raise HTTPException(
                 status_code=502, detail="Failed to fetch media"
             ) from exc
-        return [hydrate_book_record(record) for record in (response.data or [])]
+        return [hydrate_media_record(record) for record in (response.data or [])]
 
     @post()
     async def create_media(self, data: MediaCreate, request: Request) -> dict:
@@ -107,7 +107,7 @@ class MediaController(Controller):
             },
         )
         created = response.data[0] if response.data else {}
-        return hydrate_book_record(created)
+        return hydrate_media_record(created)
 
     @put("/{media_id:str}")
     async def update_media(
@@ -146,7 +146,7 @@ class MediaController(Controller):
             user_id=user_id,
             metadata={"media_id": media_id},
         )
-        return hydrate_book_record(response.data[0])
+        return hydrate_media_record(response.data[0])
 
     @delete("/{media_id:str}")
     async def delete_media(self, media_id: str, request: Request) -> None:

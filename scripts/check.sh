@@ -58,8 +58,7 @@ python3 -m pip_audit .
 
 # Gate 7: Tests
 log "Running test suites..."
-(cd frontend && npm run test -- --run)
-python3 -m pytest tests
+make test
 
 # Gate 8: Secret Scan (Basic)
 log "Scanning for secrets..."

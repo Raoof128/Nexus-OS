@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Loader2, Sparkles, X, Send } from 'lucide-react'
-import { getProviderBadge } from '../../lib/emailConfig'
-import { DURATION, SPRING, TRANSITION_FADE, TRANSITION_FAST } from '../../lib/motion'
-import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { getProviderBadge } from '../../../lib/emailConfig'
+import { DURATION, SPRING, TRANSITION_FADE, TRANSITION_FAST } from '../../../lib/motion'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
 
 const MODAL_VARIANTS = {
   hidden: { opacity: 0, y: 24, scale: 0.96 },

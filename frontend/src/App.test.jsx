@@ -145,13 +145,13 @@ describe('App', () => {
   it('renders mobile-specific auth header on small screens', () => {
     window.innerWidth = 500
     render(<App />)
-    expect(screen.getByText(/nexus archive \/\/ auth/i)).toBeTruthy()
+    expect(screen.getByText(/nexus os \/\/ auth/i)).toBeTruthy()
   })
 
   it('hides mobile-specific auth header on large screens', () => {
     window.innerWidth = 1200
     render(<App />)
-    const mobileHeader = screen.getByText(/nexus archive \/\/ auth/i)
+    const mobileHeader = screen.getByText(/nexus os \/\/ auth/i)
     expect(mobileHeader.className).toContain('lg:hidden')
   })
 })

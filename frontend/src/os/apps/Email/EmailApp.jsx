@@ -1,17 +1,17 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { ArrowLeft, Menu, Search } from 'lucide-react'
-import { useAuth } from '../../hooks/useAuth'
-import { useEmailAccounts } from '../../hooks/useEmailAccounts'
-import { useEmails } from '../../hooks/useEmails'
-import { useEmailActions } from '../../hooks/useEmailActions'
-import { DURATION } from '../../lib/motion'
+import { useAuth } from '../../../hooks/useAuth'
+import { useEmailAccounts } from '../../../hooks/useEmailAccounts'
+import { useEmails } from '../../../hooks/useEmails'
+import { useEmailActions } from '../../../hooks/useEmailActions'
+import { DURATION } from '../../../lib/motion'
 import FolderSidebar from './FolderSidebar'
 import EmailList from './EmailList'
 import EmailReader from './EmailReader'
 import ComposeModal from './ComposeModal'
 
-export default function EmailInbox() {
+export default function EmailApp() {
   const { session } = useAuth()
   const userId = session?.user?.id
   const [activeFolder, setActiveFolder] = useState('inbox')

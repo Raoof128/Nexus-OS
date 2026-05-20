@@ -11,9 +11,9 @@ import {
 } from 'lucide-react'
 
 // Lazy-load real app components
-const MediaApp = lazy(() => import('../../components/features/MediaApp'))
-const EmailInbox = lazy(() => import('../../components/features/EmailInbox'))
-const ChatLayout = lazy(() => import('../../components/features/ChatLayout'))
+const LibraryApp = lazy(() => import('../apps/Library/LibraryApp'))
+const EmailApp = lazy(() => import('../apps/Email/EmailApp'))
+const ChatApp = lazy(() => import('../apps/Chat/ChatApp'))
 
 const SettingsApp = lazy(() => import('../apps/SettingsApp'))
 const SystemMonitorApp = lazy(() => import('../apps/SystemMonitorApp'))
@@ -29,7 +29,7 @@ export const APP_REGISTRY = {
     singleton: true,
     defaultSize: { width: 1000, height: 700 },
     minSize: { width: 600, height: 400 },
-    component: MediaApp,
+    component: LibraryApp,
   },
   email: {
     id: 'email',
@@ -38,7 +38,7 @@ export const APP_REGISTRY = {
     singleton: true,
     defaultSize: { width: 1000, height: 700 },
     minSize: { width: 500, height: 400 },
-    component: EmailInbox,
+    component: EmailApp,
   },
   chat: {
     id: 'chat',
@@ -47,7 +47,7 @@ export const APP_REGISTRY = {
     singleton: true,
     defaultSize: { width: 800, height: 600 },
     minSize: { width: 400, height: 400 },
-    component: ChatLayout,
+    component: ChatApp,
   },
   terminal: {
     id: 'terminal',

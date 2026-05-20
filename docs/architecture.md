@@ -2,70 +2,85 @@
 
 ## System Summary
 
-Nexus Archive is a split frontend/backend media-tracking and job-tracking application backed by Supabase:
+Nexus OS is a split frontend/backend media-tracking and job-tracking application backed by Supabase. It prioritizes **Zero-Trust Security** and **Visual Excellence**.
 
 ```mermaid
-flowchart LR
-  U["User Browser"] --> F["React Frontend"]
-  F --> Q["TanStack Query Cache"]
-  Q --> A["Litestar API"]
-  A --> C["HttpOnly Cookie Session Layer"]
-  C --> S["Supabase Auth"]
-  A --> D["Supabase Postgres"]
-  A --> G["Gemini Recommendation API"]
-  A --> O["Audit Logs + Sentry"]
-```
-
-## Frontend Responsibilities
-
-- authenticate through backend-issued secure cookies
-- cache server state with TanStack Query
-- render the personal library dashboard
-- lazy-load the AI command palette on demand
-- emit frontend telemetry to Sentry when configured
-
-## Backend Responsibilities
-
-- terminate auth at the server boundary and keep tokens out of browser storage
-- validate Supabase JWT bearer tokens and cookie tokens
-- enforce request schema validation with strict sanitization rules
-- encrypt sensitive takeaway notes when configured
-- isolate Supabase and Gemini calls behind service functions
-- emit audit records for sensitive actions
-- degrade gracefully to deterministic local suggestions when Gemini fails
-- enforce rate limits on the expensive suggestion endpoint
-
-## AI Recommendation Flow
-
-```mermaid
-sequenceDiagram
-  participant Browser
-  participant API as Litestar API
-  participant Gemini
-
-  Browser->>API: GET /media/suggest?type=book|movie|anime|job
-  API->>API: Enforce per-user rate limit
-  API->>API: Load user library + scrub prompt input
-  API->>API: Wrap context in strict XML delimiters
-  API->>API: Check circuit breaker
-  alt Gemini available
-    API->>Gemini: Few-shot prompt with sanitized context
-    Gemini-->>API: Title + reasoning
-    API->>API: Record success + audit event
-    API-->>Browser: suggestion, reasoning, source=gemini
-  else Gemini unavailable or unhealthy
-    API->>API: Build local genre-based fallback
-    API->>API: Record failure + audit event
-    API-->>Browser: suggestion, reasoning, source=local
+flowchart TD
+  subgraph "Client Layer (Browser)"
+    F["React Frontend (Vite)"]
+    S["Zustand OS State"]
+    Q["TanStack Query Cache"]
   end
+
+  subgraph "Security Boundary (API)"
+    A["Litestar API"]
+    C["HttpOnly Cookie Middleware"]
+    V["Pydantic Validation Layer"]
+    P["Prompt Sanitization (XML)"]
+  end
+
+  subgraph "Persistence & Services"
+    Auth["Supabase Auth"]
+    DB["Supabase Postgres (RLS)"]
+    AI["Gemini Pro API"]
+    Audit["Audit Logs + Sentry"]
+  end
+
+  F -->|Secure Cookies| C
+  C --> A
+  A --> V
+  V --> Auth
+  V --> DB
+  V -->|Sanitized Context| AI
+  A --> Audit
 ```
+
+## Security Invariants
+
+### 1. Zero-Trust Auth
+
+Nexus OS uses a backend-mediated auth flow.
+
+- **Access Tokens**: Stored in `HttpOnly`, `SameSite=Strict` cookies. Never readable by JavaScript.
+- **Refresh Flow**: Handled via `/auth/refresh` on the backend, preventing token theft from localStorage.
+- **CSRF Protection**: Enforced via `SameSite` and strict CORS policies.
+
+### 2. AI Prompt Isolation
+
+- **XML Delimiters**: All user context is wrapped in strict XML tags (e.g., `<user_library>`) before being sent to Gemini.
+- **PII Masking**: Obvious personally identifiable information is masked before reaching the LLM.
+- **Scrubbing**: Markdown fences and injection probes are stripped.
+
+## Frontend OS Shell
+
+### Windowing & Workspace
+
+- **Virtual DOM OS**: Implements a custom windowing system with z-stacking, snapping, and persistence.
+- **Settings Engine**: Leverages the View Transitions API for theme switches and wallpaper changes (CSS-only patterns + local 4K images).
+
+### State Management
+
+- **Zustand**: Manages ephemeral OS state (windows, app launcher, taskbar).
+- **TanStack Query**: Manages server-state and cache invalidation with Realtime Supabase sync.
+
+## Backend Service Layer
+
+- **LiteStar Controllers**: Handle routing and dependency injection.
+- **Service Layer**: Pure business logic (e.g., `media_service.py`, `chat_service.py`) that interacts with Supabase or Gemini.
+- **Data Protection**: Centralized module for encryption and prompt sanitization.
+
+## App Directory Structure (Frontend)
+
+Nexus OS uses a modular application registry. Each "App" is self-contained in `frontend/src/os/apps/`:
+
+- `Library/`: Media tracking (Books, Movies, Anime) and Job Tracker.
+- `Email/`: Secure email client with AI drafting.
+- `Chat/`: Encrypted AI chat assistant.
+- `Auth/`: Unified authentication panels and recovery.
+- `Terminal/`: System console and diagnostics.
 
 ## Trust Boundaries
 
-- Browser to API
-- API to Supabase Auth
-- API to Supabase Postgres
-- API to Gemini
-- CI/CD to Terraform-managed infrastructure
-
-Runtime boundaries enforce auth, RLS, and request validation where implemented; frontend deployment headers and provider-side auth settings must still be verified in the target environment.
+1.  **Browser to API**: Secured by HttpOnly cookies and CORS.
+2.  **API to Supabase**: Secured by Service Role keys (server-side only) and RLS.
+3.  **API to Gemini**: Secured by server-side API keys and prompt sanitization.

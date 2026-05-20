@@ -5,15 +5,27 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
-### 2026-05-20 (Australia/Sydney) — Wallpaper and Theme Selection (Image Support)
+### 2026-05-20 (Australia/Sydney) — Full Repository Professionalisation (Structure & CI/CD)
 
 **Raouf:**
 
-- **Scope:** Wallpaper and Theme Selection Feature (Image Support)
-- **Summary:** Added support for local image wallpapers. Successfully integrated 8 high-resolution images from the user's desktop into the OS theme system. Images are served statically from the frontend public directory. Updated the settings store and UI to support both CSS patterns and image-based wallpapers with live previews.
-- **Files Changed:** `frontend/public/wallpapers/`, `frontend/src/os/stores/settingsStore.js`, `frontend/src/os/Desktop.jsx`, `frontend/src/os/apps/SettingsApp.jsx`.
-- **Verification:** Verified image serving and UI rendering. Full `scripts/check.sh` pass.
+- **Scope:** Frontend modularization, tooling overhaul, and brand standardization.
+- **Summary:** Completed the full repository professionalisation by reorganizing the React frontend into modular application directories in `src/os/apps/`. Reorganized UI components, fixed all broken relative imports, and standardized the "Nexus OS" brand across all files and tests. Implemented a unified `Makefile` with comprehensive targets and hardened the CI/CD pipeline with dependency caching and rigorous security gates.
+- **Files Changed:** `Makefile`, `.github/workflows/ci.yml`, `frontend/package.json`, `frontend/src/os/apps/...`, `backend/__init__.py`, `backend/chat_controller.py`, `scripts/check.sh`.
+- **Verification:** Completed full `scripts/check.sh` quality gate: 92/92 pytest tests passed, 87/87 vitest tests passed. All linters and security scans (Bandit, Gitleaks, pip-audit) passed.
 - **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney) — Full Documentation Audit & Professionalisation
+
+**Raouf:**
+
+- **Scope:** Full repository documentation audit, cleanup, and brand standardization.
+- **Summary:** Standardized project naming to **Nexus OS**. Overhauled the README, Contributing guide, and Architecture docs to reflect recent Zero-Trust security and Wallpaper engine features. Created a new `design-guidelines.md` to codify the cyberpunk aesthetic. Verified all docs are consistent, clear, and professional.
+- **Files Changed:** `README.md`, `CONTRIBUTING.md`, `docs/architecture.md`, `docs/api-reference.md`, `docs/design-guidelines.md`.
+- **Verification:** Full `scripts/check.sh` pass (186/186 tests). All documentation formatted with Prettier.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney) — Wallpaper and Theme Selection (Image Support)
 
 ### 2026-05-20 (Australia/Sydney) — Wallpaper and Theme Selection Feature
 

@@ -1,8 +1,8 @@
 import React, { useCallback, useRef } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { Star, Paperclip } from 'lucide-react'
-import { formatEmailDate, getProviderBadge } from '../../lib/emailConfig'
-import { DURATION, SPRING } from '../../lib/motion'
+import { formatEmailDate, getProviderBadge } from '../../../lib/emailConfig'
+import { DURATION, SPRING } from '../../../lib/motion'
 
 const SCROLL_THRESHOLD = 150
 

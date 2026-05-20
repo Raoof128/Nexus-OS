@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, Loader2, MessageCircle, Send, User } from 'lucide-react'
-import { useChatMessages } from '../../hooks/useChat'
+import { useChatMessages } from '../../../hooks/useChat'
 
 function isNearBottom(element, threshold = 150) {
   if (!element) return true

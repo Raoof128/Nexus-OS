@@ -13,8 +13,8 @@ import {
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Plus, Sparkles } from 'lucide-react'
-import CyberCard from './CyberCard'
-import { MEDIA_CONFIG } from '../../lib/mediaConfig'
+import CyberCard from '../../../components/ui/CyberCard'
+import { MEDIA_CONFIG } from '../../../lib/mediaConfig'
 
 const MAX_PREVIEW = 5
 

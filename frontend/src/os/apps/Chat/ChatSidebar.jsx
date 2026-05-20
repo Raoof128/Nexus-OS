@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { FolderOpen, Loader2, MessageCircle, Plus, Trash2 } from 'lucide-react'
-import { MEDIA_CONFIG, MEDIA_TYPES, TYPE_ICONS } from '../../lib/mediaConfig'
-import ConfirmDialog from './ConfirmDialog'
+import { MEDIA_CONFIG, MEDIA_TYPES, TYPE_ICONS } from '../../../lib/mediaConfig'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 
 const MEDIA_CATEGORY_COLORS = {
   book: 'text-primary',

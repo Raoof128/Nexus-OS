@@ -1,1 +1,1 @@
-"""Backend package for the Nexus Archive service."""
+"""Backend package for the Nexus OS service."""

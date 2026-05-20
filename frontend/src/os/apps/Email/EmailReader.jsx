@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
-import { DURATION } from '../../lib/motion'
+import { DURATION } from '../../../lib/motion'
 import DOMPurify from 'dompurify'
 import { AlertTriangle, Eye, EyeOff, Loader2, Inbox } from 'lucide-react'
-import { apiFetch } from '../../lib/apiClient'
+import { apiFetch } from '../../../lib/apiClient'
 
 import EmailToolbar from './EmailToolbar'
 

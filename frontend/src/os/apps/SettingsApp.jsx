@@ -245,7 +245,7 @@ function AboutTab() {
     <div className="space-y-4">
       <div className="glass-panel rounded-xl p-4">
         <h3 className="heading-display mb-1 text-sm font-bold text-primary">Nexus OS</h3>
-        <p className="font-mono text-[10px] text-muted-foreground">v1.0.0 — Phase 3</p>
+        <p className="font-mono text-[10px] text-muted-foreground">v2.1.0 — Production Grade</p>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
           A cyberpunk browser OS for managing your media vault, email, and AI chat.
         </p>

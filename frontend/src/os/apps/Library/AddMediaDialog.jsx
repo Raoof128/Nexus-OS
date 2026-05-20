@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Plus, X } from 'lucide-react'
-import { MEDIA_CONFIG } from '../../lib/mediaConfig'
-import { SPRING } from '../../lib/motion'
-import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { MEDIA_CONFIG } from '../../../lib/mediaConfig'
+import { SPRING } from '../../../lib/motion'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import MediaForm from './MediaForm'
 
 export default function AddMediaDialog({ mediaType, onAdd }) {

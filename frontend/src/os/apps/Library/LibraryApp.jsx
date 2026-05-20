@@ -1,10 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
-import { useAuth } from '../../hooks/useAuth'
-import { useMedia } from '../../hooks/useMedia'
-import { MEDIA_TYPES, MEDIA_CONFIG, TYPE_ICONS } from '../../lib/mediaConfig'
-import { DURATION } from '../../lib/motion'
+import { useAuth } from '../../../hooks/useAuth'
+import { useMedia } from '../../../hooks/useMedia'
+import { MEDIA_TYPES, MEDIA_CONFIG, TYPE_ICONS } from '../../../lib/mediaConfig'
+import { DURATION } from '../../../lib/motion'
 import KanbanBoard from './KanbanBoard'
 import MediaVault from './MediaVault'
 import AddMediaDialog from './AddMediaDialog'
@@ -21,7 +21,7 @@ function readInitialType() {
   return MEDIA_TYPES.includes(fromUrl) ? fromUrl : 'book'
 }
 
-export default function MediaApp() {
+export default function LibraryApp() {
   const { session } = useAuth()
   const [activeType, setActiveType] = useState(readInitialType)
   const {

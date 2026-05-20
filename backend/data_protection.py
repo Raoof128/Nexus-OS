@@ -180,7 +180,7 @@ def decrypt_takeaway(takeaway: str | None) -> str | None:
         return takeaway
 
 
-def hydrate_book_record(record: dict[str, Any]) -> dict[str, Any]:
+def hydrate_media_record(record: dict[str, Any]) -> dict[str, Any]:
     """Return a media record with sensitive fields restored for the UI."""
 
     hydrated = dict(record)

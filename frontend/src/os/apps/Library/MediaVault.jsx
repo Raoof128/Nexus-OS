@@ -1,8 +1,8 @@
 import { memo, useMemo, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { ArrowLeft, ChevronLeft, ChevronRight, Pencil, Search, Trash2 } from 'lucide-react'
-import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../lib/mediaConfig'
-import ConfirmDialog from './ConfirmDialog'
+import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../../lib/mediaConfig'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 
 function MediaVault({
   items,
