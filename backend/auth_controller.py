@@ -131,7 +131,7 @@ def _attach_auth_cookies(
         "path": "/",
         "secure": settings.cookie_secure,
         "httponly": True,
-        "samesite": "strict",
+        "samesite": "lax",
     }
     response.set_cookie(
         settings.access_cookie_name,
@@ -156,7 +156,7 @@ def _clear_auth_cookies(response: Response) -> None:
         "path": "/",
         "secure": settings.cookie_secure,
         "httponly": True,
-        "samesite": "strict",
+        "samesite": "lax",
     }
     response.set_cookie(settings.access_cookie_name, "", max_age=0, **cookie_options)
     response.set_cookie(settings.refresh_cookie_name, "", max_age=0, **cookie_options)
@@ -305,13 +305,30 @@ class AuthController(Controller):
     async def reset_password(
         self, data: ResetPasswordRequest, request: Request
     ) -> Response:
-        """Set a new password using the recovery access token."""
+        """Set a new password using the recovery access token.
+
+        Tokens are read from ``X-Recovery-Access-Token`` /
+        ``X-Recovery-Refresh-Token`` request headers in preference to the body
+        so that they are never captured in request-body logging or Sentry
+        error events.  Body fields are accepted as a fallback for clients
+        that cannot set custom headers.
+        """
 
         enforce_auth_rate_limit(f"reset:{_client_ip(request)}")
+        # Prefer header-borne tokens (avoid body logging) with body fallback
+        access_token = (
+            request.headers.get("x-recovery-access-token") or data.access_token
+        )
+        refresh_token = (
+            request.headers.get("x-recovery-refresh-token")
+            or data.refresh_token
+            or access_token
+        )
+        if not access_token:
+            raise HTTPException(status_code=400, detail="Recovery token is required.")
         try:
             client = create_supabase_auth_client()
-            refresh = data.refresh_token or data.access_token
-            client.auth.set_session(data.access_token, refresh)
+            client.auth.set_session(access_token, refresh_token)
             user_response = client.auth.update_user({"password": data.new_password})
         except Exception as exc:  # pragma: no cover - upstream auth failure
             logger.exception("Password reset failed")

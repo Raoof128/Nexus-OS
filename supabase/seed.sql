@@ -1,8 +1,26 @@
 -- =============================================================================
 -- Nexus Dev Seed
--- Seeds the local development database with a known test account.
+-- Seeds the LOCAL development database with a known test account.
 -- Applied by `supabase db reset` (see [db.seed] in config.toml).
+--
+-- ⚠️  NEVER run against a production database.
+--    This file creates an account with a publicly known password.
 -- =============================================================================
+
+-- Production guard: abort if the database is not a local/test instance.
+DO $$
+BEGIN
+  IF current_database() NOT ILIKE '%local%'
+     AND current_database() NOT ILIKE '%test%'
+     AND current_database() NOT ILIKE '%dev%'
+     AND current_database() NOT ILIKE '%postgres%'   -- default supabase local db name
+  THEN
+    RAISE EXCEPTION
+      'seed.sql must only run on local or test databases (got: %). '
+      'Refusing to create dev credentials in a production environment.',
+      current_database();
+  END IF;
+END $$;
 
 -- pgcrypto is required for crypt() / gen_salt().
 -- It is already enabled in database.sql, but guard here for safety.

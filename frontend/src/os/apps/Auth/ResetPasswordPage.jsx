@@ -135,9 +135,11 @@ export default function ResetPasswordPage({
     try {
       await authFetch('/auth/reset-password', {
         method: 'POST',
+        headers: {
+          'x-recovery-access-token': accessToken,
+          'x-recovery-refresh-token': refreshToken || '',
+        },
         body: {
-          access_token: accessToken,
-          refresh_token: refreshToken || '',
           new_password: password,
         },
       })

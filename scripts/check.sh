@@ -54,7 +54,9 @@ python3 -m ruff check backend tests loadtests
 log "Running security audits..."
 (cd frontend && npm audit --audit-level=high)
 python3 -m bandit -r backend -c bandit.yaml
-python3 -m pip_audit .
+# PYSEC-2025-183: PyJWT 2.12.1 — no patched release exists at time of writing.
+# Suppressed with --ignore-vuln; review and remove once a fix is published.
+python3 -m pip_audit . --ignore-vuln PYSEC-2025-183
 
 # Gate 7: Tests
 log "Running test suites..."

@@ -90,7 +90,7 @@ def _get_email(db, email_id: str, user_id: str) -> dict:
     """Fetch an email message row and assert ownership."""
 
     resp = (
-        db.from_("email_messages")
+        db.from_("nexus_emails")
         .select("*")
         .eq("id", email_id)
         .eq("user_id", user_id)
@@ -305,7 +305,7 @@ class EmailController(Controller):
             raise HTTPException(status_code=502, detail="Move failed") from exc
 
         try:
-            db.from_("email_messages").update({"folder": data.folder}).eq(
+            db.from_("nexus_emails").update({"folder": data.folder}).eq(
                 "id", email_id
             ).execute()
         except Exception:  # pragma: no cover
@@ -364,7 +364,7 @@ class EmailController(Controller):
             raise HTTPException(status_code=502, detail="Mark read failed") from exc
 
         try:
-            db.from_("email_messages").update({"is_read": is_read}).eq(
+            db.from_("nexus_emails").update({"is_read": is_read}).eq(
                 "id", email_id
             ).execute()
         except Exception:  # pragma: no cover
@@ -397,7 +397,7 @@ class EmailController(Controller):
             raise HTTPException(status_code=502, detail="Toggle star failed") from exc
 
         try:
-            db.from_("email_messages").update({"is_starred": is_starred}).eq(
+            db.from_("nexus_emails").update({"is_starred": is_starred}).eq(
                 "id", email_id
             ).execute()
         except Exception:  # pragma: no cover
@@ -550,7 +550,7 @@ class EmailController(Controller):
         # Fetch all requested emails and assert ownership
         try:
             resp = (
-                db.from_("email_messages")
+                db.from_("nexus_emails")
                 .select("subject, body_text, from_address, provider_date")
                 .in_("id", data.email_ids)
                 .eq("user_id", user_id)

@@ -20,13 +20,28 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
 
 logger = logging.getLogger(__name__)
 
-PUBLIC_PATH_PREFIXES = (
-    "/healthz",
-    "/schema",
-    "/schema/",
-    "/auth",
-    "/auth/",
-)
+# Exact public paths (no auth required at all)
+_PUBLIC_EXACT: frozenset[str] = frozenset({"/healthz"})
+# Prefix-public paths: the path must equal the prefix OR start with prefix + "/"
+# so that /auth matches but /authentication does not.
+_PUBLIC_STRICT_PREFIXES: tuple[str, ...] = ("/schema", "/auth")
+
+
+def _is_public_path(path: str) -> bool:
+    """Return True when *path* requires no authentication.
+
+    Uses exact matching for single paths and strict prefix matching
+    (prefix == path  OR  path.startswith(prefix + "/")) to prevent
+    accidental bypass via prefix collision (e.g. /authentication would
+    have matched the old startswith("/auth") check).
+    """
+
+    if path in _PUBLIC_EXACT:
+        return True
+    return any(
+        path == prefix or path.startswith(prefix + "/")
+        for prefix in _PUBLIC_STRICT_PREFIXES
+    )
 
 
 @lru_cache(maxsize=1)
@@ -97,7 +112,7 @@ class SupabaseAuthMiddleware(MiddlewareProtocol):
         if scope["type"] == "http":
             method = scope.get("method", "")
             path = scope.get("path", "")
-            if method == "OPTIONS" or path.startswith(PUBLIC_PATH_PREFIXES):
+            if method == "OPTIONS" or _is_public_path(path):
                 await self.app(scope, receive, send)
                 return
 

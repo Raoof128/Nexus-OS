@@ -211,7 +211,7 @@ async def sync_account(account: dict, settings) -> None:
     if rows:
         try:
             db = create_supabase_service_client()
-            db.postgrest.from_("email_messages").upsert(
+            db.postgrest.from_("nexus_emails").upsert(
                 rows, on_conflict="account_id,provider_id"
             ).execute()
         except Exception:
@@ -221,7 +221,7 @@ async def sync_account(account: dict, settings) -> None:
     try:
         db = create_supabase_service_client()
         db_resp = (
-            db.postgrest.from_("email_messages")
+            db.postgrest.from_("nexus_emails")
             .select("provider_id")
             .eq("account_id", account_id)
             .execute()
@@ -232,7 +232,7 @@ async def sync_account(account: dict, settings) -> None:
             logger.info(
                 "Detected %d ghost email(s) for account %s", len(ghosts), account_id
             )
-            db.postgrest.from_("email_messages").update({"folder": "deleted"}).in_(
+            db.postgrest.from_("nexus_emails").update({"folder": "deleted"}).in_(
                 "provider_id", list(ghosts)
             ).eq("account_id", account_id).execute()
     except Exception:

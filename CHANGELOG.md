@@ -4,6 +4,27 @@
 
 **Raouf:**
 
+- **Scope:** Full Cybersecurity Audit Remediation — all 17 findings fixed
+- **Summary:** Applied every finding from the security audit. C-1: email_messages→nexus_emails (email controller + poller — all mutations were failing). H-1: samesite strict→lax (OAuth callback 401 fixed). H-3: added jobs to chat_category enum via migration. H-4: Docker Compose port 127.0.0.1-bound. H-6: recovery tokens via X-Recovery-* headers not body. M-5: strict path prefix matching in auth middleware. M-6: fixed send_default_pii typo + added Sentry body scrubber. H-2: DOMPurify added to NotesApp markdown renderer. M-2: email redacted in neofetch. M-1+L-8: startup guards raise on localhost ALLOWED_ORIGINS or insecure cookies in production. L-5: removed Answered from database.sql. L-3: seed.sql production guard. L-2: password min 8→12 + complexity policy. L-4: GitHub Actions pinned to commit SHAs. PyJWT PYSEC-2025-183 acknowledged, no fix available, suppressed with --ignore-vuln.
+- **Files Changed:** backend/email_controller.py, email_poller.py, auth_controller.py, auth.py, observability.py, config.py, schemas.py, frontend ResetPasswordPage.jsx, NotesApp.jsx, TerminalApp.jsx, docker-compose.yml, database.sql, supabase/seed.sql, supabase/config.toml, supabase/migrations/20260520000001_add_jobs_chat_category.sql (NEW), .github/workflows/ci.yml, scripts/check.sh, tests/test_auth_logic.py, pyproject.toml.
+- **Verification:** Full check.sh pass — Prettier ✓, ESLint ✓, Bandit 0 issues, pip-audit clean, 92/92 pytest ✓, 87/87 vitest ✓.
+- **Follow-ups:** Monitor PyJWT for PYSEC-2025-183 fix. H-5 (PKCE server-side storage) deferred.
+
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
+- **Scope:** Desktop icons — label truncation fix + bright-wallpaper readability
+- **Summary:** Two bugs from screenshot review. **(1) Truncated labels** — "Media Vault" showed as "Media V…", "File Manager" as "File Man…", "System Monitor" as "System …". Root cause: icon container was 64px wide with `truncate` (single-line clip). Fix: widened container from 64→72px, increased `GRID_CELL` spacing from 80→88px so columns don't crowd, replaced `truncate` with `line-clamp-2 break-words` so two-word titles wrap to a second line rather than being clipped. **(2) Text unreadable on bright wallpapers** — labels had no contrast protection, making them invisible on light image wallpapers. Fix: added `textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)'` to every label span. On dark backgrounds the shadow is invisible; on bright wallpapers it creates a legible dark backdrop. Also bumped label opacity from `text-white/70` to `text-white/80`.
+- **Files Changed:** `frontend/src/os/components/DesktopIcons.jsx` — `GRID_CELL` 80→88, container `width` 64→72, label `truncate`→`line-clamp-2 break-words`, `text-shadow` added.
+- **Verification:** `npm run lint` 0 errors, Prettier ✓, 87/87 vitest ✓.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
 - **Scope:** Login page audit + visual polish · Loading screen redesign · Wallpaper cleanup
 - **Summary:** Three tasks in one pass. **(1) Wallpaper removal** — deleted Matrix Grid, Circuit Dots, Deep Void, and Starfield presets from `WALLPAPER_PRESETS` and their 4 CSS classes from `index.css`; default changed from `'grid'` to `'mesh'`; stale localStorage values (users who had one of the removed presets saved) are silently migrated to `'mesh'` via a `_REMOVED_WALLPAPER_IDS` guard in both the boot initializer and `hydrateSettings`. **(2) Loading screen** — replaced the bare `Loader2` spinner with a full-screen branded `LoadingScreen` component: glowing N logo with teal corner marks (matching LockScreen/BootSequence aesthetic), "NEXUS OS" heading in tracked caps, "Authenticating" label with staggered-delay pulsing dots, and a subtle `wallpaper-mesh` layer at 30% opacity for depth. Ambient orbs + scanlines retained. **(3) Login page** — hero section audit and polish: all 4 cyber brackets added (was missing `br` and `tr`); eyebrow label now has a short neon line accent before the text; headline `textShadow` on the primary span adds the neon glow; sub-copy tightened; feature badges redesigned from plain glass boxes to icon+label rows with hover glow — each shows the relevant Lucide icon and a translucent neon border on hover; radial vignette background layer added to draw focus to the content centre; grid opacity reduced (0.025) and cell size increased (44px) for better subtlety; mobile brand header changed from plain text to N logo + "NEXUS OS" in the same style as the loading screen; footer opacity reduced slightly.
 - **Files Changed:**

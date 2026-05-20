@@ -180,11 +180,34 @@ def get_settings() -> BackendSettings:
         ),
     )
 
-    if settings.environment != "development" and not settings.cookie_secure:
-        logging.getLogger(__name__).critical(
-            "cookie_secure is False in a non-development environment (%s). "
-            "Session cookies will be sent over plain HTTP!",
-            settings.environment,
-        )
+    _log = logging.getLogger(__name__)
+
+    # ── Production safety checks ──────────────────────────────────────────────
+    if settings.environment != "development":
+        if not settings.cookie_secure:
+            raise ImproperlyConfiguredException(
+                "COOKIE_SECURE must be True in non-development environments. "
+                "Set COOKIE_SECURE=true (or APP_ENV=production) in your environment."
+            )
+
+        if set(settings.allowed_origins) == set(DEFAULT_ALLOWED_ORIGINS):
+            raise ImproperlyConfiguredException(
+                "ALLOWED_ORIGINS must be set to production domains in non-development "
+                "environments. The default includes localhost origins which allow "
+                "cross-origin requests from developer machines to the production API."
+            )
+
+    # ── Development convenience warnings ─────────────────────────────────────
+    if settings.environment == "development":
+        if not settings.cookie_secure:
+            _log.warning(
+                "cookie_secure is False (development mode). "
+                "Cookies will not be marked Secure."
+            )
+        if set(settings.allowed_origins) == set(DEFAULT_ALLOWED_ORIGINS):
+            _log.warning(
+                "ALLOWED_ORIGINS uses development defaults (localhost). "
+                "Set ALLOWED_ORIGINS before deploying to production."
+            )
 
     return settings

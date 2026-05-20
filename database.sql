@@ -20,7 +20,8 @@ CREATE TABLE media (
 
 ALTER TABLE media
   ADD CONSTRAINT media_status_check
-  CHECK (status IN ('To Read', 'Reading', 'Finished', 'To Watch', 'Watching', 'Applied', 'Answered', 'Rejected', 'Got the Job'));
+  CHECK (status IN ('To Read', 'Reading', 'Finished', 'To Watch', 'Watching', 'Applied', 'Rejected', 'Got the Job'));
+  -- Note: 'Answered' was removed by migration 20260404000002_remove_answered_job_status.sql
 
 CREATE INDEX idx_media_user_type_created ON media (user_id, type, created_at DESC);
 

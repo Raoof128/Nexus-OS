@@ -41,7 +41,7 @@ class LoginRequest(BaseModel):
     """Login request submitted by the frontend."""
 
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=12, max_length=128)
 
 
 class SessionUser(BaseModel):
@@ -63,7 +63,7 @@ class RegisterRequest(BaseModel):
     """Registration request submitted by the frontend."""
 
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=12, max_length=128)
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -73,11 +73,16 @@ class ForgotPasswordRequest(BaseModel):
 
 
 class ResetPasswordRequest(BaseModel):
-    """Password reset request with the recovery tokens."""
+    """Password reset request with the recovery tokens.
 
-    access_token: str = Field(min_length=1)
+    Tokens should be transmitted via ``X-Recovery-Access-Token`` /
+    ``X-Recovery-Refresh-Token`` request headers to avoid capture in
+    request-body logging.  Body fields are accepted as a fallback.
+    """
+
+    access_token: str = ""
     refresh_token: str = ""
-    new_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(min_length=12, max_length=128)
 
 
 def _validate_text_field(value: str | None) -> str | None:

@@ -2,7 +2,7 @@ import { memo, useState, useCallback } from 'react'
 import { useWindowStore } from '../stores/windowStore'
 import { APP_REGISTRY, APP_ORDER } from '../stores/appRegistry'
 
-const GRID_CELL = 80
+const GRID_CELL = 88
 const COLS = 2
 const ICON_START_X = 16
 const ICON_START_Y = 24
@@ -72,7 +72,7 @@ function DesktopIcons() {
             style={{
               left: x,
               top: y,
-              width: 64,
+              width: 72,
             }}
           >
             {/* Icon container */}
@@ -94,8 +94,13 @@ function DesktopIcons() {
               />
             </div>
 
-            {/* Label */}
-            <span className="heading-ui w-full truncate text-center text-[11px] text-white/70 leading-tight">
+            {/* Label — line-clamp-2 so two-word titles wrap rather than truncate.
+                 textShadow provides a dark backdrop that keeps text readable
+                 on bright image wallpapers while being invisible on dark ones. */}
+            <span
+              className="heading-ui w-full break-words line-clamp-2 text-center text-[11px] text-white/80 leading-tight"
+              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)' }}
+            >
               {manifest.title}
             </span>
           </div>
