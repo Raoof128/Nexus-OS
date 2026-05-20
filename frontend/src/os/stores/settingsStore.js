@@ -10,12 +10,11 @@ export const ACCENT_PRESETS = {
   orange: { primary: '30 100% 50%', neon: '30 100% 50%', label: 'Blaze Orange' },
 }
 
+// IDs that were removed so stale localStorage values fall back gracefully.
+const _REMOVED_WALLPAPER_IDS = new Set(['grid', 'dots', 'solid', 'stars'])
+
 export const WALLPAPER_PRESETS = {
-  grid: { id: 'grid', label: 'Matrix Grid' },
-  dots: { id: 'dots', label: 'Circuit Dots' },
-  solid: { id: 'solid', label: 'Deep Void' },
   mesh: { id: 'mesh', label: 'Neural Mesh' },
-  stars: { id: 'stars', label: 'Starfield' },
   w1: { id: 'w1', label: 'Wallpaper 1', image: '/wallpapers/W1.png' },
   w2: { id: 'w2', label: 'Wallpaper 2', image: '/wallpapers/W2.jpg' },
   w3: { id: 'w3', label: 'Wallpaper 3', image: '/wallpapers/W3.jpg' },
@@ -79,10 +78,15 @@ if (_boot.accentColor) {
   applyAccentToDOM(_boot.accentColor)
 }
 
+// Guard stale wallpaper values — if the user had a removed preset ('grid',
+// 'dots', 'solid', 'stars') saved in localStorage, fall back to 'mesh'.
+const _savedWallpaper =
+  _boot.wallpaper && !_REMOVED_WALLPAPER_IDS.has(_boot.wallpaper) ? _boot.wallpaper : 'mesh'
+
 // ── Store ─────────────────────────────────────────────────────────────────────
 export const useSettingsStore = create((set, get) => ({
   accentColor: _boot.accentColor ?? 'yellow',
-  wallpaper: _boot.wallpaper ?? 'grid',
+  wallpaper: _savedWallpaper,
   uiScale: _boot.uiScale ?? 'default',
   scanlinesEnabled: _boot.scanlinesEnabled ?? true,
   orbsEnabled: _boot.orbsEnabled ?? true,
@@ -134,9 +138,11 @@ export const useSettingsStore = create((set, get) => ({
       if (!raw) return
       const saved = JSON.parse(raw)
       if (!saved?.accentColor) return
+      const restoredWallpaper =
+        saved.wallpaper && !_REMOVED_WALLPAPER_IDS.has(saved.wallpaper) ? saved.wallpaper : 'mesh'
       set({
         accentColor: saved.accentColor,
-        wallpaper: saved.wallpaper || 'grid',
+        wallpaper: restoredWallpaper,
         uiScale: saved.uiScale || 'default',
         scanlinesEnabled: saved.scanlinesEnabled ?? true,
         orbsEnabled: saved.orbsEnabled ?? true,

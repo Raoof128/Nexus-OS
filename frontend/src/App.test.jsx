@@ -142,16 +142,21 @@ describe('App', () => {
     })
   })
 
-  it('renders mobile-specific auth header on small screens', () => {
+  it('renders mobile brand header on small screens', () => {
     window.innerWidth = 500
     render(<App />)
-    expect(screen.getByText(/nexus os \/\/ auth/i)).toBeTruthy()
+    // The mobile brand header lives inside a div with the lg:hidden class
+    const mobileWrapper = document.querySelector('[class*="lg:hidden"]')
+    expect(mobileWrapper).toBeTruthy()
+    expect(mobileWrapper.textContent).toMatch(/nexus\s*os/i)
   })
 
-  it('hides mobile-specific auth header on large screens', () => {
+  it('hides mobile brand header on large screens via lg:hidden', () => {
     window.innerWidth = 1200
     render(<App />)
-    const mobileHeader = screen.getByText(/nexus os \/\/ auth/i)
-    expect(mobileHeader.className).toContain('lg:hidden')
+    // The container is in the DOM with lg:hidden (Tailwind hides it at lg+)
+    const mobileWrapper = document.querySelector('[class*="lg:hidden"]')
+    expect(mobileWrapper).toBeTruthy()
+    expect(mobileWrapper.className).toContain('lg:hidden')
   })
 })

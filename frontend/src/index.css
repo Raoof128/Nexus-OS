@@ -151,22 +151,10 @@
 
 /* ── Wallpaper patterns ──────────────────────────────────── */
 /*
- * All patterns use the wallpaper div which is the FIRST -z-1 child in
- * Desktop.jsx, so ambient-orbs and scanlines render on top of it.
- * Opacity values are intentionally subtle so window content stays readable.
+ * Wallpaper div is the FIRST -z-1 child in Desktop.jsx so ambient-orbs and
+ * scanlines render on top of it. Only Neural Mesh remains as a CSS pattern;
+ * all other wallpapers are image-based (W1-W8).
  */
-
-.wallpaper-grid {
-  background-image:
-    linear-gradient(to right, hsl(var(--neon-yellow) / 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(var(--neon-yellow) / 0.04) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
-.wallpaper-dots {
-  background-image: radial-gradient(hsl(var(--neon-yellow) / 0.07) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
 
 .wallpaper-mesh {
   background-image:
@@ -187,32 +175,6 @@
       hsl(var(--neon-yellow) / 0.04)
     );
   background-size: 60px 60px;
-}
-
-/*
- * Stars: opacity moved from the element level (which hid the pattern on lower-
- * quality displays at 0.15) into the gradient colour values so each star dot
- * is individually semi-transparent while the div itself stays fully visible.
- * Three layers of different-sized dots at offset positions produce parallax depth.
- */
-.wallpaper-stars {
-  background-image:
-    radial-gradient(rgba(255, 255, 255, 0.55) 1px, transparent 1px),
-    radial-gradient(rgba(255, 255, 255, 0.35) 1.5px, transparent 1.5px),
-    radial-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px);
-  background-size:
-    550px 550px,
-    350px 350px,
-    250px 250px;
-  background-position:
-    0 0,
-    40px 60px,
-    130px 270px;
-}
-
-/* Deep Void — pure black background, no pattern */
-.wallpaper-solid {
-  background-color: hsl(0 0% 0%);
 }
 
 /* ── Neon glow border effect ─────────────────────────────── */

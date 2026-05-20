@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-20 (Australia/Sydney) — Full Production Deployment
+
+**Raouf:**
+
+- **Scope:** Deploy backend + frontend to production.
+- **Summary:** rsync 9 changed files → droplet, Docker image rebuilt, container restarted. Frontend built with production API URL, deployed to Cloudflare Pages. Both endpoints confirmed live: `home-notes-app.uk` 200, `/api/healthz` `{"status":"ok"}`.
+- **Files Changed:** Deployment only — no source changes.
+- **Verification:** Live production URLs confirmed via curl.
+- **Follow-ups:** None.
+
 ### 2026-05-20 (Australia/Sydney) — Full Backend Audit & Fix Pass
 
 **Raouf:**

@@ -4,6 +4,30 @@
 
 **Raouf:**
 
+- **Scope:** Login page audit + visual polish · Loading screen redesign · Wallpaper cleanup
+- **Summary:** Three tasks in one pass. **(1) Wallpaper removal** — deleted Matrix Grid, Circuit Dots, Deep Void, and Starfield presets from `WALLPAPER_PRESETS` and their 4 CSS classes from `index.css`; default changed from `'grid'` to `'mesh'`; stale localStorage values (users who had one of the removed presets saved) are silently migrated to `'mesh'` via a `_REMOVED_WALLPAPER_IDS` guard in both the boot initializer and `hydrateSettings`. **(2) Loading screen** — replaced the bare `Loader2` spinner with a full-screen branded `LoadingScreen` component: glowing N logo with teal corner marks (matching LockScreen/BootSequence aesthetic), "NEXUS OS" heading in tracked caps, "Authenticating" label with staggered-delay pulsing dots, and a subtle `wallpaper-mesh` layer at 30% opacity for depth. Ambient orbs + scanlines retained. **(3) Login page** — hero section audit and polish: all 4 cyber brackets added (was missing `br` and `tr`); eyebrow label now has a short neon line accent before the text; headline `textShadow` on the primary span adds the neon glow; sub-copy tightened; feature badges redesigned from plain glass boxes to icon+label rows with hover glow — each shows the relevant Lucide icon and a translucent neon border on hover; radial vignette background layer added to draw focus to the content centre; grid opacity reduced (0.025) and cell size increased (44px) for better subtlety; mobile brand header changed from plain text to N logo + "NEXUS OS" in the same style as the loading screen; footer opacity reduced slightly.
+- **Files Changed:**
+  - `frontend/src/os/stores/settingsStore.js` — removed 4 presets, `_REMOVED_WALLPAPER_IDS` guard, default wallpaper `'grid'`→`'mesh'`.
+  - `frontend/src/index.css` — deleted `.wallpaper-grid`, `.wallpaper-dots`, `.wallpaper-stars`, `.wallpaper-solid`; kept `.wallpaper-mesh`.
+  - `frontend/src/App.jsx` — new `LoadingScreen` component; redesigned `!session` login page; `FEATURES` array with Lucide icons.
+  - `frontend/src/App.test.jsx` — updated 2 mobile header test assertions to match new structure.
+- **Verification:** `npm run lint` 0 errors, Prettier ✓, `npm run test -- --run` 87/87, full `scripts/check.sh` pass.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
+- **Scope:** Full production deployment — backend (DigitalOcean) + frontend (Cloudflare Pages)
+- **Summary:** Deployed all changes from the current session (frontend audit, window system overhaul, auth 401 fix, wallpaper persistence, backend audit fixes) to production. Backend: rsync'd 9 changed files to droplet `170.64.167.95`, rebuilt Docker image from `python:3.12.11-slim`, stopped old container, launched new container on `127.0.0.1:8000`. Frontend: built production bundle with `VITE_API_URL=https://home-notes-app.uk/api` (2.08s, 30 assets), deployed to Cloudflare Pages project `nexus-archive` branch `codex/bootstrap`.
+- **Files Changed:** No source changes — deployment only.
+- **Verification:** `https://home-notes-app.uk` → HTTP 200. `https://home-notes-app.uk/api/healthz` → `{"status":"ok"}`. Cloudflare Pages preview: `https://fb8b5a5a.nexus-archive.pages.dev`.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
 - **Scope:** Full Backend Audit & Fix Pass — 21 source files, 17 test files inspected
 - **Summary:** File-by-file audit of all 21 backend Python modules and 17 test files. Found and fixed 8 bugs across critical/high/medium/low severity. **(1) CRITICAL — `GmailProvider.send_message` completely broken**: the method was encoding `message.get("raw", "")` (always an empty string since the input dict has `to/subject/body_html` keys) and POSTing an empty base64 payload to Gmail API. Fixed by building a proper RFC 2822 MIME email using `email.mime.multipart.MIMEMultipart` with correct `To/Cc/Subject/In-Reply-To` headers. `GraphProvider.send_message` was passing the raw input dict directly to Microsoft Graph's `sendMail` endpoint which requires a completely different JSON envelope structure (`{"message": {"subject": ..., "body": {...}, "toRecipients": [...]}}`); fixed by constructing the correct Graph payload. **(2) HIGH — CORS missing PATCH method**: `app.py`'s `allow_methods` excluded `PATCH`; every email action (`/read`, `/star`, `/move`, `/labels`) uses PATCH — all would fail preflight for browser clients. Added `"PATCH"` to the list. **(3) HIGH — `mark_read` read `is_read` from query params, frontend sends JSON body**: `request.query_params.get("is_read", "true")` always defaulted to True regardless of the body; added `ReadEmailRequest(is_read: bool)` schema and wired it as the request body. **(4) HIGH — `toggle_star` always negated current DB value, ignored body**: always did `is_starred = not email_row.get("is_starred", False)` regardless of what the frontend sent; added `ToggleStarRequest(is_starred: bool)` schema and use the body value directly. **(5) HIGH — `encrypt_takeaway` raised uncaught `RuntimeError` in media create/update**: when `TAKEAWAY_ENCRYPTION_KEY` is not configured (it's documented as optional), creating/updating media with takeaway notes raised `RuntimeError` which propagated as an unhandled 500. Wrapped both call sites in `try/except RuntimeError` → `HTTPException(422)` with a clear user-facing message. **(6) MEDIUM — `Content-Disposition` header injection in attachment endpoint**: `attachment_id` from the URL path was interpolated directly into `filename="..."` without sanitization; a crafted path parameter could inject header content. Added character-allowlist sanitization (`alnum + - _ .`). **(7) LOW — `logging.basicConfig` was a no-op if logging already initialized**: added `force=True`. **(8) CLEANUP — inline imports inside function bodies** (`import httpx as _httpx`, `import base64`, `import datetime as dt`): moved to module level in `email_controller.py` and `oauth_controller.py`.
 - **Files Changed:**
