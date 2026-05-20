@@ -141,9 +141,13 @@ export default function Desktop() {
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >
-        {/* Wallpaper layers — z-index: -1, always behind everything */}
-        {orbsEnabled && <div className="ambient-orbs" />}
-        {scanlinesEnabled && <div className="scanlines" />}
+        {/* Wallpaper layers ─────────────────────────────────────────
+             Stacking order (all z-index: -1, DOM order = bottom→top):
+               1. wallpaper  — base texture / image (rendered first = lowest)
+               2. orbs       — neon glow on top of wallpaper
+               3. scanlines  — CRT overlay on top of everything
+             Image wallpapers use `background-size: cover` which fills the
+             full viewport on every device and orientation. */}
         <div
           className={`pointer-events-none absolute inset-0 -z-1 ${
             wallpaperPreset.image ? '' : `wallpaper-${wallpaperKey}`
@@ -154,10 +158,13 @@ export default function Desktop() {
                   backgroundImage: `url(${wallpaperPreset.image})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
                 }
               : {}
           }
         />
+        {orbsEnabled && <div className="ambient-orbs" />}
+        {scanlinesEnabled && <div className="scanlines" />}
 
         {/* Work area — takes all space above the taskbar */}
         <div ref={desktopRef} data-testid="desktop" className="relative flex-1 overflow-hidden">

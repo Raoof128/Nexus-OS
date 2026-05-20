@@ -53,17 +53,45 @@ function applyAccentToDOM(colorKey) {
   root.style.setProperty('--ring', preset.primary)
 }
 
+// ── Synchronous boot hydration ────────────────────────────────────────────────
+// Read persisted settings from localStorage NOW, at module evaluation time.
+// ESM scripts run after DOMContentLoaded so document.documentElement is ready.
+// This eliminates the flash of default wallpaper / accent on every page load
+// (the previous approach called hydrateSettings() inside a useEffect, which
+// fires AFTER the first paint and caused a visible switch from 'grid' to the
+// saved wallpaper on every reload).
+function readPersistedSettings() {
+  if (typeof localStorage === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return {}
+    return JSON.parse(raw) ?? {}
+  } catch {
+    return {}
+  }
+}
+
+const _boot = readPersistedSettings()
+
+// Apply saved accent color immediately so CSS custom properties are correct
+// before React renders any component.
+if (_boot.accentColor) {
+  applyAccentToDOM(_boot.accentColor)
+}
+
+// ── Store ─────────────────────────────────────────────────────────────────────
 export const useSettingsStore = create((set, get) => ({
-  accentColor: 'yellow',
-  wallpaper: 'grid',
-  uiScale: 'default',
-  scanlinesEnabled: true,
-  orbsEnabled: true,
+  accentColor: _boot.accentColor ?? 'yellow',
+  wallpaper: _boot.wallpaper ?? 'grid',
+  uiScale: _boot.uiScale ?? 'default',
+  scanlinesEnabled: _boot.scanlinesEnabled ?? true,
+  orbsEnabled: _boot.orbsEnabled ?? true,
 
   setWallpaper: (wallpaper) => {
-    // 2026 Best Practice: Use View Transitions if available for premium feel.
-    // saveToStorage must be called INSIDE the callback — the callback runs
-    // asynchronously, so calling get() outside would capture the old value.
+    // Use View Transitions API when available for a smooth wallpaper switch.
+    // saveToStorage is called INSIDE the callback so get() captures the new
+    // value (the callback is called synchronously by the browser after it
+    // captures the "before" screenshot).
     if (document.startViewTransition) {
       document.startViewTransition(() => {
         set({ wallpaper })
@@ -96,21 +124,24 @@ export const useSettingsStore = create((set, get) => ({
     saveToStorage(get())
   },
 
+  // hydrateSettings is kept for backward compatibility (tests call it directly).
+  // In practice it is a no-op on a fresh load because the store already
+  // initialized from localStorage above. It remains useful if another browser
+  // tab writes new settings to localStorage mid-session.
   hydrateSettings: () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (!raw) return
       const saved = JSON.parse(raw)
-      if (saved.accentColor) {
-        set({
-          accentColor: saved.accentColor,
-          wallpaper: saved.wallpaper || 'grid',
-          uiScale: saved.uiScale || 'default',
-          scanlinesEnabled: saved.scanlinesEnabled ?? true,
-          orbsEnabled: saved.orbsEnabled ?? true,
-        })
-        applyAccentToDOM(saved.accentColor)
-      }
+      if (!saved?.accentColor) return
+      set({
+        accentColor: saved.accentColor,
+        wallpaper: saved.wallpaper || 'grid',
+        uiScale: saved.uiScale || 'default',
+        scanlinesEnabled: saved.scanlinesEnabled ?? true,
+        orbsEnabled: saved.orbsEnabled ?? true,
+      })
+      applyAccentToDOM(saved.accentColor)
     } catch {
       // Corrupt data
     }

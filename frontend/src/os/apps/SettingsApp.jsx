@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Info, LogOut, Palette, User } from 'lucide-react'
+import { Check, Info, LogOut, Palette, User } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useSettingsStore, ACCENT_PRESETS, WALLPAPER_PRESETS } from '../stores/settingsStore'
 
@@ -27,6 +27,14 @@ function AppearanceTab() {
   const toggleScanlines = useSettingsStore((s) => s.toggleScanlines)
   const toggleOrbs = useSettingsStore((s) => s.toggleOrbs)
 
+  // Brief "Saved" flash when a new wallpaper is chosen
+  const [savedKey, setSavedKey] = useState(null)
+  const handleSetWallpaper = (key) => {
+    setWallpaper(key)
+    setSavedKey(key)
+    setTimeout(() => setSavedKey(null), 1500)
+  }
+
   return (
     <div className="space-y-6">
       {/* Accent Color */}
@@ -40,6 +48,7 @@ function AppearanceTab() {
               key={key}
               type="button"
               onClick={() => setAccentColor(key)}
+              aria-pressed={accentColor === key}
               className={`flex flex-col items-center gap-1.5 rounded-lg p-2 transition-all ${
                 accentColor === key
                   ? 'bg-white/[0.06] ring-1 ring-white/20'
@@ -58,49 +67,74 @@ function AppearanceTab() {
         </div>
       </div>
 
-      {/* Wallpaper Selection */}
+      {/* Wallpaper */}
       <div className="glass-panel rounded-xl p-4">
-        <h3 className="heading-ui mb-3 text-xs font-semibold uppercase tracking-wider text-white/60">
-          Wallpaper Pattern
-        </h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="heading-ui text-xs font-semibold uppercase tracking-wider text-white/60">
+            Wallpaper
+          </h3>
+          {/* "Saved" confirmation badge — appears briefly after selection */}
+          <span
+            className={`flex items-center gap-1 font-mono text-[9px] text-green-400 transition-opacity duration-300 ${
+              savedKey ? 'opacity-100' : 'opacity-0'
+            }`}
+            aria-live="polite"
+          >
+            <Check size={9} />
+            Saved
+          </span>
+        </div>
+
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {Object.entries(WALLPAPER_PRESETS).map(([key, preset]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setWallpaper(key)}
-              className={`group relative flex flex-col items-center gap-2 overflow-hidden rounded-lg border p-2 transition-all ${
-                wallpaper === key
-                  ? 'border-primary/40 bg-primary/10'
-                  : 'border-white/5 hover:border-white/10 hover:bg-white/[0.03]'
-              }`}
-            >
-              <div
-                className={`h-12 w-full rounded-md border border-white/5 transition-transform group-hover:scale-105 ${
-                  preset.image ? '' : `wallpaper-${key}`
-                }`}
-                style={
-                  preset.image
-                    ? {
-                        backgroundImage: `url(${preset.image})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      }
-                    : {}
-                }
-              />
-              <span
-                className={`font-mono text-[9px] ${
-                  wallpaper === key ? 'text-primary' : 'text-muted-foreground'
+          {Object.entries(WALLPAPER_PRESETS).map(([key, preset]) => {
+            const isActive = wallpaper === key
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleSetWallpaper(key)}
+                aria-pressed={isActive}
+                aria-label={`${preset.label}${isActive ? ' (active)' : ''}`}
+                className={`group relative flex flex-col items-center gap-2 overflow-hidden rounded-lg border p-2 transition-all ${
+                  isActive
+                    ? 'border-primary/50 bg-primary/10 shadow-[0_0_12px_hsl(var(--neon-yellow)/0.1)]'
+                    : 'border-white/5 hover:border-white/10 hover:bg-white/[0.03]'
                 }`}
               >
-                {preset.label}
-              </span>
-              {wallpaper === key && (
-                <div className="absolute top-1 right-1 h-1 w-1 rounded-full bg-primary shadow-[0_0_5px_var(--color-primary)]" />
-              )}
-            </button>
-          ))}
+                {/* Thumbnail — uses the same CSS class as the real wallpaper */}
+                <div
+                  className={`h-12 w-full overflow-hidden rounded-md border border-white/5 transition-transform group-hover:scale-105 ${
+                    preset.image ? '' : `wallpaper-${key}`
+                  }`}
+                  style={
+                    preset.image
+                      ? {
+                          backgroundImage: `url(${preset.image})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          backgroundRepeat: 'no-repeat',
+                        }
+                      : {}
+                  }
+                />
+
+                <span
+                  className={`truncate w-full text-center font-mono text-[9px] ${
+                    isActive ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  {preset.label}
+                </span>
+
+                {/* Active checkmark badge */}
+                {isActive && (
+                  <div className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary shadow-[0_0_8px_hsl(var(--neon-yellow)/0.6)]">
+                    <Check size={8} className="text-black" />
+                  </div>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
 
