@@ -14,7 +14,7 @@ from backend.oauth_controller import _OAUTH_COOKIE
 
 @pytest.fixture()
 def client():
-    with TestClient(app=app, base_url="http://localhost:8000") as tc:
+    with TestClient(app=app, base_url="http://testserver.local") as tc:
         yield tc
 
 
@@ -31,7 +31,7 @@ def _inject_auth(monkeypatch):
         audit_log_salt="fake-salt",
         google_oauth_client_id="fake-id",
         google_oauth_client_secret="fake-secret",
-        allowed_hosts=["localhost", "127.0.0.1"],
+        allowed_hosts=["localhost", "127.0.0.1", "testserver.local"],
     )
 
     # Patch get_settings globally for relevant modules

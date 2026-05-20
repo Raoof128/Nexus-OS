@@ -34,7 +34,7 @@ def _fake_jwt_payload(user_id: str = "user-123") -> dict:
 
 @pytest.fixture()
 def client():
-    with TestClient(app=app, base_url="http://localhost:8000") as tc:
+    with TestClient(app=app, base_url="http://testserver.local") as tc:
         yield tc
 
 

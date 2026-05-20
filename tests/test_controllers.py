@@ -39,7 +39,7 @@ def _fake_jwt_payload(user_id: str = "user-123") -> dict:
 def client():
     """LiteStar test client with a hostname that passes allowed_hosts."""
 
-    with TestClient(app=app, base_url="http://localhost:8000") as tc:
+    with TestClient(app=app, base_url="http://testserver.local") as tc:
         yield tc
 
 

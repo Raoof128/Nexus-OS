@@ -230,7 +230,7 @@ class TestEmailMessageFromGraph:
 
 
 class TestGmailProviderFetchMessageIds:
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_hits_correct_url(self) -> None:
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
@@ -259,7 +259,7 @@ class TestGmailProviderFetchMessageIds:
 
 
 class TestGraphProviderFetchMessageIds:
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_hits_correct_url(self) -> None:
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()

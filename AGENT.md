@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-20 (Australia/Sydney) — CI/CD & Async Test Stabilization
+
+**Raouf:**
+
+- **Scope:** Resolution of CI/CD failures and async test environment stabilization.
+- **Summary:** Fixed CI/CD failures by migrating deprecated OpenAPI `root_schema_site` to `SwaggerRenderPlugin`. Stabilized the async test environment by migrating `@pytest.mark.asyncio` to `@pytest.mark.anyio` and configuring `anyio` as the default async runner in `pyproject.toml`. Standardized test host headers to `testserver.local` to satisfy LiteStar's `AllowedHostsMiddleware` and resolve related domain warnings.
+- **Files Changed:** `backend/app.py`, `pyproject.toml`, `tests/test_email_service.py`, `tests/conftest.py`, `tests/test_chat_controller.py`, `tests/test_controllers.py`, `tests/test_email_controller.py`, `tests/test_oauth_controller.py`.
+- **Verification:** Full `scripts/check.sh` pass (94 Vitest, 92 Pytest). Zero linting/formatting errors.
+- **Follow-ups:** None.
+
 ### 2026-05-20 (Australia/Sydney) — Backend Security Audit & Hardening
 
 **Raouf:**
@@ -71,6 +81,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
    - Ensure all secrets and env vars are securely tracked via local `.env`. Do not hardcode secrets.
 
 ## Change Log
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
+- **Scope:** CI/CD & Async Test Stabilization
+- **Summary:** Resolved CI/CD failures related to LiteStar deprecations and async test markers. Standardized test domains to `testserver.local` and fixed host header validation in integration tests.
+- **Files Changed:** `backend/app.py`, `pyproject.toml`, `tests/test_email_service.py`, `tests/conftest.py`, `tests/test_chat_controller.py`, `tests/test_controllers.py`, `tests/test_email_controller.py`, `tests/test_oauth_controller.py`.
+- **Verification:** Full quality gate pass with 100% green tests.
+- **Follow-ups:** None.
 
 ### 2026-05-20 (Australia/Sydney)
 

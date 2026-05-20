@@ -8,7 +8,11 @@ os.environ.setdefault("SUPABASE_AUTH_KEY", "anon-key")
 os.environ.setdefault("SUPABASE_JWT_SECRET", "jwt-secret")
 os.environ.setdefault("AUDIT_LOG_SALT", "audit-salt")
 os.environ.setdefault("COOKIE_DOMAIN", "localhost")
-os.environ.setdefault("VITE_API_URL", "http://localhost:8000")
+os.environ.setdefault("ALLOWED_HOSTS", "localhost,127.0.0.1,testserver.local")
+os.environ.setdefault(
+    "ALLOWED_ORIGINS", "http://localhost:5173,http://testserver.local"
+)
+os.environ.setdefault("VITE_API_URL", "http://testserver.local")
 
 from backend.config import get_settings
 

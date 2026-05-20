@@ -4,6 +4,21 @@
 
 **Raouf:**
 
+- **Scope:** CI/CD & Async Test Stabilization
+- **Summary:** Resolved critical CI/CD failures by migrating deprecated LiteStar OpenAPI configurations and stabilizing the async test runner. Fixed host header validation in integration tests by standardizing test domains to `testserver.local` and updating environment security rules. 
+- **Files Changed:**
+  - `backend/app.py` - Migrated `root_schema_site` to `SwaggerRenderPlugin`.
+  - `pyproject.toml` - Added `anyio` and `pytest-asyncio` dependencies; configured `asyncio_mode = "auto"`.
+  - `tests/test_email_service.py` - Migrated async tests to use `@pytest.mark.anyio`.
+  - `tests/conftest.py` - Authorized `testserver.local` in `ALLOWED_HOSTS` and `ALLOWED_ORIGINS`.
+  - `tests/*.py` - Updated integration test clients to use `testserver.local` as `base_url`.
+- **Verification:** 186/186 tests passing (scripts/check.sh). Zero deprecation warnings in CI output.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
 - **Scope:** Backend Security Audit & Test Suite Expansion
 - **Summary:** Completed a comprehensive backend audit. Hardened AI endpoints (email/chat) with strict XML prompt isolation and mandatory rate limiting. Implemented field-level encryption for sensitive user data. Created a full integration test suite for core backend controllers (Email, Chat, OAuth) using `pytest` and `litestar.testing`.
 - **Files Changed:** `backend/email_controller.py`, `backend/chat_controller.py`, `backend/oauth_controller.py`, `backend/data_protection.py`, `backend/config.py`, `tests/test_email_controller.py`, `tests/test_chat_controller.py`, `tests/test_oauth_controller.py`.

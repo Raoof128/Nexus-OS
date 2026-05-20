@@ -3,6 +3,7 @@
 from litestar import Litestar
 from litestar.config.cors import CORSConfig
 from litestar.openapi.config import OpenAPIConfig
+from litestar.openapi.plugins import SwaggerRenderPlugin
 
 try:
     from .auth import SupabaseAuthMiddleware
@@ -42,6 +43,7 @@ cors_config = CORSConfig(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+
 _openapi_config: OpenAPIConfig | None = (
     None
     if settings.environment == "production"
@@ -55,7 +57,7 @@ _openapi_config: OpenAPIConfig | None = (
         ),
         path="/schema",
         use_handler_docstrings=True,
-        root_schema_site="swagger",
+        render_plugins=[SwaggerRenderPlugin(path="/")],
     )
 )
 
