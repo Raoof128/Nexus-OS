@@ -5,6 +5,26 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-20 (Australia/Sydney) — Wallpaper and Theme Selection (Image Support)
+
+**Raouf:**
+
+- **Scope:** Wallpaper and Theme Selection Feature (Image Support)
+- **Summary:** Added support for local image wallpapers. Successfully integrated 8 high-resolution images from the user's desktop into the OS theme system. Images are served statically from the frontend public directory. Updated the settings store and UI to support both CSS patterns and image-based wallpapers with live previews.
+- **Files Changed:** `frontend/public/wallpapers/`, `frontend/src/os/stores/settingsStore.js`, `frontend/src/os/Desktop.jsx`, `frontend/src/os/apps/SettingsApp.jsx`.
+- **Verification:** Verified image serving and UI rendering. Full `scripts/check.sh` pass.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney) — Wallpaper and Theme Selection Feature
+
+**Raouf:**
+
+- **Scope:** Wallpaper and Theme Selection Feature
+- **Summary:** Implemented a comprehensive wallpaper selection system with 5 premium cyberpunk patterns (Matrix Grid, Circuit Dots, Deep Void, Neural Mesh, Starfield). Integrated the feature into the `settingsStore` with localStorage persistence and added a high-end selection UI in the `SettingsApp`. Leveraged the View Transitions API (2026 best practice) for silky-smooth theme switches.
+- **Files Changed:** `frontend/src/os/stores/settingsStore.js`, `frontend/src/index.css`, `frontend/src/os/Desktop.jsx`, `frontend/src/os/apps/SettingsApp.jsx`.
+- **Verification:** Manually verified smooth pattern transitions and state persistence. Full `scripts/check.sh` pass.
+- **Follow-ups:** None.
+
 ### 2026-05-20 (Australia/Sydney) — CI/CD & Async Test Stabilization
 
 **Raouf:**
@@ -81,6 +101,34 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
    - Ensure all secrets and env vars are securely tracked via local `.env`. Do not hardcode secrets.
 
 ## Change Log
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
+- **Scope:** Wallpaper and Theme Selection Feature (Image Support)
+- **Summary:** Added support for local image wallpapers. Successfully integrated 8 high-resolution images from the user's desktop into the OS theme system. Images are served statically from the frontend public directory. Updated the settings store and UI to support both CSS patterns and image-based wallpapers with live previews.
+- **Files Changed:**
+  - `frontend/public/wallpapers/` [NEW] - Copied W1-W8 images.
+  - `frontend/src/os/stores/settingsStore.js` - Added image presets.
+  - `frontend/src/os/Desktop.jsx` - Supported `backgroundImage` rendering.
+  - `frontend/src/os/apps/SettingsApp.jsx` - Updated selection UI with image thumbnails.
+- **Verification:** Verified image serving and UI rendering. Full `scripts/check.sh` pass.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
+- **Scope:** Wallpaper and Theme Selection Feature
+- **Summary:** Implemented a comprehensive wallpaper selection system with 5 premium cyberpunk patterns (Matrix Grid, Circuit Dots, Deep Void, Neural Mesh, Starfield). Integrated the feature into the `settingsStore` with localStorage persistence and added a high-end selection UI in the `SettingsApp`. Leveraged the View Transitions API (2026 best practice) for silky-smooth theme switches.
+- **Files Changed:**
+  - `frontend/src/os/stores/settingsStore.js` - Added wallpaper state, presets, and View Transition logic.
+  - `frontend/src/index.css` - Implemented 5 high-performance CSS-only wallpaper patterns.
+  - `frontend/src/os/Desktop.jsx` - Wired dynamic background rendering with state subscription.
+  - `frontend/src/os/apps/SettingsApp.jsx` - Added interactive wallpaper selection gallery with live previews.
+- **Verification:** Manually verified smooth pattern transitions and state persistence. Full `scripts/check.sh` pass with 100% green tests and zero formatting/lint errors.
+- **Follow-ups:** None.
 
 ### 2026-05-20 (Australia/Sydney)
 

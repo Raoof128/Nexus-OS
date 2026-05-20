@@ -4,8 +4,22 @@
 
 **Raouf:**
 
+- **Scope:** Wallpaper and Theme Selection Feature
+- **Summary:** Implemented a comprehensive wallpaper selection system with 5 premium cyberpunk patterns (Matrix Grid, Circuit Dots, Deep Void, Neural Mesh, Starfield). Integrated the feature into the `settingsStore` with localStorage persistence and added a high-end selection UI in the `SettingsApp`. Leveraged the View Transitions API (2026 best practice) for silky-smooth theme switches.
+- **Files Changed:**
+  - `frontend/src/os/stores/settingsStore.js` - Added wallpaper state, presets, and View Transition logic.
+  - `frontend/src/index.css` - Implemented 5 high-performance CSS-only wallpaper patterns.
+  - `frontend/src/os/Desktop.jsx` - Wired dynamic background rendering with state subscription.
+  - `frontend/src/os/apps/SettingsApp.jsx` - Added interactive wallpaper selection gallery with live previews.
+- **Verification:** Manually verified smooth pattern transitions and state persistence. Full `scripts/check.sh` pass with 100% green tests and zero formatting/lint errors.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
 - **Scope:** CI/CD & Async Test Stabilization
-- **Summary:** Resolved critical CI/CD failures by migrating deprecated LiteStar OpenAPI configurations and stabilizing the async test runner. Fixed host header validation in integration tests by standardizing test domains to `testserver.local` and updating environment security rules. 
+- **Summary:** Resolved critical CI/CD failures by migrating deprecated LiteStar OpenAPI configurations and stabilizing the async test runner. Fixed host header validation in integration tests by standardizing test domains to `testserver.local` and updating environment security rules.
 - **Files Changed:**
   - `backend/app.py` - Migrated `root_schema_site` to `SwaggerRenderPlugin`.
   - `pyproject.toml` - Added `anyio` and `pytest-asyncio` dependencies; configured `asyncio_mode = "auto"`.

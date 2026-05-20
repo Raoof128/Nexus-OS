@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Info, LogOut, Palette, User } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
-import { useSettingsStore, ACCENT_PRESETS } from '../stores/settingsStore'
+import { useSettingsStore, ACCENT_PRESETS, WALLPAPER_PRESETS } from '../stores/settingsStore'
 
 const TABS = [
   { id: 'appearance', label: 'Appearance', icon: Palette },
@@ -20,7 +20,9 @@ function AppearanceTab() {
   const uiScale = useSettingsStore((s) => s.uiScale)
   const scanlinesEnabled = useSettingsStore((s) => s.scanlinesEnabled)
   const orbsEnabled = useSettingsStore((s) => s.orbsEnabled)
+  const wallpaper = useSettingsStore((s) => s.wallpaper)
   const setAccentColor = useSettingsStore((s) => s.setAccentColor)
+  const setWallpaper = useSettingsStore((s) => s.setWallpaper)
   const setUiScale = useSettingsStore((s) => s.setUiScale)
   const toggleScanlines = useSettingsStore((s) => s.toggleScanlines)
   const toggleOrbs = useSettingsStore((s) => s.toggleOrbs)
@@ -51,6 +53,52 @@ function AppearanceTab() {
                 style={{ backgroundColor: `hsl(${preset.primary})` }}
               />
               <span className="font-mono text-[9px] text-muted-foreground">{preset.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Wallpaper Selection */}
+      <div className="glass-panel rounded-xl p-4">
+        <h3 className="heading-ui mb-3 text-xs font-semibold uppercase tracking-wider text-white/60">
+          Wallpaper Pattern
+        </h3>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {Object.entries(WALLPAPER_PRESETS).map(([key, preset]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setWallpaper(key)}
+              className={`group relative flex flex-col items-center gap-2 overflow-hidden rounded-lg border p-2 transition-all ${
+                wallpaper === key
+                  ? 'border-primary/40 bg-primary/10'
+                  : 'border-white/5 hover:border-white/10 hover:bg-white/[0.03]'
+              }`}
+            >
+              <div
+                className={`h-12 w-full rounded-md border border-white/5 transition-transform group-hover:scale-105 ${
+                  preset.image ? '' : `wallpaper-${key}`
+                }`}
+                style={
+                  preset.image
+                    ? {
+                        backgroundImage: `url(${preset.image})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }
+                    : {}
+                }
+              />
+              <span
+                className={`font-mono text-[9px] ${
+                  wallpaper === key ? 'text-primary' : 'text-muted-foreground'
+                }`}
+              >
+                {preset.label}
+              </span>
+              {wallpaper === key && (
+                <div className="absolute top-1 right-1 h-1 w-1 rounded-full bg-primary shadow-[0_0_5px_var(--color-primary)]" />
+              )}
             </button>
           ))}
         </div>

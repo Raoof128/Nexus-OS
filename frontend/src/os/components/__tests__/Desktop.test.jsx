@@ -28,10 +28,14 @@ vi.mock('../../stores/windowStore', () => {
 vi.mock('../../stores/settingsStore', () => ({
   useSettingsStore: (selector) =>
     selector({
-      scanlinesEnabled: false,
-      orbsEnabled: false,
+      scanlinesEnabled: true,
+      orbsEnabled: true,
+      wallpaper: 'grid',
       hydrateSettings: vi.fn(),
     }),
+  WALLPAPER_PRESETS: {
+    grid: { id: 'grid', label: 'Matrix Grid' },
+  },
 }))
 
 vi.mock('../../stores/notificationStore', () => ({

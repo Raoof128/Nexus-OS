@@ -149,6 +149,59 @@
   );
 }
 
+/* ── Wallpaper patterns ──────────────────────────────────── */
+.wallpaper-grid {
+  background-image:
+    linear-gradient(to right, hsl(var(--neon-yellow) / 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--neon-yellow) / 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.wallpaper-dots {
+  background-image: radial-gradient(hsl(var(--neon-yellow) / 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.wallpaper-mesh {
+  background-image:
+    linear-gradient(
+      45deg,
+      hsl(var(--neon-yellow) / 0.02) 25%,
+      transparent 25%,
+      transparent 75%,
+      hsl(var(--neon-yellow) / 0.02) 75%,
+      hsl(var(--neon-yellow) / 0.02)
+    ),
+    linear-gradient(
+      -45deg,
+      hsl(var(--neon-yellow) / 0.02) 25%,
+      transparent 25%,
+      transparent 75%,
+      hsl(var(--neon-yellow) / 0.02) 75%,
+      hsl(var(--neon-yellow) / 0.02)
+    );
+  background-size: 60px 60px;
+}
+
+.wallpaper-stars {
+  background-image:
+    radial-gradient(white 1px, transparent 1px), radial-gradient(white 1.5px, transparent 1.5px),
+    radial-gradient(white 1px, transparent 1px);
+  background-size:
+    550px 550px,
+    350px 350px,
+    250px 250px;
+  background-position:
+    0 0,
+    40px 60px,
+    130px 270px;
+  opacity: 0.15;
+}
+
+.wallpaper-solid {
+  background-color: transparent;
+}
+
 /* ── Neon glow border effect ─────────────────────────────── */
 .neon-border {
   position: relative;

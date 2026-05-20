@@ -2,7 +2,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useWindowStore } from './stores/windowStore'
-import { useSettingsStore } from './stores/settingsStore'
+import { useSettingsStore, WALLPAPER_PRESETS } from './stores/settingsStore'
 import { useNotificationStore } from './stores/notificationStore'
 import useGlobalShortcuts from './hooks/useGlobalShortcuts'
 import { APP_REGISTRY, APP_ORDER } from './stores/appRegistry'
@@ -86,6 +86,8 @@ export default function Desktop() {
 
   const scanlinesEnabled = useSettingsStore((s) => s.scanlinesEnabled)
   const orbsEnabled = useSettingsStore((s) => s.orbsEnabled)
+  const wallpaperKey = useSettingsStore((s) => s.wallpaper)
+  const wallpaperPreset = WALLPAPER_PRESETS[wallpaperKey] || { id: wallpaperKey }
   const hydrateSettings = useSettingsStore((s) => s.hydrateSettings)
 
   const hydrateFromStorage = useWindowStore((s) => s.hydrateFromStorage)
@@ -142,7 +144,20 @@ export default function Desktop() {
         {/* Wallpaper layers — z-index: -1, always behind everything */}
         {orbsEnabled && <div className="ambient-orbs" />}
         {scanlinesEnabled && <div className="scanlines" />}
-        <div className="pointer-events-none absolute inset-0 -z-1 bg-[linear-gradient(to_right,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--neon-yellow)/0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div
+          className={`pointer-events-none absolute inset-0 -z-1 ${
+            wallpaperPreset.image ? '' : `wallpaper-${wallpaperKey}`
+          }`}
+          style={
+            wallpaperPreset.image
+              ? {
+                  backgroundImage: `url(${wallpaperPreset.image})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }
+              : {}
+          }
+        />
 
         {/* Work area — takes all space above the taskbar */}
         <div ref={desktopRef} data-testid="desktop" className="relative flex-1 overflow-hidden">
