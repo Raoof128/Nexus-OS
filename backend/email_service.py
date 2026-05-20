@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+import email.mime.multipart
+import email.mime.text
 import email.utils
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -402,16 +404,30 @@ class GmailProvider:
             return _extract_html(resp.json().get("payload", {}))
 
     async def send_message(self, access_token: str, message: dict) -> dict:
-        raw = base64.urlsafe_b64encode(
-            message.get("raw", "").encode("utf-8")
-            if isinstance(message.get("raw"), str)
-            else message.get("raw", b"")
-        ).decode("utf-8")
+        # Build a proper RFC 2822 MIME email and encode it as base64url for Gmail.
+        mime_msg = email.mime.multipart.MIMEMultipart("alternative")
+        mime_msg["Subject"] = message.get("subject", "")
+        mime_msg["To"] = ", ".join(message.get("to") or [])
+        cc_list = message.get("cc") or []
+        if cc_list:
+            mime_msg["Cc"] = ", ".join(cc_list)
+        in_reply_to = message.get("in_reply_to")
+        if in_reply_to:
+            mime_msg["In-Reply-To"] = in_reply_to
+            mime_msg["References"] = in_reply_to
+        body_html = message.get("body_html") or ""
+        mime_msg.attach(email.mime.text.MIMEText(body_html, "html", "utf-8"))
+        raw = base64.urlsafe_b64encode(mime_msg.as_bytes()).rstrip(b"=").decode("utf-8")
+
+        payload: dict = {"raw": raw}
+        if message.get("thread_id"):
+            payload["threadId"] = message["thread_id"]
+
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"{_GMAIL_BASE}/messages/send",
                 headers=self._headers(access_token),
-                json={"raw": raw},
+                json=payload,
             )
             resp.raise_for_status()
             return resp.json()
@@ -514,11 +530,38 @@ class GraphProvider:
             return resp.json().get("body", {}).get("content", "")
 
     async def send_message(self, access_token: str, message: dict) -> dict:
+        # Build the Microsoft Graph sendMail payload structure.
+        graph_message: dict = {
+            "subject": message.get("subject", ""),
+            "body": {
+                "contentType": "HTML",
+                "content": message.get("body_html") or "",
+            },
+            "toRecipients": [
+                {"emailAddress": {"address": addr}}
+                for addr in (message.get("to") or [])
+            ],
+        }
+        cc_list = message.get("cc") or []
+        if cc_list:
+            graph_message["ccRecipients"] = [
+                {"emailAddress": {"address": addr}} for addr in cc_list
+            ]
+        bcc_list = message.get("bcc") or []
+        if bcc_list:
+            graph_message["bccRecipients"] = [
+                {"emailAddress": {"address": addr}} for addr in bcc_list
+            ]
+        if message.get("in_reply_to"):
+            graph_message["replyTo"] = [
+                {"emailAddress": {"address": message["in_reply_to"]}}
+            ]
+
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"{_GRAPH_BASE}/sendMail",
                 headers=self._headers(access_token),
-                json=message,
+                json={"message": graph_message},
             )
             resp.raise_for_status()
             return {}

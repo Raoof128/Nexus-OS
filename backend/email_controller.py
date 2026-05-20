@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import base64
 import logging
 
+import httpx
 from litestar import Controller, Request, Response, delete, get, patch, post
 from litestar.exceptions import HTTPException
 
@@ -19,6 +21,8 @@ try:
         ComposeEmailRequest,
         LabelEmailRequest,
         MoveEmailRequest,
+        ReadEmailRequest,
+        ToggleStarRequest,
     )
     from .email_service import decrypt_oauth_token, get_provider
     from .rate_limit import enforce_ai_rate_limit
@@ -35,6 +39,8 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
         ComposeEmailRequest,
         LabelEmailRequest,
         MoveEmailRequest,
+        ReadEmailRequest,
+        ToggleStarRequest,
     )
     from email_service import decrypt_oauth_token, get_provider
     from rate_limit import enforce_ai_rate_limit
@@ -337,17 +343,15 @@ class EmailController(Controller):
     async def mark_read(
         self,
         email_id: str,
+        data: ReadEmailRequest,
         request: Request,
     ) -> dict:
-        """Toggle read/unread status on an email."""
+        """Set read/unread status on an email."""
 
         user_id, access_token = _require_auth(request)
         db = _db(access_token)
         email_row = _get_email(db, email_id, user_id)
-
-        # Determine the desired is_read value from query param (default: True)
-        is_read_param = request.query_params.get("is_read", "true")
-        is_read = is_read_param.lower() not in ("false", "0", "no")
+        is_read = data.is_read
 
         account = _get_account(db, email_row["account_id"], user_id)
         provider = get_provider(account["provider"])
@@ -372,15 +376,15 @@ class EmailController(Controller):
     async def toggle_star(
         self,
         email_id: str,
+        data: ToggleStarRequest,
         request: Request,
     ) -> dict:
-        """Toggle starred status on an email."""
+        """Set starred status on an email."""
 
         user_id, access_token = _require_auth(request)
         db = _db(access_token)
         email_row = _get_email(db, email_id, user_id)
-
-        is_starred = not email_row.get("is_starred", False)
+        is_starred = data.is_starred
 
         account = _get_account(db, email_row["account_id"], user_id)
         provider = get_provider(account["provider"])
@@ -439,8 +443,6 @@ class EmailController(Controller):
         account = _get_account(db, email_row["account_id"], user_id)
         token = decrypt_oauth_token(account["access_token_enc"])
 
-        import httpx as _httpx
-
         # Gmail attachment download
         if account["provider"] == "google":
             url = (
@@ -448,14 +450,12 @@ class EmailController(Controller):
                 f"{email_row['provider_id']}/attachments/{attachment_id}"
             )
             try:
-                async with _httpx.AsyncClient() as http:
+                async with httpx.AsyncClient() as http:
                     resp = await http.get(
                         url,
                         headers={"Authorization": f"Bearer {token}"},
                     )
                     resp.raise_for_status()
-                    import base64
-
                     data = resp.json().get("data", "")
                     raw = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
             except Exception as exc:  # pragma: no cover
@@ -468,7 +468,7 @@ class EmailController(Controller):
                 f"{email_row['provider_id']}/attachments/{attachment_id}"
             )
             try:
-                async with _httpx.AsyncClient() as http:
+                async with httpx.AsyncClient() as http:
                     resp = await http.get(
                         url,
                         headers={"Authorization": f"Bearer {token}"},
@@ -482,10 +482,15 @@ class EmailController(Controller):
         else:
             raise HTTPException(status_code=400, detail="Unknown provider")
 
+        # Sanitize attachment_id before embedding in header to prevent injection.
+        safe_name = (
+            "".join(c for c in attachment_id if c.isalnum() or c in ("-", "_", "."))
+            or "attachment"
+        )
         return Response(
             content=raw,
             media_type="application/octet-stream",
-            headers={"Content-Disposition": f'attachment; filename="{attachment_id}"'},
+            headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
         )
 
     # ------------------------------------------------------------------

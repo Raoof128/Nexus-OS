@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import hashlib
 import hmac
 import json
@@ -254,8 +255,6 @@ class OAuthController(Controller):
         user_id = getattr(request.state, "user_id", None)
         if not user_id:
             raise HTTPException(status_code=401, detail="Not authenticated")
-
-        import datetime as dt
 
         token_expires_at = (
             dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=int(expires_in))

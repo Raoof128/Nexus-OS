@@ -68,6 +68,20 @@ class LabelEmailRequest(BaseModel):
     remove: list[str] = Field(default_factory=list)
 
 
+class ReadEmailRequest(BaseModel):
+    """Body payload for the mark-read/unread endpoint."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+    is_read: bool
+
+
+class ToggleStarRequest(BaseModel):
+    """Body payload for the star/unstar endpoint."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+    is_starred: bool
+
+
 class AIDraftRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
     email_id: str

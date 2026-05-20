@@ -87,7 +87,13 @@ class MediaController(Controller):
         user_id = request.state.user_id
         media_data = data.model_dump()
         media_data["user_id"] = user_id
-        media_data["takeaway"] = encrypt_takeaway(media_data.get("takeaway"))
+        try:
+            media_data["takeaway"] = encrypt_takeaway(media_data.get("takeaway"))
+        except RuntimeError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail="Takeaway notes require server-side encryption to be configured.",  # noqa: E501
+            ) from exc
         try:
             response = (
                 _get_user_client(request).from_("media").insert(media_data).execute()
@@ -121,7 +127,13 @@ class MediaController(Controller):
         user_id = request.state.user_id
         update_data = data.model_dump(exclude_none=True)
         if "takeaway" in update_data:
-            update_data["takeaway"] = encrypt_takeaway(update_data["takeaway"])
+            try:
+                update_data["takeaway"] = encrypt_takeaway(update_data["takeaway"])
+            except RuntimeError as exc:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Takeaway notes require server-side encryption to be configured.",  # noqa: E501
+                ) from exc
         if not update_data:
             raise HTTPException(status_code=422, detail="No fields to update")
         try:

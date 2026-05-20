@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-20 (Australia/Sydney) — Full Backend Audit & Fix Pass
+
+**Raouf:**
+
+- **Scope:** Systematic file-by-file audit of all 21 backend source files + 17 test files.
+- **Summary:** Found 8 bugs. Critical: Gmail/Graph send implementations both completely broken (Gmail encoded empty string; Graph passed wrong JSON structure). High: CORS missing PATCH broke all email mutations; `mark_read` read `is_read` from query params (frontend sends body); `toggle_star` always negated current DB value (ignored body); `encrypt_takeaway` raised uncaught RuntimeError as 500 when key not configured. Medium: Content-Disposition header injection via unsanitized `attachment_id`. Low: `basicConfig` force=True; inline imports moved to module level.
+- **Files Changed:** `app.py`, `controllers.py`, `email_schemas.py`, `email_controller.py`, `email_service.py`, `logging_config.py`, `oauth_controller.py`.
+- **Verification:** ruff clean, bandit 0 issues, 92/92 pytest, full check.sh pass.
+- **Follow-ups:** Gmail `fetch_messages` N+1 HTTP pattern; `encrypt_oauth_token` error text.
+
 ### 2026-05-20 (Australia/Sydney) — Window System Production Overhaul
 
 **Raouf:**
