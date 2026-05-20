@@ -38,10 +38,17 @@ def _normalize_text(value: str) -> str:
 
 
 class LoginRequest(BaseModel):
-    """Login request submitted by the frontend."""
+    """Login request submitted by the frontend.
+
+    Password length is NOT validated here — this is a credential check
+    against whatever the user previously set.  Minimum-length policy only
+    applies when creating or resetting a password (RegisterRequest /
+    ResetPasswordRequest).  Enforcing a new minimum on login would lock out
+    users whose existing valid passwords pre-date the current policy.
+    """
 
     email: EmailStr
-    password: str = Field(min_length=12, max_length=128)
+    password: str = Field(min_length=1, max_length=128)
 
 
 class SessionUser(BaseModel):

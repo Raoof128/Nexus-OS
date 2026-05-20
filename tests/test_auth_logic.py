@@ -9,18 +9,22 @@ from backend.schemas import LoginRequest, RegisterRequest
 
 
 def test_login_request_validation():
-    """LoginRequest should validate email and password length (min 12 chars)."""
-    # Valid — 12+ chars
-    req = LoginRequest(email="test@nexus.net", password="Secure@Pass1!")
+    """LoginRequest validates email but does NOT enforce a password min-length.
+
+    Policy (12-char minimum) only applies when creating or changing a password.
+    Users with pre-existing shorter passwords must still be able to log in.
+    """
+    # Valid — any non-empty password accepted on login
+    req = LoginRequest(email="test@nexus.net", password="short8")
     assert req.email == "test@nexus.net"
 
     # Invalid email
     with pytest.raises(ValidationError):
-        LoginRequest(email="not-an-email", password="Secure@Pass1!")
+        LoginRequest(email="not-an-email", password="anypassword")
 
-    # Password too short (under 12 chars)
+    # Empty password rejected
     with pytest.raises(ValidationError):
-        LoginRequest(email="test@nexus.net", password="short")
+        LoginRequest(email="test@nexus.net", password="")
 
 
 def test_register_request_validation():

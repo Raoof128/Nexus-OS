@@ -108,6 +108,11 @@ export default function AuthPanel() {
     if (submittingRef.current) return
     submittingRef.current = true
     setError(null)
+    if (regPassword.length < 12) {
+      setError('Password must be at least 12 characters.')
+      submittingRef.current = false
+      return
+    }
     if (regPassword !== regConfirm) {
       setError('Passwords do not match')
       submittingRef.current = false
@@ -314,9 +319,9 @@ export default function AuthPanel() {
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
                     className={inputClass}
-                    placeholder="Min 8 characters"
+                    placeholder="Min 12 characters"
                     autoComplete="new-password"
-                    minLength={8}
+                    minLength={12}
                     required
                     {...(error
                       ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true }
@@ -332,9 +337,9 @@ export default function AuthPanel() {
                     value={regConfirm}
                     onChange={(e) => setRegConfirm(e.target.value)}
                     className={inputClass}
-                    placeholder="••••••••"
+                    placeholder="Repeat passkey"
                     autoComplete="new-password"
-                    minLength={8}
+                    minLength={12}
                     required
                     {...(error
                       ? { 'aria-describedby': 'reg-form-error', 'aria-invalid': true }

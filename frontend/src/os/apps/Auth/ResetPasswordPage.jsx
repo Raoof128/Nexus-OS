@@ -211,9 +211,9 @@ export default function ResetPasswordPage({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={inputClass}
-                  placeholder="Min 8 characters"
+                  placeholder="Min 12 characters"
                   autoComplete="new-password"
-                  minLength={8}
+                  minLength={12}
                   required
                   autoFocus
                 />
@@ -229,7 +229,7 @@ export default function ResetPasswordPage({
                   className={inputClass}
                   placeholder="Repeat password"
                   autoComplete="new-password"
-                  minLength={8}
+                  minLength={12}
                   required
                 />
               </div>

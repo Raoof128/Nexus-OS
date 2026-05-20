@@ -4,12 +4,20 @@
 
 **Raouf:**
 
+- **Scope:** Production deployment — security audit remediation
+- **Summary:** Deployed all security audit fixes. Backend: 8 changed files rsync'd, Docker image rebuilt, container replaced. Frontend: built (2.24s, 31 assets, new DOMPurify chunk), deployed to Cloudflare Pages codex/bootstrap.
+- **Verification:** home-notes-app.uk 200. /api/healthz {"status":"ok"}. Preview: https://37d36062.nexus-archive.pages.dev.
+- **Follow-ups:** Apply Supabase migration 20260520000001_add_jobs_chat_category.sql in production dashboard.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
 - **Scope:** Full Cybersecurity Audit Remediation — all 17 findings fixed
-- **Summary:** Applied every finding from the security audit. C-1: email_messages→nexus_emails (email controller + poller — all mutations were failing). H-1: samesite strict→lax (OAuth callback 401 fixed). H-3: added jobs to chat_category enum via migration. H-4: Docker Compose port 127.0.0.1-bound. H-6: recovery tokens via X-Recovery-* headers not body. M-5: strict path prefix matching in auth middleware. M-6: fixed send_default_pii typo + added Sentry body scrubber. H-2: DOMPurify added to NotesApp markdown renderer. M-2: email redacted in neofetch. M-1+L-8: startup guards raise on localhost ALLOWED_ORIGINS or insecure cookies in production. L-5: removed Answered from database.sql. L-3: seed.sql production guard. L-2: password min 8→12 + complexity policy. L-4: GitHub Actions pinned to commit SHAs. PyJWT PYSEC-2025-183 acknowledged, no fix available, suppressed with --ignore-vuln.
+- **Summary:** Applied every finding from the security audit. C-1: email_messages→nexus_emails (email controller + poller — all mutations were failing). H-1: samesite strict→lax (OAuth callback 401 fixed). H-3: added jobs to chat_category enum via migration. H-4: Docker Compose port 127.0.0.1-bound. H-6: recovery tokens via X-Recovery-\* headers not body. M-5: strict path prefix matching in auth middleware. M-6: fixed send_default_pii typo + added Sentry body scrubber. H-2: DOMPurify added to NotesApp markdown renderer. M-2: email redacted in neofetch. M-1+L-8: startup guards raise on localhost ALLOWED_ORIGINS or insecure cookies in production. L-5: removed Answered from database.sql. L-3: seed.sql production guard. L-2: password min 8→12 + complexity policy. L-4: GitHub Actions pinned to commit SHAs. PyJWT PYSEC-2025-183 acknowledged, no fix available, suppressed with --ignore-vuln.
 - **Files Changed:** backend/email_controller.py, email_poller.py, auth_controller.py, auth.py, observability.py, config.py, schemas.py, frontend ResetPasswordPage.jsx, NotesApp.jsx, TerminalApp.jsx, docker-compose.yml, database.sql, supabase/seed.sql, supabase/config.toml, supabase/migrations/20260520000001_add_jobs_chat_category.sql (NEW), .github/workflows/ci.yml, scripts/check.sh, tests/test_auth_logic.py, pyproject.toml.
 - **Verification:** Full check.sh pass — Prettier ✓, ESLint ✓, Bandit 0 issues, pip-audit clean, 92/92 pytest ✓, 87/87 vitest ✓.
 - **Follow-ups:** Monitor PyJWT for PYSEC-2025-183 fix. H-5 (PKCE server-side storage) deferred.
-
 
 ### 2026-05-20 (Australia/Sydney)
 
