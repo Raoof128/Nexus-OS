@@ -144,4 +144,16 @@ Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`
 
 - **Frontend → Cloudflare Pages:** Build with `VITE_API_URL=https://home-notes-app.uk/api`, then `wrangler pages deploy dist --project-name nexus-archive --branch codex/bootstrap --commit-dirty=true`. Production branch is `codex/bootstrap` (NOT `main`). Domains: `home-notes-app.uk`, `www.home-notes-app.uk`.
 - **Backend → DigitalOcean:** Docker container on droplet `170.64.167.95`, behind Nginx reverse proxy (ports 80 + 443 with Cloudflare Origin Cert). DNS: `api.home-notes-app.uk` → droplet (Cloudflare-proxied). Cloudflare Worker proxies `home-notes-app.uk/api/*` → `https://api.home-notes-app.uk`. Healthcheck at `/healthz`.
+- **Droplet Deployment Commands:** Deployment credentials are stored in the gitignored root `.env` file. To sync code and rebuild the backend container, execute:
+  ```bash
+  # Load credentials
+  source .env
+  
+  # Sync backend files to droplet
+  sshpass -p "$DROPLET_PASSWORD" rsync -avz --delete --exclude 'venv' --exclude '.env.production' --exclude '__pycache__' --exclude '.git' --exclude 'node_modules' --exclude '.DS_Store' --exclude '._*' -e "ssh -o StrictHostKeyChecking=no" ./backend/ "$DROPLET_USER@$DROPLET_IP:/opt/nexus/backend/"
+  sshpass -p "$DROPLET_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./pyproject.toml "$DROPLET_USER@$DROPLET_IP:/opt/nexus/pyproject.toml"
+  
+  # Rebuild and run docker container on droplet
+  sshpass -p "$DROPLET_PASSWORD" ssh -o StrictHostKeyChecking=no "$DROPLET_USER@$DROPLET_IP" "docker build -t nexus-api -f /opt/nexus/backend/Dockerfile /opt/nexus && docker stop nexus-api && docker rm nexus-api && docker run -d --name nexus-api -p 127.0.0.1:8000:8000 --restart unless-stopped --env-file /opt/nexus/.env.production nexus-api:latest"
+  ```
 - **Security headers** defined in `vercel.json` (CSP, X-Frame-Options, etc.) — NOTE: this is a legacy file from Vercel. Cloudflare Pages does NOT read `vercel.json`. These headers need to be migrated to `frontend/public/_headers` to take effect.

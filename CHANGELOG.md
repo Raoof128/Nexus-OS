@@ -4,12 +4,14 @@
 
 **Raouf:**
 
-- **Scope:** CI/CD Build Error Resolution (Import Paths)
-- **Summary:** Fixed frontend CI/CD build issues by correcting broken relative imports. Updated the import of `LazyAICmdPalette` in `LibraryApp.jsx` and updated the import of `ConfirmDialog` in `CyberCard.jsx` to resolve rollup import failures post frontend restructuring.
+- **Scope:** CI/CD Build Error Resolution & Droplet Deployment
+- **Summary:** Fixed frontend CI/CD build issues by correcting broken relative imports. Rebuilt and successfully deployed the frontend onto Cloudflare Pages. Synced and updated the backend container onto the DigitalOcean droplet (`170.64.167.95`) using `sshpass` and `rsync`. Created a root `.env` file containing the droplet credentials, and updated `CLAUDE.md` to document the deploy commands.
 - **Files Changed:**
   - `frontend/src/os/apps/Library/LibraryApp.jsx` [MODIFY] - Corrected import path of `LazyAICmdPalette`.
   - `frontend/src/components/ui/CyberCard.jsx` [MODIFY] - Corrected import path of `ConfirmDialog`.
-- **Verification:** Completed full `scripts/check.sh` quality gate successfully: 92/92 pytest tests passed, 87/87 vitest tests passed. Vite production build successfully compiles.
+  - `.env` [NEW] - Added droplet credentials.
+  - `CLAUDE.md` [MODIFY] - Added droplet deployment documentation.
+- **Verification:** Completed full `scripts/check.sh` quality gate successfully. Frontend built and deployed successfully. Droplet container built, restarted, and confirmed healthy via `/healthz` check.
 - **Follow-ups:** None.
 
 ### 2026-05-20 (Australia/Sydney)
