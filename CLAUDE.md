@@ -142,7 +142,7 @@ Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`
 
 ## Deploy
 
-- **Frontend → Cloudflare Pages:** Build with `VITE_API_URL=https://home-notes-app.uk/api`, then `wrangler pages deploy dist --project-name nexus-archive --branch codex/bootstrap --commit-dirty=true`. Production branch is `codex/bootstrap` (NOT `main`). Domains: `home-notes-app.uk`, `www.home-notes-app.uk`.
+- **Frontend → Cloudflare Pages:** Ensure production environment variables (`VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) are defined in the gitignored `frontend/.env` file. Build using `npm run build` in the `frontend` directory, then deploy with `wrangler pages deploy dist --project-name nexus-archive --branch codex/bootstrap --commit-dirty=true`. Production branch is `codex/bootstrap` (NOT `main`). Domains: `home-notes-app.uk`, `www.home-notes-app.uk`.
 - **Backend → DigitalOcean:** Docker container on droplet `170.64.167.95`, behind Nginx reverse proxy (ports 80 + 443 with Cloudflare Origin Cert). DNS: `api.home-notes-app.uk` → droplet (Cloudflare-proxied). Cloudflare Worker proxies `home-notes-app.uk/api/*` → `https://api.home-notes-app.uk`. Healthcheck at `/healthz`.
 - **Droplet Deployment Commands:** Deployment credentials are stored in the gitignored root `.env` file. To sync code and rebuild the backend container, execute:
   ```bash

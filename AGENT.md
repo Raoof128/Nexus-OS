@@ -118,14 +118,15 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 **Raouf:**
 
-- **Scope:** CI/CD Build Error Resolution & Droplet Deployment
-- **Summary:** Fixed frontend CI/CD build issues by correcting broken relative imports. Rebuilt and successfully deployed the frontend onto Cloudflare Pages. Synced and updated the backend container onto the DigitalOcean droplet (`170.64.167.95`) using `sshpass` and `rsync`. Created a root `.env` file containing the droplet credentials, and updated `CLAUDE.md` to document the deploy commands.
+- **Scope:** CI/CD Build Error Resolution, Environment Configuration & Droplet Deployment
+- **Summary:** Fixed frontend CI/CD build issues by correcting broken relative imports. Resolved a runtime issue (`Uncaught Error: Missing required environment variable: VITE_SUPABASE_URL`) by supplying production credentials (`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`) during Vite compilation and deploying the compiled asset bundle to Cloudflare Pages. Created a root `.env` for droplet keys, a `frontend/.env` for client environment variables, and updated `CLAUDE.md` deployment commands. Synced and updated the backend container onto the DigitalOcean droplet (`170.64.167.95`) using `sshpass` and `rsync`.
 - **Files Changed:**
   - `frontend/src/os/apps/Library/LibraryApp.jsx` [MODIFY] - Corrected import path of `LazyAICmdPalette`.
   - `frontend/src/components/ui/CyberCard.jsx` [MODIFY] - Corrected import path of `ConfirmDialog`.
   - `.env` [NEW] - Added droplet credentials.
-  - `CLAUDE.md` [MODIFY] - Added droplet deployment documentation.
-- **Verification:** Completed full `scripts/check.sh` quality gate successfully. Frontend built and deployed successfully. Droplet container built, restarted, and confirmed healthy via `/healthz` check.
+  - `frontend/.env` [NEW] - Added production frontend client environment variables.
+  - `CLAUDE.md` [MODIFY] - Added droplet deployment documentation and updated Cloudflare Pages build requirements.
+- **Verification:** Completed full `scripts/check.sh` quality gate successfully. Frontend built and deployed successfully. Droplet container built, restarted, and confirmed healthy via `/healthz` check. No runtime environment variable errors on landing pages.
 - **Follow-ups:** None.
 
 ### 2026-05-20 (Australia/Sydney)
