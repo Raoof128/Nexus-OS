@@ -164,38 +164,40 @@ export default function Desktop() {
           {/* Desktop icons — behind all windows */}
           <DesktopIcons />
 
-          {visibleWindows.map((win) => {
-            const manifest = APP_REGISTRY[win.appId]
-            if (!manifest) return null
-            const AppComponent = manifest.component
-            const zIndex = Z_INDEX_BASE + zStack.indexOf(win.windowId)
-            return (
-              <Window
-                key={win.windowId}
-                windowId={win.windowId}
-                appId={win.appId}
-                title={win.title}
-                position={win.position}
-                size={win.size}
-                minSize={win.minSize}
-                state={win.state}
-                restoredRect={win.restoredRect}
-                zIndex={zIndex}
-                desktopRef={desktopRef}
-                onSnapHint={handleSnapHint}
-              >
-                <Suspense
-                  fallback={
-                    <div className="flex h-full items-center justify-center">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    </div>
-                  }
+          <AnimatePresence>
+            {visibleWindows.map((win) => {
+              const manifest = APP_REGISTRY[win.appId]
+              if (!manifest) return null
+              const AppComponent = manifest.component
+              const zIndex = Z_INDEX_BASE + zStack.indexOf(win.windowId)
+              return (
+                <Window
+                  key={win.windowId}
+                  windowId={win.windowId}
+                  appId={win.appId}
+                  title={win.title}
+                  position={win.position}
+                  size={win.size}
+                  minSize={win.minSize}
+                  state={win.state}
+                  restoredRect={win.restoredRect}
+                  zIndex={zIndex}
+                  desktopRef={desktopRef}
+                  onSnapHint={handleSnapHint}
                 >
-                  <AppComponent appId={win.appId} windowId={win.windowId} />
-                </Suspense>
-              </Window>
-            )
-          })}
+                  <Suspense
+                    fallback={
+                      <div className="flex h-full items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    }
+                  >
+                    <AppComponent appId={win.appId} windowId={win.windowId} />
+                  </Suspense>
+                </Window>
+              )
+            })}
+          </AnimatePresence>
 
           {/* Snap preview overlay */}
           <SnapPreview hint={snapPreview} />
@@ -209,9 +211,11 @@ export default function Desktop() {
 
         <AnimatePresence>{launcherOpen && <AppLauncher />}</AnimatePresence>
 
-        {contextMenu && (
-          <ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={closeContextMenu} />
-        )}
+        <AnimatePresence>
+          {contextMenu && (
+            <ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={closeContextMenu} />
+          )}
+        </AnimatePresence>
 
         {locked && <LockScreen onUnlock={() => setLocked(false)} />}
       </div>

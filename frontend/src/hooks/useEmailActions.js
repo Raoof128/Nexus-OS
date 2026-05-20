@@ -113,7 +113,10 @@ export function useEmailActions(userId, folder, accountId) {
     mutationFn: ({ emailId, data }) =>
       apiFetch(`/api/email/${emailId}/forward`, { method: 'POST', body: data }),
     onError: (error) => setSendError(error.message),
-    onSuccess: () => setSendError(null),
+    onSuccess: () => {
+      setSendError(null)
+      queryClient.invalidateQueries({ queryKey: getEmailsQueryKeyPattern(userId) })
+    },
   })
 
   const aiDraft = useMutation({

@@ -32,13 +32,13 @@ describe('windowStore', () => {
     const winId = Object.keys(useWindowStore.getState().windows)[0]
     const size = useWindowStore.getState().windows[winId].size
 
-    // Try to move too far left (should keep 40px visible)
+    // Try to move too far left (should keep 80px accessible — close button area)
     moveWindow(winId, { x: -size.width - 100, y: 100 })
-    expect(useWindowStore.getState().windows[winId].position.x).toBe(-size.width + 40)
+    expect(useWindowStore.getState().windows[winId].position.x).toBe(-size.width + 80)
 
-    // Try to move too far right (should keep 40px visible)
+    // Try to move too far right (should keep 80px accessible)
     moveWindow(winId, { x: 1200 + 100, y: 100 })
-    expect(useWindowStore.getState().windows[winId].position.x).toBe(1200 - 40)
+    expect(useWindowStore.getState().windows[winId].position.x).toBe(1200 - 80)
 
     // Try to move too far up (should clamp to 0 for titlebar)
     moveWindow(winId, { x: 100, y: -50 })

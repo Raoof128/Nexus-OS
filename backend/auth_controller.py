@@ -196,12 +196,18 @@ class AuthController(Controller):
 
     @post("/refresh")
     async def refresh(self, request: Request) -> Response:
-        """Rotate the session using the refresh token cookie."""
+        """Rotate the session using the refresh token cookie.
+
+        Returns 200 ``{"authenticated": false}`` (not 401) when no refresh
+        cookie is present so the browser console stays clean for logged-out
+        visitors.  401 is reserved for the case where a cookie IS present but
+        the Supabase rotation call fails.
+        """
 
         enforce_auth_rate_limit(f"refresh:{_client_ip(request)}")
         refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
         if not refresh_token:
-            raise HTTPException(status_code=401, detail="Missing refresh token")
+            return Response(content={"authenticated": False})
 
         try:
             auth_response = create_supabase_auth_client().auth.refresh_session(
@@ -350,10 +356,23 @@ class AuthController(Controller):
         return response
 
     @get("/session")
-    async def session(self, request: Request) -> AuthSessionResponse:
-        """Return a frontend-safe session snapshot from the access cookie."""
+    async def session(self, request: Request) -> dict:
+        """Return a frontend-safe session snapshot from the access cookie.
+
+        Returns 200 ``{"authenticated": false}`` (not 401) when no access
+        cookie is present — this covers logged-out and first-visit browsers and
+        prevents the browser console 401 noise that appears even when the error
+        is fully handled in JavaScript.  Returns 401 when a cookie IS present
+        but the token has expired or is invalid, which tells the client to
+        attempt a silent refresh.
+        """
 
         access_token = request.cookies.get(get_settings().access_cookie_name)
         if not access_token:
-            raise HTTPException(status_code=401, detail="Not authenticated")
-        return _build_session_response(access_token)
+            return {"authenticated": False}
+        try:
+            return _build_session_response(access_token).model_dump()
+        except Exception as exc:
+            raise HTTPException(
+                status_code=401, detail="Session expired or invalid"
+            ) from exc

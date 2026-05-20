@@ -89,7 +89,7 @@ function App() {
 
         <footer className="relative z-10 py-6 text-center font-mono text-[10px] tracking-wider text-muted-foreground/30">
           <div className="mb-2 h-px w-full bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-          Nexus OS &copy; {new Date().getFullYear()} // v2.0.4
+          Nexus OS &copy; {new Date().getFullYear()} // v2.1.0
         </footer>
       </div>
     )

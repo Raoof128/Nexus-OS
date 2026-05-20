@@ -65,7 +65,10 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd }) {
         <Zap size={14} className="text-primary" />
         <span className="hidden sm:inline">AI_CMD</span>
         <kbd className="rounded border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-[9px] text-muted-foreground">
-          {typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘K' : 'Ctrl+K'}
+          {typeof navigator !== 'undefined' &&
+          /Mac/i.test(navigator.userAgentData?.platform ?? navigator.platform)
+            ? '⌘K'
+            : 'Ctrl+K'}
         </kbd>
       </button>
 

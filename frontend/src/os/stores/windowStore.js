@@ -25,18 +25,19 @@ function cascadePosition(zStack, _size) {
 }
 
 function clampPosition(pos, size) {
-  // Allow windows to bleed off-screen:
-  // - Left/Right: keep at least 40px of the window visible.
-  // - Bottom: allow most of the window to go off-screen, keeping the titlebar visible.
-  // - Top: clamp to 0 to keep the titlebar always on screen.
-  const titlebarHeight = 36
-  const minVisibleWidth = 40
+  // Keep at least MIN_ACCESSIBLE pixels of the window's horizontal extent on
+  // screen so the titlebar controls remain reachable. The close/min/max buttons
+  // occupy roughly the rightmost 80px, so 80px is the minimum useful threshold.
+  // Top is clamped to 0 (titlebar must not go above the viewport).
+  // Bottom is clamped so the full titlebar height stays above the taskbar.
+  const TITLEBAR_H = 36
+  const MIN_ACCESSIBLE = 80
   return {
     x: Math.max(
-      -size.width + minVisibleWidth,
-      Math.min(pos.x, window.innerWidth - minVisibleWidth),
+      -(size.width - MIN_ACCESSIBLE),
+      Math.min(pos.x, window.innerWidth - MIN_ACCESSIBLE),
     ),
-    y: Math.max(0, Math.min(pos.y, window.innerHeight - TASKBAR_HEIGHT - titlebarHeight)),
+    y: Math.max(0, Math.min(pos.y, window.innerHeight - TASKBAR_HEIGHT - TITLEBAR_H)),
   }
 }
 

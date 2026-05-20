@@ -8,7 +8,13 @@ import ChatWindow from './ChatWindow'
 export default function ChatApp() {
   const { session } = useAuth()
   const userId = session?.user?.id ?? null
-  const { sessions, createSession, deleteSession, isCreating, isLoading } = useChatSessions(userId)
+  const {
+    sessions,
+    createSession,
+    deleteSession,
+    isCreating,
+    loading: isLoading,
+  } = useChatSessions(userId)
   const [activeSessionId, setActiveSessionId] = useState(null)
 
   const handleDelete = async (sessionId) => {

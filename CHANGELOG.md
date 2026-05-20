@@ -4,6 +4,48 @@
 
 **Raouf:**
 
+- **Scope:** Auth 401 console-noise fix + check.sh full-pass
+- **Summary:** Eliminated the two `Failed to load resource: 401` browser console errors that appeared on every page load for logged-out users. Root cause: Chrome logs every 4xx fetch response to the console regardless of JavaScript error handling. The backend's `/auth/session` and `/auth/refresh` were both returning 401 when no cookies were present — semantically incorrect (401 means "you have credentials but they're wrong", not "you have no credentials at all"). Fix: both endpoints now return `200 {"authenticated": false}` when the relevant cookie is entirely absent. A cookie that IS present but expired/invalid still returns 401, which remains the correct signal for the silent-refresh flow. Frontend `loadCurrentSession` updated to check `result?.user` to distinguish a real session from the no-cookie sentinel, and skips the refresh dance entirely when `authenticated: false` is returned (no round-trip needed). Also fixed a latent bug: `/auth/session` previously would 500 if the access cookie was present but the token was malformed/expired (unhandled decode exception); now it catches decode errors and returns 401. check.sh also failed on Prettier formatting for 5 files (`Window.jsx`, `ChatApp.jsx`, `LazyAICmdPalette.jsx`, `ContextMenu.jsx`, `CLAUDE.md`) — all formatted and re-verified.
+- **Files Changed:**
+  - `backend/auth_controller.py` [FIX] — `/auth/session` returns 200+`{authenticated:false}` for no cookie; catches token decode errors → 401. `/auth/refresh` returns 200+`{authenticated:false}` for no cookie.
+  - `frontend/src/context/AuthContext.jsx` [FIX] — `loadCurrentSession` checks `result?.user` to detect real session; skips refresh when no-cookie sentinel returned.
+  - `frontend/src/os/components/Window.jsx`, `ChatApp.jsx`, `LazyAICmdPalette.jsx`, `ContextMenu.jsx`, `CLAUDE.md` [FORMAT] — Prettier formatting pass.
+- **Verification:** Full `scripts/check.sh` pass: Prettier ✓, ESLint ✓, Bandit ✓, pip-audit ✓, 92/92 pytest ✓, 87/87 vitest ✓, secret scan ✓.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
+- **Scope:** Window System — Production-Grade Drag, Bounds & Animation
+- **Summary:** Complete overhaul of the window management system for production-quality feel. (1) **Drag engine rewrite**: replaced Framer Motion's built-in drag system (which fought with `layout="position"` and couldn't be clamped mid-drag) with a native pointer-event implementation using `requestAnimationFrame` throttling. Drag delta is tracked in React state so `setDragDelta(null)` and `moveWindow()` batch in the same React flush — no 1-frame positional flash on release. (2) **Bounds enforcement**: tightened `clampPosition` from 40px to 80px minimum accessible width, ensuring the close/minimize/maximize buttons are always reachable regardless of how far the user drags toward a screen edge. (3) **Smooth state transitions**: CSS `transition` on `left/top/width/height` (240ms emphasized ease) applies whenever the window is not being dragged — snap, maximize, and restore all animate smoothly. Transition is disabled (`undefined`) while `dragDelta !== null` to keep drag instant. (4) **Escape-to-cancel drag**: pressing Escape during a drag returns the window to its pre-drag position. (5) **Window open/close animation**: wrapped `visibleWindows.map` in `AnimatePresence` in Desktop.jsx; Window now uses `initial/animate/exit` opacity+scale for a subtle 180ms entry/exit. (6) **Cursor polish**: titlebar shows `cursor-grab` at rest and `cursor-grabbing` while dragging; locked windows (maximized/snapped) show `cursor-default`. Updated windowStore bounds test to expect 80px minimum.
+- **Files Changed:** `frontend/src/os/components/Window.jsx`, `frontend/src/os/stores/windowStore.js`, `frontend/src/os/Desktop.jsx`, `frontend/src/os/stores/__tests__/windowStore.test.js`, `frontend/src/os/components/__tests__/Window.test.jsx`.
+- **Verification:** `npm run lint` 0 errors, `npm run test -- --run` 87/87 passed, `npm run build` clean (2.10s).
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
+- **Scope:** Full Frontend Audit & Fix Pass
+- **Summary:** Performed a comprehensive file-by-file audit of all 66 frontend source files. Identified and fixed 7 bugs across multiple severity levels. All checks pass post-fix.
+- **Files Changed:**
+  - `frontend/src/os/apps/Chat/ChatApp.jsx` [FIX] — `isLoading` renamed to `loading` to match the `useChatSessions` hook's actual export; the loading spinner was never rendering.
+  - `frontend/src/os/stores/settingsStore.js` [FIX] — `saveToStorage` moved inside `document.startViewTransition` callback so the updated wallpaper value (not the old one) is persisted.
+  - `frontend/src/os/components/BootSequence.jsx` [FIX] — Removed duplicate "OK" from BOOT_LINES text strings; the animated yellow badge was appearing alongside the already-typed cyan "OK". Updated `isOk` regex to match lines ending with dots. Aligned version string to v2.1.0.
+  - `frontend/src/hooks/useEmailActions.js` [FIX] — `forwardEmail.onSuccess` now calls `invalidateQueries` so the Sent folder refreshes after forwarding.
+  - `frontend/index.html` [FIX] — `<title>` updated from "Nexus Archive" to "Nexus OS" for brand consistency.
+  - `frontend/src/App.jsx` [FIX] — Footer version string aligned to v2.1.0.
+  - `frontend/src/os/components/ContextMenu.jsx` [FIX] — Removed `AnimatePresence` from inside the component (exit animations never played when the component was unmounted by its parent).
+  - `frontend/src/os/Desktop.jsx` [FIX] — Added `AnimatePresence` around the conditional `<ContextMenu>` render so exit animations fire correctly.
+  - `frontend/src/os/apps/Chat/LazyAICmdPalette.jsx` [FIX] — Replaced deprecated `navigator.platform` with `navigator.userAgentData?.platform` + fallback.
+- **Verification:** `npm run lint` 0 errors, `npm run test -- --run` 87/87 passed, `npm run build` clean (3.05s).
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
 - **Scope:** CI/CD Build Error Resolution, Environment Configuration & Droplet Deployment
 - **Summary:** Fixed frontend CI/CD build issues by correcting broken relative imports. Resolved a runtime issue (`Uncaught Error: Missing required environment variable: VITE_SUPABASE_URL`) by supplying production credentials (`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`) during Vite compilation and deploying the compiled asset bundle to Cloudflare Pages. Created a root `.env` for droplet keys, a `frontend/.env` for client environment variables, and updated `CLAUDE.md` deployment commands. Synced and updated the backend container onto the DigitalOcean droplet (`170.64.167.95`) using `sshpass` and `rsync`.
 - **Files Changed:**

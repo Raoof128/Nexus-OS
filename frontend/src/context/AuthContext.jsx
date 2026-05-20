@@ -5,21 +5,29 @@ import { realtimeClient } from '../lib/realtimeClient'
 import { AuthContext } from './auth-context'
 
 async function loadCurrentSession() {
+  // /auth/session returns:
+  //   { user, expires_at, ... }  → valid session
+  //   { authenticated: false }   → no cookies present at all (logged out / first visit)
+  //   throws 401                 → cookie present but expired — try silent refresh
+  let sessionResult
   try {
-    return await authFetch('/auth/session')
+    sessionResult = await authFetch('/auth/session')
   } catch {
-    // Only attempt refresh if session failed (user might have a valid refresh cookie)
+    // 401: access cookie IS present but expired — attempt silent refresh
     try {
       const refreshResult = await refreshSession()
-      // Refresh succeeded — we now have fresh cookies, fetch session
-      if (refreshResult) {
-        return await authFetch('/auth/session')
-      }
+      // Refresh also returned no-cookie sentinel → nothing to do
+      if (!refreshResult?.user) return null
+      return await authFetch('/auth/session')
     } catch {
-      // No valid session or refresh token — user is logged out
+      return null
     }
-    return null
   }
+
+  // 200 with authenticated:false means the browser has no cookies at all.
+  // Skip the refresh round-trip entirely — there is nothing to refresh.
+  if (!sessionResult?.user) return null
+  return sessionResult
 }
 
 export function AuthProvider({ children }) {

@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 
+// Lines ending with " OK" have the "OK" suffix stripped here — the BootLine
+// component renders the animated yellow "OK" badge when isOk is true.
 const BOOT_LINES = [
-  '[BOOT] Nexus OS v1.0 initializing...',
-  '[CORE] Zustand kernel loaded ............. OK',
-  '[AUTH] Session validated ................. OK',
-  '[REAL] WebSocket channel connected ....... OK',
-  '[SYNC] Window state hydrated ............ OK',
-  '[APPS] 8 applications registered ......... OK',
-  '[GPU]  Neon renderer initialized ........ OK',
+  '[BOOT] Nexus OS v2.1.0 initializing...',
+  '[CORE] Zustand kernel loaded .............',
+  '[AUTH] Session validated .................',
+  '[REAL] WebSocket channel connected .......',
+  '[SYNC] Window state hydrated .............',
+  '[APPS] 8 applications registered .........',
+  '[GPU]  Neon renderer initialized .........',
   '[SYS]  All systems operational',
 ]
 
@@ -44,7 +46,8 @@ function BootLine({ text, delayMs }) {
     }
   }, [text, delayMs])
 
-  const isOk = text.includes('... OK') || text.endsWith('OK')
+  // Lines that end with a dot-sequence are system checks that show an OK badge.
+  const isOk = /\.{3,}\s*$/.test(text)
 
   return (
     <div className="flex items-baseline gap-1 leading-snug">

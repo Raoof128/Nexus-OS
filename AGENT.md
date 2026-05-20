@@ -5,6 +5,26 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-20 (Australia/Sydney) — Window System Production Overhaul
+
+**Raouf:**
+
+- **Scope:** Production-grade window drag, bounds, and animation.
+- **Summary:** Rewrote Window.jsx drag from Framer Motion's built-in system (which produced spring jank and couldn't clamp mid-drag) to native pointer events with RAF throttling and React-state delta tracking. `setDragDelta(null)` + `moveWindow()` batch in one flush — no positional flash. CSS transition (disabled during drag) gives smooth snap/maximize/restore. `clampPosition` minimum increased 40→80px so titlebar controls stay accessible. `AnimatePresence` added to Desktop.jsx window list for open/close animation. Escape key cancels drag.
+- **Files Changed:** `Window.jsx`, `windowStore.js`, `Desktop.jsx`, `windowStore.test.js`, `Window.test.jsx`.
+- **Verification:** `npm run lint` 0 errors, `npm run test -- --run` 87/87, `npm run build` clean.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney) — Full Frontend Audit & Fix Pass
+
+**Raouf:**
+
+- **Scope:** Thorough file-by-file frontend audit of all 66 source files.
+- **Summary:** Read every JSX/JS/CSS file top-to-bottom. Found and fixed 7 real bugs: (1) `ChatApp` was importing `isLoading` instead of `loading` from `useChatSessions` — loading spinner never rendered; (2) `settingsStore.setWallpaper` was calling `saveToStorage(get())` outside the `startViewTransition` callback — persisted the old wallpaper; (3) `BootSequence` BOOT_LINES contained trailing "OK" text that the component also rendered as a separate animated badge — "OK" appeared twice; (4) `forwardEmail` mutation was missing `invalidateQueries` on success; (5) `<title>` still said "Nexus Archive"; (6) version strings were inconsistent (v1.0.0 / v2.0.4 / v2.1.0); (7) `ContextMenu` had `AnimatePresence` inside itself so exit animations never fired — moved to parent `Desktop.jsx`.
+- **Files Changed:** `ChatApp.jsx`, `settingsStore.js`, `BootSequence.jsx`, `useEmailActions.js`, `index.html`, `App.jsx`, `ContextMenu.jsx`, `Desktop.jsx`, `LazyAICmdPalette.jsx`.
+- **Verification:** `npm run lint` 0 errors, `npm run test -- --run` 87/87, `npm run build` clean.
+- **Follow-ups:** None.
+
 ### 2026-05-20 (Australia/Sydney) — Full Repository Professionalisation (Structure & CI/CD)
 
 **Raouf:**

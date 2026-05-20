@@ -61,15 +61,18 @@ export const useSettingsStore = create((set, get) => ({
   orbsEnabled: true,
 
   setWallpaper: (wallpaper) => {
-    // 2026 Best Practice: Use View Transitions if available for premium feel
+    // 2026 Best Practice: Use View Transitions if available for premium feel.
+    // saveToStorage must be called INSIDE the callback — the callback runs
+    // asynchronously, so calling get() outside would capture the old value.
     if (document.startViewTransition) {
       document.startViewTransition(() => {
         set({ wallpaper })
+        saveToStorage(get())
       })
     } else {
       set({ wallpaper })
+      saveToStorage(get())
     }
-    saveToStorage(get())
   },
 
   setAccentColor: (color) => {

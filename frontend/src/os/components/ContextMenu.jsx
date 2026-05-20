@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef } from 'react'
-import { motion as Motion, AnimatePresence } from 'framer-motion'
+import { motion as Motion } from 'framer-motion'
 import { DURATION, EASE } from '../../lib/motion'
 import {
   AppWindow,
@@ -97,51 +97,48 @@ function ContextMenu({ x, y, onClose }) {
   }, [])
 
   return (
-    <AnimatePresence>
-      <Motion.div
-        ref={menuRef}
-        key="context-menu"
-        initial={{ opacity: 0, scale: 0.92 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.92 }}
-        transition={{ duration: DURATION.fast, ease: EASE.standard }}
-        style={{
-          position: 'fixed',
-          left: clampedX,
-          top: clampedY,
-          minWidth: MENU_WIDTH,
-          // Above windows (100–~250) and above in-app modals (1000–1051) so a
-          // right-click inside an open dialog still surfaces the menu on top.
-          zIndex: 1200,
-          transformOrigin: 'top left',
-        }}
-        role="menu"
-        aria-label="Desktop context menu"
-        className="neon-border glass-panel rounded-lg py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
-        onContextMenu={(e) => e.preventDefault()}
-        onKeyDown={handleMenuKeyDown}
-      >
-        {/* Accent line at top */}
-        <div className="absolute inset-x-0 top-0 h-px rounded-t-lg bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+    <Motion.div
+      ref={menuRef}
+      initial={{ opacity: 0, scale: 0.92 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.92 }}
+      transition={{ duration: DURATION.fast, ease: EASE.standard }}
+      style={{
+        position: 'fixed',
+        left: clampedX,
+        top: clampedY,
+        minWidth: MENU_WIDTH,
+        // Above windows (100–~250) and above in-app modals (1000–1051) so a
+        // right-click inside an open dialog still surfaces the menu on top.
+        zIndex: 1200,
+        transformOrigin: 'top left',
+      }}
+      role="menu"
+      aria-label="Desktop context menu"
+      className="neon-border glass-panel rounded-lg py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
+      onContextMenu={(e) => e.preventDefault()}
+      onKeyDown={handleMenuKeyDown}
+    >
+      {/* Accent line at top */}
+      <div className="absolute inset-x-0 top-0 h-px rounded-t-lg bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
-        <MenuItem icon={AppWindow} label="Open App Launcher" onClick={() => run(toggleLauncher)} />
+      <MenuItem icon={AppWindow} label="Open App Launcher" onClick={() => run(toggleLauncher)} />
 
-        <Separator />
+      <Separator />
 
-        <MenuItem icon={Layers} label="Arrange Windows" onClick={() => run(cascadeWindows)} />
-        <MenuItem icon={Minus} label="Minimize All" onClick={() => run(minimizeAll)} />
-        <MenuItem icon={X} label="Close All" onClick={() => run(closeAll)} danger />
+      <MenuItem icon={Layers} label="Arrange Windows" onClick={() => run(cascadeWindows)} />
+      <MenuItem icon={Minus} label="Minimize All" onClick={() => run(minimizeAll)} />
+      <MenuItem icon={X} label="Close All" onClick={() => run(closeAll)} danger />
 
-        <Separator />
+      <Separator />
 
-        <MenuItem icon={ScanLine} label="Toggle Scanlines" onClick={() => run(toggleScanlines)} />
-        <MenuItem icon={Sparkles} label="Toggle Orbs" onClick={() => run(toggleOrbs)} />
+      <MenuItem icon={ScanLine} label="Toggle Scanlines" onClick={() => run(toggleScanlines)} />
+      <MenuItem icon={Sparkles} label="Toggle Orbs" onClick={() => run(toggleOrbs)} />
 
-        <Separator />
+      <Separator />
 
-        <MenuItem icon={Settings} label="Settings" onClick={() => run(() => openApp('settings'))} />
-      </Motion.div>
-    </AnimatePresence>
+      <MenuItem icon={Settings} label="Settings" onClick={() => run(() => openApp('settings'))} />
+    </Motion.div>
   )
 }
 

@@ -7,27 +7,19 @@ vi.mock('framer-motion', () => ({
     div: ({
       children,
       onPointerDownCapture,
+      onTransitionEnd,
       style,
-      drag: _drag,
-      dragListener: _dragListener,
-      dragControls: _dragControls,
-      dragMomentum: _dragMomentum,
-      dragElastic: _dragElastic,
-      dragConstraints: _dragConstraints,
-      onDragStart: _onDragStart,
-      onDragEnd: _onDragEnd,
-      onDrag: _onDrag,
       initial: _initial,
       animate: _animate,
       exit: _exit,
       transition: _transition,
       variants: _variants,
-      layout: _layout,
       ...rest
     }) => (
       <div
         data-testid="window-frame"
         onPointerDownCapture={onPointerDownCapture}
+        onTransitionEnd={onTransitionEnd}
         style={style}
         {...rest}
       >
@@ -35,7 +27,6 @@ vi.mock('framer-motion', () => ({
       </div>
     ),
   },
-  useDragControls: () => ({ start: vi.fn() }),
 }))
 
 // Mock the window store

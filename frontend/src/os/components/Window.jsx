@@ -1,16 +1,14 @@
-import { memo, useCallback, useRef } from 'react'
-import { motion as Motion, useDragControls } from 'framer-motion'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { motion as Motion } from 'framer-motion'
 import { Minus, Square, X } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
 import { APP_REGISTRY } from '../stores/appRegistry'
 
 const TITLEBAR_HEIGHT = 36
 const TASKBAR_HEIGHT = 48
-// Resize grab area. Edges are thinner (6px) so the cursor only becomes a
-// resize arrow when the user is genuinely at the border; corners are larger
-// (14px) to stay reachable despite the rounded-lg window radius.
 const RESIZE_EDGE_SIZE = 6
 const RESIZE_CORNER_SIZE = 14
+const SNAP_THRESHOLD = 20
 
 const CURSOR_MAP = {
   n: 'ns-resize',
@@ -100,12 +98,10 @@ function ResizeHandle({ direction, windowId, position, size, minSize }) {
         const s = startRef.current
         const dx = moveEvent.clientX - s.mouseX
         const dy = moveEvent.clientY - s.mouseY
-
         let newX = s.x,
           newY = s.y,
           newW = s.w,
           newH = s.h
-
         if (direction.includes('e')) newW = Math.max(minSize.width, s.w + dx)
         if (direction.includes('w')) {
           newW = Math.max(minSize.width, s.w - dx)
@@ -116,7 +112,6 @@ function ResizeHandle({ direction, windowId, position, size, minSize }) {
           newH = Math.max(minSize.height, s.h - dy)
           newY = s.y + s.h - newH
         }
-
         updateWindowRect(windowId, {
           position: { x: newX, y: newY },
           size: { width: newW, height: newH },
@@ -167,7 +162,6 @@ function Window({
   onSnapHint,
   children,
 }) {
-  const dragControls = useDragControls()
   const isFocused = useWindowStore((s) => s.activeWindowId === windowId)
   const isMobile = useWindowStore((s) => s.isMobile)
   const focusWindow = useWindowStore((s) => s.focusWindow)
@@ -184,63 +178,140 @@ function Window({
   const isLocked = isMaximized || isSnapped
   const AppIcon = APP_REGISTRY[appId]?.icon
 
-  const handleDrag = useCallback(
-    (_e, info) => {
-      const cursorX = position.x + info.offset.x
-      const cursorY = position.y + info.offset.y
-      const SNAP_THRESHOLD = 20
+  // ── Pointer-event drag ────────────────────────────────────
+  // dragDelta null = not dragging; {x,y} = current offset from drag start.
+  // Storing delta (not absolute pos) means the display can be computed as
+  // position + delta, and on release both values batch-update atomically in
+  // the same React flush — no 1-frame positional flash.
+  const [dragDelta, setDragDelta] = useState(null)
+  const dragStartRef = useRef(null)
+  const rafRef = useRef(null)
+  const latestPointerRef = useRef(null)
 
-      if (cursorX <= SNAP_THRESHOLD) {
-        onSnapHint?.('left')
-      } else if (cursorX + size.width >= window.innerWidth - SNAP_THRESHOLD) {
-        onSnapHint?.('right')
-      } else if (cursorY <= SNAP_THRESHOLD) {
-        onSnapHint?.('top')
-      } else {
-        onSnapHint?.(null)
-      }
-    },
-    [position, size, onSnapHint],
-  )
-
-  const handleDragEnd = useCallback(
-    (_e, info) => {
-      const newX = position.x + info.offset.x
-      const newY = position.y + info.offset.y
-      const SNAP_THRESHOLD = 20
-
-      if (newX <= SNAP_THRESHOLD) {
-        snapWindow(windowId, 'left')
-      } else if (newX + size.width >= window.innerWidth - SNAP_THRESHOLD) {
-        snapWindow(windowId, 'right')
-      } else if (newY <= SNAP_THRESHOLD) {
-        maximizeWindow(windowId)
-      } else {
-        moveWindow(windowId, { x: newX, y: newY })
-      }
-      onSnapHint?.(null)
-    },
-    [windowId, position, size, moveWindow, snapWindow, maximizeWindow, onSnapHint],
-  )
+  // Stash current size in a ref so the closure in handleTitleBarPointerDown
+  // always reads the current value without stale capture.
+  const sizeRef = useRef(size)
+  useEffect(() => {
+    sizeRef.current = size
+  }, [size])
 
   const toggleMaximize = useCallback(() => {
-    if (isMaximized) {
-      restoreWindow(windowId)
-    } else {
-      maximizeWindow(windowId)
-    }
+    if (isMaximized) restoreWindow(windowId)
+    else maximizeWindow(windowId)
   }, [windowId, isMaximized, restoreWindow, maximizeWindow])
 
-  // Mobile: full-screen mode
+  const handleTitleBarPointerDown = useCallback(
+    (e) => {
+      if (e.target.closest('button')) return
+      if (e.button !== 0) return
+
+      // Dragging a snapped window restores it first then allow re-drag
+      if (isSnapped) {
+        restoreWindow(windowId)
+        return
+      }
+      if (isMaximized) return
+
+      e.preventDefault()
+
+      dragStartRef.current = {
+        mouseX: e.clientX,
+        mouseY: e.clientY,
+        winX: position.x,
+        winY: position.y,
+      }
+      setDragDelta({ x: 0, y: 0 })
+      document.body.style.cursor = 'grabbing'
+      document.body.style.userSelect = 'none'
+
+      const onMove = (moveEvent) => {
+        // Stash latest pointer; process at most once per animation frame.
+        latestPointerRef.current = { clientX: moveEvent.clientX, clientY: moveEvent.clientY }
+        if (rafRef.current !== null) return
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = null
+          const ptr = latestPointerRef.current
+          if (!ptr || !dragStartRef.current) return
+          const dx = ptr.clientX - dragStartRef.current.mouseX
+          const dy = ptr.clientY - dragStartRef.current.mouseY
+          setDragDelta({ x: dx, y: dy })
+          // Snap zone hints
+          const rawX = dragStartRef.current.winX + dx
+          const rawY = dragStartRef.current.winY + dy
+          const sw = sizeRef.current.width
+          if (rawX <= SNAP_THRESHOLD) onSnapHint?.('left')
+          else if (rawX + sw >= window.innerWidth - SNAP_THRESHOLD) onSnapHint?.('right')
+          else if (rawY <= SNAP_THRESHOLD) onSnapHint?.('top')
+          else onSnapHint?.(null)
+        })
+      }
+
+      const cleanup = () => {
+        if (rafRef.current !== null) {
+          cancelAnimationFrame(rafRef.current)
+          rafRef.current = null
+        }
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+        document.removeEventListener('keydown', onKeyDown)
+      }
+
+      const onUp = (upEvent) => {
+        const dx = upEvent.clientX - dragStartRef.current.mouseX
+        const dy = upEvent.clientY - dragStartRef.current.mouseY
+        const finalX = dragStartRef.current.winX + dx
+        const finalY = dragStartRef.current.winY + dy
+        const sw = sizeRef.current.width
+
+        // Batch: reset delta + commit position → single React flush, no flash.
+        setDragDelta(null)
+        if (finalX <= SNAP_THRESHOLD) snapWindow(windowId, 'left')
+        else if (finalX + sw >= window.innerWidth - SNAP_THRESHOLD) snapWindow(windowId, 'right')
+        else if (finalY <= SNAP_THRESHOLD) maximizeWindow(windowId)
+        else moveWindow(windowId, { x: finalX, y: finalY })
+
+        onSnapHint?.(null)
+        dragStartRef.current = null
+        latestPointerRef.current = null
+        cleanup()
+      }
+
+      // Escape cancels the drag and returns the window to its original position
+      const onKeyDown = (e) => {
+        if (e.key !== 'Escape') return
+        setDragDelta(null)
+        onSnapHint?.(null)
+        dragStartRef.current = null
+        latestPointerRef.current = null
+        cleanup()
+      }
+
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+      document.addEventListener('keydown', onKeyDown)
+    },
+    [
+      windowId,
+      position,
+      isMaximized,
+      isSnapped,
+      onSnapHint,
+      moveWindow,
+      snapWindow,
+      maximizeWindow,
+      restoreWindow,
+    ],
+  )
+
+  // ── Mobile layout ─────────────────────────────────────────
   if (isMobile) {
     return (
       <div
         className="fixed inset-0 z-[100] flex flex-col bg-background"
         data-testid="mobile-window"
-        style={{
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-          paddingBottom: TASKBAR_HEIGHT + 8,
-        }}
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: TASKBAR_HEIGHT + 8 }}
       >
         <div className="glass-panel flex h-11 items-center justify-between border-b border-cyan-500/10 px-3">
           <div className="flex items-center gap-2">
@@ -265,6 +336,13 @@ function Window({
     )
   }
 
+  // ── Position calculation ──────────────────────────────────
+  // During drag: position.x/y + delta gives the live dragged position.
+  // On release: setDragDelta(null) + moveWindow batch in the same React flush,
+  // so the render sees delta=null and the new store position simultaneously.
+  const effectiveX = dragDelta !== null ? position.x + dragDelta.x : position.x
+  const effectiveY = dragDelta !== null ? position.y + dragDelta.y : position.y
+
   const displayStyle = isSnapped
     ? {
         position: 'absolute',
@@ -275,78 +353,51 @@ function Window({
         zIndex,
       }
     : isMaximized
-      ? {
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width: '100%',
-          height: '100%',
-          zIndex,
-        }
+      ? { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', zIndex }
       : {
           position: 'absolute',
-          left: position.x,
-          top: position.y,
+          left: effectiveX,
+          top: effectiveY,
           width: size.width,
           height: size.height,
           zIndex,
         }
 
+  // CSS transition for position/size — disabled during active drag so movement
+  // stays instant. When drag ends and the store commits (or clamping adjusts
+  // the position), the transition produces a short ease into the final rect.
+  // Snap/maximize/restore changes animate automatically because dragDelta is
+  // null for those (they're triggered by buttons or keyboard, not pointer drag).
+  const positionTransition =
+    dragDelta !== null
+      ? undefined
+      : 'left 240ms cubic-bezier(0.16,1,0.3,1), top 240ms cubic-bezier(0.16,1,0.3,1), width 240ms cubic-bezier(0.16,1,0.3,1), height 240ms cubic-bezier(0.16,1,0.3,1)'
+
   return (
     <Motion.div
-      style={displayStyle}
-      layout="position"
-      transition={{
-        type: 'spring',
-        stiffness: 400,
-        damping: 30,
-        mass: 0.8,
-      }}
-      drag={!isLocked}
-      dragListener={false}
-      dragControls={dragControls}
-      dragMomentum={false}
-      onDrag={handleDrag}
-      onDragEnd={handleDragEnd}
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.12 } }}
+      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      style={{ ...displayStyle, transition: positionTransition }}
       onPointerDownCapture={() => focusWindow(windowId)}
       onContextMenu={(e) => e.stopPropagation()}
-      className={`flex flex-col glass-panel shadow-2xl transition-shadow duration-200 ${
-        isFocused ? 'window-active' : 'window-inactive'
-      } ${isMaximized ? 'rounded-none border-none' : 'rounded-lg'}`}
+      className={`flex flex-col glass-panel shadow-2xl ${isFocused ? 'window-active' : 'window-inactive'} ${isMaximized ? 'rounded-none border-none' : 'rounded-lg'}`}
     >
-      {/* Window border glow — rounded-lg lives here, not on the outer Motion.div,
-         so the absolute-positioned resize handles aren't clipped by the corner
-         radius. */}
+      {/* Focused border glow — inner overlay so resize handles aren't clipped */}
       <div
-        className={`pointer-events-none absolute inset-0 rounded-lg border transition-all duration-200 ${
-          isFocused
-            ? 'border-cyan-500/20 shadow-[0_0_20px_rgba(0,255,255,0.1)]'
-            : 'border-white/[0.06]'
-        }`}
+        className={`pointer-events-none absolute inset-0 rounded-lg border transition-all duration-200 ${isFocused ? 'border-cyan-500/20 shadow-[0_0_20px_rgba(0,255,255,0.1)]' : 'border-white/[0.06]'}`}
       />
 
       {/* Title bar */}
       <div
         data-testid="titlebar"
-        onPointerDown={(e) => {
-          // Don't start a drag when the pointer lands on the window controls
-          // (min/max/close) — framer's dragControls.start(e) captures the
-          // pointer and suppresses the button's click, so users had to click
-          // several times to actually close a window.
-          if (e.target.closest('button')) return
-          if (isSnapped) {
-            restoreWindow(windowId)
-            return
-          }
-          if (!isMaximized) dragControls.start(e)
-        }}
+        onPointerDown={handleTitleBarPointerDown}
         onDoubleClick={(e) => {
           if (e.target.closest('button')) return
           toggleMaximize()
         }}
-        className={`glass-panel flex h-9 shrink-0 cursor-grab items-center justify-between border-b rounded-t-lg px-3 select-none active:cursor-grabbing ${
-          isFocused ? 'border-b-cyan-500/15' : 'border-b-white/[0.04] bg-white/[0.01]'
-        }`}
+        className={`glass-panel flex h-9 shrink-0 items-center justify-between border-b rounded-t-lg px-3 select-none ${dragDelta !== null ? 'cursor-grabbing' : isLocked ? 'cursor-default' : 'cursor-grab'} ${isFocused ? 'border-b-cyan-500/15' : 'border-b-white/[0.04] bg-white/[0.01]'}`}
         style={{
           borderImage: isFocused
             ? 'linear-gradient(to right, rgba(0,255,255,0.3), transparent 40%, transparent 60%, rgba(243,230,0,0.2)) 1'
@@ -389,8 +440,7 @@ function Window({
         </div>
       </div>
 
-      {/* Content area — rounded-b-lg so the bottom corners stay clipped even
-         though the outer container no longer has overflow:hidden. */}
+      {/* Content area — rounded-b-lg so bottom corners stay clipped */}
       <div
         className="flex-1 overflow-hidden rounded-b-lg bg-background"
         style={{ containerType: 'inline-size' }}
@@ -398,7 +448,7 @@ function Window({
         {children}
       </div>
 
-      {/* Resize handles */}
+      {/* Resize handles — only when not locked (maximized / snapped) */}
       {!isLocked &&
         RESIZE_DIRECTIONS.map((dir) => (
           <ResizeHandle
