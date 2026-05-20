@@ -118,6 +118,18 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 **Raouf:**
 
+- **Scope:** CI/CD Build Error Resolution (Import Paths)
+- **Summary:** Fixed frontend CI/CD build issues by correcting broken relative imports. Updated the import of `LazyAICmdPalette` in `LibraryApp.jsx` and updated the import of `ConfirmDialog` in `CyberCard.jsx` to resolve rollup import failures post frontend restructuring.
+- **Files Changed:**
+  - `frontend/src/os/apps/Library/LibraryApp.jsx` [MODIFY] - Corrected import path of `LazyAICmdPalette`.
+  - `frontend/src/components/ui/CyberCard.jsx` [MODIFY] - Corrected import path of `ConfirmDialog`.
+- **Verification:** Completed full `scripts/check.sh` quality gate successfully: 92/92 pytest tests passed, 87/87 vitest tests passed. Vite production build successfully compiles.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
 - **Scope:** Wallpaper and Theme Selection Feature (Image Support)
 - **Summary:** Added support for local image wallpapers. Successfully integrated 8 high-resolution images from the user's desktop into the OS theme system. Images are served statically from the frontend public directory. Updated the settings store and UI to support both CSS patterns and image-based wallpapers with live previews.
 - **Files Changed:**

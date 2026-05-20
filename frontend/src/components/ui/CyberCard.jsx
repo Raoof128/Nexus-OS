@@ -3,7 +3,7 @@ import { motion as Motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
 import { TYPE_ICONS, getStatusNav } from '../../lib/mediaConfig'
 import { SPRING } from '../../lib/motion'
-import ConfirmDialog from '../../../components/ui/ConfirmDialog'
+import ConfirmDialog from './ConfirmDialog'
 
 function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
   const mediaType = item.type || 'book'

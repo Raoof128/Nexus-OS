@@ -8,7 +8,7 @@ import { DURATION } from '../../../lib/motion'
 import KanbanBoard from './KanbanBoard'
 import MediaVault from './MediaVault'
 import AddMediaDialog from './AddMediaDialog'
-import LazyAICmdPalette from './LazyAICmdPalette'
+import LazyAICmdPalette from '../Chat/LazyAICmdPalette'
 
 const MediaDetailModal = lazy(() => import('./MediaDetailModal'))
 const EditMediaDialog = lazy(() => import('./EditMediaDialog'))

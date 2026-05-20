@@ -4,6 +4,18 @@
 
 **Raouf:**
 
+- **Scope:** CI/CD Build Error Resolution (Import Paths)
+- **Summary:** Fixed frontend CI/CD build issues by correcting broken relative imports. Updated the import of `LazyAICmdPalette` in `LibraryApp.jsx` and updated the import of `ConfirmDialog` in `CyberCard.jsx` to resolve rollup import failures post frontend restructuring.
+- **Files Changed:**
+  - `frontend/src/os/apps/Library/LibraryApp.jsx` [MODIFY] - Corrected import path of `LazyAICmdPalette`.
+  - `frontend/src/components/ui/CyberCard.jsx` [MODIFY] - Corrected import path of `ConfirmDialog`.
+- **Verification:** Completed full `scripts/check.sh` quality gate successfully: 92/92 pytest tests passed, 87/87 vitest tests passed. Vite production build successfully compiles.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
 - **Scope:** Frontend Directory Reorganization & Unified Tooling
 - **Summary:** Completed full repository professionalisation. Restructured the React frontend by moving core apps (Library, Email, Chat, Auth) into dedicated modular packages under `src/os/apps/`. Reorganized shared UI components (CyberCard, ConfirmDialog) under `components/ui/`. Standardized and fixed all broken relative imports. Upgraded root tooling by overhauling the unified `Makefile` (adding clean, dev, install targets) and integrating standard GitHub Actions workflow with pip/npm caching. Standardized brand name to **Nexus OS** across all package configurations, source files, tests, and AI system instructions.
 - **Files Changed:**
