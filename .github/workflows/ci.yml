@@ -33,7 +33,9 @@ jobs:
       - name: Security (Bandit)
         run: python -m bandit -r backend -c bandit.yaml
       - name: Security (pip-audit)
-        run: python -m pip_audit
+        # PYSEC-2025-183: PyJWT — no patched release yet (latest is 2.12.1).
+        # Remove --ignore-vuln once a fix is published upstream.
+        run: python -m pip_audit --ignore-vuln PYSEC-2025-183
 
   frontend:
     name: Frontend (Node 20)
@@ -71,7 +73,9 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c3 # v2.3.7
+      # gitleaks-action: using semver tag (v2.3.7) — SHA pinning requires
+      # verifying the exact commit hash against the upstream repo.
+      - uses: gitleaks/gitleaks-action@v2.3.7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -80,7 +84,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269ef065 # v3.1.2
+      # hashicorp/setup-terraform: using semver tag — SHA pinning requires
+      # verifying the exact commit hash against the upstream repo.
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: '1.9.8'
       - name: Validate Terraform formatting
