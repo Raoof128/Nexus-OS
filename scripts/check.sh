@@ -54,9 +54,11 @@ python3 -m ruff check backend tests loadtests
 log "Running security audits..."
 (cd frontend && npm audit --audit-level=high)
 python3 -m bandit -r backend -c bandit.yaml
-# PYSEC-2025-183: PyJWT 2.12.1 — no patched release exists at time of writing.
-# Suppressed with --ignore-vuln; review and remove once a fix is published.
-python3 -m pip_audit . --ignore-vuln PYSEC-2025-183
+# PYSEC-2025-183: PyJWT 2.12.1 — no patched release available yet.
+# PYSEC-2024-271: flask-cors (transitive via locust dev dep, not in production
+#   runtime) — no patched release available yet.
+# Remove each --ignore-vuln entry once upstream publishes a fix.
+python3 -m pip_audit . --ignore-vuln PYSEC-2025-183 --ignore-vuln PYSEC-2024-271
 
 # Gate 7: Tests
 log "Running test suites..."

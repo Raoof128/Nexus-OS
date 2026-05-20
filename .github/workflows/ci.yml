@@ -33,9 +33,15 @@ jobs:
       - name: Security (Bandit)
         run: python -m bandit -r backend -c bandit.yaml
       - name: Security (pip-audit)
-        # PYSEC-2025-183: PyJWT — no patched release yet (latest is 2.12.1).
-        # Remove --ignore-vuln once a fix is published upstream.
-        run: python -m pip_audit --ignore-vuln PYSEC-2025-183
+        # Scope to project deps only (avoids flagging runner-level packages).
+        # PYSEC-2025-183: PyJWT 2.12.1 — no patched release yet.
+        # PYSEC-2024-271: flask-cors (transitive via locust dev dep, not in
+        #   production runtime) — no patched release yet.
+        # Remove each --ignore-vuln entry once upstream publishes a fix.
+        run: >-
+          python -m pip_audit .
+          --ignore-vuln PYSEC-2025-183
+          --ignore-vuln PYSEC-2024-271
 
   frontend:
     name: Frontend (Node 20)
