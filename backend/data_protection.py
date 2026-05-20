@@ -83,9 +83,32 @@ def serialize_media_context_for_llm(
         items.append(entry)
     payload = {"media": items}
     return (
-        "<trusted_library_context>"
+        "\n<trusted_library_context>\n"
         + json.dumps(payload, ensure_ascii=True, separators=(",", ":"))
-        + "</trusted_library_context>"
+        + "\n</trusted_library_context>\n"
+    )
+
+
+def serialize_email_context_for_llm(
+    emails: list[dict[str, Any]],
+) -> str:
+    """Wrap email thread in strict XML delimiters to resist prompt injection."""
+
+    items = []
+    for e in emails:
+        items.append(
+            {
+                "from": sanitize_llm_text(str(e.get("from_address") or "Unknown")),
+                "date": sanitize_llm_text(str(e.get("provider_date") or "Unknown")),
+                "subject": sanitize_llm_text(str(e.get("subject") or "(no subject)")),
+                "body": sanitize_llm_text(str(e.get("body_text") or "")),
+            }
+        )
+    payload = {"emails": items}
+    return (
+        "\n<untrusted_email_thread_context>\n"
+        + json.dumps(payload, ensure_ascii=True, separators=(",", ":"))
+        + "\n</untrusted_email_thread_context>\n"
     )
 
 

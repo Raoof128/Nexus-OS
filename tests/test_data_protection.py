@@ -33,10 +33,10 @@ def test_serialize_media_context_uses_xml_delimiters() -> None:
         [{"title": "Neuromancer", "genre": "Cyberpunk", "rating": 5, "type": "book"}]
     )
 
-    assert payload.startswith("<trusted_library_context>")
+    assert payload.strip().startswith("<trusted_library_context>")
     assert '"title":"Neuromancer"' in payload
     assert '"type":"book"' in payload
-    assert payload.endswith("</trusted_library_context>")
+    assert payload.strip().endswith("</trusted_library_context>")
 
 
 def test_sanitize_chat_message_masks_prompt_injection_and_pii() -> None:

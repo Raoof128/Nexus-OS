@@ -9,6 +9,10 @@ from litestar.exceptions import HTTPException
 
 try:
     from .config import get_settings
+    from .data_protection import (
+        sanitize_chat_message_for_llm,
+        serialize_email_context_for_llm,
+    )
     from .email_schemas import (
         AIDraftRequest,
         AISummarizeRequest,
@@ -17,9 +21,14 @@ try:
         MoveEmailRequest,
     )
     from .email_service import decrypt_oauth_token, get_provider
+    from .rate_limit import enforce_ai_rate_limit
     from .services import create_supabase_user_client, get_genai_client
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
+    from data_protection import (
+        sanitize_chat_message_for_llm,
+        serialize_email_context_for_llm,
+    )
     from email_schemas import (
         AIDraftRequest,
         AISummarizeRequest,
@@ -28,6 +37,7 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
         MoveEmailRequest,
     )
     from email_service import decrypt_oauth_token, get_provider
+    from rate_limit import enforce_ai_rate_limit
     from services import create_supabase_user_client, get_genai_client
 
 logger = logging.getLogger(__name__)
@@ -487,6 +497,8 @@ class EmailController(Controller):
         """Use Gemini to draft a reply to an email."""
 
         user_id, access_token = _require_auth(request)
+        enforce_ai_rate_limit(user_id, "email_draft")
+
         db = _db(access_token)
         email_row = _get_email(db, data.email_id, user_id)
 
@@ -494,16 +506,20 @@ class EmailController(Controller):
         if not client:
             raise HTTPException(status_code=503, detail="AI service not configured")
 
-        subject = email_row.get("subject", "")
-        body = email_row.get("body_text", "")
-        instruction = data.instruction or "Write a professional reply."
+        instruction = sanitize_chat_message_for_llm(
+            data.instruction or "Write a professional reply."
+        )
+        context = serialize_email_context_for_llm([email_row])
 
         prompt = (
-            f"You are drafting a reply to the following email.\n\n"
-            f"Subject: {subject}\n\n"
-            f"Body:\n{body}\n\n"
-            f"Instruction: {instruction}\n\n"
-            f"Draft a concise and professional reply. Return only the reply body."
+            "You are an AI assistant drafting a professional reply to an "
+            "email thread.\n"
+            "Below is the context of the email(s) you are replying to:\n"
+            f"{context}\n"
+            "User Instruction for this reply:\n"
+            f"<user_instruction>{instruction}</user_instruction>\n\n"
+            "Draft a concise and professional reply based ONLY on the provided context "
+            "and instructions. Return only the reply body text."
         )
 
         try:
@@ -523,8 +539,9 @@ class EmailController(Controller):
         """Use Gemini to summarize a thread of emails."""
 
         user_id, access_token = _require_auth(request)
-        db = _db(access_token)
+        enforce_ai_rate_limit(user_id, "email_summarize")
 
+        db = _db(access_token)
         # Fetch all requested emails and assert ownership
         try:
             resp = (
@@ -548,18 +565,13 @@ class EmailController(Controller):
         if not client:
             raise HTTPException(status_code=503, detail="AI service not configured")
 
-        thread_text = "\n\n---\n\n".join(
-            f"From: {e.get('from_address', '')}\n"
-            f"Date: {e.get('provider_date', '')}\n"
-            f"Subject: {e.get('subject', '')}\n"
-            f"{e.get('body_text', '')}"
-            for e in emails
-        )
+        context = serialize_email_context_for_llm(emails)
 
         prompt = (
-            "Summarize the following email thread concisely. "
-            "Highlight the key points, decisions, and any action items.\n\n"
-            f"{thread_text}"
+            "Summarize the following email thread concisely.\n"
+            "Highlight the key points, decisions, and any action items.\n"
+            f"{context}\n\n"
+            "Provide a structured summary. Return only the summary text."
         )
 
         try:

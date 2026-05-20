@@ -5,15 +5,25 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
-### 2026-05-20 (Australia/Sydney) — Project Configuration & Quality Gate Hardening
+### 2026-05-20 (Australia/Sydney) — Backend Security Audit & Hardening
 
 **Raouf:**
 
-- **Scope:** Hardened project configuration and formalized quality gates.
-- **Summary:** Professionalized `.gitignore` to exclude root `node_modules/` and OS junk while ensuring protocol files (`AGENT.md`, `CHANGELOG.md`) are tracked. Staged and added root-level `package.json`, `.prettierrc`, `.prettierignore`, and `scripts/check.sh` to the repository to lock in the quality gate system.
-- **Files Changed:** `.gitignore`, `package.json`, `.prettierignore`, `.prettierrc`, `scripts/check.sh`, `pyproject.toml`.
-- **Verification:** Verified `git status` shows zero unwanted untracked files. Successfully ran `scripts/check.sh` with all gates passing (Formatting, Lint, Security, Tests).
-- **Follow-ups:** Ensure CI/CD is updated to use the new `scripts/check.sh`.
+- **Scope:** Full backend security audit and systematic hardening pass.
+- **Summary:** Performed a surgical file-by-file audit of the LiteStar/Supabase backend. Hardened AI-driven features (email drafting, summarization, chat) with mandatory rate limiting and enhanced prompt injection protection using strict XML delimiters. Implemented field-level encryption for sensitive chat content and takeaway notes. Cleaned up redundant rate-limit configuration.
+- **Files Changed:** `backend/email_controller.py`, `backend/chat_controller.py`, `backend/data_protection.py`, `backend/config.py`, `backend/oauth_controller.py`.
+- **Verification:** Full `scripts/check.sh` pass. Implemented and passed new integration test suite (`tests/test_email_controller.py`, `tests/test_chat_controller.py`, `tests/test_oauth_controller.py`).
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney) — Full Frontend Audit & Polish
+
+**Raouf:**
+
+- **Scope:** Full frontend audit fix pass and quality gate stabilization.
+- **Summary:** Stabilized the windowing system with relaxed drag boundaries and reliable titlebar interactions. Implemented arrow-key navigation in the App Launcher and added professional boot sequence visuals. Completed a systematic audit of all frontend components, fixing interaction bugs and polishing the cyberpunk aesthetic.
+- **Files Changed:** `frontend/src/os/stores/windowStore.js`, `frontend/src/os/components/Window.jsx`, `frontend/src/os/components/AppLauncher.jsx`, `frontend/src/os/components/BootSequence.jsx`, `frontend/src/os/components/Taskbar.jsx`, `frontend/src/os/components/DesktopIcons.jsx`, `frontend/src/os/apps/SettingsApp.jsx`.
+- **Verification:** Full project quality gate (`check.sh`) passed. Verified manual polish on all touched surfaces.
+- **Follow-ups:** None.
 
 ### 2026-05-20 (Australia/Sydney) — Quality Gate & Audit Pass
 

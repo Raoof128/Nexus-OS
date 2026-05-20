@@ -46,8 +46,6 @@ class BackendSettings:
     cookie_secure: bool = False
     ai_rate_limit_requests: int = 10
     ai_rate_limit_window_seconds: int = 60
-    suggest_rate_limit_requests: int = 5
-    suggest_rate_limit_window_seconds: int = 60
     auth_rate_limit_requests: int = 10
     auth_rate_limit_window_seconds: int = 60
     password_reset_redirect_url: str | None = None
@@ -159,12 +157,6 @@ def get_settings() -> BackendSettings:
         ai_rate_limit_requests=int(_get_env("AI_RATE_LIMIT_REQUESTS", "10") or "10"),
         ai_rate_limit_window_seconds=int(
             _get_env("AI_RATE_LIMIT_WINDOW_SECONDS", "60") or "60"
-        ),
-        suggest_rate_limit_requests=int(
-            _get_env("SUGGEST_RATE_LIMIT_REQUESTS", "5") or "5"
-        ),
-        suggest_rate_limit_window_seconds=int(
-            _get_env("SUGGEST_RATE_LIMIT_WINDOW_SECONDS", "60") or "60"
         ),
         auth_rate_limit_requests=int(
             _get_env("AUTH_RATE_LIMIT_REQUESTS", "10") or "10"

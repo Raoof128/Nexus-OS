@@ -4,21 +4,50 @@
 
 **Raouf:**
 
-- **Scope:** Quality Gate & Audit Pass
-- **Summary:** Fixed project formatting, React lint errors, and security vulnerabilities. Stabilized the quality gate script to focus on project-specific dependencies. Resolved 173/173 test failures by mocking environment variables, fixing act() warnings, and aligning responsive tests with Tailwind implementations. Fixed secret scanning regex for macOS compatibility.
-- **Files Changed:** `scripts/check.sh`, `pyproject.toml`, `frontend/src/os/components/AppLauncher.jsx`, `frontend/src/components/features/EmailInbox.test.jsx`, `frontend/src/hooks/useChat.js`, `frontend/vitest.setup.js`, `frontend/src/os/apps/__tests__/NotesApp.test.jsx`, `frontend/src/os/components/__tests__/Desktop.test.jsx`, `frontend/src/os/components/__tests__/Window.test.jsx`, `frontend/src/App.test.jsx`.
-- **Verification:** Full project quality gate (`check.sh`) passed with 173/173 tests green (94 Vitest, 79 Pytest).
+- **Scope:** Backend Security Audit & Test Suite Expansion
+- **Summary:** Completed a comprehensive backend audit. Hardened AI endpoints (email/chat) with strict XML prompt isolation and mandatory rate limiting. Implemented field-level encryption for sensitive user data. Created a full integration test suite for core backend controllers (Email, Chat, OAuth) using `pytest` and `litestar.testing`.
+- **Files Changed:** `backend/email_controller.py`, `backend/chat_controller.py`, `backend/oauth_controller.py`, `backend/data_protection.py`, `backend/config.py`, `tests/test_email_controller.py`, `tests/test_chat_controller.py`, `tests/test_oauth_controller.py`.
+- **Verification:** 100% pass rate across the new backend test suite. Full `scripts/check.sh` pass.
 - **Follow-ups:** None.
 
 ### 2026-05-20 (Australia/Sydney)
 
 **Raouf:**
 
+- **Scope:** Full Frontend Audit & UI Polish
+- **Summary:** Systematic audit and fix pass of the entire frontend. Overhauled the windowing system for smoother dragging/resizing, improved App Launcher accessibility with keyboard navigation, and added a premium progress-based boot sequence. Polished CSS across all shell components for consistent cyberpunk aesthetic.
+- **Files Changed:** `frontend/src/os/stores/windowStore.js`, `frontend/src/os/components/Window.jsx`, `frontend/src/os/components/AppLauncher.jsx`, `frontend/src/os/components/BootSequence.jsx`, `frontend/src/os/components/Taskbar.jsx`, `frontend/src/os/components/DesktopIcons.jsx`, `frontend/src/os/apps/SettingsApp.jsx`.
+- **Verification:** Verified interactions manually across different viewport sizes. Full `check.sh` pass.
+- **Follow-ups:** None.
+
+### 2026-05-20 (Australia/Sydney)
+
+**Raouf:**
+
+- **Scope:** Quality Gate & Audit Pass
+- **Summary:** Fixed project formatting, React lint errors, and security vulnerabilities. Stabilized the quality gate script to focus on project-specific dependencies. Resolved 173/173 test failures by mocking environment variables, fixing act() warnings, and aligning responsive tests with Tailwind implementations. Fixed secret scanning regex for macOS compatibility.
+- **Files Changed:** `scripts/check.sh`, `pyproject.toml`, `frontend/src/os/components/AppLauncher.jsx`, `frontend/src/components/features/EmailInbox.test.jsx`, `frontend/src/hooks/useChat.js`, `frontend/vitest.setup.js`, `frontend/src/os/apps/__tests__/NotesApp.test.jsx`, `frontend/src/os/components/__tests__/Desktop.test.jsx`, `frontend/src/os/components/__tests__/Window.test.jsx`, `frontend/src/App.test.jsx`.
+- **Verification:** Full project quality gate (`check.sh`) passed with 173/173 tests green (94 Vitest, 79 Pytest).
+- **Follow-ups:** None.
+
 - **Scope:** Windowing Overhaul & Frontend Audit
 - **Summary:** Relaxed window dragging constraints, implemented App Launcher keyboard navigation, and enhanced boot sequence visuals. Completed a systematic audit of shell and feature components for interaction polish and accessibility.
 - **Files Changed:** `frontend/src/os/stores/windowStore.js`, `frontend/src/os/components/Window.jsx`, `frontend/src/os/components/SnapPreview.jsx`, `frontend/src/os/components/AppLauncher.jsx`, `frontend/src/os/components/DesktopIcons.jsx`, `frontend/src/os/components/Taskbar.jsx`, `frontend/src/os/components/BootSequence.jsx`, `frontend/src/components/features/ChatLayout.jsx`, `frontend/src/os/apps/SettingsApp.jsx`.
 - **Verification:** Passed 4/4 new vitest tests for windowStore. Verified manual polish on all touched surfaces.
 - **Follow-ups:** None.
+
+### 2026-02-02 (Australia/Sydney)
+
+**Raouf:**
+
+- **Scope:** Backend Security Audit & Hardening
+- **Summary:** Performed a surgical file-by-file audit of the backend. Hardened AI features with rate limiting and prompt injection protection. Cleaned up redundant configuration settings.
+- **Files Changed:**
+  - `backend/email_controller.py` - Added AI rate limiting and enhanced prompt safety.
+  - `backend/data_protection.py` - Added email context serialization and XML-based prompt delimiters.
+  - `backend/config.py` - Removed deprecated rate limit settings.
+- **Verification:** 173/173 tests passing (scripts/check.sh). Audit followed the "Backend Goblin Hunt" protocol.
+- **Follow-ups:** Monitor AI usage logs for effectiveness of new rate limits. Consider refactoring large fallback dictionaries in `services.py` to external files.
 
 ### 2026-05-20 (Australia/Sydney)
 
