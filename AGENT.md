@@ -791,3 +791,31 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
   - `tests/test_config.py`, `tests/test_data_protection.py`, `tests/test_rate_limit.py` - Added coverage for new security controls.
 - **Verification:** Ran `python3 -m pip install -e '.[dev]'`, `npm install` in `frontend/`, `python3 -m ruff check backend tests loadtests`, `python3 -m ruff format --check backend tests loadtests`, `SUPABASE_URL=https://example.supabase.co SUPABASE_KEY=test-key SUPABASE_AUTH_KEY=test-auth-key SUPABASE_JWT_SECRET=test-secret python3 -m pytest`, `python3 -m bandit -r backend -c bandit.yaml -x backend/venv,backend/__pycache__`, `npm run lint`, `VITE_API_URL=http://127.0.0.1:8000 VITE_SENTRY_DSN=https://public@example.ingest.sentry.io/1 VITE_SENTRY_TRACES_SAMPLE_RATE=0 npm run build`, `npm audit --audit-level=high`, and an isolated `pip-audit` run in a temporary virtual environment after upgrading that venv-local `pip`. Also confirmed `SUPABASE_URL=https://example.supabase.co SUPABASE_KEY=test-key SUPABASE_AUTH_KEY=test-auth-key SUPABASE_JWT_SECRET=test-secret python3 -c "import backend.app"` succeeds.
 - **Follow-ups:** Configure Supabase project JWT lifetime to 15 minutes, enable PITR in the hosted project, provide a stable production `TAKEAWAY_ENCRYPTION_KEY`, and decide whether logout should also revoke refresh tokens server-side.
+
+---
+
+### 2026-05-25 (Australia/Sydney) — Full Kanban Audit + E2E Smoke Test (8 bugs fixed)
+
+**Raouf:**
+
+- **Scope:** End-to-end audit of all Kanban-related files followed by a Playwright smoke test covering Kanban rendering, drag-and-drop status changes, and the Jobs vault `sub_info` column layout.
+- **Summary:** Identified and fixed 8 bugs across the Kanban stack:
+  1. **`MediaDetailModal` confirmDelete state leak** — `confirmDelete` persisted across item switches because it was only reset in a `useEffect` (which is async). Switched to the React "previous value" ref pattern (reset during render when `item.id` changes) to be lint-compliant and race-free.
+  2. **Nested dialog scroll-lock race** — Multiple dialogs each directly wrote `document.body.style.overflow = ''` on unmount, causing the body to become scrollable while a second dialog was still open. Extracted a reference-counted `lockScroll()` utility (`frontend/src/lib/scrollLock.js`) and wired it into `MediaDetailModal`, `ConfirmDialog`, `AddMediaDialog`, and `EditMediaDialog`.
+  3. **Rating clear impossible via PATCH** — `data.model_dump(exclude_none=True)` silently dropped `{"rating": null}` from the Supabase update payload, making it impossible to clear a previously-set rating. Changed to `exclude_unset=True` so null values explicitly sent by the client reach Supabase.
+  4. **`useSortable` called outside `SortableContext`** — `SortableCard` used `useSortable` but `DroppableColumn` never wrapped its item list in `<SortableContext>`. Added `SortableContext` with `verticalListSortingStrategy` around column items.
+  5. **`KeyboardSensor` missing `coordinateGetter`** — Without `sortableKeyboardCoordinates`, keyboard drag produced nonsensical movements. Added `coordinateGetter: sortableKeyboardCoordinates` to the sensor config.
+  6. **Wrong collision detection algorithm** — `closestCenter` picks the closest column centre regardless of card position, causing cards to "jump" to the wrong column on the first movement. Switched to `closestCorners` which correctly matches the card corner to the nearest drop target corner.
+  7. **`EditMediaDialog` missing entry/exit animation** — An `if (!item) return null` guard before the portal prevented `AnimatePresence` from ever seeing the exit transition. Removed the guard and moved the conditional inside `AnimatePresence`; added `Motion.div` with `SPRING.snappy` for consistent open/close feel matching `MediaDetailModal`.
+  8. **Jobs vault Salary/Location column misalignment** — The `@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]` 5-column grid header had a `Salary/Location` column but no corresponding cell was rendered for job rows, so the Actions buttons landed under that header instead of the sub-info data. Added a `{isJob && ...}` sub-info cell between the Rating block and the Actions div.
+- **Files Changed:**
+  - `frontend/src/os/apps/Library/KanbanBoard.jsx` — Added `SortableContext`, `sortableKeyboardCoordinates`, `verticalListSortingStrategy`; switched collision detection to `closestCorners`.
+  - `frontend/src/os/apps/Library/MediaDetailModal.jsx` — `confirmDelete` ref-reset pattern; `lockScroll()` replacing direct `overflow` mutation; added `useRef` import.
+  - `frontend/src/os/apps/Library/AddMediaDialog.jsx` — `lockScroll()` replacing direct `overflow` mutation.
+  - `frontend/src/os/apps/Library/EditMediaDialog.jsx` — `lockScroll()` replacing direct `overflow` mutation; added `AnimatePresence` + `Motion.div` with `SPRING.snappy`; removed early `if (!item) return null` guard.
+  - `frontend/src/components/ui/ConfirmDialog.jsx` — `lockScroll()` replacing direct `overflow` mutation.
+  - `frontend/src/lib/scrollLock.js` — **NEW FILE**: Reference-counted scroll lock utility.
+  - `frontend/src/os/apps/Library/MediaVault.jsx` — Added `{isJob && <div>...{item.sub_info}</div>}` cell in job rows to fill the Salary/Location grid column.
+  - `backend/controllers.py` — `model_dump(exclude_none=True)` → `model_dump(exclude_unset=True)` in the PATCH handler.
+- **Verification:** `npm run lint` — 0 errors, 0 warnings. `python3 -m pytest` — 92/92 passed. Playwright smoke test (Kanban + drag-and-drop, 11 phases) — all passed, 17 screenshots captured. Targeted Jobs vault test — `$180k / San Francisco` confirmed visible under `Salary/Location` header.
+- **Follow-ups:** None.

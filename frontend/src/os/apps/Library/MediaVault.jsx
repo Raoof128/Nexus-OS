@@ -191,6 +191,16 @@ function MediaVault({
                 </div>
               )}
 
+              {/* Sub-info (job only — occupies the Salary/Location column in the 5-col grid) */}
+              {isJob && (
+                <div className="mb-1 font-mono text-xs text-muted-foreground @sm:mb-0">
+                  <span className="mr-1 text-[10px] text-muted-foreground @sm:hidden">
+                    {config?.subInfoLabel}:
+                  </span>
+                  {item.sub_info || ''}
+                </div>
+              )}
+
               {/* Actions */}
               <div className="flex gap-1 @sm:opacity-0 @sm:transition-opacity @sm:group-hover:opacity-100 @sm:group-focus-within:opacity-100">
                 <button

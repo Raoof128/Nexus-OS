@@ -125,7 +125,10 @@ class MediaController(Controller):
         """Update an existing media entry for the authenticated user."""
 
         user_id = request.state.user_id
-        update_data = data.model_dump(exclude_none=True)
+        # exclude_unset so that null values sent by the client (e.g. rating=null
+        # to clear a previously set rating) are included in the Supabase update,
+        # while fields omitted entirely from the request body are left untouched.
+        update_data = data.model_dump(exclude_unset=True)
         if "takeaway" in update_data:
             try:
                 update_data["takeaway"] = encrypt_takeaway(update_data["takeaway"])

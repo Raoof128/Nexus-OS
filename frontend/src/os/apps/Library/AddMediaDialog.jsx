@@ -4,6 +4,7 @@ import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Plus, X } from 'lucide-react'
 import { MEDIA_CONFIG } from '../../../lib/mediaConfig'
 import { SPRING } from '../../../lib/motion'
+import { lockScroll } from '../../../lib/scrollLock'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import MediaForm from './MediaForm'
 
@@ -18,13 +19,13 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
 
   useEffect(() => {
     if (!open) return
-    document.body.style.overflow = 'hidden'
+    const unlock = lockScroll()
     const handleEsc = (e) => {
       if (e.key === 'Escape') setOpen(false)
     }
     document.addEventListener('keydown', handleEsc)
     return () => {
-      document.body.style.overflow = ''
+      unlock()
       document.removeEventListener('keydown', handleEsc)
     }
   }, [open])

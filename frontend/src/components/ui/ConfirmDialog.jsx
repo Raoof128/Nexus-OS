@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { SPRING } from '../../lib/motion'
+import { lockScroll } from '../../lib/scrollLock'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 
 export default function ConfirmDialog({
@@ -18,13 +19,13 @@ export default function ConfirmDialog({
 
   useEffect(() => {
     if (!open) return
-    document.body.style.overflow = 'hidden'
+    const unlock = lockScroll()
     const handleEsc = (e) => {
       if (e.key === 'Escape') onCancel?.()
     }
     document.addEventListener('keydown', handleEsc)
     return () => {
-      document.body.style.overflow = ''
+      unlock()
       document.removeEventListener('keydown', handleEsc)
     }
   }, [open, onCancel])

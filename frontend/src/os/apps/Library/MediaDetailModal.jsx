@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Pencil, Star, Trash2, X } from 'lucide-react'
 import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../../lib/mediaConfig'
 import { DURATION, EASE, SPRING, TRANSITION_FADE } from '../../../lib/motion'
+import { lockScroll } from '../../../lib/scrollLock'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 
@@ -15,15 +16,24 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
   const trapRef = useFocusTrap(!!item)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
+  // Reset confirmDelete when the modal opens with a different item so a
+  // cancelled confirmation never auto-fires on reopen. Using a ref + in-render
+  // state update (React's "previous value" pattern) avoids a useEffect setState.
+  const prevItemIdRef = useRef(item?.id)
+  if (prevItemIdRef.current !== item?.id) {
+    prevItemIdRef.current = item?.id
+    if (confirmDelete) setConfirmDelete(false)
+  }
+
   useEffect(() => {
     if (!item) return
-    document.body.style.overflow = 'hidden'
+    const unlock = lockScroll()
     const handleEsc = (e) => {
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', handleEsc)
     return () => {
-      document.body.style.overflow = ''
+      unlock()
       document.removeEventListener('keydown', handleEsc)
     }
   }, [item, onClose])

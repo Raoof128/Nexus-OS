@@ -8,9 +8,9 @@ import {
   useSensor,
   useSensors,
   useDroppable,
-  closestCenter,
+  closestCorners,
 } from '@dnd-kit/core'
-import { useSortable } from '@dnd-kit/sortable'
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Plus, Sparkles } from 'lucide-react'
 import CyberCard from '../../../components/ui/CyberCard'
@@ -63,7 +63,7 @@ function KanbanBoard({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
-    useSensor(KeyboardSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
   const grouped = statuses.map((status) => {
@@ -119,7 +119,7 @@ function KanbanBoard({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={closestCorners}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
@@ -202,56 +202,58 @@ function DroppableColumn({
         </span>
       </button>
 
-      <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar @sm:space-y-4 @sm:pr-2">
-        {columnItems.map((item) => (
-          <SortableCard
-            key={item.id}
-            item={item}
-            onUpdate={onUpdate}
-            onDelete={onDelete}
-            onSelect={onSelect}
-            onEdit={onEdit}
-          />
-        ))}
-        {columnItems.length === 0 && (
-          <div className="border border-dashed border-white/10 rounded-xl p-6 text-center flex flex-col items-center justify-center gap-3 h-28 @sm:p-8 @sm:h-40">
-            <p className="font-mono text-[11px] tracking-wide text-muted-foreground/60 @sm:text-xs">
-              Empty — no {singular.toLowerCase()}s here yet.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {onAddRequest && (
-                <button
-                  type="button"
-                  onClick={() => onAddRequest(status)}
-                  className="flex items-center gap-1.5 rounded-lg bg-primary/15 px-3 py-1.5 font-mono text-[11px] font-semibold text-primary ring-1 ring-primary/30 transition-all hover:bg-primary/25 hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.2)] @sm:text-xs"
-                >
-                  <Plus size={12} />
-                  Add {singular}
-                </button>
-              )}
-              {onAiSuggest && (
-                <button
-                  type="button"
-                  onClick={() => onAiSuggest(status, mediaType)}
-                  className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 font-mono text-[11px] text-primary/70 transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary @sm:text-xs"
-                >
-                  <Sparkles size={12} />
-                  Ask AI
-                </button>
-              )}
+      <SortableContext items={columnItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+        <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar @sm:space-y-4 @sm:pr-2">
+          {columnItems.map((item) => (
+            <SortableCard
+              key={item.id}
+              item={item}
+              onUpdate={onUpdate}
+              onDelete={onDelete}
+              onSelect={onSelect}
+              onEdit={onEdit}
+            />
+          ))}
+          {columnItems.length === 0 && (
+            <div className="border border-dashed border-white/10 rounded-xl p-6 text-center flex flex-col items-center justify-center gap-3 h-28 @sm:p-8 @sm:h-40">
+              <p className="font-mono text-[11px] tracking-wide text-muted-foreground/60 @sm:text-xs">
+                Empty — no {singular.toLowerCase()}s here yet.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {onAddRequest && (
+                  <button
+                    type="button"
+                    onClick={() => onAddRequest(status)}
+                    className="flex items-center gap-1.5 rounded-lg bg-primary/15 px-3 py-1.5 font-mono text-[11px] font-semibold text-primary ring-1 ring-primary/30 transition-all hover:bg-primary/25 hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.2)] @sm:text-xs"
+                  >
+                    <Plus size={12} />
+                    Add {singular}
+                  </button>
+                )}
+                {onAiSuggest && (
+                  <button
+                    type="button"
+                    onClick={() => onAiSuggest(status, mediaType)}
+                    className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 font-mono text-[11px] text-primary/70 transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary @sm:text-xs"
+                  >
+                    <Sparkles size={12} />
+                    Ask AI
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-        {hasMore && (
-          <button
-            type="button"
-            onClick={() => onHeaderClick?.(status, mediaType)}
-            className="w-full rounded-lg border border-dashed border-primary/20 py-3 font-mono text-xs text-primary/60 transition-colors hover:border-primary/40 hover:text-primary"
-          >
-            + {total - MAX_PREVIEW} more — Open Vault
-          </button>
-        )}
-      </div>
+          )}
+          {hasMore && (
+            <button
+              type="button"
+              onClick={() => onHeaderClick?.(status, mediaType)}
+              className="w-full rounded-lg border border-dashed border-primary/20 py-3 font-mono text-xs text-primary/60 transition-colors hover:border-primary/40 hover:text-primary"
+            >
+              + {total - MAX_PREVIEW} more — Open Vault
+            </button>
+          )}
+        </div>
+      </SortableContext>
       <div className="pointer-events-none absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-[rgba(20,20,20,0.85)] to-transparent" />
     </div>
   )

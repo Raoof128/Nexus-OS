@@ -755,3 +755,31 @@
   - `tests/test_config.py`, `tests/test_data_protection.py`, `tests/test_rate_limit.py` - Added coverage for new security controls.
 - **Verification:** Ran `python3 -m pip install -e '.[dev]'`, `npm install` in `frontend/`, `python3 -m ruff check backend tests loadtests`, `python3 -m ruff format --check backend tests loadtests`, `SUPABASE_URL=https://example.supabase.co SUPABASE_KEY=test-key SUPABASE_AUTH_KEY=test-auth-key SUPABASE_JWT_SECRET=test-secret python3 -m pytest`, `python3 -m bandit -r backend -c bandit.yaml -x backend/venv,backend/__pycache__`, `npm run lint`, `VITE_API_URL=http://127.0.0.1:8000 VITE_SENTRY_DSN=https://public@example.ingest.sentry.io/1 VITE_SENTRY_TRACES_SAMPLE_RATE=0 npm run build`, `npm audit --audit-level=high`, and an isolated `pip-audit` run in a temporary virtual environment after upgrading that venv-local `pip`. Also confirmed `SUPABASE_URL=https://example.supabase.co SUPABASE_KEY=test-key SUPABASE_AUTH_KEY=test-auth-key SUPABASE_JWT_SECRET=test-secret python3 -c "import backend.app"` succeeds.
 - **Follow-ups:** Configure Supabase project JWT lifetime to 15 minutes, enable PITR in the hosted project, provide a stable production `TAKEAWAY_ENCRYPTION_KEY`, and decide whether logout should also revoke refresh tokens server-side.
+
+---
+
+### 2026-05-25 (Australia/Sydney) — Full Kanban Audit + E2E Smoke Test (8 bugs fixed)
+
+**Raouf:**
+
+- **Scope:** End-to-end audit of all Kanban-related files followed by a Playwright smoke test covering Kanban rendering, drag-and-drop status changes, and the Jobs vault `sub_info` column layout.
+- **Summary:** Identified and fixed 8 bugs across the Kanban stack:
+  1. **`MediaDetailModal` confirmDelete state leak** — Reset moved from `useEffect` to a render-time ref comparison to be lint-compliant and race-free.
+  2. **Nested dialog scroll-lock race** — Extracted reference-counted `lockScroll()` utility; wired into all four dialog components.
+  3. **Rating clear impossible via PATCH** — `model_dump(exclude_none=True)` → `exclude_unset=True` so `{"rating": null}` reaches Supabase.
+  4. **`useSortable` outside `SortableContext`** — Added `<SortableContext>` wrapping column items with `verticalListSortingStrategy`.
+  5. **`KeyboardSensor` missing `coordinateGetter`** — Added `sortableKeyboardCoordinates` for correct keyboard-drag behaviour.
+  6. **Wrong collision detection** — `closestCenter` → `closestCorners` to prevent cards jumping to wrong columns.
+  7. **`EditMediaDialog` missing animation** — Removed early-return guard; wrapped portal in `AnimatePresence` + `SPRING.snappy`.
+  8. **Jobs vault Salary/Location column gap** — Added missing `sub_info` cell for job rows in the 5-column grid.
+- **Files Changed:**
+  - `frontend/src/os/apps/Library/KanbanBoard.jsx`
+  - `frontend/src/os/apps/Library/MediaDetailModal.jsx`
+  - `frontend/src/os/apps/Library/AddMediaDialog.jsx`
+  - `frontend/src/os/apps/Library/EditMediaDialog.jsx`
+  - `frontend/src/components/ui/ConfirmDialog.jsx`
+  - `frontend/src/lib/scrollLock.js` (**new**)
+  - `frontend/src/os/apps/Library/MediaVault.jsx`
+  - `backend/controllers.py`
+- **Verification:** `npm run lint` 0 errors · `pytest` 92/92 · Playwright smoke test 11/11 phases · Jobs vault targeted test passed.
+- **Follow-ups:** None.
