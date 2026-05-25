@@ -1,5 +1,15 @@
 # Change Log
 
+### 2026-05-25 (Australia/Sydney) — Full Backend Audit — 5 Bugs Fixed
+
+**Raouf:**
+
+- **Scope:** Fresh file-by-file audit of all 21 backend source files + 17 test files (independent pass).
+- **Summary:** Found 5 bugs not caught by previous audits. **(1) HIGH — `chat_controller.py` missing `"jobs"` key in `SYSTEM_INSTRUCTIONS`:** jobs chat sessions silently fell back to the generic media assistant instead of the career-strategist persona. Added a targeted jobs system instruction covering software engineering, cybersecurity, trading, and tech roles. **(2) MEDIUM — `email_controller.py` `ai_draft` + `ai_summarize` skipped the Gemini circuit breaker:** both AI email endpoints called `client.models.generate_content()` directly with no breaker check, meaning a Gemini outage would return 502 rather than the graceful 503 the chat endpoint already returned. Wired `get_gemini_circuit_breaker()` into both endpoints (check before call, record success/failure on the call). **(3) LOW — `email_poller.py` stale inline import:** `from .email_service import encrypt_oauth_token` at line 122 had a comment "local import to avoid circular" but no circular dependency exists — `email_service.py` does not import from `email_poller.py`. Moved to the top-level import block. **(4) LOW — `observability.py` `import re` defined twice inside `_scrub_event()`:** two inline `import re` calls in the function body. Moved to module level. **(5) LOW — `oauth_controller.py` `__import__("base64")` inline call:** `_generate_pkce_pair` used `__import__("base64")` — a dynamic import inside a hot helper. Replaced with a normal top-level `import base64`.
+- **Files Changed:** `backend/chat_controller.py`, `backend/email_controller.py`, `backend/email_poller.py`, `backend/observability.py`, `backend/oauth_controller.py`.
+- **Verification:** `python3 -m ruff check backend tests` ✓, `python3 -m ruff format --check backend tests` ✓ (38 files), `python3 -m bandit -r backend -c bandit.yaml` 0 issues, `python3 -m pytest` 92/92 ✓.
+- **Follow-ups:** `GmailProvider.fetch_messages` still makes N+1 HTTP requests (1 list + 1 per message) — replace with Gmail batch API for production scale (noted in prior audit, not yet addressed).
+
 ### 2026-05-25 (Australia/Sydney)
 
 **Raouf:**

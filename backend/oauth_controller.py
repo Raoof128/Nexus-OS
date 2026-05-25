@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import datetime as dt
 import hashlib
 import hmac
@@ -58,7 +59,7 @@ def _generate_pkce_pair() -> tuple[str, str]:
     verifier = secrets.token_urlsafe(64)
     digest = hashlib.sha256(verifier.encode("ascii")).digest()
     challenge = urllib.parse.quote(
-        __import__("base64").urlsafe_b64encode(digest).rstrip(b"=").decode("ascii"),
+        base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii"),
         safe="",
     )
     return verifier, challenge

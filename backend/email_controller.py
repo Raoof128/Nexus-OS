@@ -26,7 +26,11 @@ try:
     )
     from .email_service import decrypt_oauth_token, get_provider
     from .rate_limit import enforce_ai_rate_limit
-    from .services import create_supabase_user_client, get_genai_client
+    from .services import (
+        create_supabase_user_client,
+        get_gemini_circuit_breaker,
+        get_genai_client,
+    )
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
     from data_protection import (
@@ -44,7 +48,11 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
     )
     from email_service import decrypt_oauth_token, get_provider
     from rate_limit import enforce_ai_rate_limit
-    from services import create_supabase_user_client, get_genai_client
+    from services import (
+        create_supabase_user_client,
+        get_gemini_circuit_breaker,
+        get_genai_client,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -511,6 +519,13 @@ class EmailController(Controller):
         if not client:
             raise HTTPException(status_code=503, detail="AI service not configured")
 
+        breaker = get_gemini_circuit_breaker()
+        if not breaker.allows_requests():
+            raise HTTPException(
+                status_code=503,
+                detail="AI service temporarily unavailable. Please try again shortly.",
+            )
+
         instruction = sanitize_chat_message_for_llm(
             data.instruction or "Write a professional reply."
         )
@@ -533,8 +548,10 @@ class EmailController(Controller):
                 model=settings.gemini_model,
                 contents=prompt,
             )
+            breaker.record_success()
         except Exception as exc:  # pragma: no cover
             logger.exception("Gemini draft failed for email %s", data.email_id)
+            breaker.record_failure()
             raise HTTPException(status_code=502, detail="AI draft failed") from exc
 
         return {"draft": response.text or ""}
@@ -570,6 +587,13 @@ class EmailController(Controller):
         if not client:
             raise HTTPException(status_code=503, detail="AI service not configured")
 
+        breaker = get_gemini_circuit_breaker()
+        if not breaker.allows_requests():
+            raise HTTPException(
+                status_code=503,
+                detail="AI service temporarily unavailable. Please try again shortly.",
+            )
+
         context = serialize_email_context_for_llm(emails)
 
         prompt = (
@@ -585,8 +609,10 @@ class EmailController(Controller):
                 model=settings.gemini_model,
                 contents=prompt,
             )
+            breaker.record_success()
         except Exception as exc:  # pragma: no cover
             logger.exception("Gemini summarize failed")
+            breaker.record_failure()
             raise HTTPException(status_code=502, detail="AI summarize failed") from exc
 
         return {"summary": response.text or ""}

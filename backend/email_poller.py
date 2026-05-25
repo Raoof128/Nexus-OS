@@ -11,11 +11,21 @@ import httpx
 
 try:
     from .config import get_settings
-    from .email_service import EmailMessage, decrypt_oauth_token, get_provider
+    from .email_service import (
+        EmailMessage,
+        decrypt_oauth_token,
+        encrypt_oauth_token,
+        get_provider,
+    )
     from .services import create_supabase_service_client
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
-    from email_service import EmailMessage, decrypt_oauth_token, get_provider
+    from email_service import (
+        EmailMessage,
+        decrypt_oauth_token,
+        encrypt_oauth_token,
+        get_provider,
+    )
     from services import create_supabase_service_client
 
 if TYPE_CHECKING:
@@ -118,8 +128,6 @@ async def refresh_token_if_needed(account: dict, settings) -> str:
 
     new_access_token = token_data.get("access_token", access_token)
     new_expires_in = int(token_data.get("expires_in", 3600))
-
-    from .email_service import encrypt_oauth_token  # local import to avoid circular
 
     encrypted_access = encrypt_oauth_token(new_access_token)
     new_expires_at = (

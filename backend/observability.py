@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import sentry_sdk
@@ -44,8 +45,6 @@ def _scrub_event(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any]
                 body[key] = "[Filtered]"
     elif isinstance(body, str):
         # Best-effort: redact obvious key=value patterns in form-encoded strings
-        import re
-
         for key in _SCRUB_KEYS:
             body = re.sub(
                 rf"({re.escape(key)}=)[^&\"'\s]*",
@@ -58,8 +57,6 @@ def _scrub_event(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any]
     # Scrub sensitive query parameters
     qs = request.get("query_string", "")
     if qs:
-        import re
-
         for key in _SCRUB_KEYS:
             qs = re.sub(
                 rf"({re.escape(key)}=)[^&\"'\s]*",

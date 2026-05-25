@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-25 (Australia/Sydney) — Full Backend Audit (5 Fixes)
+
+**Raouf:**
+
+- **Scope:** Independent file-by-file audit of all 21 backend source files (second dedicated backend pass).
+- **Summary:** Found and fixed 5 bugs. High: jobs chat sessions used the generic system instruction (missing "jobs" key in `SYSTEM_INSTRUCTIONS`). Medium: `ai_draft` and `ai_summarize` bypassed the Gemini circuit breaker. Low: stale inline import in `email_poller.py` (false "circular" comment), double inline `import re` in `observability.py`, `__import__("base64")` in `oauth_controller.py`.
+- **Files Changed:** `chat_controller.py`, `email_controller.py`, `email_poller.py`, `observability.py`, `oauth_controller.py`.
+- **Verification:** ruff ✓, format ✓, bandit 0 issues, 92/92 pytest ✓.
+- **Follow-ups:** Gmail N+1 fetch pattern (noted in 2026-05-20 audit) — still outstanding.
+
 ### 2026-05-25 (Australia/Sydney) — Full Frontend Audit (13 + 2 Fixes)
 
 **Raouf:**
