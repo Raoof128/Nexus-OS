@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, KeyRound, LogIn, UserPlus } from 'lucide-react'
 import { authFetch } from '../../../lib/apiClient'
@@ -87,6 +87,16 @@ export default function AuthPanel() {
     setForgotSent(false)
     setActive(panel)
   }
+
+  // Escape navigates sub-panels back to login (matching the "[ESC] Back to login" hint)
+  useEffect(() => {
+    if (active === 'login') return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') slideTo('login')
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [active])
 
   const handleLogin = async (event) => {
     event.preventDefault()

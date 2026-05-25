@@ -47,6 +47,16 @@ export default function ResetPasswordPage({
   const submittingRef = useRef(false)
   const [exchanging, setExchanging] = useState(Boolean(tokenHash && !initialAccessToken))
 
+  // Escape key maps to the "[ESC] Cancel" button when the form is active
+  useEffect(() => {
+    if (!accessToken || exchanging) return
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onComplete()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [accessToken, exchanging, onComplete])
+
   // Exchange token_hash for a session via Supabase verifyOtp
   useEffect(() => {
     if (!tokenHash || accessToken) return

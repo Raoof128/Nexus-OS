@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { ArrowLeft, Menu, Search } from 'lucide-react'
+import { ArrowLeft, Menu, Search, X } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
 import { useEmailAccounts } from '../../../hooks/useEmailAccounts'
 import { useEmails } from '../../../hooks/useEmails'
@@ -216,7 +216,7 @@ export default function EmailApp() {
                 className="text-muted-foreground/40 hover:text-white"
                 aria-label="Clear search"
               >
-                ×
+                <X size={10} />
               </button>
             )}
           </div>

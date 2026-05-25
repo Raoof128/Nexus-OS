@@ -210,7 +210,7 @@ export default function BootSequence({ onComplete }) {
                       className="font-mono text-[10px]"
                       style={{ color: 'hsl(170 76% 63% / 0.7)' }}
                     >
-                      v1.0.0
+                      v2.1.0
                     </div>
                   </div>
                 </Motion.div>

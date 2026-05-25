@@ -52,6 +52,10 @@ function applyAccentToDOM(colorKey) {
   root.style.setProperty('--ring', preset.primary)
 }
 
+function applyUiScaleToDOM(scale) {
+  document.documentElement.dataset.uiScale = scale ?? 'default'
+}
+
 // ── Synchronous boot hydration ────────────────────────────────────────────────
 // Read persisted settings from localStorage NOW, at module evaluation time.
 // ESM scripts run after DOMContentLoaded so document.documentElement is ready.
@@ -77,6 +81,9 @@ const _boot = readPersistedSettings()
 if (_boot.accentColor) {
   applyAccentToDOM(_boot.accentColor)
 }
+
+// Apply saved UI scale immediately to avoid layout shift on load.
+applyUiScaleToDOM(_boot.uiScale ?? 'default')
 
 // Guard stale wallpaper values — if the user had a removed preset ('grid',
 // 'dots', 'solid', 'stars') saved in localStorage, fall back to 'mesh'.
@@ -115,6 +122,7 @@ export const useSettingsStore = create((set, get) => ({
 
   setUiScale: (scale) => {
     set({ uiScale: scale })
+    applyUiScaleToDOM(scale)
     saveToStorage(get())
   },
 

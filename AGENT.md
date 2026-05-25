@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-25 (Australia/Sydney) — Full Frontend Audit (13 + 2 Fixes)
+
+**Raouf:**
+
+- **Scope:** Two-pass full frontend audit of all 65 source files.
+- **Summary:** Pass 1 (13 fixes): version strings, Framer Motion key misuse, Escape handlers, aria-pressed/aria-label, window.confirm() → ConfirmDialog, UI Scale DOM application, loading states, icon quality. Pass 2 (2 fixes): TerminalApp neofetch `v1.0.0`→`v2.1.0`; ResetPasswordPage Escape key handler matching "[ESC] Cancel" label.
+- **Files Changed:** 15 frontend files across passes (see CHANGELOG.md for full list).
+- **Verification:** lint 0 errors, 87/87 vitest, build clean after both passes.
+- **Follow-ups:** None.
+
 ### 2026-05-20 (Australia/Sydney) — Full Production Deployment
 
 **Raouf:**
@@ -818,4 +828,27 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
   - `frontend/src/os/apps/Library/MediaVault.jsx` — Added `{isJob && <div>...{item.sub_info}</div>}` cell in job rows to fill the Salary/Location grid column.
   - `backend/controllers.py` — `model_dump(exclude_none=True)` → `model_dump(exclude_unset=True)` in the PATCH handler.
 - **Verification:** `npm run lint` — 0 errors, 0 warnings. `python3 -m pytest` — 92/92 passed. Playwright smoke test (Kanban + drag-and-drop, 11 phases) — all passed, 17 screenshots captured. Targeted Jobs vault test — `$180k / San Francisco` confirmed visible under `Salary/Location` header.
+- **Follow-ups:** None.
+
+### 2026-05-25 (Australia/Sydney) — Full Frontend UI/UX Audit & Fix Pass
+
+**Raouf:**
+
+- **Scope:** File-by-file UI/UX audit of all frontend source files. Checked accessibility, correctness, consistency, animations, and browser-API usage.
+- **Summary:** Found and fixed 13 issues across 11 files:
+  1. **BootSequence.jsx** — Version string was `v1.0.0` (should be `v2.1.0` matching AboutTab); fixed.
+  2. **LockScreen.jsx** — Framer Motion `transition.enter`/`transition.exit` are invalid keys silently ignored; replaced with `exit={{ ..., transition: { duration } }}` and flat `transition` prop.
+  3. **AuthPanel.jsx** — "[ESC] Back to login" hint had no Escape handler; added `useEffect` that calls `slideTo('login')` on Escape when a sub-panel is active.
+  4. **NotesApp.jsx** — Edit/Preview toolbar buttons missing `aria-pressed`; added. Textarea missing `aria-label`; added `aria-label="Note editor"`.
+  5. **SettingsApp.jsx** — `window.confirm()` (blocks UI, ignores keyboard) replaced with `ConfirmDialog` for Factory Reset. UI Scale buttons given `aria-pressed`. Imported `ConfirmDialog`.
+  6. **settingsStore.js** — `setUiScale` stored scale but never applied it to the DOM. Added `applyUiScaleToDOM()` (sets `data-ui-scale` on `<html>`), called on init and on every `setUiScale` call.
+  7. **index.css** — Added `[data-ui-scale="compact"]` (13px base) and `[data-ui-scale="large"]` (16px base) CSS rules to make UI Scale setting visible.
+  8. **LibraryApp.jsx** — Loading spinner `role="status"` lacked `aria-label`; added. Error state had no retry affordance; added Retry button.
+  9. **FileManagerApp.jsx** — Toolbar New Folder/File buttons had `title` only, not `aria-label`; added. Row Rename/Delete buttons same issue; made `aria-label` include the entry name.
+  10. **LazyAICmdPalette.jsx** — Trigger button text hidden on mobile with no label fallback; added `aria-label="Open AI Command Palette"` to button.
+  11. **ChatSidebar.jsx** — Category `<select>` used `appearance-none` with no custom chevron; wrapped in relative container and added `<ChevronDown>` overlay icon.
+  12. **AICmdPalette.jsx** — Suggesting loading div had no ARIA live region; added `role="status"` and `aria-label="Loading suggestions"`.
+  13. **EmailApp.jsx** — Clear search button used raw `×` Unicode; replaced with `<X size={10} />` icon from lucide-react for consistent rendering.
+- **Files Changed:** `frontend/src/os/components/BootSequence.jsx`, `frontend/src/os/components/LockScreen.jsx`, `frontend/src/os/apps/Auth/AuthPanel.jsx`, `frontend/src/os/apps/NotesApp.jsx`, `frontend/src/os/apps/SettingsApp.jsx`, `frontend/src/os/stores/settingsStore.js`, `frontend/src/index.css`, `frontend/src/os/apps/Library/LibraryApp.jsx`, `frontend/src/os/apps/FileManagerApp.jsx`, `frontend/src/os/apps/Chat/LazyAICmdPalette.jsx`, `frontend/src/os/apps/Chat/ChatSidebar.jsx`, `frontend/src/os/apps/Chat/AICmdPalette.jsx`, `frontend/src/os/apps/Email/EmailApp.jsx`.
+- **Verification:** `npm run lint` — 0 errors. `npm run test -- --run` — 87/87 passed. `npm run build` — clean build, no warnings.
 - **Follow-ups:** None.

@@ -123,6 +123,7 @@ export default function NotesApp({ windowId }) {
           <button
             type="button"
             onClick={() => setPreview(false)}
+            aria-pressed={!preview}
             className={`flex items-center gap-1 rounded-md px-2 py-1 font-mono text-[10px] transition-all ${
               !preview ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-white'
             }`}
@@ -133,6 +134,7 @@ export default function NotesApp({ windowId }) {
           <button
             type="button"
             onClick={() => setPreview(true)}
+            aria-pressed={preview}
             className={`flex items-center gap-1 rounded-md px-2 py-1 font-mono text-[10px] transition-all ${
               preview ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-white'
             }`}
@@ -157,6 +159,7 @@ export default function NotesApp({ windowId }) {
           value={content}
           onChange={handleChange}
           placeholder="// start typing..."
+          aria-label="Note editor"
           className="flex-1 resize-none bg-transparent p-4 font-mono text-xs leading-relaxed text-white/80 placeholder-muted-foreground/30 focus:outline-none custom-scrollbar"
           spellCheck={false}
         />

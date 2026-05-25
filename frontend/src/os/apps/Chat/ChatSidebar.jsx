@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { FolderOpen, Loader2, MessageCircle, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, FolderOpen, Loader2, MessageCircle, Plus, Trash2 } from 'lucide-react'
 import { MEDIA_CONFIG, MEDIA_TYPES, TYPE_ICONS } from '../../../lib/mediaConfig'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 
@@ -86,18 +86,25 @@ export default function ChatSidebar({
             maxLength={200}
             autoFocus
           />
-          <select
-            value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
-            aria-label="Session category"
-            className="w-full appearance-none rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 heading-ui text-xs text-white focus:border-primary/30 focus:outline-none"
-          >
-            {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat} className="bg-neutral-900 text-white">
-                {CATEGORY_CONFIG[cat].label}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              aria-label="Session category"
+              className="w-full appearance-none rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 pr-8 heading-ui text-xs text-white focus:border-primary/30 focus:outline-none"
+            >
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat} className="bg-neutral-900 text-white">
+                  {CATEGORY_CONFIG[cat].label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={12}
+              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+          </div>
           <button
             type="submit"
             disabled={isCreating}

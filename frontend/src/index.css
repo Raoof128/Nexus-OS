@@ -387,6 +387,17 @@
   letter-spacing: 0.04em;
 }
 
+/* ── UI Scale ────────────────────────────────────────────── */
+[data-ui-scale='compact'] {
+  font-size: 13px;
+}
+[data-ui-scale='compact'] .glass-panel {
+  padding: 0.625rem;
+}
+[data-ui-scale='large'] {
+  font-size: 16px;
+}
+
 /* ── Reduced motion ──────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .ambient-orbs::before,

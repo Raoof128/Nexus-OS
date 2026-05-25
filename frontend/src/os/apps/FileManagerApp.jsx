@@ -162,6 +162,7 @@ export default function FileManagerApp() {
             type="button"
             onClick={() => setCreating('folder')}
             className="rounded-md p-1 text-muted-foreground hover:bg-primary/15 hover:text-primary"
+            aria-label="New folder"
             title="New folder"
           >
             <FolderPlus size={12} />
@@ -170,6 +171,7 @@ export default function FileManagerApp() {
             type="button"
             onClick={() => setCreating('file')}
             className="rounded-md p-1 text-muted-foreground hover:bg-primary/15 hover:text-primary"
+            aria-label="New file"
             title="New file"
           >
             <FilePlus size={12} />
@@ -254,6 +256,7 @@ export default function FileManagerApp() {
                   type="button"
                   onClick={() => handleRenameStart(name)}
                   className="rounded p-1 text-muted-foreground hover:bg-primary/15 hover:text-primary"
+                  aria-label={`Rename ${name}`}
                   title="Rename"
                 >
                   <Pencil size={10} />
@@ -262,6 +265,7 @@ export default function FileManagerApp() {
                   type="button"
                   onClick={() => handleDelete(name)}
                   className="rounded p-1 text-muted-foreground hover:bg-red-500/15 hover:text-red-400"
+                  aria-label={`Delete ${name}`}
                   title="Delete"
                 >
                   <Trash2 size={10} />

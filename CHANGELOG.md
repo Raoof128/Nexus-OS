@@ -1,5 +1,25 @@
 # Change Log
 
+### 2026-05-25 (Australia/Sydney)
+
+**Raouf:**
+
+- **Scope:** Full frontend audit — fresh pass (Task 2) — 2 bug fixes
+- **Summary:** Independent file-by-file audit of all 65 frontend source files. Found 2 bugs: (1) `TerminalApp.jsx` `neofetch` command hardcoded `nexus-os@1.0.0` — updated to `nexus-os@v2.1.0` to match `SettingsApp.jsx` AboutTab. (2) `ResetPasswordPage.jsx` "[ESC] Cancel" button had no Escape key handler — label implied Escape worked but didn't. Added `useEffect` that calls `onComplete()` on Escape when the form is active (`accessToken` truthy and not `exchanging`), matching the AuthPanel pattern.
+- **Files Changed:** `frontend/src/os/apps/TerminalApp.jsx`, `frontend/src/os/apps/Auth/ResetPasswordPage.jsx`.
+- **Verification:** `npm run lint` 0 errors, 87/87 vitest ✓, `npm run build` clean (2.11s).
+- **Follow-ups:** None.
+
+### 2026-05-25 (Australia/Sydney)
+
+**Raouf:**
+
+- **Scope:** Full frontend audit — 13 UI/UX fixes (Task 1)
+- **Summary:** Fixed 13 issues from prior audit. BootSequence `v1.0.0`→`v2.1.0`. LockScreen invalid Framer Motion `transition.enter`/`transition.exit` keys fixed. AuthPanel: added Escape key handler for register/forgot states. NotesApp: `aria-pressed` on Edit/Preview toggle, `aria-label` on textarea. SettingsApp: `window.confirm()` replaced with ConfirmDialog, `aria-pressed` on UI Scale buttons. settingsStore: `applyUiScaleToDOM()` called on boot and in `setUiScale` so UI Scale actually takes effect. `index.css`: added compact/large CSS rules. LibraryApp: `aria-label` on loading spinner, Retry button on error state. FileManagerApp: `aria-label` on all icon buttons. LazyAICmdPalette: `aria-label` on trigger button. AICmdPalette: `role`/`aria-label` on loading div. ChatSidebar: ChevronDown icon overlay on bare `<select>`. EmailApp: `<X>` icon replacing raw `×` character.
+- **Files Changed:** `BootSequence.jsx`, `LockScreen.jsx`, `AuthPanel.jsx`, `NotesApp.jsx`, `SettingsApp.jsx`, `settingsStore.js`, `index.css`, `LibraryApp.jsx`, `FileManagerApp.jsx`, `LazyAICmdPalette.jsx`, `AICmdPalette.jsx`, `ChatSidebar.jsx`, `EmailApp.jsx`.
+- **Verification:** `npm run lint` 0 errors, 87/87 vitest ✓, `npm run build` clean.
+- **Follow-ups:** None.
+
 ### 2026-05-20 (Australia/Sydney)
 
 **Raouf:**
@@ -783,3 +803,23 @@
   - `backend/controllers.py`
 - **Verification:** `npm run lint` 0 errors · `pytest` 92/92 · Playwright smoke test 11/11 phases · Jobs vault targeted test passed.
 - **Follow-ups:** None.
+
+## [2026-05-25] — Full Frontend UI/UX Audit & Fix Pass
+
+**Raouf:**
+
+- Fixed 13 UI/UX issues found in a file-by-file frontend audit.
+- **BootSequence:** version string corrected `v1.0.0` → `v2.1.0`.
+- **LockScreen:** removed invalid Framer Motion `transition.enter/exit` keys that were silently ignored.
+- **AuthPanel:** added Escape key handler for register/forgot → login navigation (matching the "[ESC] Back to login" hint).
+- **NotesApp:** added `aria-pressed` to Edit/Preview buttons; added `aria-label` to textarea.
+- **SettingsApp:** replaced `window.confirm()` with `ConfirmDialog` for factory reset; added `aria-pressed` to UI Scale buttons.
+- **settingsStore:** added `applyUiScaleToDOM()` — now actually applies `data-ui-scale` to `<html>` on init and change.
+- **index.css:** added `[data-ui-scale="compact"]` and `[data-ui-scale="large"]` CSS rules.
+- **LibraryApp:** added `aria-label` to loading spinner; added Retry button to error state.
+- **FileManagerApp:** added `aria-label` to all toolbar and row action buttons.
+- **LazyAICmdPalette:** added `aria-label="Open AI Command Palette"` to trigger button.
+- **ChatSidebar:** added `<ChevronDown>` icon overlay to `appearance-none` category select.
+- **AICmdPalette:** added `role="status"` + `aria-label` to suggesting loading div.
+- **EmailApp:** replaced raw `×` char in clear-search button with `<X>` lucide icon.
+- **Verification:** lint 0 · 87/87 tests · build clean.

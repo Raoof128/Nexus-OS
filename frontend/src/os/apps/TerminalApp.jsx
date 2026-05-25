@@ -97,7 +97,7 @@ function buildCommands({ session, windows, zStack }) {
         type: 'info',
         text: [
           `  ╔═══╗`,
-          `  ║ N ║   nexus-os@1.0.0`,
+          `  ║ N ║   nexus-os@v2.1.0`,
           `  ╚═══╝   ──────────────`,
           `          OS: Nexus Browser OS`,
           `          Shell: nexus-terminal`,

@@ -254,11 +254,8 @@ export default function LockScreen({ onUnlock }) {
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ y: '-100%', opacity: 0 }}
-          transition={{
-            enter: { duration: 0.4, ease: 'easeOut' },
-            exit: { duration: 0.5, ease: 'easeInOut' },
-          }}
+          exit={{ y: '-100%', opacity: 0, transition: { duration: 0.5, ease: 'easeInOut' } }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
           aria-label="Lock screen — click or press any key to unlock"
           role="dialog"
           aria-modal
