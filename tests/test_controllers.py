@@ -131,3 +131,12 @@ class TestMediaControllerCRUD:
 
         response = client.get("/media")
         assert response.status_code == HTTP_502_BAD_GATEWAY
+
+    @patch("backend.controllers.create_supabase_user_client")
+    def test_get_media_rejects_invalid_type(self, mock_client_fn, client):
+        """An invalid ?type= is a 422 — not a silent fall-through to all rows."""
+
+        response = client.get("/media?type=bogus")
+        assert response.status_code == 422
+        # The Supabase client must never be reached for a rejected filter.
+        mock_client_fn.assert_not_called()

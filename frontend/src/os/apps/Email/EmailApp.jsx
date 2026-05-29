@@ -167,7 +167,7 @@ export default function EmailApp() {
             <button
               type="button"
               onClick={() => setMobileSidebarOpen(true)}
-              className="mr-1 rounded-md p-1 text-muted-foreground hover:text-white focus-visible:ring-2 focus-visible:ring-primary @md:hidden"
+              className="mr-1 rounded-md p-1 text-muted-foreground hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary @md:hidden"
               aria-label="Open folder menu"
             >
               <Menu size={14} />
@@ -185,7 +185,7 @@ export default function EmailApp() {
               setReplyTo(null)
               setComposeOpen(true)
             }}
-            className="heading-ui rounded-md bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary ring-1 ring-inset ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.15)] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            className="heading-ui rounded-md bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary ring-1 ring-inset ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             aria-label="Compose new email"
           >
             Compose

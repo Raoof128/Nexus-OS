@@ -862,3 +862,81 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 - **Files Changed:** `frontend/src/os/components/BootSequence.jsx`, `frontend/src/os/components/LockScreen.jsx`, `frontend/src/os/apps/Auth/AuthPanel.jsx`, `frontend/src/os/apps/NotesApp.jsx`, `frontend/src/os/apps/SettingsApp.jsx`, `frontend/src/os/stores/settingsStore.js`, `frontend/src/index.css`, `frontend/src/os/apps/Library/LibraryApp.jsx`, `frontend/src/os/apps/FileManagerApp.jsx`, `frontend/src/os/apps/Chat/LazyAICmdPalette.jsx`, `frontend/src/os/apps/Chat/ChatSidebar.jsx`, `frontend/src/os/apps/Chat/AICmdPalette.jsx`, `frontend/src/os/apps/Email/EmailApp.jsx`.
 - **Verification:** `npm run lint` — 0 errors. `npm run test -- --run` — 87/87 passed. `npm run build` — clean build, no warnings.
 - **Follow-ups:** None.
+
+### 2026-05-30 (Australia/Sydney) — Full Frontend UI/UX Audit & Fix Pass (round 2)
+
+**Raouf:**
+
+- **Scope:** Senior UI/UX / a11y file-by-file audit of the whole OS shell and every app, with direct fixes.
+- **Summary:** Codebase was already strong from prior audits. Fixed 5 concrete issues:
+  1. **NotificationToast.jsx** — `mono` class is undefined in `index.css`; toast message + timestamp weren't monospace. Changed to `font-mono`.
+  2. **AppLauncher.jsx** — no Escape-to-close (keyboard a11y gap, inconsistent with ContextMenu/LockScreen); added document-level Escape handler. Also guarded arrow-key navigation against modulo-by-zero when search has no matches.
+  3. **ContextMenu.jsx** — removed unused `ChevronDown` import (dead code hidden from ESLint by the `^[A-Z_]` varsIgnorePattern).
+  4. **FileManagerApp.jsx** — hover-only row actions (rename/delete) were unreachable on touch; added `pointer-coarse:opacity-100`.
+  5. **PlaceholderApp.jsx** — deleted unused "Coming Soon" fake-UI component (not in appRegistry, referenced nowhere).
+- **Files Changed:** `frontend/src/os/components/NotificationToast.jsx`, `frontend/src/os/components/AppLauncher.jsx`, `frontend/src/os/components/ContextMenu.jsx`, `frontend/src/os/apps/FileManagerApp.jsx`, `frontend/src/os/components/PlaceholderApp.jsx` (deleted).
+- **Verification:** `npm run lint` (0 errors), `npm run test` (87/87 passed), `npm run build` (clean — validates the new `pointer-coarse:` variant).
+- **Follow-ups:** None. (Noted but not changed: titlebar/desktop-icon controls use default focus outlines; `SnapPreview` exit animation never plays due to early `return null` — both cosmetic/low-risk.)
+
+### 2026-05-30 (Australia/Sydney) — Frontend UI/UX Polish Pass (a11y + empty/anim states)
+
+**Raouf:**
+
+- **Scope:** Polish + accessibility improvements after the round-2 audit. High-impact, minimal, identity-preserving — no redesign, no new dependencies.
+- **Summary:**
+  1. **`index.css`** — added one app-wide neon `:focus-visible` outline (`:where(...)`, specificity 0) so keyboard focus is visible on every icon-only OS control (window buttons, taskbar, desktop icons, context menu). Uses `outline` to avoid clipping by `overflow`/mask containers; form fields opt out via their existing `outline-none`.
+  2. **`SnapPreview.jsx`** — fixed the snap-zone overlay exit animation (early `return null` was unmounting `AnimatePresence`); wrapper now persists and the child is keyed on the hint.
+  3. **`NotesApp.jsx`** — added an empty state for Preview mode on a blank note (was a blank pane). Sanitization path unchanged.
+- **Files Changed:** `frontend/src/index.css`, `frontend/src/os/components/SnapPreview.jsx`, `frontend/src/os/apps/NotesApp.jsx`.
+- **Verification:** `npm run lint` (0 errors), `npm run test` (87/87), `npm run build` (clean; focus-ring rule confirmed present in the built CSS).
+- **Follow-ups:** None. (Note: a few buttons with their own Tailwind ring will show ring + outline — same colour, acceptable emphasis.)
+
+### 2026-05-30 (Australia/Sydney) — Focus-ring de-duplication, FileManager delete-safety, CLAUDE.md refresh
+
+**Raouf:**
+
+- **Scope:** Resolve the double-ring cosmetic issue from the polish pass, add delete-safety to File Manager, and bring CLAUDE.md in line with the real app.
+- **Summary:**
+  1. **Double focus ring** — added `focus-visible:outline-none` to the 13 button components that render their own branded `focus-visible:ring*`, so each control shows a single ring (branded where defined, global neon outline elsewhere). Inputs already opted out via `focus:outline-none`.
+  2. **FileManagerApp.jsx** — delete now goes through the existing focus-trapped `ConfirmDialog` with a folder-aware, irreversible-action message (was immediate/silent).
+  3. **CLAUDE.md** — rewrote the intro + frontend Architecture tree from the stale "Nexus Archive / components/features" layout to the live "Nexus OS" shell (`os/Desktop.jsx`, `os/stores`, `os/components`, `os/apps`, `components/ui`); added Key Patterns for the app registry and the global focus ring.
+- **Files Changed:** `frontend/src/index.css`, `frontend/src/components/{ui/CyberCard,ui/PasswordInput,layout/Navbar,ui/ConfirmDialog}.jsx`, `frontend/src/os/apps/Chat/{ChatWindow,ChatSidebar}.jsx`, `frontend/src/os/apps/Library/{MediaDetailModal,MediaVault}.jsx`, `frontend/src/os/apps/Email/{EmailToolbar,EmailList,FolderSidebar,ComposeModal,EmailApp}.jsx`, `frontend/src/os/apps/FileManagerApp.jsx`, `CLAUDE.md`.
+- **Verification:** `npm run lint` (0 errors), `npm run test` (87/87), `npm run build` (clean).
+- **Follow-ups:** None.
+
+### 2026-05-30 (Australia/Sydney) — Frontend polish pass: empty-state intentionality
+
+**Raouf:**
+
+- **Scope:** Full visual/motion/responsive/a11y re-audit + targeted polish. Codebase already production-grade from prior rounds, so changes were surgical.
+- **Summary:**
+  1. **MediaVault.jsx** — replaced the bare `NO_RECORDS_FOUND` box with a search-aware empty state: SearchX + "No matches for '<query>'" + a Clear-search button when filtering, or the media-type icon + "Nothing in <status> yet." when empty.
+  2. **EmailList.jsx** — added an `Inbox` icon to the empty state for consistency with EmailReader.
+- **Verified already-handled (no change):** global reduced-motion via `<MotionConfig reducedMotion="user">`, app-wide `:focus-visible` neon ring, and strong loading/empty/error + touch states across CyberCard, EmailReader, Kanban, Chat, Auth.
+- **Files Changed:** `frontend/src/os/apps/Library/MediaVault.jsx`, `frontend/src/os/apps/Email/EmailList.jsx`.
+- **Verification:** `npm run lint` (0 errors), `npm run test` (87/87), `npm run build` (clean).
+- **Follow-ups:** None.
+
+### 2026-05-30 (Australia/Sydney) — Backend audit: email ghost-detection data-integrity fix
+
+**Raouf:**
+
+- **Scope:** Full backend security/production-readiness audit + fix.
+- **Summary:** Backend is production-grade (zero-trust cookie auth, RLS-scoped clients, per-user AI rate limits, PKCE OAuth with constant-time state checks, prompt-injection scrubbing, Fernet encryption, Sentry PII scrubbing). Found and fixed one real bug:
+  - **Email poller ghost detection** compared the DB against the small recent `fetch_messages` page and marked every other stored email `folder="deleted"` each poll — collapsing the inbox to the last ~10–100 messages. Rewired to use the full `fetch_message_ids` list (previously dead code), scoped read + delete to `folder == "inbox"`, and skip the cycle if the full fetch fails.
+- **Files Changed:** `backend/email_poller.py`, `tests/test_email_poller.py` (+2 regression tests).
+- **Verification:** `ruff check` (pass), `ruff format --check` (pass), `pytest` (94 passed), `import backend.app` (OK), `bandit` (no issues).
+- **Follow-ups:** Add pagination to `fetch_message_ids` (500-cap) for very large mailboxes; minor: `get_media` invalid-`type` handling; compose address format validation. None blocking.
+
+### 2026-05-30 (Australia/Sydney) — Backend follow-ups: pagination, type validation, recipient validation
+
+**Raouf:**
+
+- **Scope:** Resolve the three non-blocking follow-ups from the backend audit.
+- **Summary:**
+  1. `email_service.fetch_message_ids` (Gmail + Graph) now paginates fully (nextPageToken / @odata.nextLink) with a 20-page cap — ghost detection sees the complete inbox even for >500-message mailboxes.
+  2. `controllers.get_media` returns 422 for an invalid `?type=` (validated before the try/except) instead of silently returning all types.
+  3. `ComposeEmailRequest` validates `to/cc/bcc` recipient format (clear 422 on malformed).
+- **Files Changed:** `backend/email_service.py`, `backend/controllers.py`, `backend/email_schemas.py`, `tests/test_email_service.py`, `tests/test_email_schemas.py`, `tests/test_controllers.py`.
+- **Verification:** `ruff check`/`ruff format` (pass), `pytest` (99 passed, +5), `import backend.app` (OK), `bandit` (no issues).
+- **Follow-ups:** Live-account post-deploy sanity check that the inbox no longer collapses (item 4).

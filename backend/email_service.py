@@ -24,6 +24,10 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
 _GMAIL_BASE = "https://gmail.googleapis.com/gmail/v1/users/me"
 _GRAPH_BASE = "https://graph.microsoft.com/v1.0/me"
 
+# Safety cap on pagination when listing all inbox message ids for ghost
+# detection: 20 pages x 500 ids = up to 10k messages per account.
+_MAX_ID_PAGES = 20
+
 _GMAIL_SYSTEM_LABELS = {
     "INBOX",
     "UNREAD",
@@ -384,14 +388,31 @@ class GmailProvider:
             return messages
 
     async def fetch_message_ids(self, access_token: str) -> list[str]:
+        """Return the full inbox-primary message id list, following pagination.
+
+        Used by the poller's ghost detection, so it must return the COMPLETE
+        remote id set rather than a single page — otherwise messages beyond the
+        first page would be wrongly treated as deleted. A page cap bounds the
+        work for very large mailboxes (20 pages x 500 = 10k ids).
+        """
+
+        ids: list[str] = []
+        params: dict = {"q": "category:primary in:inbox", "maxResults": 500}
         async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                f"{_GMAIL_BASE}/messages",
-                headers=self._headers(access_token),
-                params={"q": "category:primary in:inbox", "maxResults": 500},
-            )
-            resp.raise_for_status()
-            return [m["id"] for m in resp.json().get("messages", [])]
+            for _ in range(_MAX_ID_PAGES):
+                resp = await client.get(
+                    f"{_GMAIL_BASE}/messages",
+                    headers=self._headers(access_token),
+                    params=params,
+                )
+                resp.raise_for_status()
+                body = resp.json()
+                ids.extend(m["id"] for m in body.get("messages", []))
+                next_token = body.get("nextPageToken")
+                if not next_token:
+                    break
+                params = {**params, "pageToken": next_token}
+        return ids
 
     async def fetch_message_html(self, access_token: str, message_id: str) -> str:
         async with httpx.AsyncClient() as client:
@@ -510,14 +531,32 @@ class GraphProvider:
             return resp.json().get("value", [])
 
     async def fetch_message_ids(self, access_token: str) -> list[str]:
+        """Return the full inbox message id list, following @odata.nextLink.
+
+        Used by the poller's ghost detection, so it must return the COMPLETE
+        remote id set. A page cap bounds the work for very large mailboxes.
+        """
+
+        ids: list[str] = []
+        url: str = f"{_GRAPH_BASE}/mailFolders('Inbox')/messages"
+        params: dict | None = {"$select": "id", "$top": 500}
         async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                f"{_GRAPH_BASE}/mailFolders('Inbox')/messages",
-                headers=self._headers(access_token),
-                params={"$select": "id", "$top": 500},
-            )
-            resp.raise_for_status()
-            return [m["id"] for m in resp.json().get("value", [])]
+            for _ in range(_MAX_ID_PAGES):
+                resp = await client.get(
+                    url,
+                    headers=self._headers(access_token),
+                    params=params,
+                )
+                resp.raise_for_status()
+                body = resp.json()
+                ids.extend(m["id"] for m in body.get("value", []))
+                next_link = body.get("@odata.nextLink")
+                if not next_link:
+                    break
+                # nextLink already embeds the query params (incl. skiptoken).
+                url = next_link
+                params = None
+        return ids
 
     async def fetch_message_html(self, access_token: str, message_id: str) -> str:
         async with httpx.AsyncClient() as client:

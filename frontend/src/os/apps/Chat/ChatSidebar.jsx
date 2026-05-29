@@ -65,7 +65,7 @@ export default function ChatSidebar({
         <button
           type="button"
           onClick={() => setShowCreate(!showCreate)}
-          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           title="New chat"
           aria-label="New chat"
         >
@@ -108,7 +108,7 @@ export default function ChatSidebar({
           <button
             type="submit"
             disabled={isCreating}
-            className="heading-ui w-full rounded-lg bg-primary/15 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25 disabled:opacity-40 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black flex items-center justify-center gap-2"
+            className="heading-ui w-full rounded-lg bg-primary/15 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black flex items-center justify-center gap-2"
           >
             {isCreating && <Loader2 size={12} className="animate-spin" />}
             {isCreating ? 'Initializing...' : 'Initialize Session'}
@@ -143,7 +143,7 @@ export default function ChatSidebar({
                     <button
                       type="button"
                       onClick={() => onSelect(session.id)}
-                      className={`flex-1 truncate px-3 py-2.5 text-left heading-ui text-[11px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                      className={`flex-1 truncate px-3 py-2.5 text-left heading-ui text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                         activeSessionId === session.id
                           ? 'text-primary'
                           : 'text-muted-foreground hover:text-white'
@@ -154,7 +154,7 @@ export default function ChatSidebar({
                     <button
                       type="button"
                       onClick={() => setDeleteSessionId(session.id)}
-                      className="mr-1 shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                      className="mr-1 shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                       aria-label={`Delete ${session.title}`}
                     >
                       <Trash2 size={10} />

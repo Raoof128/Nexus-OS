@@ -833,3 +833,81 @@
 - **AICmdPalette:** added `role="status"` + `aria-label` to suggesting loading div.
 - **EmailApp:** replaced raw `×` char in clear-search button with `<X>` lucide icon.
 - **Verification:** lint 0 · 87/87 tests · build clean.
+
+## [2026-05-30] — Full Frontend UI/UX Audit & Fix Pass (round 2)
+
+**Raouf:**
+
+- File-by-file UI/UX audit of the entire OS shell + every app. Found 5 concrete issues; the codebase was already polished from prior audits.
+- **NotificationToast:** message + timestamp used a `mono` class that is **not defined** anywhere in `index.css`, so they silently lost their intended monospace font. Replaced with `font-mono`.
+- **AppLauncher:** had no Escape-to-close (only backdrop click / Alt+L) — inconsistent with ContextMenu & LockScreen and a keyboard a11y gap. Added a document-level Escape handler. Also guarded the arrow-key handlers against modulo-by-zero (`NaN` selectedIndex) when the search yields no matches.
+- **ContextMenu:** removed unused `ChevronDown` import (dead code that slipped past ESLint via the `^[A-Z_]` `varsIgnorePattern`).
+- **FileManagerApp:** row rename/delete actions were hover-only (`opacity-0 group-hover:opacity-100`) → unreachable on touch devices where the window is full-screen. Added `pointer-coarse:opacity-100` so they stay visible on touch.
+- **PlaceholderApp.jsx:** deleted — a fake "Coming Soon" placeholder component not referenced anywhere (not in `appRegistry`). Removed per "no fake/decorative UI" requirement.
+- **Files Changed:** `frontend/src/os/components/NotificationToast.jsx`, `frontend/src/os/components/AppLauncher.jsx`, `frontend/src/os/components/ContextMenu.jsx`, `frontend/src/os/apps/FileManagerApp.jsx`, `frontend/src/os/components/PlaceholderApp.jsx` (deleted).
+- **Verification:** `npm run lint` — 0 errors. `npm run test` — 87/87 passed. `npm run build` — clean (validates the new `pointer-coarse:` Tailwind v4 variant).
+- **Remaining notes:** Window titlebar controls and desktop icons rely on default browser focus outlines (no custom `focus-visible` ring) — acceptable but could be enhanced. `SnapPreview` wraps its child in `AnimatePresence` after an early `return null`, so the exit animation never plays (cosmetic only). Neither changed to avoid risk.
+- **Follow-ups:** None.
+
+## [2026-05-30] — Frontend UI/UX Polish Pass (a11y + empty/anim states)
+
+**Raouf:**
+
+- Polish/accessibility pass following the round-2 audit. Focused, high-impact, identity-preserving changes — no redesign, no new deps.
+- **Global keyboard focus ring (`index.css`):** added a single app-wide neon `:focus-visible` outline scoped via `:where()` to interactive controls (buttons, links, `role=button/menuitem/tab/switch`, `select`, focusable `[tabindex]`). Icon-only OS chrome (window titlebar buttons, taskbar, desktop icons, context-menu items) previously fell back to the near-invisible browser default on the dark glass UI. Uses `outline` (not a box-shadow ring) so it is never clipped by the taskbar/window `overflow`/mask containers; `:where()` keeps specificity 0 so components can override, and form fields opt out automatically via their existing `outline-none`.
+- **SnapPreview:** the window-snap zone overlay never played its exit animation — an early `return null` unmounted `AnimatePresence` before it could animate out. Rewrote so the presence wrapper stays mounted and the child is keyed on the hint (also cross-fades cleanly when dragging left → right).
+- **NotesApp:** Preview mode on an empty note rendered a blank pane. Added a proper empty state (icon + "Nothing to preview yet — switch to Edit and start writing"). Sanitization path (escape + DOMPurify allowlist) unchanged.
+- **Files Changed:** `frontend/src/index.css`, `frontend/src/os/components/SnapPreview.jsx`, `frontend/src/os/apps/NotesApp.jsx`.
+- **Verification:** `npm run lint` — 0 errors. `npm run test` — 87/87 passed. `npm run build` — clean; confirmed the focus-ring rule compiled into the production CSS bundle.
+- **Remaining notes:** Buttons that already define their own Tailwind `focus-visible:ring` (a few in Navbar/Email/Chat) will show that ring plus the outline — same brand colour, reads as emphasis, not a regression. FileManager delete remains immediate (no confirm) by design — it's a sandboxed local-only FS.
+- **Follow-ups:** None.
+
+## [2026-05-30] — Focus-ring de-duplication, FileManager delete-safety, CLAUDE.md refresh
+
+**Raouf:**
+
+- Follow-up to the polish pass — resolved the noted double-ring, added delete-safety, and refreshed the project doc.
+- **Double focus ring (cosmetic) — fixed:** the new global `:focus-visible` outline collided with buttons that already render their own branded Tailwind `focus-visible:ring*`. Added `focus-visible:outline-none` to every such button so each control shows exactly one ring (its branded ring where defined, the global neon outline everywhere else). Touched 13 components: `CyberCard`, `PasswordInput`, `Navbar`, `ChatWindow`, `ChatSidebar`, `MediaDetailModal`, `MediaVault`, `EmailToolbar`, `EmailList`, `FolderSidebar`, `ComposeModal`, `EmailApp` (+ `ConfirmDialog` base already had it). Form inputs were already opted out via `focus:outline-none` and were left untouched.
+- **FileManager delete confirmation:** delete was immediate and irreversible (folders silently took their contents with them). Wired the existing portal `ConfirmDialog` (focus-trapped, Escape-to-cancel) with a folder-aware message ("Delete '<name>' and everything inside it?"). No behaviour change to file deletion beyond the confirm step.
+- **CLAUDE.md refresh:** the project doc still described the legacy "Nexus Archive" single-page tabbed app with `components/features/*`. Rewrote the intro + frontend Architecture tree to the real "Nexus OS" windowing shell (`os/Desktop.jsx`, `os/stores/*`, `os/components/*`, `os/apps/*`, `components/ui/*`) and added two Key Patterns: **App registry is the single source of truth** and **one global focus ring** (incl. the `focus-visible:outline-none` rule for branded-ring buttons).
+- **Files Changed:** `frontend/src/index.css` (prior), 13 component files (outline-none), `frontend/src/os/apps/FileManagerApp.jsx` (ConfirmDialog), `CLAUDE.md`.
+- **Verification:** `npm run lint` — 0 errors. `npm run test` — 87/87 passed. `npm run build` — clean.
+- **Follow-ups:** None.
+
+## [2026-05-30] — Frontend polish pass: empty-state intentionality
+
+**Raouf:**
+
+- Full visual/motion/responsive/a11y re-audit. The app is already production-grade (prior rounds), so this pass was deliberately surgical — fixing the one clear inconsistency rather than manufacturing churn.
+- **MediaVault empty state:** was a bare dashed `NO_RECORDS_FOUND` box that showed the same text whether the vault was genuinely empty or a search returned nothing. Replaced with an intentional, search-aware state: a SearchX icon + "No matches for '<query>'" + a **Clear search** button when filtering, or the media-type icon + "Nothing in <status> yet." when the vault is empty. Matches the richer empty states already used in Kanban, EmailReader, and the App Launcher.
+- **EmailList empty state:** added an `Inbox` icon above `NO_SIGNALS_FOUND` for cross-app consistency with EmailReader's empty pane.
+- **Verified already-handled (no change needed):** Framer Motion already respects `prefers-reduced-motion` globally via `<MotionConfig reducedMotion="user">` in `main.jsx`; the global `:focus-visible` neon ring covers keyboard focus app-wide; CyberCard, EmailReader, Kanban, Chat, and Auth all have strong loading/empty/error states, focus rings, and touch-friendly (non-hover-only) controls on mobile.
+- **Files Changed:** `frontend/src/os/apps/Library/MediaVault.jsx`, `frontend/src/os/apps/Email/EmailList.jsx`.
+- **Verification:** `npm run lint` — 0 errors. `npm run test` — 87/87 passed. `npm run build` — clean.
+- **Remaining notes:** EmailList's unstarred star icon is hover-reveal (`opacity-0 group-hover`); discoverable but faint on touch — left as-is to avoid visual noise on every row. No other material gaps found.
+- **Follow-ups:** None.
+
+## [2026-05-30] — Backend audit: email ghost-detection data-integrity fix
+
+**Raouf:**
+
+- Full file-by-file backend audit (auth, controllers, middleware, OAuth/PKCE, rate limiting, validation, services, data protection, background poller, security headers). The backend is strong — zero-trust cookie auth, RLS-scoped PostgREST clients, per-user AI rate limits, prompt-injection scrubbing, Fernet field encryption, salted audit logging, constant-time OAuth state checks. One genuine bug found and fixed.
+- **BUG (data integrity, high impact) — email poller ghost detection wiped the inbox:** `sync_account` built its "still exists remotely" set from `fetch_messages`, which returns only a small recent page (Gmail ~100, Microsoft Graph default 10). It then marked **every** stored email not in that page as `folder="deleted"` on **every** poll cycle — so the visible inbox collapsed to the last ~10–100 messages. Fixed to compare against `fetch_message_ids` (the full, 500-cap inbox id list that existed for exactly this purpose but was never wired in), and scoped both the DB read and the delete to `folder == "inbox"` so mail the user moved locally (trash/sent/archive) is never clobbered. If the full id fetch fails, ghost detection is skipped that cycle instead of falling back to the partial set.
+- **Tests:** added two regression tests in `tests/test_email_poller.py` driving `sync_account` with a mocked provider + DB — one asserts older mail present remotely but absent from the recent page is kept (only the genuinely-removed id is ghosted, scoped to inbox), one asserts no deletes happen when the full fetch fails. Removed the now-unused `remote_ids` accumulator.
+- **Files Changed:** `backend/email_poller.py`, `tests/test_email_poller.py`.
+- **Verification:** `ruff check backend tests` (passed), `ruff format --check` (passed), `pytest` (94 passed, was 92), `python -c "import backend.app"` (OK), `bandit -r backend` (no issues).
+- **Remaining notes / manual checks:** (1) `fetch_message_ids` is capped at 500 with no pagination — accounts with >500 inbox messages could still false-ghost the overflow; add page-token pagination if large mailboxes are expected. (2) `controllers.get_media` silently ignores an invalid `?type=` and returns all types (minor API nit, not security). (3) `ComposeEmailRequest` to/cc/bcc are stripped but not format-validated (provider rejects bad addresses). None are blocking.
+- **Follow-ups:** None required.
+
+## [2026-05-30] — Backend follow-ups: pagination, type validation, recipient validation
+
+**Raouf:**
+
+- Closed the three non-blocking follow-ups from the backend audit.
+- **Pagination — `fetch_message_ids` (Gmail + Graph):** now follows `nextPageToken` (Gmail) / `@odata.nextLink` (Graph) to return the COMPLETE inbox id set instead of a single page, with a 20-page safety cap (~10k ids). This removes the residual risk that mailboxes >500 messages could still false-ghost their overflow during poller ghost detection.
+- **API consistency — `controllers.get_media`:** an invalid `?type=` value now returns **422 Invalid media type** instead of silently ignoring the filter and returning all types. Validation runs before the try/except so it isn't masked as a 502.
+- **Input validation — `ComposeEmailRequest`:** `to`/`cc`/`bcc` recipients are now format-validated (reject malformed addresses with a clear 422) in addition to being stripped/empties-dropped. Provider still enforces final deliverability.
+- **Tests (+5):** Gmail pagination walk (two pages via token), compose rejects malformed recipient + validates cc/bcc, `get_media` rejects invalid type without touching Supabase. Total 99 passing (was 94).
+- **Files Changed:** `backend/email_service.py`, `backend/controllers.py`, `backend/email_schemas.py`, `tests/test_email_service.py`, `tests/test_email_schemas.py`, `tests/test_controllers.py`.
+- **Verification:** `ruff check` (pass), `ruff format` (pass), `pytest` (99 passed), `import backend.app` (OK), `bandit` (no issues).
+- **Remaining:** Item 4 (verify in a real >10-message Gmail/Graph account that the inbox no longer collapses post-poll) is a live-account manual check — covered by automated regression tests but worth a production sanity check after deploy.

@@ -387,6 +387,29 @@
   letter-spacing: 0.04em;
 }
 
+/* ── Keyboard focus visibility ───────────────────────────────
+   A single app-wide neon focus ring for keyboard users. Many icon-only OS
+   controls (window titlebar buttons, taskbar, desktop icons, context-menu
+   items) previously fell back to the near-invisible browser default outline
+   on the dark glass UI. `outline` (not a box-shadow ring) is used so it is
+   never clipped by the `overflow`/mask containers in the taskbar and windows.
+   `:where()` keeps specificity at 0 so any component can still override it,
+   and form fields opt out automatically via their existing `outline-none`. */
+:where(
+  a,
+  button,
+  [role='button'],
+  [role='menuitem'],
+  [role='tab'],
+  [role='switch'],
+  select,
+  summary,
+  [tabindex]:not([tabindex='-1'])
+):focus-visible {
+  outline: 2px solid hsl(var(--neon-yellow) / 0.75);
+  outline-offset: 2px;
+}
+
 /* ── UI Scale ────────────────────────────────────────────── */
 [data-ui-scale='compact'] {
   font-size: 13px;

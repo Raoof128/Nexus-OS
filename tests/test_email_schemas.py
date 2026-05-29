@@ -70,6 +70,43 @@ def test_compose_email_request_rejects_empty_to():
         )
 
 
+def test_compose_email_request_rejects_malformed_recipient():
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        ComposeEmailRequest(
+            account_id="acct-1",
+            to=["not-an-email"],
+            subject="Hello",
+            body_html="<p>Hi</p>",
+        )
+
+
+def test_compose_email_request_validates_cc_and_bcc():
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        ComposeEmailRequest(
+            account_id="acct-1",
+            to=["jane@citadel.com"],
+            cc=["broken@@nope"],
+            subject="Hello",
+            body_html="<p>Hi</p>",
+        )
+
+    # Valid multi-recipient payload passes and is normalised.
+    req = ComposeEmailRequest(
+        account_id="acct-1",
+        to=["jane@citadel.com"],
+        cc=["  bob@acme.io  "],
+        bcc=["sec@nexus.net"],
+        subject="Hello",
+        body_html="<p>Hi</p>",
+    )
+    assert req.cc == ["bob@acme.io"]
+    assert req.bcc == ["sec@nexus.net"]
+
+
 def test_move_email_request_validates_folder():
     req = MoveEmailRequest(folder="archive")
     assert req.folder == "archive"

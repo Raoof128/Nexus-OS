@@ -92,3 +92,161 @@ def test_email_poller_importable():
         start_email_poller,
         sync_account,
     )
+
+
+# ---------------------------------------------------------------------------
+# sync_account ghost detection wiring
+# ---------------------------------------------------------------------------
+
+
+class _FakeExecute:
+    def __init__(self, data):
+        self.data = data
+
+
+class _FakeQuery:
+    """Records the operation it represents and returns canned select data."""
+
+    def __init__(self, table, log, select_data):
+        self.table = table
+        self._log = log
+        self._select_data = select_data
+        self.op = None
+        self.payload = None
+        self.filters = {}
+        self._in = None
+
+    def select(self, *_a, **_k):
+        self.op = "select"
+        return self
+
+    def update(self, payload):
+        self.op = "update"
+        self.payload = payload
+        return self
+
+    def upsert(self, rows, **_k):
+        self.op = "upsert"
+        self.payload = rows
+        return self
+
+    def eq(self, col, val):
+        self.filters[col] = val
+        return self
+
+    def in_(self, col, vals):
+        self._in = (col, list(vals))
+        return self
+
+    def order(self, *_a, **_k):
+        return self
+
+    def execute(self):
+        self._log.append(
+            {
+                "table": self.table,
+                "op": self.op,
+                "payload": self.payload,
+                "filters": dict(self.filters),
+                "in": self._in,
+            }
+        )
+        return _FakeExecute(self._select_data if self.op == "select" else [])
+
+
+class _FakePostgrest:
+    def __init__(self, log, select_data):
+        self._log = log
+        self._select_data = select_data
+
+    def from_(self, table):
+        return _FakeQuery(table, self._log, self._select_data)
+
+
+class _FakeDB:
+    def __init__(self, log, select_data):
+        self.postgrest = _FakePostgrest(log, select_data)
+
+
+class _FakeProvider:
+    def __init__(self, recent_page, full_ids, raise_on_ids=False):
+        self._recent = recent_page
+        self._full_ids = full_ids
+        self._raise_on_ids = raise_on_ids
+        self.fetch_message_ids_called = False
+
+    async def fetch_messages(self, _token, *, since=None):
+        return self._recent
+
+    async def fetch_message_ids(self, _token):
+        self.fetch_message_ids_called = True
+        if self._raise_on_ids:
+            raise RuntimeError("provider id list unavailable")
+        return self._full_ids
+
+
+def _run_sync_account(monkeypatch, provider, db_inbox_ids):
+    """Drive sync_account with mocked provider + DB; return the recorded call log."""
+
+    import asyncio
+
+    import backend.email_poller as poller
+    from backend.config import get_settings
+
+    log: list[dict] = []
+    select_data = [{"provider_id": pid} for pid in db_inbox_ids]
+
+    async def _fake_refresh(_account, _settings):
+        return "access-token"
+
+    monkeypatch.setattr(poller, "refresh_token_if_needed", _fake_refresh)
+    monkeypatch.setattr(poller, "get_provider", lambda _name: provider)
+    monkeypatch.setattr(
+        poller,
+        "create_supabase_service_client",
+        lambda: _FakeDB(log, select_data),
+    )
+
+    account = {"id": "acc-1", "user_id": "user-1", "provider": "google"}
+    asyncio.run(poller.sync_account(account, get_settings()))
+    return log
+
+
+def test_ghost_detection_uses_full_id_list_not_recent_page(monkeypatch):
+    """Older inbox mail absent from the recent page but present remotely is kept.
+
+    Regression: ghost detection previously compared against the small
+    ``fetch_messages`` page, which marked the entire older inbox as deleted on
+    every poll. It must now compare against ``fetch_message_ids`` (full list).
+    """
+
+    # Recent page is empty, yet two of three DB rows still exist remotely.
+    provider = _FakeProvider(recent_page=[], full_ids=["recent-1", "old-1"])
+    log = _run_sync_account(
+        monkeypatch, provider, db_inbox_ids=["recent-1", "old-1", "ghost-1"]
+    )
+
+    assert provider.fetch_message_ids_called is True
+
+    updates = [c for c in log if c["op"] == "update"]
+    assert len(updates) == 1
+    update = updates[0]
+    assert update["payload"] == {"folder": "deleted"}
+    # Only the genuinely-removed message is ghosted; "old-1" is NOT deleted.
+    assert update["in"][0] == "provider_id"
+    assert set(update["in"][1]) == {"ghost-1"}
+    # Both the read and the delete are scoped to the inbox folder.
+    assert update["filters"].get("folder") == "inbox"
+    assert update["filters"].get("account_id") == "acc-1"
+    selects = [c for c in log if c["op"] == "select" and c["table"] == "nexus_emails"]
+    assert selects and selects[0]["filters"].get("folder") == "inbox"
+
+
+def test_ghost_detection_skipped_when_full_fetch_fails(monkeypatch):
+    """If the full id fetch fails, no rows are marked deleted that cycle."""
+
+    provider = _FakeProvider(recent_page=[], full_ids=[], raise_on_ids=True)
+    log = _run_sync_account(monkeypatch, provider, db_inbox_ids=["a", "b", "c"])
+
+    assert provider.fetch_message_ids_called is True
+    assert [c for c in log if c["op"] == "update"] == []

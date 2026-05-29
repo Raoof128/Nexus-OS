@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { ArrowLeft, ChevronLeft, ChevronRight, Pencil, Search, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Pencil, Search, SearchX, Trash2 } from 'lucide-react'
 import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../../lib/mediaConfig'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 
@@ -64,7 +64,7 @@ function MediaVault({
           <button
             type="button"
             onClick={onBack}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-2 font-mono text-xs text-muted-foreground transition-colors hover:bg-white/5 hover:text-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 font-mono text-xs text-muted-foreground transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             <ArrowLeft size={14} />
             Overview
@@ -114,11 +114,30 @@ function MediaVault({
 
         {/* Rows */}
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-          {filtered.length === 0 && (
-            <div className="border border-dashed border-white/10 rounded-xl p-8 text-center opacity-50">
-              <p className="font-mono text-xs tracking-wide @sm:text-sm">NO_RECORDS_FOUND</p>
-            </div>
-          )}
+          {filtered.length === 0 &&
+            (search.trim() ? (
+              <div className="m-3 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/10 px-6 py-12 text-center @sm:m-4 @sm:py-14">
+                <SearchX size={28} className="text-muted-foreground/30" aria-hidden="true" />
+                <p className="font-mono text-xs text-muted-foreground/70">
+                  No matches for &ldquo;<span className="text-white/80">{search.trim()}</span>&rdquo;
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 font-mono text-[11px] text-primary/80 transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                >
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              <div className="m-3 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/10 px-6 py-12 text-center @sm:m-4 @sm:py-14">
+                <Icon size={28} className="text-muted-foreground/25" aria-hidden="true" />
+                <p className="font-mono text-xs text-muted-foreground/60">
+                  Nothing in{' '}
+                  <span className="text-white/70">{filterStatus || 'this vault'}</span> yet.
+                </p>
+              </div>
+            ))}
           {filtered.map((item) => (
             <Motion.div
               key={item.id}
@@ -209,7 +228,7 @@ function MediaVault({
                     e.stopPropagation()
                     onEdit?.(item)
                   }}
-                  className="rounded p-1 text-muted-foreground hover:bg-primary/20 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                  className="rounded p-1 text-muted-foreground hover:bg-primary/20 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   title="Edit"
                   aria-label="Edit"
                 >
@@ -218,7 +237,7 @@ function MediaVault({
                 <button
                   type="button"
                   onClick={(e) => handleDelete(e, item)}
-                  className="rounded p-1 text-muted-foreground hover:bg-destructive/20 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                  className="rounded p-1 text-muted-foreground hover:bg-destructive/20 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   title="Delete"
                   aria-label="Delete"
                 >

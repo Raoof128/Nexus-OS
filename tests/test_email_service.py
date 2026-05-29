@@ -252,6 +252,35 @@ class TestGmailProviderFetchMessageIds:
         assert "messages" in url
         assert ids == ["abc", "def"]
 
+    @pytest.mark.anyio
+    async def test_follows_pagination(self) -> None:
+        """All pages are walked via nextPageToken, not just the first."""
+
+        page1 = MagicMock()
+        page1.raise_for_status = MagicMock()
+        page1.json.return_value = {
+            "messages": [{"id": "a"}, {"id": "b"}],
+            "nextPageToken": "PAGE2",
+        }
+        page2 = MagicMock()
+        page2.raise_for_status = MagicMock()
+        page2.json.return_value = {"messages": [{"id": "c"}]}  # no token → stop
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client.get = AsyncMock(side_effect=[page1, page2])
+
+        with patch("backend.email_service.httpx.AsyncClient", return_value=mock_client):
+            provider = GmailProvider()
+            ids = await provider.fetch_message_ids("token-abc")
+
+        assert mock_client.get.call_count == 2
+        assert ids == ["a", "b", "c"]
+        # Second call must carry the page token.
+        second_call = mock_client.get.call_args_list[1]
+        assert second_call.kwargs["params"].get("pageToken") == "PAGE2"
+
 
 # ---------------------------------------------------------------------------
 # 5. GraphProvider.fetch_message_ids — URL check (mocked httpx)

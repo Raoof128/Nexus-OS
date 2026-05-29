@@ -73,11 +73,13 @@ function Toast({ notification }) {
             {notification.title}
           </p>
           {notification.message && (
-            <p className="mono mt-0.5 line-clamp-2 text-[10px] leading-relaxed text-white/50">
+            <p className="mt-0.5 line-clamp-2 font-mono text-[10px] leading-relaxed text-white/50">
               {notification.message}
             </p>
           )}
-          <p className="mono mt-1 text-[9px] text-white/30">{formatTime(notification.timestamp)}</p>
+          <p className="mt-1 font-mono text-[9px] text-white/30">
+            {formatTime(notification.timestamp)}
+          </p>
         </div>
 
         {/* Close button */}

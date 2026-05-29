@@ -108,7 +108,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-white/5 hover:text-white focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   aria-label="Close detail view"
                 >
                   <X size={18} />
@@ -239,7 +239,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                       onClose()
                       requestAnimationFrame(() => onEdit?.(item))
                     }}
-                    className="flex items-center justify-center gap-2 rounded-lg bg-primary/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-primary/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   >
                     <Pencil size={14} />
                     Edit
@@ -247,7 +247,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}
-                    className="flex items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-destructive ring-1 ring-destructive/20 transition-all hover:bg-destructive/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                    className="flex items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-destructive ring-1 ring-destructive/20 transition-all hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   >
                     <Trash2 size={14} />
                     Delete

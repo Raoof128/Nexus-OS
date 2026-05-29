@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+import re
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+# Pragmatic email-shape check: a local part, an @, and a dotted domain with no
+# whitespace. Final delivery validity is still enforced by the provider; this
+# just rejects obviously malformed recipients up front with a clear 422.
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 class EmailAccountResponse(BaseModel):
@@ -54,7 +61,13 @@ class ComposeEmailRequest(BaseModel):
     def strip_email_addresses(cls, value: list[str]) -> list[str]:
         if not isinstance(value, list):
             return value
-        return [addr.strip() for addr in value if addr.strip()]
+        cleaned = [
+            addr.strip() for addr in value if isinstance(addr, str) and addr.strip()
+        ]
+        for addr in cleaned:
+            if not _EMAIL_RE.match(addr):
+                raise ValueError(f"Invalid email address: {addr}")
+        return cleaned
 
 
 class MoveEmailRequest(BaseModel):

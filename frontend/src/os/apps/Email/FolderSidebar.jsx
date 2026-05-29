@@ -89,7 +89,7 @@ const FolderSidebar = React.memo(function FolderSidebar({
                 <button
                   type="button"
                   onClick={() => handleFolderClick(id)}
-                  className={`heading-ui flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                  className={`heading-ui flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-xs transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                     isActive
                       ? 'bg-primary/15 text-primary shadow-[inset_0_0_0_1px_hsl(var(--neon-yellow)/0.3),0_0_12px_hsl(var(--neon-yellow)/0.1)]'
                       : 'text-muted-foreground hover:bg-white/[0.04] hover:text-white'
@@ -123,7 +123,7 @@ const FolderSidebar = React.memo(function FolderSidebar({
         <button
           type="button"
           onClick={onConnectAccount}
-          className="neon-pulse flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-primary/20 px-3 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground transition-all hover:border-primary/50 hover:bg-primary/5 hover:text-primary hover:shadow-[0_0_15px_hsl(var(--neon-yellow)/0.1)] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+          className="neon-pulse flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-primary/20 px-3 py-2.5 font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground transition-all hover:border-primary/50 hover:bg-primary/5 hover:text-primary hover:shadow-[0_0_15px_hsl(var(--neon-yellow)/0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
         >
           <Zap size={11} />
           Uplink Account

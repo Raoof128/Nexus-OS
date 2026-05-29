@@ -63,10 +63,14 @@ class MediaController(Controller):
         """Return the authenticated user's media with pagination."""
 
         user_id = request.state.user_id
+        # Validate the filter BEFORE the try/except so the 422 isn't swallowed
+        # and re-raised as a 502 by the broad external-failure handler below.
+        if type is not None and type not in VALID_MEDIA_TYPES:
+            raise HTTPException(status_code=422, detail="Invalid media type")
         offset = (page - 1) * limit
         try:
             query = _get_user_client(request).from_("media").select("*")
-            if type and type in VALID_MEDIA_TYPES:
+            if type:
                 query = query.eq("type", type)
             response = (
                 query.order("created_at", desc=True)

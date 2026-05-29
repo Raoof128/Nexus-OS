@@ -1,6 +1,8 @@
-# CLAUDE.md — Nexus Archive
+# CLAUDE.md — Nexus OS
 
-Personal media vault (books, movies, anime, job applications) with AI recommendations. Cyberpunk aesthetic.
+A cyberpunk **browser "OS"**: a windowing desktop shell (draggable/resizable/snappable windows, taskbar, app launcher, desktop icons, lock screen, boot sequence) hosting real apps — a personal media vault (books, movies, anime, job applications) with AI recommendations, an email client, an AI chat assistant, plus utility apps (Terminal, File Manager, System Monitor, Notes, Settings).
+
+> The product evolved from the original "Nexus Archive" single-page tabbed app into the "Nexus OS" shell. If you find docs referring to `components/features/*` or `App.jsx` "tabs", they're stale — the live structure is `frontend/src/os/*` (see Architecture below).
 
 ## Stack
 
@@ -56,27 +58,44 @@ backend/
   rate_limit.py       # Sliding-window rate limiter (Redis or in-memory)
   security.py         # Response security headers (CSP, etc.)
 frontend/src/
-  App.jsx                          # Main app — tabs, routing, state
+  App.jsx                          # Auth gate: loading → ResetPassword / AuthPanel / <Desktop>
+  main.jsx                         # React root + QueryClient provider + Sentry init
+  index.css                        # Tailwind v4 + cyberpunk design system + global focus ring
+  context/AuthContext.jsx          # Session state from backend cookie auth
   hooks/useMedia.js                # React Query + Realtime subscription + optimistic updates
   hooks/useChat.js                 # Chat messages query + mutation
+  hooks/useEmails.js               # Email list/search/pagination query
+  hooks/useEmailActions.js         # Email mutations (star/read/move/send/AI draft)
   hooks/useAuth.js                 # Auth context consumer
   hooks/useFocusTrap.js            # Reusable modal focus trap
   lib/mediaConfig.js               # Media types, statuses, TYPE_ICONS (single source of truth)
   lib/apiClient.js                 # Fetch wrapper with cookie auth + silent refresh
   lib/realtimeClient.js            # Supabase Realtime client (separate from API)
   lib/queryClient.js               # React Query client (staleTime: 5min, gcTime: 10min)
-  context/AuthContext.jsx           # Session state from backend cookie auth
-  components/features/CyberCard.jsx       # Memoized media card with Framer Motion layoutId
-  components/features/KanbanBoard.jsx     # Status-column grid (memoized)
-  components/features/MediaVault.jsx      # Full table view with search (memoized)
-  components/features/MediaDetailModal.jsx # Shared-element detail modal
-  components/features/MediaForm.jsx       # Shared form for Add + Edit dialogs
-  components/features/ConfirmDialog.jsx   # Reusable delete confirmation
-  components/features/AddMediaDialog.jsx  # FAB + create form
-  components/features/EditMediaDialog.jsx # Edit form (controlled by parent)
-  components/features/AuthPanel.jsx       # Login/register/forgot sliding panels
-  components/features/ChatLayout.jsx      # Chat sidebar + window (lazy-loaded)
-  components/features/AICmdPalette.jsx    # Cmd+K AI suggestions (lazy-loaded)
+  lib/motion.js                    # Shared Framer Motion SPRING/DURATION/EASE tokens
+  os/Desktop.jsx                   # OS shell: wallpaper, windows, taskbar, boot, lock, idle-lock
+  os/stores/windowStore.js         # Window open/close/focus/move/resize/snap/minimize (zustand)
+  os/stores/settingsStore.js       # Accent, wallpaper, UI scale, scanlines/orbs (persisted)
+  os/stores/notificationStore.js   # Toast + notification badge state
+  os/stores/fileSystemStore.js     # Sandboxed local file tree for File Manager (persisted)
+  os/stores/appRegistry.js         # APP_REGISTRY + APP_ORDER — single source for all apps
+  os/hooks/useGlobalShortcuts.js   # Alt+W/M/arrows/[ ]/1-8/L window + launcher shortcuts
+  os/components/Window.jsx         # Draggable/resizable window chrome (memoized)
+  os/components/Taskbar.jsx        # Running-window dock + tray (clock, notif badge)
+  os/components/AppLauncher.jsx    # Searchable app grid (Alt+L), Escape-to-close
+  os/components/DesktopIcons.jsx   # Desktop icon grid (click select / double-click open)
+  os/components/ContextMenu.jsx    # Right-click desktop menu
+  os/components/{BootSequence,LockScreen,SnapPreview,NotificationToast}.jsx
+  os/apps/Library/                 # Media vault: LibraryApp, KanbanBoard, MediaVault,
+                                   #   MediaForm, MediaDetailModal, Add/EditMediaDialog
+  os/apps/Email/                   # EmailApp + FolderSidebar/EmailList/EmailReader/ComposeModal
+  os/apps/Chat/                    # ChatApp, ChatSidebar, ChatWindow, (Lazy)AICmdPalette
+  os/apps/Auth/                    # AuthPanel (login/register/forgot), ResetPasswordPage
+  os/apps/{NotesApp,TerminalApp,FileManagerApp,SystemMonitorApp,SettingsApp}.jsx
+  components/ui/CyberCard.jsx      # Memoized media card with Framer Motion layoutId
+  components/ui/ConfirmDialog.jsx  # Reusable portal confirm dialog (focus-trapped)
+  components/ui/PasswordInput.jsx  # Password field with show/hide toggle
+  components/layout/Navbar.jsx     # Top bar shown on the auth/login screen only
 supabase/
   config.toml          # Local Supabase config (auth redirect URLs)
   seed.sql             # Dev user: raoof.r12@gmail.com / Dev@Nexus2026
@@ -102,6 +121,14 @@ Backend manages HttpOnly cookies. Frontend never touches tokens directly. `apiCl
 ### Components: Shared form pattern
 
 `MediaForm.jsx` is the single form used by both `AddMediaDialog` and `EditMediaDialog`. Never duplicate form fields between them.
+
+### OS shell: App registry is the single source of truth
+
+Every app is declared once in `os/stores/appRegistry.js` (`APP_REGISTRY` keyed by app id, `APP_ORDER` for launcher/shortcut order) with its `title`, `icon`, `singleton`, `defaultSize`, `minSize`, and lazy `component`. The taskbar, app launcher, desktop icons, global shortcuts (Alt+1-8), and `Desktop.jsx` all read from it — to add an app, register it there and nothing else needs a hardcoded list. Window lifecycle (open/focus/move/resize/snap/minimize/maximize) lives entirely in `windowStore.js`; apps render inside `<Window>` and should not manage their own positioning.
+
+### Accessibility: one global focus ring
+
+`index.css` defines a single app-wide `:where(...):focus-visible { outline }` neon ring (specificity 0) so icon-only OS controls are keyboard-visible. Elements that render their own branded Tailwind `focus-visible:ring*` must also set `focus-visible:outline-none` to avoid a double ring; form inputs already do this via `focus:outline-none`.
 
 ## Environment Variables
 

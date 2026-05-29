@@ -11,6 +11,7 @@ import {
   X,
 } from 'lucide-react'
 import { useFileSystemStore } from '../stores/fileSystemStore'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
 
 function NewEntryDialog({ type, onSubmit, onCancel }) {
   const [name, setName] = useState('')
@@ -77,6 +78,7 @@ export default function FileManagerApp() {
   const [viewingFile, setViewingFile] = useState(null)
   const [renamingEntry, setRenamingEntry] = useState(null)
   const [renameValue, setRenameValue] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState(null) // { name, isFolder } | null
 
   useEffect(() => {
     hydrateFileSystem()
@@ -101,12 +103,12 @@ export default function FileManagerApp() {
     [creating, currentPath, createFile, createFolder],
   )
 
-  const handleDelete = useCallback(
-    (name) => {
-      deleteEntry(currentPath, name)
-    },
-    [currentPath, deleteEntry],
-  )
+  const confirmDelete = useCallback(() => {
+    if (deleteTarget) {
+      deleteEntry(currentPath, deleteTarget.name)
+      setDeleteTarget(null)
+    }
+  }, [currentPath, deleteEntry, deleteTarget])
 
   const handleRenameStart = useCallback((name) => {
     setRenamingEntry(name)
@@ -251,7 +253,10 @@ export default function FileManagerApp() {
                 </button>
               )}
 
-              <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+              {/* Hover reveals actions on fine pointers; touch devices have no
+                  hover, so keep them visible there (pointer-coarse) — otherwise
+                  rename/delete would be unreachable on mobile. */}
+              <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100">
                 <button
                   type="button"
                   onClick={() => handleRenameStart(name)}
@@ -263,7 +268,7 @@ export default function FileManagerApp() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleDelete(name)}
+                  onClick={() => setDeleteTarget({ name, isFolder })}
                   className="rounded p-1 text-muted-foreground hover:bg-red-500/15 hover:text-red-400"
                   aria-label={`Delete ${name}`}
                   title="Delete"
@@ -282,6 +287,23 @@ export default function FileManagerApp() {
           {children.length} item{children.length !== 1 ? 's' : ''}
         </span>
       </div>
+
+      {/* Delete confirmation — folders remove their contents too, so guard it */}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title={deleteTarget?.isFolder ? 'Delete Folder' : 'Delete File'}
+        message={
+          deleteTarget
+            ? deleteTarget.isFolder
+              ? `Delete "${deleteTarget.name}" and everything inside it? This cannot be undone.`
+              : `Delete "${deleteTarget.name}"? This cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

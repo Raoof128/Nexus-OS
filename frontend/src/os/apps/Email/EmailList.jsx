@@ -1,6 +1,6 @@
 import React, { useCallback, useRef } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { Star, Paperclip } from 'lucide-react'
+import { Star, Paperclip, Inbox } from 'lucide-react'
 import { formatEmailDate, getProviderBadge } from '../../../lib/emailConfig'
 import { DURATION, SPRING } from '../../../lib/motion'
 
@@ -41,6 +41,7 @@ const EmailList = React.memo(function EmailList({
         aria-live="polite"
         className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center"
       >
+        <Inbox size={28} className="text-primary/20" aria-hidden="true" />
         <span className="heading-display text-[10px] tracking-[0.3em] text-muted-foreground/50">
           NO_SIGNALS_FOUND
         </span>
@@ -152,7 +153,7 @@ const EmailList = React.memo(function EmailList({
                       <button
                         type="button"
                         onClick={(e) => handleStarClick(e, email)}
-                        className="rounded p-2 text-muted-foreground/40 transition-all hover:text-yellow-500 focus-visible:ring-1 focus-visible:ring-primary"
+                        className="rounded p-2 text-muted-foreground/40 transition-all hover:text-yellow-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
                         aria-label={email.is_starred ? 'Unstar' : 'Star'}
                       >
                         <Star

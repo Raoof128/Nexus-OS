@@ -200,7 +200,6 @@ async def sync_account(account: dict, settings) -> None:
 
     # Build EmailMessage objects and upsert
     rows = []
-    remote_ids: set[str] = set()
     for raw in raw_messages:
         try:
             if provider_name == "google":
@@ -211,7 +210,6 @@ async def sync_account(account: dict, settings) -> None:
                 msg = EmailMessage.from_graph(
                     raw, account_id=account_id, user_id=user_id
                 )
-            remote_ids.add(msg.provider_id)
             rows.append(msg.to_supabase_row())
         except Exception:
             logger.exception("Failed to parse message for account %s", account_id)
@@ -225,24 +223,44 @@ async def sync_account(account: dict, settings) -> None:
         except Exception:
             logger.exception("Failed to upsert messages for account %s", account_id)
 
-    # Ghost detection
+    # Ghost detection.
+    #
+    # ``fetch_messages`` only returns a small recent page (Gmail ~100, Graph
+    # defaults to 10), so it must NOT be used as the "what still exists
+    # remotely" set — doing so would flag the entire older inbox as deleted on
+    # every poll.  ``fetch_message_ids`` returns the full inbox id list (capped
+    # at 500) for exactly this comparison.  Both the DB read and the delete are
+    # scoped to ``folder == "inbox"`` so messages the user has moved locally
+    # (trash/sent/archive) are never clobbered.  If the full id fetch fails we
+    # skip ghost detection entirely rather than fall back to the partial set.
+    try:
+        full_remote_ids = set(await provider.fetch_message_ids(access_token))
+    except Exception:
+        logger.exception(
+            "Failed to fetch full message id list for account %s; "
+            "skipping ghost detection this cycle",
+            account_id,
+        )
+        return
+
     try:
         db = create_supabase_service_client()
         db_resp = (
             db.postgrest.from_("nexus_emails")
             .select("provider_id")
             .eq("account_id", account_id)
+            .eq("folder", "inbox")
             .execute()
         )
         db_ids = {row["provider_id"] for row in (db_resp.data or [])}
-        ghosts = detect_ghost_emails(db_ids, remote_ids)
+        ghosts = detect_ghost_emails(db_ids, full_remote_ids)
         if ghosts:
             logger.info(
                 "Detected %d ghost email(s) for account %s", len(ghosts), account_id
             )
             db.postgrest.from_("nexus_emails").update({"folder": "deleted"}).in_(
                 "provider_id", list(ghosts)
-            ).eq("account_id", account_id).execute()
+            ).eq("account_id", account_id).eq("folder", "inbox").execute()
     except Exception:
         logger.exception("Ghost detection failed for account %s", account_id)
 

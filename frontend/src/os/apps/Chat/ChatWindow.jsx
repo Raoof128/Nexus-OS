@@ -204,7 +204,7 @@ export default function ChatWindow({ sessionId, userId }) {
           <button
             type="submit"
             disabled={sending || !input.trim()}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25 disabled:opacity-20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25 disabled:opacity-20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             aria-label="Send message"
           >
             <Send size={16} />

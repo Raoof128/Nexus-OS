@@ -8,7 +8,7 @@ const ToolbarButton = React.memo(function ToolbarButton({
   variant = 'default',
 }) {
   const base =
-    'relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-black'
+    'relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-wider transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-black'
 
   const variants = {
     default: 'bg-white/[0.03] text-muted-foreground hover:bg-primary/10 hover:text-primary',

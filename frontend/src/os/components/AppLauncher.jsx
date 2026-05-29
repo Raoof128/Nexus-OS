@@ -36,6 +36,19 @@ function AppLauncher() {
     }
   }, [isMobile])
 
+  // Escape closes the launcher — matches ContextMenu / LockScreen dismissal so
+  // keyboard users can back out without reaching for the mouse or the backdrop.
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        toggleLauncher()
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [toggleLauncher])
+
   const handleLaunch = (appId) => {
     openApp(appId)
     toggleLauncher()
@@ -45,7 +58,11 @@ function AppLauncher() {
     if (e.key === 'Enter' && filtered.length > 0) {
       e.preventDefault()
       handleLaunch(filtered[selectedIndex])
-    } else if (e.key === 'ArrowRight') {
+      return
+    }
+    // No results → nothing to navigate; bail before any modulo-by-zero math.
+    if (filtered.length === 0) return
+    if (e.key === 'ArrowRight') {
       setSelectedIndex((prev) => (prev + 1) % filtered.length)
     } else if (e.key === 'ArrowLeft') {
       setSelectedIndex((prev) => (prev - 1 + filtered.length) % filtered.length)

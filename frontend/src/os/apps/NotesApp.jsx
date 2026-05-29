@@ -150,10 +150,19 @@ export default function NotesApp({ windowId }) {
 
       {/* Content */}
       {preview ? (
-        <div
-          className="flex-1 overflow-y-auto custom-scrollbar p-4 text-xs leading-relaxed text-muted-foreground"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
-        />
+        content.trim() ? (
+          <div
+            className="flex-1 overflow-y-auto custom-scrollbar p-4 text-xs leading-relaxed text-muted-foreground"
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+          />
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center">
+            <Eye size={24} className="text-muted-foreground/30" />
+            <p className="font-mono text-[10px] text-muted-foreground/50">
+              Nothing to preview yet — switch to Edit and start writing.
+            </p>
+          </div>
+        )
       ) : (
         <textarea
           value={content}

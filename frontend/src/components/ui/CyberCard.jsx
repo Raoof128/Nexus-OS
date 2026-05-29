@@ -102,7 +102,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
               <button
                 type="button"
                 onClick={handleRevert}
-                className="rounded-md bg-white/5 p-2 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
+                className="rounded-md bg-white/5 p-2 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
                 title={`Back to ${prev}`}
                 aria-label={`Back to ${prev}`}
               >
@@ -113,7 +113,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
               <button
                 type="button"
                 onClick={handleAdvance}
-                className="rounded-md bg-white/5 p-2 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
+                className="rounded-md bg-white/5 p-2 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
                 title={`Move to ${next}`}
                 aria-label={`Move to ${next}`}
               >
@@ -123,7 +123,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
             <button
               type="button"
               onClick={handleEdit}
-              className="rounded-md bg-white/5 p-2 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
+              className="rounded-md bg-white/5 p-2 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
               title="Edit"
               aria-label="Edit"
             >
@@ -132,7 +132,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
             <button
               type="button"
               onClick={handleDeleteClick}
-              className="rounded-md bg-white/5 p-2 text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
+              className="rounded-md bg-white/5 p-2 text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
               title="Delete"
               aria-label="Delete"
             >

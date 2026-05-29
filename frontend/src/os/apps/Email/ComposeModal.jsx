@@ -190,7 +190,7 @@ function ComposeModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-md bg-white/[0.03] p-1.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-primary"
+                  className="rounded-md bg-white/[0.03] p-1.5 text-muted-foreground transition-all hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   aria-label="Close compose"
                 >
                   <X size={13} />

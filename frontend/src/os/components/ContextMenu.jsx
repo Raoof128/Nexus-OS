@@ -3,7 +3,6 @@ import { motion as Motion } from 'framer-motion'
 import { DURATION, EASE } from '../../lib/motion'
 import {
   AppWindow,
-  ChevronDown,
   Layers,
   Minus,
   X,
