@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-30 (Australia/Sydney) — WebOS Upgrade Stage 2 (Notification Centre + Badging API)
+
+**Raouf:**
+
+- **Scope:** Second webOS slice — completed the notification subsystem.
+- **Summary:** The store conflated "toast shown" with "read", so dismissed alerts were lost and the taskbar badge was a dead end. Split the lifecycle (`toastDismissed` vs `read`), added a slide-in notification centre with full history, persisted history + a Do Not Disturb mode, and synced the PWA Badging API to the unread count.
+- **Files Changed:** `frontend/src/lib/appBadge.js` (NEW), `frontend/src/os/components/NotificationCenter.jsx` (NEW), `frontend/src/os/stores/__tests__/notificationStore.test.js` (NEW), `frontend/src/os/stores/notificationStore.js`, `frontend/src/os/components/Taskbar.jsx`, `frontend/src/os/components/NotificationToast.jsx`, `frontend/src/os/components/CommandPalette.jsx`, `frontend/src/os/Desktop.jsx`, `__tests__/Desktop.test.jsx`.
+- **Verification:** lint clean, build ok, tests 96/96 (16 files).
+- **Follow-ups:** OPFS "Nexus Drive"; real icon set; share-target/file-handlers; WCO.
+
 ### 2026-05-30 (Australia/Sydney) — WebOS Upgrade Phase 1 (PWA + Offline + Cmd+K)
 
 **Raouf:**

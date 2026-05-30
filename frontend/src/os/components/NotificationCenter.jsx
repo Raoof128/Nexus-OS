@@ -14,7 +14,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { SPRING } from '../../lib/motion'
-import useFocusTrap from '../../hooks/useFocusTrap'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useNotificationStore } from '../stores/notificationStore'
 
 const TYPE_META = {

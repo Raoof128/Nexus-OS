@@ -1,5 +1,16 @@
 # Change Log
 
+### 2026-05-30 (Australia/Sydney) — WebOS Upgrade (Stage 2): Notification Centre + Badging API
+
+**Raouf:**
+
+- **Scope:** Second webOS slice — completed the notification subsystem.
+- **The gap this fixes:** toasts auto-dismissed after 5s were marked `read` and vanished forever — there was no history panel and the taskbar badge did nothing when clicked.
+- **Summary:** **(1) Store rework (`notificationStore.js`)** — split the lifecycle into two flags: `toastDismissed` (transient bubble) vs `read` (persistent badge + centre). New actions: `markRead`, `markAllRead`, `removeNotification`, `openPanel`/`closePanel`/`togglePanel`, `toggleDoNotDisturb`, `hydrateNotifications`. History + DND now persist to `localStorage` (`nexus-os:notifications`, debounced). **(2) Badging API (`frontend/src/lib/appBadge.js`)** — `setAppBadge(count)` reflects the unread count on the installed app icon; a store subscriber keeps it in sync. Feature-detected + no-ops where unsupported. **(3) Notification Centre (`NotificationCenter.jsx`)** — right-edge slide-in panel (portal, focus-trapped, Esc-to-close) listing full history with type icons, relative timestamps, unread highlight, per-item mark-read/remove, mark-all-read, clear-all, and a Do Not Disturb toggle. **(4) Taskbar** — dead badge replaced with an always-present bell button (badge overlay) that toggles the centre; added to the mobile dock too. **(5) Toasts** — now filter on `!read && !toastDismissed`; DND suppresses toasts while still logging them as unread. **(6) Command centre** — added "Open notification centre", "Toggle Do Not Disturb", and "Clear all notifications" commands.
+- **Files Changed:** `frontend/src/lib/appBadge.js` (NEW), `frontend/src/os/components/NotificationCenter.jsx` (NEW), `frontend/src/os/stores/__tests__/notificationStore.test.js` (NEW), `frontend/src/os/stores/notificationStore.js`, `frontend/src/os/components/Taskbar.jsx`, `frontend/src/os/components/NotificationToast.jsx`, `frontend/src/os/components/CommandPalette.jsx`, `frontend/src/os/Desktop.jsx`, `frontend/src/os/components/__tests__/Desktop.test.jsx`.
+- **Verification:** `npm run lint` clean, `npm run build` ok, `npm run test -- --run` 96/96 pass (added `notificationStore.test.js`, 9 tests covering the dismiss≠read invariant, DND, history cap, panel toggle).
+- **Follow-ups (not done):** OPFS "Nexus Drive"; real PNG/maskable icon set; share-target / file-handlers; Window Controls Overlay styling.
+
 ### 2026-05-30 (Australia/Sydney) — WebOS Upgrade: PWA + Offline Shell + Command Centre
 
 **Raouf:**
