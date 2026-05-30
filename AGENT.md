@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-31 (Australia/Sydney) — Comprehensive Test Coverage + check.sh Quality Gate
+
+**Raouf:**
+
+- **Scope:** Close every exported-function coverage gap across `src/lib/` and write a `check.sh` quality gate that enforces zero uncovered functions.
+- **Summary:** Six source files had no tests: `appBadge.js`, `scrollLock.js`, `opfsDrive.js`, `registerServiceWorker.js`, `emailConfig.js`, `apiClient.js`. Added a direct test file for each. `opfsDrive.js` tests cover all 8 exports: pure sync functions (`isOpfsSupported`, `isTextMime`, `formatBytes`) exhaustively; async operations (`writeBlob`, `readBlob`, `deleteBlob`, `estimateStorage`, `requestPersistentStorage`) via jsdom's OPFS-unavailable fallback paths and mocked `navigator.storage`. `registerServiceWorker.js` tests use `vi.resetModules()` + dynamic imports to get clean module-level state per test, covering `onInstallAvailabilityChange`, `canInstall`, `promptInstall`, `isStandalone`, and `registerServiceWorker`. `apiClient.js` tests mock global `fetch` and verify request shape, serialisation, 204 no-content, timeout abort, 401 flow, and `refreshSession` deduplication. `check.sh` at repo root runs lint → build → vitest in one shot then does a grep-based audit of every `export [async] function` in 12 audited source files, failing loudly if any name is absent from all test files.
+- **Files Changed:** `frontend/src/lib/appBadge.test.js` (NEW), `frontend/src/lib/scrollLock.test.js` (NEW), `frontend/src/lib/opfsDrive.test.js` (NEW), `frontend/src/lib/registerServiceWorker.test.js` (NEW), `frontend/src/lib/emailConfig.test.js` (NEW), `frontend/src/lib/apiClient.test.js` (NEW), `check.sh` (NEW).
+- **Verification:** `npm run lint` clean, `npm run test -- --run` 189/189 pass (23 files), `./check.sh --no-build` all green (25 audited functions, 0 gaps).
+- **Follow-ups:** Install `@vitest/coverage-v8` to get branch/line HTML reports; add `check.sh` to CI; expand audit to `os/apps/` component exports.
+
 ### 2026-05-30 (Australia/Sydney) — WebOS Upgrade Stage 3 (OPFS Nexus Drive)
 
 **Raouf:**

@@ -1,5 +1,16 @@
 # Change Log
 
+### 2026-05-31 (Australia/Sydney) — Comprehensive Test Coverage + check.sh Quality Gate
+
+**Raouf:**
+
+- **Scope:** Close every exported-function coverage gap in `src/lib/` and ship a `check.sh` quality gate that enforces zero uncovered functions.
+- **The gap this fixes:** Six library modules had no test files at all — `appBadge.js`, `scrollLock.js`, `opfsDrive.js`, `registerServiceWorker.js`, `emailConfig.js`, and `apiClient.js` — leaving 25 exported functions completely dark.
+- **Summary:** **(1) `appBadge.test.js`** — 6 tests: calls `setAppBadge` / `clearAppBadge` correctly, no-ops when API absent, swallows sync errors, attaches `.catch()` to the returned promise. **(2) `scrollLock.test.js`** — 5 tests: overflow:hidden on first lock, restored on unlock, reference-counted (two locks, release one, still locked), safe double-release. Uses `vi.resetModules()` + dynamic imports to get a clean `lockCount` per test. **(3) `opfsDrive.test.js`** — 41 tests: `isTextMime` 14-case parametric table; `formatBytes` 13-case parametric table; `isOpfsSupported` confirms falsy in jsdom; `writeBlob`/`readBlob`/`deleteBlob` return safe fallbacks when OPFS unavailable; `estimateStorage` mocks `navigator.storage.estimate`; `requestPersistentStorage` covers already-persisted, fresh-persist, and rejected paths. **(4) `registerServiceWorker.test.js`** — 14 tests using `vi.resetModules()` + dynamic imports for module-level state isolation; covers all 5 exports including beforeinstallprompt capture, subscriber replay, unsubscribe, single-use prompt clearing, iOS `navigator.standalone`, and SW listener registration. **(5) `emailConfig.test.js`** — 11 tests: `formatEmailDate` covers all 5 time buckets plus two boundaries; `getProviderBadge` covers known providers, unknown fallback, and required field shape. **(6) `apiClient.test.js`** — 18 tests: GET shape, JSON body serialisation, `Content-Type`, 204 no-content → null, error extraction, AbortError timeout, auth-expiry callback, `authFetch` skip-retry, `refreshSession` POST + deduplication + lock-release. **(7) `check.sh`** — repo-root shell script: lint → (optional) build → vitest → grep-based function audit over 12 source files, exits 1 on any gap. Run with `./check.sh` or `./check.sh --no-build`.
+- **Files Changed:** `frontend/src/lib/appBadge.test.js` (NEW), `frontend/src/lib/scrollLock.test.js` (NEW), `frontend/src/lib/opfsDrive.test.js` (NEW), `frontend/src/lib/registerServiceWorker.test.js` (NEW), `frontend/src/lib/emailConfig.test.js` (NEW), `frontend/src/lib/apiClient.test.js` (NEW), `check.sh` (NEW).
+- **Verification:** `npm run lint` clean · `npm run test -- --run` 189/189 pass (23 files) · `./check.sh --no-build` all green — 25 audited functions, 0 gaps.
+- **Follow-ups:** Install `@vitest/coverage-v8` for branch/line HTML reports; add `check.sh` to GitHub Actions CI; extend audit list to `os/apps/` component files.
+
 ### 2026-05-30 (Australia/Sydney) — WebOS Upgrade (Stage 3): OPFS Nexus Drive
 
 **Raouf:**
