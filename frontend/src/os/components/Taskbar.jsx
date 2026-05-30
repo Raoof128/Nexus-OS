@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from 'react'
-import { LayoutGrid } from 'lucide-react'
+import { LayoutGrid, Bell } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
 import { useNotificationStore } from '../stores/notificationStore'
 import { APP_REGISTRY } from '../stores/appRegistry'
@@ -30,17 +30,32 @@ function Clock() {
   )
 }
 
-function NotificationBadge() {
+function NotificationTrayButton() {
   const notifications = useNotificationStore((s) => s.notifications)
+  const togglePanel = useNotificationStore((s) => s.togglePanel)
+  const panelOpen = useNotificationStore((s) => s.panelOpen)
   const unread = notifications.filter((n) => !n.read).length
-  if (unread === 0) return null
+
   return (
-    <span
-      className="flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-primary px-[3px] text-[8px] font-bold leading-none text-black"
-      aria-label={`${unread} unread notification${unread !== 1 ? 's' : ''}`}
+    <button
+      type="button"
+      onClick={togglePanel}
+      aria-label={`Notifications${unread > 0 ? `, ${unread} unread` : ''}`}
+      aria-expanded={panelOpen}
+      className={`relative flex h-7 w-7 items-center justify-center rounded-md transition-colors focus-visible:outline-none ${
+        panelOpen ? 'bg-primary/15 text-primary' : 'text-white/60 hover:text-white'
+      }`}
     >
-      {unread > 9 ? '9+' : unread}
-    </span>
+      <Bell size={14} />
+      {unread > 0 && (
+        <span
+          className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-primary px-[3px] text-[8px] font-bold leading-none text-black"
+          aria-hidden="true"
+        >
+          {unread > 9 ? '9+' : unread}
+        </span>
+      )}
+    </button>
   )
 }
 
@@ -69,6 +84,9 @@ function Taskbar() {
         >
           <LayoutGrid size={18} />
         </button>
+        <div className="flex flex-col items-center gap-0.5 p-2">
+          <NotificationTrayButton />
+        </div>
         {windowEntries.map((win) => {
           const manifest = APP_REGISTRY[win.appId]
           const Icon = manifest?.icon
@@ -157,7 +175,7 @@ function Taskbar() {
           role="status"
           aria-label="System Online"
         />
-        <NotificationBadge />
+        <NotificationTrayButton />
         <Clock />
       </div>
     </nav>

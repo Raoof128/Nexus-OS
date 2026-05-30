@@ -42,10 +42,32 @@ vi.mock('../../stores/settingsStore', () => ({
   },
 }))
 
-vi.mock('../../stores/notificationStore', () => ({
-  useNotificationStore: {
-    getState: () => ({ addNotification: vi.fn() }),
-  },
+vi.mock('../../stores/notificationStore', () => {
+  const useNotificationStore = (selector) =>
+    selector({
+      notifications: [],
+      panelOpen: false,
+      doNotDisturb: false,
+      addNotification: vi.fn(),
+      clearAll: vi.fn(),
+      openPanel: vi.fn(),
+      closePanel: vi.fn(),
+      togglePanel: vi.fn(),
+      markRead: vi.fn(),
+      markAllRead: vi.fn(),
+      removeNotification: vi.fn(),
+      toggleDoNotDisturb: vi.fn(),
+      hydrateNotifications: vi.fn(),
+    })
+  useNotificationStore.getState = () => ({
+    addNotification: vi.fn(),
+    hydrateNotifications: vi.fn(),
+  })
+  return { useNotificationStore }
+})
+
+vi.mock('../NotificationCenter', () => ({
+  default: () => null,
 }))
 
 vi.mock('../../stores/appRegistry', () => ({

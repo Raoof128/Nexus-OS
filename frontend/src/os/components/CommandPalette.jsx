@@ -14,8 +14,12 @@ import {
   RotateCw,
   Search,
   CornerDownLeft,
+  Bell,
+  BellOff,
+  Trash2,
 } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
+import { useNotificationStore } from '../stores/notificationStore'
 import {
   useSettingsStore,
   WALLPAPER_PRESETS,
@@ -43,6 +47,10 @@ export default function CommandPalette() {
   const minimizeAll = useWindowStore((s) => s.minimizeAll)
   const cascadeWindows = useWindowStore((s) => s.cascadeWindows)
   const closeAll = useWindowStore((s) => s.closeAll)
+
+  const openNotifications = useNotificationStore((s) => s.openPanel)
+  const clearNotifications = useNotificationStore((s) => s.clearAll)
+  const toggleDoNotDisturb = useNotificationStore((s) => s.toggleDoNotDisturb)
 
   const setWallpaper = useSettingsStore((s) => s.setWallpaper)
   const setAccentColor = useSettingsStore((s) => s.setAccentColor)
@@ -148,6 +156,30 @@ export default function CommandPalette() {
         action: () => closeAll(),
       },
       {
+        id: 'sys:notifications',
+        group: 'System',
+        label: 'Open notification centre',
+        keywords: 'notifications centre center alerts bell history',
+        icon: Bell,
+        action: () => openNotifications(),
+      },
+      {
+        id: 'sys:dnd',
+        group: 'System',
+        label: 'Toggle Do Not Disturb',
+        keywords: 'do not disturb dnd silence mute notifications focus',
+        icon: BellOff,
+        action: () => toggleDoNotDisturb(),
+      },
+      {
+        id: 'sys:clear-notifications',
+        group: 'System',
+        label: 'Clear all notifications',
+        keywords: 'clear dismiss all notifications alerts empty',
+        icon: Trash2,
+        action: () => clearNotifications(),
+      },
+      {
         id: 'sys:reload',
         group: 'System',
         label: 'Restart Nexus OS shell',
@@ -224,6 +256,9 @@ export default function CommandPalette() {
     setAccentColor,
     currentWallpaper,
     installable,
+    openNotifications,
+    clearNotifications,
+    toggleDoNotDisturb,
   ])
 
   const filtered = useMemo(() => {

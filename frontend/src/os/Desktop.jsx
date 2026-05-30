@@ -10,6 +10,7 @@ import Window from './components/Window'
 import Taskbar from './components/Taskbar'
 import AppLauncher from './components/AppLauncher'
 import NotificationToast from './components/NotificationToast'
+import NotificationCenter from './components/NotificationCenter'
 import DesktopIcons from './components/DesktopIcons'
 import ContextMenu from './components/ContextMenu'
 import BootSequence from './components/BootSequence'
@@ -97,6 +98,8 @@ export default function Desktop() {
   useEffect(() => {
     hydrateFromStorage()
     hydrateSettings()
+    // Restore notification history + Do Not Disturb preference from last session.
+    useNotificationStore.getState().hydrateNotifications()
     // getState() is safe here because hydrateFromStorage() is synchronous —
     // it calls set() internally and Zustand's set() updates the store synchronously,
     // so getState() immediately reflects the hydrated windows.
@@ -245,6 +248,7 @@ export default function Desktop() {
 
       {/* OS-grade overlays — only live on the unlocked desktop */}
       {!locked && <CommandPalette />}
+      {!locked && <NotificationCenter />}
       {!locked && <InstallPrompt />}
     </>
   )
