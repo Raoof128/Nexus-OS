@@ -67,10 +67,12 @@ function FileViewer({ file, onClose }) {
   // Track object URLs so we can revoke them and avoid leaks.
   const urlRef = useRef(null)
 
+  // FileViewer is remounted per file (keyed on path by the parent), so the
+  // useState initializer above already seeds 'loading' for blob files — no
+  // synchronous setState reset needed here.
   useEffect(() => {
     if (!isBlob) return
     let cancelled = false
-    setState({ status: 'loading' })
     readBlob(file.blobId).then((blob) => {
       if (cancelled) return
       if (!blob) {
@@ -321,7 +323,13 @@ export default function FileManagerApp() {
   }, [viewingFile, files])
 
   if (viewingFile && files[viewingFile]) {
-    return <FileViewer file={files[viewingFile]} onClose={() => setViewingFile(null)} />
+    return (
+      <FileViewer
+        key={viewingFile}
+        file={files[viewingFile]}
+        onClose={() => setViewingFile(null)}
+      />
+    )
   }
 
   return (
