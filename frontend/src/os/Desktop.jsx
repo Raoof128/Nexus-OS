@@ -15,6 +15,8 @@ import ContextMenu from './components/ContextMenu'
 import BootSequence from './components/BootSequence'
 import LockScreen from './components/LockScreen'
 import SnapPreview from './components/SnapPreview'
+import CommandPalette from './components/CommandPalette'
+import InstallPrompt from './components/InstallPrompt'
 
 const Z_INDEX_BASE = 100
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
@@ -101,6 +103,20 @@ export default function Desktop() {
     const firstBoot = Object.keys(useWindowStore.getState().windows).length === 0
     if (firstBoot) {
       openApp('media')
+    }
+    // PWA shortcut / deep-link: ?app=<id> (from a manifest shortcut or
+    // start_url) opens that app on launch, then the param is stripped so a
+    // later reload doesn't reopen it on top of the restored layout.
+    const params = new URLSearchParams(window.location.search)
+    const deepLinkApp = params.get('app')
+    if (deepLinkApp && APP_REGISTRY[deepLinkApp]) {
+      openApp(deepLinkApp)
+    }
+    if (params.has('app') || params.has('source')) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('app')
+      url.searchParams.delete('source')
+      window.history.replaceState({}, '', url)
     }
     // Welcome notification only on a genuine first boot this session
     if (firstBoot && sessionStorage.getItem(BOOT_SESSION_KEY) !== '1') {
@@ -226,6 +242,10 @@ export default function Desktop() {
 
         {locked && <LockScreen onUnlock={() => setLocked(false)} />}
       </div>
+
+      {/* OS-grade overlays — only live on the unlocked desktop */}
+      {!locked && <CommandPalette />}
+      {!locked && <InstallPrompt />}
     </>
   )
 }

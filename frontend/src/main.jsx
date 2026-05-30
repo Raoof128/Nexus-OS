@@ -8,6 +8,7 @@ import { AuthProvider } from './context/AuthContext.jsx'
 import { queryClient } from './lib/queryClient.js'
 import { bootstrapRecoveryTokens } from './lib/recoveryTokens.js'
 import { initializeSentry } from './observability/sentry.js'
+import { registerServiceWorker } from './lib/registerServiceWorker.js'
 import './index.css'
 
 try {
@@ -16,6 +17,7 @@ try {
   // silently ignore — token extraction failed
 }
 initializeSentry()
+registerServiceWorker()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

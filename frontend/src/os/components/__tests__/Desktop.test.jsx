@@ -36,6 +36,10 @@ vi.mock('../../stores/settingsStore', () => ({
   WALLPAPER_PRESETS: {
     grid: { id: 'grid', label: 'Matrix Grid' },
   },
+  ACCENT_PRESETS: {
+    cyan: { primary: '#00f5ff', neon: '#00f5ff', label: 'Neon Cyan' },
+    magenta: { primary: '#ff00ff', neon: '#ff00ff', label: 'Neon Magenta' },
+  },
 }))
 
 vi.mock('../../stores/notificationStore', () => ({

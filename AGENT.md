@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-30 (Australia/Sydney) — WebOS Upgrade Phase 1 (PWA + Offline + Cmd+K)
+
+**Raouf:**
+
+- **Scope:** First slice of the webOS upgrade plan — installable PWA, offline app shell, universal command centre. Window/session restore already existed in `windowStore.js`.
+- **Summary:** Added a web app manifest with shortcuts, an offline service worker (network-first navigations → cached shell, SWR for hashed assets, never caches `/api/*` or writes), a SW-registration + install-prompt broker module, a cyberpunk install toast, and a global Cmd/Ctrl+K command palette searching all apps + system/appearance commands. Wired SW registration in `main.jsx`; mounted palette/install-toast in `Desktop.jsx` (unlocked desktop only); `Desktop.jsx` boot effect now handles `?app=<id>` deep-links from manifest shortcuts.
+- **Files Changed:** `frontend/public/manifest.webmanifest` (NEW), `frontend/public/sw.js` (NEW), `frontend/src/lib/registerServiceWorker.js` (NEW), `frontend/src/os/components/CommandPalette.jsx` (NEW), `frontend/src/os/components/InstallPrompt.jsx` (NEW), `frontend/index.html`, `frontend/src/main.jsx`, `frontend/src/os/Desktop.jsx`. Restored empty `frontend/index.html`.
+- **Verification:** lint 0 errors, build clean (`sw.js`/`manifest.webmanifest` in `dist/`), full vitest suite passing.
+- **Follow-ups:** Dedicated PNG maskable icons; migrate headers to `public/_headers`; later webOS phases (lifecycle, notification centre + badges, OPFS drive, file handlers, share target, settings categories).
+
 ### 2026-05-25 (Australia/Sydney) — Full Backend Audit (5 Fixes)
 
 **Raouf:**

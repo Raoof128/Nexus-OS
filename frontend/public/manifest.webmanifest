@@ -1,0 +1,50 @@
+{
+  "name": "Nexus OS",
+  "short_name": "Nexus",
+  "description": "A cyberpunk browser OS: a windowing desktop shell hosting a media vault, email, AI chat and utility apps.",
+  "id": "/?source=pwa",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "theme_color": "#00f5ff",
+  "background_color": "#050816",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open Media Vault",
+      "short_name": "Library",
+      "url": "/?app=media"
+    },
+    {
+      "name": "Open Email",
+      "short_name": "Email",
+      "url": "/?app=email"
+    },
+    {
+      "name": "Open AI Chat",
+      "short_name": "Chat",
+      "url": "/?app=chat"
+    },
+    {
+      "name": "Open Notes",
+      "short_name": "Notes",
+      "url": "/?app=notes"
+    }
+  ]
+}
