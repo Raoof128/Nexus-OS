@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { useWindowStore } from './stores/windowStore'
 import { useSettingsStore, WALLPAPER_PRESETS } from './stores/settingsStore'
 import { useNotificationStore } from './stores/notificationStore'
+import { useFileSystemStore } from './stores/fileSystemStore'
 import useGlobalShortcuts from './hooks/useGlobalShortcuts'
 import { APP_REGISTRY, APP_ORDER } from './stores/appRegistry'
 import Window from './components/Window'
@@ -18,6 +19,8 @@ import LockScreen from './components/LockScreen'
 import SnapPreview from './components/SnapPreview'
 import CommandPalette from './components/CommandPalette'
 import InstallPrompt from './components/InstallPrompt'
+import TitlebarOverlay from './components/TitlebarOverlay'
+import { consumeShareTarget, consumeFileHandlers } from '../lib/pwaLaunch'
 
 const Z_INDEX_BASE = 100
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
@@ -100,6 +103,9 @@ export default function Desktop() {
     hydrateSettings()
     // Restore notification history + Do Not Disturb preference from last session.
     useNotificationStore.getState().hydrateNotifications()
+    // PWA Web Share Target: shared text/url is appended to Notes, which we open.
+    const sharedApp = consumeShareTarget()
+    if (sharedApp) openApp(sharedApp)
     // getState() is safe here because hydrateFromStorage() is synchronous —
     // it calls set() internally and Zustand's set() updates the store synchronously,
     // so getState() immediately reflects the hydrated windows.
@@ -129,6 +135,11 @@ export default function Desktop() {
         type: 'success',
       })
     }
+    // PWA File Handling API: files the OS opens with Nexus import into the Drive.
+    consumeFileHandlers({
+      openApp,
+      importFile: (parentPath, file) => useFileSystemStore.getState().importFile(parentPath, file),
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -245,6 +256,9 @@ export default function Desktop() {
 
         {locked && <LockScreen onUnlock={() => setLocked(false)} />}
       </div>
+
+      {/* Window Controls Overlay titlebar — only renders in WCO mode */}
+      <TitlebarOverlay />
 
       {/* OS-grade overlays — only live on the unlocked desktop */}
       {!locked && <CommandPalette />}

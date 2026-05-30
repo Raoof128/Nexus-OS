@@ -11,13 +11,21 @@
  *
  * Bump CACHE_VERSION to invalidate old caches on the next activation.
  */
-const CACHE_VERSION = 'v1'
+const CACHE_VERSION = 'v2'
 const SHELL_CACHE = `nexus-os-shell-${CACHE_VERSION}`
 const RUNTIME_CACHE = `nexus-os-runtime-${CACHE_VERSION}`
 
 // Minimal shell. Hashed JS/CSS are filled in at runtime (their names are unknown
 // at build time), so we only precache the stable, always-present entry points.
-const SHELL_ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg']
+const SHELL_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  '/favicon.svg',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
+]
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

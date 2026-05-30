@@ -1,11 +1,20 @@
-import { useState } from 'react'
-import { Check, Info, LogOut, Palette, User } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Bell, Check, HardDrive, Info, LogOut, Palette, User } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useSettingsStore, ACCENT_PRESETS, WALLPAPER_PRESETS } from '../stores/settingsStore'
+import { useNotificationStore } from '../stores/notificationStore'
+import {
+  isOpfsSupported,
+  estimateStorage,
+  requestPersistentStorage,
+  formatBytes,
+} from '../../lib/opfsDrive'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
 
 const TABS = [
   { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'storage', label: 'Storage', icon: HardDrive },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'account', label: 'Account', icon: User },
   { id: 'about', label: 'About', icon: Info },
 ]
@@ -276,6 +285,166 @@ function AccountTab() {
   )
 }
 
+function StorageTab() {
+  const [est, setEst] = useState(null)
+  const [persistResult, setPersistResult] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const supported = isOpfsSupported()
+
+  // Fire-and-forget refresh — setEst runs in the promise callback (not
+  // synchronously in the effect body), which keeps react-hooks/set-state-in-effect
+  // happy and mirrors the StorageMeter pattern in FileManagerApp.
+  const refresh = useCallback(() => {
+    estimateStorage().then((e) => setEst(e))
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    estimateStorage().then((e) => {
+      if (active) setEst(e)
+    })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const handlePersist = async () => {
+    setBusy(true)
+    const ok = await requestPersistentStorage()
+    setPersistResult(ok)
+    setBusy(false)
+  }
+
+  const usage = est?.usage ?? 0
+  const quota = est?.quota ?? 0
+  const pct = quota > 0 ? Math.min(100, (usage / quota) * 100) : 0
+
+  return (
+    <div className="space-y-6">
+      <section>
+        <h3 className="mb-3 font-display text-sm uppercase tracking-wider text-white/50">
+          Nexus Drive Storage
+        </h3>
+        {!supported && (
+          <p className="text-sm text-amber-400/80">
+            Persistent file storage (OPFS) isn't available in this browser — imported files won't
+            survive a reload.
+          </p>
+        )}
+        {est ? (
+          <>
+            <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <p className="mt-2 text-sm text-white/60">
+              {formatBytes(usage)} used of {formatBytes(quota)} available
+              <span className="ml-1 text-white/40">({pct.toFixed(1)}%)</span>
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-white/40">Storage estimate unavailable.</p>
+        )}
+        <button
+          onClick={refresh}
+          className="mt-3 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:text-white"
+        >
+          Refresh
+        </button>
+      </section>
+
+      <section>
+        <h3 className="mb-3 font-display text-sm uppercase tracking-wider text-white/50">
+          Persistent Storage
+        </h3>
+        <p className="mb-3 text-sm text-white/60">
+          Ask the browser to mark Nexus Drive as persistent so files aren't evicted automatically
+          when disk space runs low.
+        </p>
+        <button
+          onClick={handlePersist}
+          disabled={busy}
+          className="rounded-lg border border-primary/40 bg-primary/10 px-4 py-2 text-sm text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+        >
+          {busy ? 'Requesting…' : 'Request persistent storage'}
+        </button>
+        {persistResult === true && (
+          <p className="mt-2 text-sm text-emerald-400/90">✓ Storage is now persistent.</p>
+        )}
+        {persistResult === false && (
+          <p className="mt-2 text-sm text-amber-400/80">
+            The browser declined — storage stays best-effort.
+          </p>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function NotificationsTab() {
+  const doNotDisturb = useNotificationStore((s) => s.doNotDisturb)
+  const toggleDoNotDisturb = useNotificationStore((s) => s.toggleDoNotDisturb)
+  const clearAll = useNotificationStore((s) => s.clearAll)
+  const markAllRead = useNotificationStore((s) => s.markAllRead)
+  const notifications = useNotificationStore((s) => s.notifications)
+  const unread = notifications.filter((n) => !n.read).length
+
+  return (
+    <div className="space-y-6">
+      <section>
+        <h3 className="mb-3 font-display text-sm uppercase tracking-wider text-white/50">
+          Do Not Disturb
+        </h3>
+        <label className="flex items-center justify-between">
+          <span className="text-sm text-white/70">
+            Suppress toast pop-ups (notifications still log to the centre)
+          </span>
+          <button
+            onClick={toggleDoNotDisturb}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+              doNotDisturb ? 'bg-primary' : 'bg-white/20'
+            }`}
+            role="switch"
+            aria-checked={doNotDisturb}
+            aria-label="Toggle Do Not Disturb"
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                doNotDisturb ? 'translate-x-5' : 'translate-x-0.5'
+              }`}
+            />
+          </button>
+        </label>
+      </section>
+
+      <section>
+        <h3 className="mb-3 font-display text-sm uppercase tracking-wider text-white/50">
+          History
+        </h3>
+        <p className="mb-3 text-sm text-white/60">
+          {notifications.length} total · {unread} unread
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={markAllRead}
+            className="rounded-lg border border-white/10 px-4 py-2 text-sm text-white/60 transition-colors hover:text-white"
+          >
+            Mark all read
+          </button>
+          <button
+            onClick={clearAll}
+            className="rounded-lg border border-red-500/30 px-4 py-2 text-sm text-red-400/80 transition-colors hover:bg-red-500/10 hover:text-red-400"
+          >
+            Clear all
+          </button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function AboutTab() {
   const shortcuts = [
     { keys: 'Alt + W', action: 'Close window' },
@@ -359,6 +528,8 @@ export default function SettingsApp() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
         {activeTab === 'appearance' && <AppearanceTab />}
+        {activeTab === 'storage' && <StorageTab />}
+        {activeTab === 'notifications' && <NotificationsTab />}
         {activeTab === 'account' && <AccountTab />}
         {activeTab === 'about' && <AboutTab />}
       </div>

@@ -90,6 +90,7 @@ AUDIT_FILES=(
   lib/emailConfig.js
   lib/mediaConfig.js
   lib/opfsDrive.js
+  lib/pwaLaunch.js
   lib/recoveryTokens.js
   lib/registerServiceWorker.js
   lib/scrollLock.js

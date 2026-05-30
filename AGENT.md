@@ -5,6 +5,17 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-31 (Australia/Sydney) — WebOS Upgrade Stage 4 (Completed all remaining items)
+
+**Raouf:**
+
+- **Scope:** Implemented every outstanding webOS follow-up in one pass: real PNG icons, Cloudflare Pages security headers, Window Controls Overlay, Web Share Target, File Handlers, Settings categories, `check.sh` in CI, and `@vitest/coverage-v8`.
+- **Summary:** (1) **Icons** — generated 192/512 PNG + maskable variants from new vector SVGs (`icon.svg`, `icon-maskable.svg`) via ImageMagick; manifest now references real PNGs, `index.html` uses a PNG apple-touch-icon, SW precaches them (cache bumped v1→v2). (2) **Security headers** — created `frontend/public/_headers` (CSP allowing Google Fonts, Supabase wss, Sentry, OPFS blob/data; HSTS, X-Frame-Options, Permissions-Policy; immutable asset caching) — Cloudflare Pages reads this, not the legacy `vercel.json`. (3) **WCO** — `TitlebarOverlay.jsx` paints a draggable cyberpunk strip into the `titlebar-area-*` env() region only when `navigator.windowControlsOverlay.visible`; nothing renders otherwise. (4) **Share Target + File Handlers** — `lib/pwaLaunch.js` (`consumeShareTarget` → shared text into Notes; `consumeFileHandlers` → `launchQueue` files imported into Drive /downloads); wired in `Desktop.jsx` boot effect; manifest gained `share_target` (GET) + `file_handlers` (.txt/.md/.log). (5) **Settings categories** — added Storage tab (OPFS usage meter + persist-storage request) and Notifications tab (DND toggle, mark-all-read, clear-all). (6) **CI** — `main.yml` frontend job now runs `bash check.sh` as the gate plus a coverage step; fixed the duplicate `run:` gitleaks key. (7) **Coverage** — installed `@vitest/coverage-v8`, added coverage config to `vite.config.js` + `test:coverage` script.
+- **Files Changed:** NEW: `frontend/public/{icon.svg,icon-maskable.svg,icon-192.png,icon-512.png,icon-maskable-192.png,icon-maskable-512.png,apple-touch-icon.png,_headers}`, `frontend/src/os/components/TitlebarOverlay.jsx`, `frontend/src/lib/pwaLaunch.js`, `frontend/src/lib/pwaLaunch.test.js`. MODIFIED: `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `frontend/index.html`, `frontend/src/os/Desktop.jsx`, `frontend/src/index.css`, `frontend/src/os/apps/SettingsApp.jsx`, `frontend/vite.config.js`, `frontend/package.json`, `frontend/.gitignore`, `check.sh`, `.github/workflows/main.yml`.
+- **Verification:** `./check.sh` all green (lint, prettier, build, tests, audit — 27 functions, 0 gaps); `npm run test:coverage` 200/200 tests pass (24 files), 95.91% function coverage / 90% statements; icons visually confirmed.
+- **Note:** Found `src/os/components/Window/` (index.jsx, TitleBar.jsx, index.test.jsx) missing from the working tree (tracked in git, unstaged deletion of unknown origin) — restored from HEAD; build needs them.
+- **Follow-ups:** POST-based share target for binary files (needs SW interception); expand coverage gate thresholds once components are unit-tested.
+
 ### 2026-05-31 (Australia/Sydney) — Comprehensive Test Coverage + check.sh Quality Gate
 
 **Raouf:**

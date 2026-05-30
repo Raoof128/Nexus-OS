@@ -149,6 +149,35 @@
   );
 }
 
+/* Window Controls Overlay titlebar — only mounted by <TitlebarOverlay/> when
+   the PWA runs in WCO mode. Positioned into the browser-reported titlebar area
+   via the titlebar-area-* env() vars; the whole strip is a drag region so the
+   window stays movable. */
+.titlebar-overlay {
+  position: fixed;
+  top: env(titlebar-area-y, 0);
+  left: env(titlebar-area-x, 0);
+  width: env(titlebar-area-width, 100%);
+  height: env(titlebar-area-height, 33px);
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  background: linear-gradient(90deg, rgba(5, 8, 22, 0.95), rgba(5, 8, 22, 0.75));
+  border-bottom: 1px solid color-mix(in srgb, var(--color-primary, #00f5ff) 25%, transparent);
+  -webkit-app-region: drag;
+  app-region: drag;
+  user-select: none;
+}
+
+.titlebar-overlay__brand {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--color-primary, #00f5ff);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--color-primary, #00f5ff) 60%, transparent);
+}
+
 /* ── Wallpaper patterns ──────────────────────────────────── */
 /*
  * Wallpaper div is the FIRST -z-1 child in Desktop.jsx so ambient-orbs and

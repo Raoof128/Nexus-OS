@@ -1,5 +1,22 @@
 # Change Log
 
+### 2026-05-31 (Australia/Sydney) — WebOS Upgrade (Stage 4): All Remaining Items
+
+**Raouf:**
+
+- **Scope:** Cleared every outstanding webOS follow-up in one pass — real icons, security headers, Window Controls Overlay, Web Share Target, File Handlers, Settings categories, `check.sh` in CI, and code-coverage tooling.
+- **Summary:**
+  - **(1) Real PNG icons** — added vector sources `icon.svg` + `icon-maskable.svg` (full-bleed bg, glyph in the central safe zone) and rasterised 192/512 `any` + `maskable` PNGs plus a 180px `apple-touch-icon.png` via ImageMagick. Manifest now lists real PNGs (SVG kept as `any` fallback); `index.html` points the apple-touch-icon at the PNG; SW precaches them.
+  - **(2) Security headers** — new `frontend/public/_headers` (Cloudflare Pages reads this, not the legacy `vercel.json`): full CSP (allows Google Fonts, `wss://*.supabase.co`, Sentry, `blob:`/`data:` for OPFS previews), HSTS, `X-Frame-Options: DENY`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, plus immutable caching for `/assets/*`, `no-cache` for `/sw.js`.
+  - **(3) Window Controls Overlay** — `TitlebarOverlay.jsx` paints a draggable cyberpunk strip into the `titlebar-area-*` env() region, gated on `navigator.windowControlsOverlay.visible` (renders nothing otherwise); CSS in `index.css`.
+  - **(4) Share Target + File Handlers** — `lib/pwaLaunch.js`: `consumeShareTarget()` appends shared title/text/url to the Notes buffer and opens Notes; `consumeFileHandlers()` wires `launchQueue` so OS-opened files import into the Drive `/downloads` and open the File Manager. Manifest gained `share_target` (GET) and `file_handlers` (.txt/.md/.log). Wired into `Desktop.jsx` boot effect. Covered by `pwaLaunch.test.js` (10 tests).
+  - **(5) Settings categories** — added a **Storage** tab (live OPFS usage meter via `estimateStorage`, persist-storage request) and a **Notifications** tab (DND toggle, mark-all-read, clear-all) to `SettingsApp.jsx`.
+  - **(6) check.sh in CI** — `main.yml` frontend job now runs `bash check.sh` as the gate plus a coverage step; removed the duplicate `run:` keys on the gitleaks step.
+  - **(7) Coverage** — installed `@vitest/coverage-v8`, added a `coverage` block to `vite.config.js` (text + html + json-summary, scoped to lib/stores/hooks) and a `test:coverage` script; `coverage/` gitignored.
+- **Files Changed:** NEW: `frontend/public/{icon.svg,icon-maskable.svg,icon-192.png,icon-512.png,icon-maskable-192.png,icon-maskable-512.png,apple-touch-icon.png,_headers}`, `frontend/src/os/components/TitlebarOverlay.jsx`, `frontend/src/lib/pwaLaunch.js`, `frontend/src/lib/pwaLaunch.test.js`. MODIFIED: `frontend/public/{manifest.webmanifest,sw.js}`, `frontend/index.html`, `frontend/src/os/Desktop.jsx`, `frontend/src/index.css`, `frontend/src/os/apps/SettingsApp.jsx`, `frontend/vite.config.js`, `frontend/package.json`, `frontend/.gitignore`, `check.sh`, `.github/workflows/main.yml`.
+- **Verification:** `./check.sh` exit 0 — lint ✓, prettier ✓, build ✓, 199 tests ✓ (24 files), function audit 26/26 with 0 gaps; `npm run test:coverage` lib layer at 97% funcs / 81% stmts (opfsDrive/apiClient/pwaLaunch/registerServiceWorker all 100% funcs); icons visually confirmed.
+- **Follow-ups:** POST-based share target for binary files (needs SW request interception); raise coverage gate to enforced thresholds once components get unit tests.
+
 ### 2026-05-31 (Australia/Sydney) — Comprehensive Test Coverage + check.sh Quality Gate
 
 **Raouf:**
