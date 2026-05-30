@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-30 (Australia/Sydney) — WebOS Upgrade Stage 3 (OPFS Nexus Drive)
+
+**Raouf:**
+
+- **Scope:** Third webOS slice — real persistent file storage via the Origin Private File System.
+- **Summary:** The File Manager stored file content inline in the store + localStorage (≈5 MB, text only). Added an OPFS-backed drive: import real files from disk, persisted as binary blobs keyed by an opaque id, with the synthetic tree holding only metadata + a `blobId` reference. The viewer previews text/images inline or offers a download; a storage meter shows usage. All OPFS access is feature-detected and no-ops where unavailable, so the existing inline-text flow is untouched.
+- **Files Changed:** `frontend/src/lib/opfsDrive.js` (NEW), `frontend/src/os/stores/__tests__/fileSystemStore.opfs.test.js` (NEW), `frontend/src/os/stores/fileSystemStore.js`, `frontend/src/os/apps/FileManagerApp.jsx`.
+- **Verification:** lint clean, build ok, tests 101/101 (17 files; +6 OPFS tests).
+- **Follow-ups:** real icon set; share-target/file-handlers; WCO; settings categories.
+
 ### 2026-05-30 (Australia/Sydney) — WebOS Upgrade Stage 2 (Notification Centre + Badging API)
 
 **Raouf:**

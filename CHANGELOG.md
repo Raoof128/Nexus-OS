@@ -1,5 +1,16 @@
 # Change Log
 
+### 2026-05-30 (Australia/Sydney) — WebOS Upgrade (Stage 3): OPFS Nexus Drive
+
+**Raouf:**
+
+- **Scope:** Third webOS slice — real persistent file storage for the File Manager via the Origin Private File System (OPFS).
+- **The gap this fixes:** the File Manager stored *everything* — including file content — inline in the zustand store + localStorage, which caps near 5 MB and only holds strings. You couldn't import real files from disk, and binary content was impossible.
+- **Summary:** **(1) OPFS wrapper (`frontend/src/lib/opfsDrive.js`)** — feature-detected `writeBlob`/`readBlob`/`deleteBlob` over `navigator.storage.getDirectory()`, plus `estimateStorage`, `requestPersistentStorage`, and `isTextMime`/`formatBytes` helpers. Every call no-ops/returns null where OPFS is unavailable (older browsers, jsdom) so callers never branch. **(2) Store (`fileSystemStore.js`)** — new async `importFile(parentPath, file)` writes the bytes to OPFS (opaque `blobId`) and adds a tree node holding only metadata (`blobId`, `size`, `mime`); name-collision de-dupe ("a.txt" → "a (1).txt"); returns the path or null on write failure. `deleteEntry` now reclaims OPFS blobs for the removed subtree (fire-and-forget). The synthetic tree remains the source of truth — inline text files created in-app are unchanged. **(3) File Manager UI (`FileManagerApp.jsx`)** — Import-from-disk button (multi-select), import progress/error states; the file viewer now loads blob-backed files (inline text/image preview under 512 KB, download button otherwise, BLOB_NOT_FOUND state if storage was cleared); a live storage meter in the status bar (`navigator.storage.estimate()`).
+- **Files Changed:** `frontend/src/lib/opfsDrive.js` (NEW), `frontend/src/os/stores/__tests__/fileSystemStore.opfs.test.js` (NEW), `frontend/src/os/stores/fileSystemStore.js`, `frontend/src/os/apps/FileManagerApp.jsx`.
+- **Verification:** `npm run lint` clean, `npm run build` ok (FileManagerApp 8.35→11.50 kB), `npm run test -- --run` 101/101 pass (added 6 OPFS tests covering import, blob write, name de-dupe, write-failure rollback, blob reclamation on file + folder delete, non-folder rejection).
+- **Follow-ups (not done):** real PNG/maskable icon set; share-target / file-handlers (so the OS can receive files from other apps straight into the Drive); Window Controls Overlay styling; settings categories.
+
 ### 2026-05-30 (Australia/Sydney) — WebOS Upgrade (Stage 2): Notification Centre + Badging API
 
 **Raouf:**

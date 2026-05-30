@@ -1,17 +1,28 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ArrowLeft,
+  Download,
   File,
   FilePlus,
   Folder,
   FolderPlus,
+  HardDrive,
   Home,
+  Loader2,
   Pencil,
   Trash2,
+  Upload,
   X,
 } from 'lucide-react'
 import { useFileSystemStore } from '../stores/fileSystemStore'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import {
+  readBlob,
+  estimateStorage,
+  isOpfsSupported,
+  isTextMime,
+  formatBytes,
+} from '../../lib/opfsDrive'
 
 function NewEntryDialog({ type, onSubmit, onCancel }) {
   const [name, setName] = useState('')
@@ -46,20 +57,169 @@ function NewEntryDialog({ type, onSubmit, onCancel }) {
 }
 
 function FileViewer({ file, onClose }) {
+  // Two kinds of file:
+  //   - inline text files created in-app (have `content`, no `blobId`)
+  //   - imported files backed by an OPFS blob (have `blobId`)
+  const isBlob = Boolean(file.blobId)
+  const [state, setState] = useState(() =>
+    isBlob ? { status: 'loading' } : { status: 'text', text: file.content || '' },
+  )
+  // Track object URLs so we can revoke them and avoid leaks.
+  const urlRef = useRef(null)
+
+  useEffect(() => {
+    if (!isBlob) return
+    let cancelled = false
+    setState({ status: 'loading' })
+    readBlob(file.blobId).then((blob) => {
+      if (cancelled) return
+      if (!blob) {
+        setState({ status: 'missing' })
+        return
+      }
+      if (isTextMime(file.mime) && blob.size < 512 * 1024) {
+        blob.text().then((text) => {
+          if (!cancelled) setState({ status: 'text', text })
+        })
+      } else {
+        const url = URL.createObjectURL(blob)
+        urlRef.current = url
+        setState({ status: 'binary', url })
+      }
+    })
+    return () => {
+      cancelled = true
+      if (urlRef.current) {
+        URL.revokeObjectURL(urlRef.current)
+        urlRef.current = null
+      }
+    }
+  }, [isBlob, file.blobId, file.mime])
+
+  const download = useCallback(() => {
+    readBlob(file.blobId).then((blob) => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = file.name
+      a.click()
+      URL.revokeObjectURL(url)
+    })
+  }, [file.blobId, file.name])
+
+  const isImage = (file.mime || '').startsWith('image/')
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-white/[0.04] bg-black/20 px-3 py-1.5">
-        <div className="flex items-center gap-2">
-          <File size={12} className="text-primary" />
-          <span className="heading-ui text-[10px] font-semibold text-white/80">{file.name}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <File size={12} className="shrink-0 text-primary" />
+          <span className="heading-ui truncate text-[10px] font-semibold text-white/80">
+            {file.name}
+          </span>
+          {file.size != null && (
+            <span className="shrink-0 font-mono text-[9px] text-muted-foreground/40">
+              {formatBytes(file.size)}
+            </span>
+          )}
         </div>
-        <button type="button" onClick={onClose} className="text-muted-foreground hover:text-white">
-          <X size={12} />
-        </button>
+        <div className="flex items-center gap-1">
+          {isBlob && (
+            <button
+              type="button"
+              onClick={download}
+              className="rounded p-1 text-muted-foreground hover:bg-primary/15 hover:text-primary"
+              aria-label="Download file"
+              title="Download"
+            >
+              <Download size={12} />
+            </button>
+          )}
+          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-white">
+            <X size={12} />
+          </button>
+        </div>
       </div>
-      <pre className="flex-1 overflow-auto custom-scrollbar p-4 font-mono text-xs leading-relaxed text-white/70 whitespace-pre-wrap">
-        {file.content || '(empty file)'}
-      </pre>
+
+      {state.status === 'loading' && (
+        <div className="flex flex-1 items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
+      )}
+
+      {state.status === 'missing' && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center">
+          <File size={24} className="text-muted-foreground/30" />
+          <p className="font-mono text-[10px] text-red-400/70">BLOB_NOT_FOUND</p>
+          <p className="font-mono text-[9px] text-muted-foreground/40">
+            The stored data for this file is missing or storage was cleared.
+          </p>
+        </div>
+      )}
+
+      {state.status === 'text' && (
+        <pre className="flex-1 overflow-auto custom-scrollbar p-4 font-mono text-xs leading-relaxed text-white/70 whitespace-pre-wrap">
+          {state.text || '(empty file)'}
+        </pre>
+      )}
+
+      {state.status === 'binary' &&
+        (isImage ? (
+          <div className="flex flex-1 items-center justify-center overflow-auto bg-black/40 p-4">
+            <img
+              src={state.url}
+              alt={file.name}
+              className="max-h-full max-w-full object-contain"
+            />
+          </div>
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
+            <File size={28} className="text-primary/50" />
+            <p className="font-mono text-[10px] text-muted-foreground/60">
+              No inline preview for this file type.
+            </p>
+            <button
+              type="button"
+              onClick={download}
+              className="flex items-center gap-1.5 rounded-md bg-primary/15 px-3 py-1.5 font-mono text-[10px] text-primary ring-1 ring-primary/20 transition-colors hover:bg-primary/25 focus-visible:outline-none"
+            >
+              <Download size={12} /> Download {file.name}
+            </button>
+          </div>
+        ))}
+    </div>
+  )
+}
+
+function StorageMeter() {
+  const [info, setInfo] = useState(null)
+  // The dependency is the whole file map so the meter refreshes when files
+  // are imported/removed. estimateStorage() is cheap and best-effort.
+  const files = useFileSystemStore((s) => s.files)
+
+  useEffect(() => {
+    let cancelled = false
+    estimateStorage().then((est) => {
+      if (!cancelled) setInfo(est)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [files])
+
+  if (!info || !info.quota) return null
+  const pct = Math.min(100, Math.round((info.usage / info.quota) * 100))
+  return (
+    <div className="flex items-center gap-2" title={`${formatBytes(info.usage)} of ${formatBytes(info.quota)} used`}>
+      <HardDrive size={9} className="text-muted-foreground/50" />
+      <div className="h-1 w-16 overflow-hidden rounded-full bg-white/[0.06]">
+        <div
+          className="h-full rounded-full bg-primary/60"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <span className="font-mono text-[9px] text-muted-foreground/50">{formatBytes(info.usage)}</span>
     </div>
   )
 }
@@ -72,6 +232,7 @@ export default function FileManagerApp() {
   const createFolder = useFileSystemStore((s) => s.createFolder)
   const deleteEntry = useFileSystemStore((s) => s.deleteEntry)
   const renameEntry = useFileSystemStore((s) => s.renameEntry)
+  const importFile = useFileSystemStore((s) => s.importFile)
   const hydrateFileSystem = useFileSystemStore((s) => s.hydrateFileSystem)
 
   const [creating, setCreating] = useState(null) // 'file' | 'folder' | null
@@ -79,6 +240,10 @@ export default function FileManagerApp() {
   const [renamingEntry, setRenamingEntry] = useState(null)
   const [renameValue, setRenameValue] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null) // { name, isFolder } | null
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState(null)
+  const fileInputRef = useRef(null)
+  const opfsAvailable = isOpfsSupported()
 
   useEffect(() => {
     hydrateFileSystem()
@@ -123,6 +288,31 @@ export default function FileManagerApp() {
   }, [currentPath, renamingEntry, renameValue, renameEntry])
 
   const buildEntryPath = (name) => (currentPath === '/' ? `/${name}` : `${currentPath}/${name}`)
+
+  const handleImport = useCallback(
+    async (e) => {
+      const picked = Array.from(e.target.files || [])
+      // Reset the input value so picking the same file again re-fires onChange.
+      e.target.value = ''
+      if (picked.length === 0) return
+      setImporting(true)
+      setImportError(null)
+      let failed = 0
+      for (const file of picked) {
+        const path = await importFile(currentPath, file)
+        if (!path) failed++
+      }
+      setImporting(false)
+      if (failed > 0) {
+        setImportError(
+          opfsAvailable
+            ? `Failed to import ${failed} file${failed !== 1 ? 's' : ''}.`
+            : 'File import needs OPFS, which this browser does not support.',
+        )
+      }
+    },
+    [currentPath, importFile, opfsAvailable],
+  )
 
   useEffect(() => {
     if (viewingFile && !files[viewingFile]) {
@@ -178,6 +368,30 @@ export default function FileManagerApp() {
           >
             <FilePlus size={12} />
           </button>
+          {opfsAvailable && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              className="rounded-md p-1 text-muted-foreground hover:bg-primary/15 hover:text-primary disabled:opacity-40"
+              aria-label="Import files from disk"
+              title="Import from disk"
+            >
+              {importing ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <Upload size={12} />
+              )}
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleImport}
+            className="hidden"
+            aria-hidden="true"
+          />
         </div>
       </div>
 
@@ -190,6 +404,20 @@ export default function FileManagerApp() {
               onSubmit={handleCreate}
               onCancel={() => setCreating(null)}
             />
+          </div>
+        )}
+
+        {importError && (
+          <div className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-1.5">
+            <span className="font-mono text-[10px] text-red-400/80">{importError}</span>
+            <button
+              type="button"
+              onClick={() => setImportError(null)}
+              className="text-red-400/60 hover:text-red-300"
+              aria-label="Dismiss error"
+            >
+              <X size={11} />
+            </button>
           </div>
         )}
 
@@ -282,10 +510,11 @@ export default function FileManagerApp() {
       </div>
 
       {/* Status bar */}
-      <div className="shrink-0 border-t border-white/[0.04] bg-black/20 px-3 py-1">
+      <div className="flex shrink-0 items-center justify-between border-t border-white/[0.04] bg-black/20 px-3 py-1">
         <span className="font-mono text-[9px] text-muted-foreground/50">
           {children.length} item{children.length !== 1 ? 's' : ''}
         </span>
+        <StorageMeter />
       </div>
 
       {/* Delete confirmation — folders remove their contents too, so guard it */}

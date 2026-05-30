@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { nanoid } from 'nanoid'
+import { writeBlob, deleteBlob } from '../../lib/opfsDrive'
 
 const STORAGE_KEY = 'nexus-os:filesystem'
 const SCHEMA_VERSION = 1
@@ -78,6 +80,11 @@ export const useFileSystemStore = create((set, get) => ({
       for (const [k, v] of Object.entries(state.files)) {
         if (k !== entryPath && !k.startsWith(entryPath + '/')) {
           newFiles[k] = v
+        } else if (v.blobId) {
+          // Reclaim any OPFS blobs owned by the removed subtree so they don't
+          // leak storage after their tree node is gone. Fire-and-forget — the
+          // tree is the source of truth, an orphaned blob is harmless if it slips.
+          deleteBlob(v.blobId)
         }
       }
       newFiles[parentPath] = {
@@ -86,6 +93,52 @@ export const useFileSystemStore = create((set, get) => ({
       }
       return { files: newFiles }
     })
+  },
+
+  // Import a real File/Blob from disk into the current OPFS-backed drive. The
+  // bytes live in OPFS (keyed by an opaque blobId); the tree node holds only
+  // metadata. Returns the new file path, or null if the write failed (e.g.
+  // OPFS unsupported) so the caller can surface an error instead of a ghost.
+  importFile: async (parentPath, file) => {
+    const parent = get().files[parentPath]
+    if (!parent || parent.type !== 'folder') return null
+
+    // De-dupe the name within the folder ("photo.png" → "photo (1).png").
+    let name = file.name || `import-${Date.now()}`
+    if (parent.children.includes(name)) {
+      const dot = name.lastIndexOf('.')
+      const stem = dot > 0 ? name.slice(0, dot) : name
+      const ext = dot > 0 ? name.slice(dot) : ''
+      let i = 1
+      while (parent.children.includes(`${stem} (${i})${ext}`)) i++
+      name = `${stem} (${i})${ext}`
+    }
+
+    const blobId = nanoid(16)
+    const ok = await writeBlob(blobId, file)
+    if (!ok) return null
+
+    const filePath = buildPath(parentPath, name)
+    set((state) => {
+      const p = state.files[parentPath]
+      if (!p || p.type !== 'folder') return state
+      return {
+        files: {
+          ...state.files,
+          [parentPath]: { ...p, children: [...p.children, name] },
+          [filePath]: {
+            type: 'file',
+            name,
+            blobId,
+            size: file.size ?? 0,
+            mime: file.type || 'application/octet-stream',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          },
+        },
+      }
+    })
+    return filePath
   },
 
   renameEntry: (parentPath, oldName, newName) => {
