@@ -138,7 +138,11 @@ function FileViewer({ file, onClose }) {
               <Download size={12} />
             </button>
           )}
-          <button type="button" onClick={onClose} className="text-muted-foreground hover:text-white">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-white"
+          >
             <X size={12} />
           </button>
         </div>
@@ -169,11 +173,7 @@ function FileViewer({ file, onClose }) {
       {state.status === 'binary' &&
         (isImage ? (
           <div className="flex flex-1 items-center justify-center overflow-auto bg-black/40 p-4">
-            <img
-              src={state.url}
-              alt={file.name}
-              className="max-h-full max-w-full object-contain"
-            />
+            <img src={state.url} alt={file.name} className="max-h-full max-w-full object-contain" />
           </div>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
@@ -213,15 +213,17 @@ function StorageMeter() {
   if (!info || !info.quota) return null
   const pct = Math.min(100, Math.round((info.usage / info.quota) * 100))
   return (
-    <div className="flex items-center gap-2" title={`${formatBytes(info.usage)} of ${formatBytes(info.quota)} used`}>
+    <div
+      className="flex items-center gap-2"
+      title={`${formatBytes(info.usage)} of ${formatBytes(info.quota)} used`}
+    >
       <HardDrive size={9} className="text-muted-foreground/50" />
       <div className="h-1 w-16 overflow-hidden rounded-full bg-white/[0.06]">
-        <div
-          className="h-full rounded-full bg-primary/60"
-          style={{ width: `${pct}%` }}
-        />
+        <div className="h-full rounded-full bg-primary/60" style={{ width: `${pct}%` }} />
       </div>
-      <span className="font-mono text-[9px] text-muted-foreground/50">{formatBytes(info.usage)}</span>
+      <span className="font-mono text-[9px] text-muted-foreground/50">
+        {formatBytes(info.usage)}
+      </span>
     </div>
   )
 }
@@ -385,11 +387,7 @@ export default function FileManagerApp() {
               aria-label="Import files from disk"
               title="Import from disk"
             >
-              {importing ? (
-                <Loader2 size={12} className="animate-spin" />
-              ) : (
-                <Upload size={12} />
-              )}
+              {importing ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
             </button>
           )}
           <input

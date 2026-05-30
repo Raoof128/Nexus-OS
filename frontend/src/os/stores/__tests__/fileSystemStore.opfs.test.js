@@ -54,7 +54,10 @@ describe('fileSystemStore — OPFS import', () => {
     await useFileSystemStore.getState().importFile('/documents', fakeFile('a.txt'))
     const path2 = await useFileSystemStore.getState().importFile('/documents', fakeFile('a.txt'))
     expect(path2).toBe('/documents/a (1).txt')
-    expect(useFileSystemStore.getState().files['/documents'].children).toEqual(['a.txt', 'a (1).txt'])
+    expect(useFileSystemStore.getState().files['/documents'].children).toEqual([
+      'a.txt',
+      'a (1).txt',
+    ])
   })
 
   it('returns null and adds nothing when the blob write fails', async () => {

@@ -3,9 +3,10 @@
 #
 # Runs the full verification pipeline:
 #   1. ESLint
-#   2. Vite production build
-#   3. Vitest (all test files, single run)
-#   4. Static function-coverage audit — every exported function in the
+#   2. Prettier (format check)
+#   3. Vite production build
+#   4. Vitest (all test files, single run)
+#   5. Static function-coverage audit — every exported function in the
 #      audited source files must appear in at least one test file.
 #
 # Exit codes: 0 = all clear, 1 = one or more checks failed.
@@ -41,7 +42,16 @@ else
   ERRORS=$((ERRORS + 1))
 fi
 
-# ── 2. Build ──────────────────────────────────────────────────────────────────
+# ── 2. Prettier ───────────────────────────────────────────────────────────────
+banner "FORMAT"
+if npm run prettier:check --silent 2>&1; then
+  ok "Prettier format clean"
+else
+  fail "Prettier found unformatted files — run: npm run format"
+  ERRORS=$((ERRORS + 1))
+fi
+
+# ── 4. Build ──────────────────────────────────────────────────────────────────
 if [ "$SKIP_BUILD" = false ]; then
   banner "BUILD"
   if npm run build 2>&1 | grep -E "^(✓|vite|dist|error)" | tail -10; then
@@ -52,7 +62,7 @@ if [ "$SKIP_BUILD" = false ]; then
   fi
 fi
 
-# ── 3. Tests ──────────────────────────────────────────────────────────────────
+# ── 5. Tests ──────────────────────────────────────────────────────────────────
 banner "TESTS"
 TEST_OUTPUT=$(npm run test -- --run 2>&1)
 echo "$TEST_OUTPUT" | grep -E "^( ✓| ✗| FAIL| PASS|Tests |Test Files)" | tail -20 || true
@@ -66,7 +76,7 @@ else
   warn "Could not parse test result — check output above"
 fi
 
-# ── 4. Function-coverage audit ────────────────────────────────────────────────
+# ── 6. Function-coverage audit ────────────────────────────────────────────────
 # For each file below every exported *function* (sync or async) must be
 # referenced by name in at least one *.test.js(x) file under src/.
 # Constants/class exports and re-exports are excluded by design — their

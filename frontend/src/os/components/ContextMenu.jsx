@@ -1,15 +1,7 @@
 import { memo, useCallback, useEffect, useRef } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { DURATION, EASE } from '../../lib/motion'
-import {
-  AppWindow,
-  Layers,
-  Minus,
-  X,
-  ScanLine,
-  Sparkles,
-  Settings,
-} from 'lucide-react'
+import { AppWindow, Layers, Minus, X, ScanLine, Sparkles, Settings } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
 import { useSettingsStore } from '../stores/settingsStore'
 

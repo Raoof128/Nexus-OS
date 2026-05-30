@@ -119,7 +119,8 @@ function MediaVault({
               <div className="m-3 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/10 px-6 py-12 text-center @sm:m-4 @sm:py-14">
                 <SearchX size={28} className="text-muted-foreground/30" aria-hidden="true" />
                 <p className="font-mono text-xs text-muted-foreground/70">
-                  No matches for &ldquo;<span className="text-white/80">{search.trim()}</span>&rdquo;
+                  No matches for &ldquo;<span className="text-white/80">{search.trim()}</span>
+                  &rdquo;
                 </p>
                 <button
                   type="button"
@@ -133,8 +134,8 @@ function MediaVault({
               <div className="m-3 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/10 px-6 py-12 text-center @sm:m-4 @sm:py-14">
                 <Icon size={28} className="text-muted-foreground/25" aria-hidden="true" />
                 <p className="font-mono text-xs text-muted-foreground/60">
-                  Nothing in{' '}
-                  <span className="text-white/70">{filterStatus || 'this vault'}</span> yet.
+                  Nothing in <span className="text-white/70">{filterStatus || 'this vault'}</span>{' '}
+                  yet.
                 </p>
               </div>
             ))}

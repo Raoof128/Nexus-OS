@@ -116,8 +116,7 @@ export async function requestPersistentStorage() {
 /** Crude text-vs-binary heuristic for choosing inline preview vs download. */
 export function isTextMime(mime = '') {
   return (
-    mime.startsWith('text/') ||
-    /(json|javascript|xml|csv|x-sh|x-yaml|yaml|markdown)/.test(mime)
+    mime.startsWith('text/') || /(json|javascript|xml|csv|x-sh|x-yaml|yaml|markdown)/.test(mime)
   )
 }
 

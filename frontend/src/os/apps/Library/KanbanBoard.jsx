@@ -10,7 +10,12 @@ import {
   useDroppable,
   closestCorners,
 } from '@dnd-kit/core'
-import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Plus, Sparkles } from 'lucide-react'
 import CyberCard from '../../../components/ui/CyberCard'

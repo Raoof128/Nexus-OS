@@ -20,13 +20,13 @@ import {
 } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
 import { useNotificationStore } from '../stores/notificationStore'
-import {
-  useSettingsStore,
-  WALLPAPER_PRESETS,
-  ACCENT_PRESETS,
-} from '../stores/settingsStore'
+import { useSettingsStore, WALLPAPER_PRESETS, ACCENT_PRESETS } from '../stores/settingsStore'
 import { APP_REGISTRY, APP_ORDER } from '../stores/appRegistry'
-import { canInstall, promptInstall, onInstallAvailabilityChange } from '../../lib/registerServiceWorker'
+import {
+  canInstall,
+  promptInstall,
+  onInstallAvailabilityChange,
+} from '../../lib/registerServiceWorker'
 
 /**
  * Universal command centre (Cmd/Ctrl+K). The OS "brainstem": fuzzy-search every

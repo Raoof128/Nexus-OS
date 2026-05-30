@@ -115,7 +115,11 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
 
         {/* Loading state */}
         {suggesting && (
-          <div className="my-4 flex flex-col items-center gap-3 py-6" role="status" aria-label="Loading suggestions">
+          <div
+            className="my-4 flex flex-col items-center gap-3 py-6"
+            role="status"
+            aria-label="Loading suggestions"
+          >
             <div className="relative">
               <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
               <Bot
