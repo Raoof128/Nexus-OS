@@ -27,6 +27,7 @@ try:
         create_supabase_user_client,
         get_gemini_circuit_breaker,
         get_genai_client,
+        run_blocking,
     )
 except ImportError:  # pragma: no cover
     from config import get_settings
@@ -45,6 +46,7 @@ except ImportError:  # pragma: no cover
         create_supabase_user_client,
         get_gemini_circuit_breaker,
         get_genai_client,
+        run_blocking,
     )
 
 logger = logging.getLogger(__name__)
@@ -202,12 +204,12 @@ class ChatController(Controller):
 
         # 1. Verify session ownership via RLS (fetch will be empty if not owned)
         try:
-            session_resp = (
+            session_builder = (
                 client.from_("chat_sessions")
                 .select("id, category")
                 .eq("id", session_id)
-                .execute()
             )
+            session_resp = await run_blocking(session_builder.execute)
         except Exception as exc:
             logger.exception("Failed to verify chat session")
             raise HTTPException(
@@ -221,13 +223,13 @@ class ChatController(Controller):
 
         # 2. Fetch history
         try:
-            history_resp = (
+            history_builder = (
                 client.from_("chat_messages")
                 .select("role, content")
                 .eq("session_id", session_id)
                 .order("created_at")
-                .execute()
             )
+            history_resp = await run_blocking(history_builder.execute)
         except Exception as exc:
             logger.exception("Failed to load chat history")
             raise HTTPException(
@@ -268,13 +270,14 @@ class ChatController(Controller):
 
         # 4. Save user message
         try:
-            client.from_("chat_messages").insert(
+            user_msg_builder = client.from_("chat_messages").insert(
                 {
                     "session_id": session_id,
                     "role": "user",
                     "content": protect_chat_content(data.content),
                 }
-            ).execute()
+            )
+            await run_blocking(user_msg_builder.execute)
         except Exception as exc:
             logger.exception("Failed to save user message")
             raise HTTPException(
@@ -294,7 +297,8 @@ class ChatController(Controller):
             )
         else:
             try:
-                response = genai_client.models.generate_content(
+                response = await run_blocking(
+                    genai_client.models.generate_content,
                     model=get_settings().gemini_model,
                     contents=contents,
                     config=types.GenerateContentConfig(
@@ -310,13 +314,14 @@ class ChatController(Controller):
 
         # 6. Save AI response
         try:
-            client.from_("chat_messages").insert(
+            ai_msg_builder = client.from_("chat_messages").insert(
                 {
                     "session_id": session_id,
                     "role": "model",
                     "content": protect_chat_content(ai_reply),
                 }
-            ).execute()
+            )
+            await run_blocking(ai_msg_builder.execute)
         except Exception:
             logger.warning("Failed to persist AI response", exc_info=True)
 

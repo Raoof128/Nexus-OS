@@ -1,6 +1,7 @@
 """ASGI application entrypoint for the backend."""
 
 from litestar import Litestar
+from litestar.config.compression import CompressionConfig
 from litestar.config.cors import CORSConfig
 from litestar.openapi.config import OpenAPIConfig
 from litestar.openapi.plugins import SwaggerRenderPlugin
@@ -41,7 +42,14 @@ cors_config = CORSConfig(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
+    # Cache CORS preflight (OPTIONS) responses in the browser so each PUT/PATCH/
+    # DELETE mutation doesn't pay an extra round-trip re-negotiating CORS.
+    max_age=600,
 )
+
+# Gzip-compress responses (media lists, chat history) above ~1 KB. Shrinks
+# payloads ~70-80% on JSON-heavy endpoints for a snappier frontend.
+compression_config = CompressionConfig(backend="gzip", minimum_size=1024)
 
 
 _openapi_config: OpenAPIConfig | None = (
@@ -72,6 +80,7 @@ app = Litestar(
     ],
     middleware=[SecurityHeadersMiddleware, SupabaseAuthMiddleware],
     cors_config=cors_config,
+    compression_config=compression_config,
     allowed_hosts=list(settings.allowed_hosts),
     openapi_config=_openapi_config,
     on_startup=[start_email_poller],

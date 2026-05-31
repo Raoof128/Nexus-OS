@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-31 (Australia/Sydney) — Backend Performance Pass
+
+**Raouf:**
+
+- **Scope:** Implemented the high-impact backend audit findings for a faster, smoother frontend under load.
+- **Summary:** (1) **Event-loop offload** — new `run_blocking()` helper (`anyio.to_thread.run_sync`) in `services.py`; `get_media_suggestion` is now `async`; all blocking PostgREST `.execute()` + Gemini `generate_content` calls on the hot request paths (media CRUD + `/media/suggest`, chat `send_message`, email `ai_draft`/`ai_summarize`) now run in a worker thread so one slow AI call no longer freezes every concurrent request. (2) **gzip** `CompressionConfig(minimum_size=1024)`. (3) **CORS** `max_age=600` (caches preflight). (4) **AI suggestion TTL cache** (10 min, keyed on a hash of `(media_type, pruned library)` → auto per-user) with `reset_suggestion_cache()` for tests.
+- **Files Changed:** `backend/app.py`, `backend/services.py`, `backend/controllers.py`, `backend/chat_controller.py`, `backend/email_controller.py`, `tests/test_services.py`.
+- **Verification:** ruff ✓ (all checks passed), ruff format ✓ (38 files), bandit 0 issues, pytest **102 passed** (3 new).
+- **Follow-ups:** remaining quick-DB offload in lighter chat/email handlers; Gmail N+1 + poller parallelisation; shared httpx transport for the per-request PostgREST client; streaming chat responses. **Not deployed** — pending user go-ahead to redeploy the droplet.
+
 ### 2026-05-31 (Australia/Sydney) — WebOS Upgrade Stage 4 (Completed all remaining items)
 
 **Raouf:**

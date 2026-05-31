@@ -30,6 +30,7 @@ try:
         create_supabase_user_client,
         get_gemini_circuit_breaker,
         get_genai_client,
+        run_blocking,
     )
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
@@ -52,6 +53,7 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
         create_supabase_user_client,
         get_gemini_circuit_breaker,
         get_genai_client,
+        run_blocking,
     )
 
 logger = logging.getLogger(__name__)
@@ -544,7 +546,8 @@ class EmailController(Controller):
 
         try:
             settings = get_settings()
-            response = client.models.generate_content(
+            response = await run_blocking(
+                client.models.generate_content,
                 model=settings.gemini_model,
                 contents=prompt,
             )
@@ -605,7 +608,8 @@ class EmailController(Controller):
 
         try:
             settings = get_settings()
-            response = client.models.generate_content(
+            response = await run_blocking(
+                client.models.generate_content,
                 model=settings.gemini_model,
                 contents=prompt,
             )

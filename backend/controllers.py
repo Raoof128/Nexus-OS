@@ -17,7 +17,11 @@ try:
         SuggestionItem,
         SuggestionResponse,
     )
-    from .services import create_supabase_user_client, get_media_suggestion
+    from .services import (
+        create_supabase_user_client,
+        get_media_suggestion,
+        run_blocking,
+    )
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from audit_logger import log_audit_event
     from data_protection import encrypt_takeaway, hydrate_media_record
@@ -28,7 +32,11 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
         SuggestionItem,
         SuggestionResponse,
     )
-    from services import create_supabase_user_client, get_media_suggestion
+    from services import (
+        create_supabase_user_client,
+        get_media_suggestion,
+        run_blocking,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +80,10 @@ class MediaController(Controller):
             query = _get_user_client(request).from_("media").select("*")
             if type:
                 query = query.eq("type", type)
-            response = (
-                query.order("created_at", desc=True)
-                .range(offset, offset + limit - 1)
-                .execute()
+            builder = query.order("created_at", desc=True).range(
+                offset, offset + limit - 1
             )
+            response = await run_blocking(builder.execute)
         except Exception as exc:  # pragma: no cover - external dependency failure
             logger.exception("Failed to fetch media for user %s", user_id)
             raise HTTPException(
@@ -99,9 +106,8 @@ class MediaController(Controller):
                 detail="Takeaway notes require server-side encryption to be configured.",  # noqa: E501
             ) from exc
         try:
-            response = (
-                _get_user_client(request).from_("media").insert(media_data).execute()
-            )
+            builder = _get_user_client(request).from_("media").insert(media_data)
+            response = await run_blocking(builder.execute)
         except Exception as exc:  # pragma: no cover - external dependency failure
             logger.exception("Failed to create media for user %s", user_id)
             raise HTTPException(
@@ -144,13 +150,13 @@ class MediaController(Controller):
         if not update_data:
             raise HTTPException(status_code=422, detail="No fields to update")
         try:
-            response = (
+            builder = (
                 _get_user_client(request)
                 .from_("media")
                 .update(update_data)
                 .eq("id", media_id)
-                .execute()
             )
+            response = await run_blocking(builder.execute)
         except Exception as exc:  # pragma: no cover - external dependency failure
             logger.exception("Failed to update media %s for user %s", media_id, user_id)
             raise HTTPException(
@@ -173,9 +179,10 @@ class MediaController(Controller):
 
         user_id = request.state.user_id
         try:
-            _get_user_client(request).from_("media").delete().eq(
-                "id", media_id
-            ).execute()
+            builder = (
+                _get_user_client(request).from_("media").delete().eq("id", media_id)
+            )
+            await run_blocking(builder.execute)
         except Exception as exc:  # pragma: no cover - external dependency failure
             logger.exception("Failed to delete media %s for user %s", media_id, user_id)
             raise HTTPException(
@@ -206,7 +213,7 @@ class MediaController(Controller):
                 .select("title, genre, rating, type, creator")
             )
             query = query.eq("type", media_type)
-            items = query.execute()
+            items = await run_blocking(query.execute)
         except Exception as exc:  # pragma: no cover - external dependency failure
             logger.exception(
                 "Failed to load media for suggestion for user %s",
@@ -217,7 +224,7 @@ class MediaController(Controller):
                 detail="Failed to load media for suggestions",
             ) from exc
 
-        suggestion = get_media_suggestion(items.data or [], media_type)
+        suggestion = await get_media_suggestion(items.data or [], media_type)
         log_audit_event(
             action="media.suggest",
             user_id=user_id,
