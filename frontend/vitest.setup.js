@@ -4,6 +4,8 @@ import { vi } from 'vitest'
 vi.stubEnv('VITE_SUPABASE_URL', 'https://placeholder-project.supabase.co')
 vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'placeholder-anon-key')
 vi.stubEnv('VITE_API_URL', 'https://api.nexus-os.local')
+vi.stubEnv('VITE_AION_SUPABASE_URL', 'https://test-aion.supabase.co')
+vi.stubEnv('VITE_AION_SUPABASE_ANON_KEY', 'test-aion-anon-key')
 
 // Mock ResizeObserver which is missing in jsdom
 globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
