@@ -99,8 +99,9 @@ function Toast({ notification }) {
 export default function NotificationToast() {
   const notifications = useNotificationStore((s) => s.notifications)
 
-  // Show only the latest 3 unread notifications
-  const visible = notifications.filter((n) => !n.read).slice(0, 3)
+  // Show only the latest 3 toasts still live: unread AND not yet auto-/hand-
+  // dismissed. Dismissed-but-unread items live on in the notification centre.
+  const visible = notifications.filter((n) => !n.read && !n.toastDismissed).slice(0, 3)
 
   return (
     <div

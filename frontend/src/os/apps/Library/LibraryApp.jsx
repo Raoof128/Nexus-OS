@@ -111,14 +111,15 @@ export default function LibraryApp() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         {dataLoading && items.length === 0 ? (
-          <div className="flex h-full items-center justify-center" role="status" aria-label="Loading media">
+          <div
+            className="flex h-full items-center justify-center"
+            role="status"
+            aria-label="Loading media"
+          >
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : error ? (
-          <div
-            role="alert"
-            className="flex flex-col items-center gap-3 p-6 text-center"
-          >
+          <div role="alert" className="flex flex-col items-center gap-3 p-6 text-center">
             <p className="font-bold uppercase tracking-widest text-destructive">
               API Error: {error}
             </p>

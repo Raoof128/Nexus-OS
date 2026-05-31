@@ -5,6 +5,57 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-05-31 (Australia/Sydney) — WebOS Upgrade Stage 4 (Completed all remaining items)
+
+**Raouf:**
+
+- **Scope:** Implemented every outstanding webOS follow-up in one pass: real PNG icons, Cloudflare Pages security headers, Window Controls Overlay, Web Share Target, File Handlers, Settings categories, `check.sh` in CI, and `@vitest/coverage-v8`.
+- **Summary:** (1) **Icons** — generated 192/512 PNG + maskable variants from new vector SVGs (`icon.svg`, `icon-maskable.svg`) via ImageMagick; manifest now references real PNGs, `index.html` uses a PNG apple-touch-icon, SW precaches them (cache bumped v1→v2). (2) **Security headers** — created `frontend/public/_headers` (CSP allowing Google Fonts, Supabase wss, Sentry, OPFS blob/data; HSTS, X-Frame-Options, Permissions-Policy; immutable asset caching) — Cloudflare Pages reads this, not the legacy `vercel.json`. (3) **WCO** — `TitlebarOverlay.jsx` paints a draggable cyberpunk strip into the `titlebar-area-*` env() region only when `navigator.windowControlsOverlay.visible`; nothing renders otherwise. (4) **Share Target + File Handlers** — `lib/pwaLaunch.js` (`consumeShareTarget` → shared text into Notes; `consumeFileHandlers` → `launchQueue` files imported into Drive /downloads); wired in `Desktop.jsx` boot effect; manifest gained `share_target` (GET) + `file_handlers` (.txt/.md/.log). (5) **Settings categories** — added Storage tab (OPFS usage meter + persist-storage request) and Notifications tab (DND toggle, mark-all-read, clear-all). (6) **CI** — `main.yml` frontend job now runs `bash check.sh` as the gate plus a coverage step; fixed the duplicate `run:` gitleaks key. (7) **Coverage** — installed `@vitest/coverage-v8`, added coverage config to `vite.config.js` + `test:coverage` script.
+- **Files Changed:** NEW: `frontend/public/{icon.svg,icon-maskable.svg,icon-192.png,icon-512.png,icon-maskable-192.png,icon-maskable-512.png,apple-touch-icon.png,_headers}`, `frontend/src/os/components/TitlebarOverlay.jsx`, `frontend/src/lib/pwaLaunch.js`, `frontend/src/lib/pwaLaunch.test.js`. MODIFIED: `frontend/public/manifest.webmanifest`, `frontend/public/sw.js`, `frontend/index.html`, `frontend/src/os/Desktop.jsx`, `frontend/src/index.css`, `frontend/src/os/apps/SettingsApp.jsx`, `frontend/vite.config.js`, `frontend/package.json`, `frontend/.gitignore`, `check.sh`, `.github/workflows/main.yml`.
+- **Verification:** `./check.sh` all green (lint, prettier, build, tests, audit — 27 functions, 0 gaps); `npm run test:coverage` 200/200 tests pass (24 files), 95.91% function coverage / 90% statements; icons visually confirmed.
+- **Note:** Found `src/os/components/Window/` (index.jsx, TitleBar.jsx, index.test.jsx) missing from the working tree (tracked in git, unstaged deletion of unknown origin) — restored from HEAD; build needs them.
+- **Follow-ups:** POST-based share target for binary files (needs SW interception); expand coverage gate thresholds once components are unit-tested.
+
+### 2026-05-31 (Australia/Sydney) — Comprehensive Test Coverage + check.sh Quality Gate
+
+**Raouf:**
+
+- **Scope:** Close every exported-function coverage gap across `src/lib/` and write a `check.sh` quality gate that enforces zero uncovered functions.
+- **Summary:** Six source files had no tests: `appBadge.js`, `scrollLock.js`, `opfsDrive.js`, `registerServiceWorker.js`, `emailConfig.js`, `apiClient.js`. Added a direct test file for each. `opfsDrive.js` tests cover all 8 exports: pure sync functions (`isOpfsSupported`, `isTextMime`, `formatBytes`) exhaustively; async operations (`writeBlob`, `readBlob`, `deleteBlob`, `estimateStorage`, `requestPersistentStorage`) via jsdom's OPFS-unavailable fallback paths and mocked `navigator.storage`. `registerServiceWorker.js` tests use `vi.resetModules()` + dynamic imports to get clean module-level state per test, covering `onInstallAvailabilityChange`, `canInstall`, `promptInstall`, `isStandalone`, and `registerServiceWorker`. `apiClient.js` tests mock global `fetch` and verify request shape, serialisation, 204 no-content, timeout abort, 401 flow, and `refreshSession` deduplication. `check.sh` at repo root runs lint → build → vitest in one shot then does a grep-based audit of every `export [async] function` in 12 audited source files, failing loudly if any name is absent from all test files.
+- **Files Changed:** `frontend/src/lib/appBadge.test.js` (NEW), `frontend/src/lib/scrollLock.test.js` (NEW), `frontend/src/lib/opfsDrive.test.js` (NEW), `frontend/src/lib/registerServiceWorker.test.js` (NEW), `frontend/src/lib/emailConfig.test.js` (NEW), `frontend/src/lib/apiClient.test.js` (NEW), `check.sh` (NEW).
+- **Verification:** `npm run lint` clean, `npm run test -- --run` 189/189 pass (23 files), `./check.sh --no-build` all green (25 audited functions, 0 gaps).
+- **Follow-ups:** Install `@vitest/coverage-v8` to get branch/line HTML reports; add `check.sh` to CI; expand audit to `os/apps/` component exports.
+
+### 2026-05-30 (Australia/Sydney) — WebOS Upgrade Stage 3 (OPFS Nexus Drive)
+
+**Raouf:**
+
+- **Scope:** Third webOS slice — real persistent file storage via the Origin Private File System.
+- **Summary:** The File Manager stored file content inline in the store + localStorage (≈5 MB, text only). Added an OPFS-backed drive: import real files from disk, persisted as binary blobs keyed by an opaque id, with the synthetic tree holding only metadata + a `blobId` reference. The viewer previews text/images inline or offers a download; a storage meter shows usage. All OPFS access is feature-detected and no-ops where unavailable, so the existing inline-text flow is untouched.
+- **Files Changed:** `frontend/src/lib/opfsDrive.js` (NEW), `frontend/src/os/stores/__tests__/fileSystemStore.opfs.test.js` (NEW), `frontend/src/os/stores/fileSystemStore.js`, `frontend/src/os/apps/FileManagerApp.jsx`.
+- **Verification:** lint clean, build ok, tests 101/101 (17 files; +6 OPFS tests).
+- **Follow-ups:** real icon set; share-target/file-handlers; WCO; settings categories.
+
+### 2026-05-30 (Australia/Sydney) — WebOS Upgrade Stage 2 (Notification Centre + Badging API)
+
+**Raouf:**
+
+- **Scope:** Second webOS slice — completed the notification subsystem.
+- **Summary:** The store conflated "toast shown" with "read", so dismissed alerts were lost and the taskbar badge was a dead end. Split the lifecycle (`toastDismissed` vs `read`), added a slide-in notification centre with full history, persisted history + a Do Not Disturb mode, and synced the PWA Badging API to the unread count.
+- **Files Changed:** `frontend/src/lib/appBadge.js` (NEW), `frontend/src/os/components/NotificationCenter.jsx` (NEW), `frontend/src/os/stores/__tests__/notificationStore.test.js` (NEW), `frontend/src/os/stores/notificationStore.js`, `frontend/src/os/components/Taskbar.jsx`, `frontend/src/os/components/NotificationToast.jsx`, `frontend/src/os/components/CommandPalette.jsx`, `frontend/src/os/Desktop.jsx`, `__tests__/Desktop.test.jsx`.
+- **Verification:** lint clean, build ok, tests 96/96 (16 files).
+- **Follow-ups:** OPFS "Nexus Drive"; real icon set; share-target/file-handlers; WCO.
+
+### 2026-05-30 (Australia/Sydney) — WebOS Upgrade Phase 1 (PWA + Offline + Cmd+K)
+
+**Raouf:**
+
+- **Scope:** First slice of the webOS upgrade plan — installable PWA, offline app shell, universal command centre. Window/session restore already existed in `windowStore.js`.
+- **Summary:** Added a web app manifest with shortcuts, an offline service worker (network-first navigations → cached shell, SWR for hashed assets, never caches `/api/*` or writes), a SW-registration + install-prompt broker module, a cyberpunk install toast, and a global Cmd/Ctrl+K command palette searching all apps + system/appearance commands. Wired SW registration in `main.jsx`; mounted palette/install-toast in `Desktop.jsx` (unlocked desktop only); `Desktop.jsx` boot effect now handles `?app=<id>` deep-links from manifest shortcuts.
+- **Files Changed:** `frontend/public/manifest.webmanifest` (NEW), `frontend/public/sw.js` (NEW), `frontend/src/lib/registerServiceWorker.js` (NEW), `frontend/src/os/components/CommandPalette.jsx` (NEW), `frontend/src/os/components/InstallPrompt.jsx` (NEW), `frontend/index.html`, `frontend/src/main.jsx`, `frontend/src/os/Desktop.jsx`. Restored empty `frontend/index.html`.
+- **Verification:** lint 0 errors, build clean (`sw.js`/`manifest.webmanifest` in `dist/`), full vitest suite passing.
+- **Follow-ups:** Dedicated PNG maskable icons; migrate headers to `public/_headers`; later webOS phases (lifecycle, notification centre + badges, OPFS drive, file handlers, share target, settings categories).
+
 ### 2026-05-25 (Australia/Sydney) — Full Backend Audit (5 Fixes)
 
 **Raouf:**

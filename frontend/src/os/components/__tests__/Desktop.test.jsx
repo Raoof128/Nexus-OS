@@ -36,12 +36,38 @@ vi.mock('../../stores/settingsStore', () => ({
   WALLPAPER_PRESETS: {
     grid: { id: 'grid', label: 'Matrix Grid' },
   },
+  ACCENT_PRESETS: {
+    cyan: { primary: '#00f5ff', neon: '#00f5ff', label: 'Neon Cyan' },
+    magenta: { primary: '#ff00ff', neon: '#ff00ff', label: 'Neon Magenta' },
+  },
 }))
 
-vi.mock('../../stores/notificationStore', () => ({
-  useNotificationStore: {
-    getState: () => ({ addNotification: vi.fn() }),
-  },
+vi.mock('../../stores/notificationStore', () => {
+  const useNotificationStore = (selector) =>
+    selector({
+      notifications: [],
+      panelOpen: false,
+      doNotDisturb: false,
+      addNotification: vi.fn(),
+      clearAll: vi.fn(),
+      openPanel: vi.fn(),
+      closePanel: vi.fn(),
+      togglePanel: vi.fn(),
+      markRead: vi.fn(),
+      markAllRead: vi.fn(),
+      removeNotification: vi.fn(),
+      toggleDoNotDisturb: vi.fn(),
+      hydrateNotifications: vi.fn(),
+    })
+  useNotificationStore.getState = () => ({
+    addNotification: vi.fn(),
+    hydrateNotifications: vi.fn(),
+  })
+  return { useNotificationStore }
+})
+
+vi.mock('../NotificationCenter', () => ({
+  default: () => null,
 }))
 
 vi.mock('../../stores/appRegistry', () => ({
