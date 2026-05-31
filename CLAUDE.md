@@ -141,7 +141,7 @@ Local override: `backend/.env.local` (gitignored, loaded second with override=Tr
 ### Frontend (`frontend/.env`)
 
 Required: `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
-Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`
+Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`, `VITE_AION_SUPABASE_URL`, `VITE_AION_SUPABASE_ANON_KEY` (required for Aion Bible companion app)
 
 ## Gotchas
 
