@@ -1,5 +1,13 @@
 # Change Log
 
+### 2026-06-01 (Australia/Sydney) — Gitleaks Aion Env Example Fix
+
+**Raouf:**
+
+- **Scope:** Fix Gitleaks PR failure caused by tracked Aion Supabase anon-key examples.
+- **Summary:** Replaced JWT-shaped Aion anon-key examples with inert placeholders in `frontend/.env.example` and `docs/superpowers/plans/2026-06-01-aion-integration.md`. Added `.gitleaksignore` with the two exact historical fingerprints reported by CI so the PR range scan is narrow and does not suppress unrelated JWT findings. Also replaced an old base64-looking test key in `docs/superpowers/plans/2026-04-10-unified-inbox.md` with an inert placeholder.
+- **Verification:** `gitleaks detect --redact -v --exit-code=2 --report-format=sarif --report-path=/tmp/nexus-gitleaks-results.sarif --log-level=debug --log-opts="--no-merges --first-parent a501fb68d15594ce9302a9dfb63466d39916bd96^..HEAD"` reports no leaks.
+
 ### 2026-06-01 (Australia/Sydney) — Aion Task 8: useAionChat Hook
 
 **Raouf:**

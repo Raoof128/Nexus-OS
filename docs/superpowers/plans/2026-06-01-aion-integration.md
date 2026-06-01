@@ -25,8 +25,8 @@
 Append two lines to the existing `frontend/.env`:
 
 ```
-VITE_AION_SUPABASE_URL=https://eynemyseadlkbzwtzrry.supabase.co
-VITE_AION_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV5bmVteXNlYWRsa2J6d3R6cnJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMTgwNDMsImV4cCI6MjA5MDY5NDA0M30.pWOi6CDWA4Qw2dF-4SmtxIomVr2PFx_l8OVW3Rik3Tc
+VITE_AION_SUPABASE_URL=https://your-aion-project.supabase.co
+VITE_AION_SUPABASE_ANON_KEY=replace-with-aion-supabase-anon-key
 ```
 
 - [ ] **Step 2: Stub Aion env vars in vitest.setup.js**

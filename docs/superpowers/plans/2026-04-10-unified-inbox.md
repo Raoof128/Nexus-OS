@@ -502,7 +502,7 @@ from backend.email_service import (
 
 class TestTokenEncryption:
     def test_round_trip(self, monkeypatch):
-        monkeypatch.setenv("TAKEAWAY_ENCRYPTION_KEY", "dGVzdC1rZXktMzItYnl0ZXMtcGFkZGVkMTIzNA==")
+        monkeypatch.setenv("TAKEAWAY_ENCRYPTION_KEY", "test-fernet-key-placeholder")
         from backend.data_protection import get_takeaway_cipher
         # Force cipher reload
         get_takeaway_cipher.cache_clear() if hasattr(get_takeaway_cipher, "cache_clear") else None
