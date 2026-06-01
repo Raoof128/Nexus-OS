@@ -9,12 +9,12 @@ export default function AionChat({ view, onNavigate, session }) {
   const scrollRef = useRef(null)
   const didAutoSubmitRef = useRef(false)
 
-  // Auto-submit initial message exactly once (Strict Mode safe)
+  // Auto-submit initial message exactly once — waits for session before firing
   useEffect(() => {
-    if (!view.initialMessage || didAutoSubmitRef.current) return
+    if (!view.initialMessage || !session || didAutoSubmitRef.current) return
     didAutoSubmitRef.current = true
     sendMessage(view.initialMessage, view.conversationId ?? null)
-  }, [view.initialMessage, view.conversationId, sendMessage])
+  }, [view.initialMessage, view.conversationId, sendMessage, session])
 
   // Abort on unmount
   useEffect(() => {
