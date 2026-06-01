@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { ArrowLeft, Copy, MessageSquare, RefreshCw } from 'lucide-react'
-import { OT_BOOKS, NT_BOOKS } from '../lib/bibleData'
+import { OT_BOOKS, NT_BOOKS, getBookBackground } from '../lib/bibleData'
 import { useAionReader } from '../hooks/useAionReader'
 
 // ── Sub-view: Book list ─────────────────────────────────────
@@ -106,10 +106,28 @@ function ChapterViewer({ book, chapter, onBack, onAskAion }) {
     navigator.clipboard.writeText(text).catch(() => {})
   }
 
+  const bgUrl = getBookBackground(book.id)
+
   return (
-    <div className="flex h-full w-full flex-col bg-[#0a0a0c]">
+    <div className="relative flex h-full w-full flex-col bg-[#0a0a0c]">
+      {/* Per-book background art */}
+      {bgUrl && (
+        <div
+          className="pointer-events-none absolute inset-0 z-0"
+          style={{
+            backgroundImage: `url(${bgUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center top',
+            opacity: 0.18,
+          }}
+        />
+      )}
+      {/* Dark gradient overlay so text stays readable */}
+      {bgUrl && (
+        <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" />
+      )}
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-2.5">
+      <div className="relative z-10 flex items-center gap-3 border-b border-white/[0.06] px-4 py-2.5">
         <button
           onClick={onBack}
           aria-label="Back to chapter list"
@@ -133,7 +151,7 @@ function ChapterViewer({ book, chapter, onBack, onAskAion }) {
 
       {/* Verse list */}
       {isLoading && (
-        <div className="flex flex-1 flex-col gap-2 p-4" role="status" aria-label="Loading verses">
+        <div className="relative z-10 flex flex-1 flex-col gap-2 p-4" role="status" aria-label="Loading verses">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-4 animate-pulse rounded bg-white/[0.04]" />
           ))}
@@ -141,7 +159,7 @@ function ChapterViewer({ book, chapter, onBack, onAskAion }) {
       )}
 
       {error && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
+        <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-3 p-6">
           <p className="font-mono text-xs text-amber-200/40">Couldn&apos;t load chapter</p>
           <button
             onClick={refetch}
@@ -153,7 +171,7 @@ function ChapterViewer({ book, chapter, onBack, onAskAion }) {
       )}
 
       {!isLoading && !error && (
-        <div className="flex-1 overflow-y-auto px-5 py-4" onScroll={handleScroll}>
+        <div className="relative z-10 flex-1 overflow-y-auto px-5 py-4" onScroll={handleScroll}>
           {verses.map((v) => (
             <div key={v.verse} className="group mb-4">
               <button

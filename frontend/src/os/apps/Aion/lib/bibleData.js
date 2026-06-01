@@ -96,6 +96,18 @@ export const VOTD_POOL = [
   { book_id: 'PSA', book_name: 'Psalms', chapter: 91, verse: 1, content: 'He who dwells in the shelter of the Most High will abide in the shadow of the Almighty.' },
 ]
 
+// Returns the public URL for the per-book background image, or null if not found.
+// Filename derived by title-casing each word and removing spaces: "Song of Solomon" → "SongOfSolomon"
+export function getBookBackground(bookId) {
+  const book = BIBLE_BOOKS.find((b) => b.id === bookId)
+  if (!book) return null
+  const filename = book.name
+    .split(' ')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join('')
+  return `/aion-books/${filename}.webp`
+}
+
 export function getVerseOfTheDay() {
   const now = new Date()
   const start = new Date(now.getFullYear(), 0, 0)
