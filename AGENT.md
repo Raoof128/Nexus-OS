@@ -5,6 +5,26 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-06-01 (Australia/Sydney) — Aion Task 8: useAionChat Hook
+
+**Raouf:**
+
+- **Scope:** `useAionChat` hook — SSE streaming, per-message verses, AbortController.
+- **Summary:** Hook calls the Aion Edge Function directly via `fetch` (not `aionSupabase`). SSE format is `event: <type>\ndata: <json>\n\n`. `currentEvent` resets after each processed `data:` line — critical for correctness. `buffer = lines.pop() ?? ''` handles chunks that don't end with `\n`. Each assistant message owns its own `verses: []` updated via `setMessages` map-by-id (not a global state). AbortController in `useRef` so it persists across renders without causing re-renders.
+- **Files Changed:** `frontend/src/os/apps/Aion/hooks/useAionChat.js` (NEW), `frontend/src/os/apps/Aion/hooks/__tests__/useAionChat.test.js` (NEW).
+- **Verification:** 7/7 tests ✓; 225/225 full suite ✓ (28 files, zero regressions).
+- **Follow-ups:** Tasks 7, 9, 11 replace the view stubs and consume this hook.
+
+### 2026-06-01 (Australia/Sydney) — Aion Task 6: AionApp Root Shell
+
+**Raouf:**
+
+- **Scope:** AionApp root shell — view state machine, auth guard, Esc key handler.
+- **Summary:** Replaced the placeholder AionApp stub (Task 5) with a full implementation. Three-view state machine (`home`/`chat`/`reader`), `useAionAuth` loading/error/ready guards, Esc-to-home listener gated on `activeWindowId === windowId` and not targeting an input/textarea. Created three stub views in `views/` for Tasks 7/9/11. Test uses `vi.hoisted()` to expose the mock spy for per-test `mockReturnValueOnce` calls.
+- **Files Changed:** `frontend/src/os/apps/Aion/AionApp.jsx`, `frontend/src/os/apps/Aion/__tests__/AionApp.test.jsx`, `frontend/src/os/apps/Aion/views/{AionHome,AionChat,AionReader}.jsx`.
+- **Verification:** 6/6 AionApp tests ✓; 218/218 full suite ✓ (27 files, zero regressions).
+- **Follow-ups:** Tasks 7, 9, 11 replace the view stubs.
+
 ### 2026-05-31 (Australia/Sydney) — Backend Performance Pass
 
 **Raouf:**

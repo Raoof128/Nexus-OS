@@ -1,5 +1,25 @@
 # Change Log
 
+### 2026-06-01 (Australia/Sydney) — Aion Task 8: useAionChat Hook
+
+**Raouf:**
+
+- **Scope:** Implement the `useAionChat` hook — SSE streaming chat, per-message verse attachment, AbortController lifecycle.
+- **Summary:** Created `useAionChat(session)` that calls the Aion Edge Function at `VITE_AION_SUPABASE_URL/functions/v1/chat` via `fetch` with the four required headers (`Authorization`, `apikey`, `Content-Type: application/json`, `Accept: text/event-stream`). The hook maintains `messages`, `isStreaming`, `error`, and `conversationId` state. On `sendMessage` it appends a user message + empty assistant message (each with a stable `id`), then streams the SSE response: `text` events accumulate into the assistant message content via `setMessages` map-by-id, `verses` events attach the verse array to the same assistant message, `conversation` events persist the `conversationId` for multi-turn context, `error` events surface the backend error. Malformed SSE data lines (non-JSON) are silently skipped. A `useRef` `AbortController` cancels in-flight requests on new sends and on unmount. `reset()` clears all state and aborts any in-flight request.
+- **Files Changed:** `frontend/src/os/apps/Aion/hooks/useAionChat.js` (NEW), `frontend/src/os/apps/Aion/hooks/__tests__/useAionChat.test.js` (NEW).
+- **Verification:** 7/7 hook tests pass; full suite 225/225 (28 files) — zero regressions.
+- **Follow-ups:** Tasks 7, 9, 11 consume this hook from their view components.
+
+### 2026-06-01 (Australia/Sydney) — Aion Task 6: AionApp Root Shell
+
+**Raouf:**
+
+- **Scope:** Implement the AionApp root shell — view state machine, auth guard, and Esc key handler.
+- **Summary:** Replaced the Task 5 placeholder stub with a full AionApp component. Implements a three-view state machine (`home` → `chat` / `reader` → `home`), reads auth state from `useAionAuth` (loading/error/ready guards), listens for Escape key to return to home when the window is active (skips when an input/textarea has focus), and passes `session` + `onNavigate` down to each view. Created three stub views (`AionHome`, `AionChat`, `AionReader`) in `views/` — to be replaced in Tasks 7, 9, and 11. Test file uses `vi.hoisted()` to work around Vitest's mock-hoisting constraint so the `mockUseAionAuth` spy can be mutated per-test.
+- **Files Changed:** `frontend/src/os/apps/Aion/AionApp.jsx` (REPLACE), `frontend/src/os/apps/Aion/__tests__/AionApp.test.jsx` (NEW), `frontend/src/os/apps/Aion/views/AionHome.jsx` (NEW), `frontend/src/os/apps/Aion/views/AionChat.jsx` (NEW), `frontend/src/os/apps/Aion/views/AionReader.jsx` (NEW).
+- **Verification:** 6/6 AionApp tests pass; full suite 218/218 (27 files) — zero regressions.
+- **Follow-ups:** Tasks 7, 9, 11 will replace the view stubs with full implementations.
+
 ### 2026-05-31 (Australia/Sydney) — Backend Performance Pass (Event-Loop, Compression, CORS, AI Cache)
 
 **Raouf:**
