@@ -3,19 +3,24 @@ import { ArrowLeft, MessageSquare } from 'lucide-react'
 import { useAionChat } from '../hooks/useAionChat'
 import VerseCard from '../components/VerseCard'
 
+// Module-level Set survives React Strict Mode's simulated unmount/remount.
+// Each chat navigation gets a unique _chatKey from AionApp; the Set prevents
+// double-send across the two Strict Mode effect invocations.
+const sentChatKeys = new Set()
+
 export default function AionChat({ view, onNavigate, session }) {
   const { messages, sendMessage, isStreaming, error } = useAionChat(session)
   const [inputValue, setInputValue] = useState(view.initialMessage ?? '')
   const scrollRef = useRef(null)
 
-  // Auto-submit initial message once: guard on messages.length so Strict Mode
-  // double-mount skips the second fire (state persists across Strict Mode remount).
+  // Auto-submit initial message exactly once per navigation.
   // useAionChat handles its own AbortController cleanup on unmount.
   useEffect(() => {
-    if (!view.initialMessage || !session || messages.length > 0) return
+    if (!view.initialMessage || !session || !view._chatKey) return
+    if (sentChatKeys.has(view._chatKey)) return
+    sentChatKeys.add(view._chatKey)
     sendMessage(view.initialMessage, view.conversationId ?? null)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view.initialMessage, view.conversationId, sendMessage, session])
+  }, [view.initialMessage, view.conversationId, view._chatKey, sendMessage, session])
 
   // Scroll to bottom on new message content
   useEffect(() => {

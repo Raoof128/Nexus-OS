@@ -11,7 +11,10 @@ export default function AionApp({ windowId }) {
   const { session, isLoading, error, retry } = useAionAuth()
   const activeWindowId = useWindowStore((s) => s.activeWindowId)
 
-  const navigate = (newView) => setView(newView)
+  // Stamp each chat navigation with a unique key so AionChat's auto-submit can
+  // guard against React Strict Mode's simulated double-mount.
+  const navigate = (newView) =>
+    setView(newView.type === 'chat' ? { ...newView, _chatKey: Date.now() } : newView)
 
   // Esc: return to Home when this window is focused and an input is not active
   useEffect(() => {
