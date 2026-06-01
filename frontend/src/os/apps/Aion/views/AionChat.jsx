@@ -7,18 +7,14 @@ export default function AionChat({ view, onNavigate, session }) {
   const { messages, sendMessage, isStreaming, error } = useAionChat(session)
   const [inputValue, setInputValue] = useState(view.initialMessage ?? '')
   const scrollRef = useRef(null)
-  const didAutoSubmitRef = useRef(false)
 
-  // Auto-submit initial message exactly once — waits for session before firing.
-  // didAutoSubmitRef resets on cleanup so React Strict Mode's second mount can re-fire.
+  // Auto-submit initial message once: guard on messages.length so Strict Mode
+  // double-mount skips the second fire (state persists across Strict Mode remount).
   // useAionChat handles its own AbortController cleanup on unmount.
   useEffect(() => {
-    if (!view.initialMessage || !session || didAutoSubmitRef.current) return
-    didAutoSubmitRef.current = true
+    if (!view.initialMessage || !session || messages.length > 0) return
     sendMessage(view.initialMessage, view.conversationId ?? null)
-    return () => {
-      didAutoSubmitRef.current = false
-    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view.initialMessage, view.conversationId, sendMessage, session])
 
   // Scroll to bottom on new message content
