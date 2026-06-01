@@ -4,22 +4,22 @@ import { useAionChat } from '../hooks/useAionChat'
 import VerseCard from '../components/VerseCard'
 
 export default function AionChat({ view, onNavigate, session }) {
-  const { messages, sendMessage, isStreaming, error, reset } = useAionChat(session)
+  const { messages, sendMessage, isStreaming, error } = useAionChat(session)
   const [inputValue, setInputValue] = useState(view.initialMessage ?? '')
   const scrollRef = useRef(null)
   const didAutoSubmitRef = useRef(false)
 
-  // Auto-submit initial message exactly once — waits for session before firing
+  // Auto-submit initial message exactly once — waits for session before firing.
+  // didAutoSubmitRef resets on cleanup so React Strict Mode's second mount can re-fire.
+  // useAionChat handles its own AbortController cleanup on unmount.
   useEffect(() => {
     if (!view.initialMessage || !session || didAutoSubmitRef.current) return
     didAutoSubmitRef.current = true
     sendMessage(view.initialMessage, view.conversationId ?? null)
+    return () => {
+      didAutoSubmitRef.current = false
+    }
   }, [view.initialMessage, view.conversationId, sendMessage, session])
-
-  // Abort on unmount
-  useEffect(() => {
-    return () => reset()
-  }, [reset])
 
   // Scroll to bottom on new message content
   useEffect(() => {
