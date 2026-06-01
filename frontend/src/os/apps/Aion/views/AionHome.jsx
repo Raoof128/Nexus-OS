@@ -38,9 +38,18 @@ export default function AionHome({ onNavigate }) {
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#0a0a0c]">
-      {/* Ambient glows */}
-      <div className="pointer-events-none absolute bottom-0 left-1/2 h-64 w-64 -translate-x-1/2 translate-y-1/3 rounded-full bg-amber-600/[0.06] blur-3xl" />
-      <div className="pointer-events-none absolute left-0 top-0 h-48 w-48 -translate-x-1/3 -translate-y-1/3 rounded-full bg-violet-600/[0.05] blur-3xl" />
+      {/* Atmospheric background image */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage: 'url(/aion-home-bg.webp)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          opacity: 0.55,
+        }}
+      />
+      {/* Dark vignette overlay — keeps centre readable, preserves edge atmosphere */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(10,10,12,0.45)_30%,rgba(10,10,12,0.82)_100%)]" />
 
       {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto">

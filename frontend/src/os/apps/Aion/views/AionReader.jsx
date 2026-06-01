@@ -28,7 +28,7 @@ function BookList({ onSelectBook }) {
                 : 'text-white/30 hover:text-white/60'
             }`}
           >
-            {t === 'OT' ? 'Old Testament' : 'New Testament'}
+            {t === 'OT' ? `Old Testament (${OT_BOOKS.length})` : `New Testament (${NT_BOOKS.length})`}
           </button>
         ))}
       </div>
@@ -42,10 +42,11 @@ function BookList({ onSelectBook }) {
               aria-label={`${book.name}, ${book.chapters} chapters`}
               className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2.5 text-left transition-colors hover:border-amber-500/20 hover:bg-amber-500/[0.04]"
             >
-              <p className="font-mono text-xs text-white/80">{book.name}</p>
-              <p className="font-mono text-[9px] text-white/25">
-                {book.chapters} ch.
+              <p className="mb-0.5 font-mono text-[9px] font-bold tracking-widest text-amber-500/80">
+                {book.id}
               </p>
+              <p className="font-mono text-xs text-white/80">{book.name}</p>
+              <p className="font-mono text-[9px] text-white/25">{book.chapters} ch.</p>
             </button>
           ))}
         </div>
