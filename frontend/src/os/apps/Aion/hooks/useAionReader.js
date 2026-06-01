@@ -9,6 +9,7 @@ export function useAionReader(bookId, chapter) {
 
   useEffect(() => {
     if (!bookId || !chapter) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVerses([])
       setIsLoading(false)
       return
