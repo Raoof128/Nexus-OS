@@ -8,7 +8,7 @@ import AionReader from './views/AionReader'
 
 export default function AionApp({ windowId }) {
   const [view, setView] = useState({ type: 'home' })
-  const { session, isLoading, error } = useAionAuth()
+  const { session, isLoading, error, retry } = useAionAuth()
   const activeWindowId = useWindowStore((s) => s.activeWindowId)
 
   const navigate = (newView) => setView(newView)
@@ -46,7 +46,7 @@ export default function AionApp({ windowId }) {
         <AlertTriangle className="h-8 w-8 text-amber-500/60" />
         <p className="text-center font-mono text-sm text-amber-200/60">{error}</p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={retry}
           className="flex items-center gap-2 rounded border border-amber-500/30 px-4 py-2 font-mono text-xs text-amber-400 hover:bg-amber-500/10"
         >
           <RefreshCw className="h-3 w-3" /> Retry
@@ -59,7 +59,7 @@ export default function AionApp({ windowId }) {
     return <AionChat view={view} onNavigate={navigate} session={session} />
   }
   if (view.type === 'reader') {
-    return <AionReader view={view} onNavigate={navigate} session={session} />
+    return <AionReader view={view} onNavigate={navigate} />
   }
-  return <AionHome onNavigate={navigate} session={session} />
+  return <AionHome onNavigate={navigate} />
 }

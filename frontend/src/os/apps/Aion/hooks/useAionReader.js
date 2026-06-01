@@ -9,32 +9,33 @@ export function useAionReader(bookId, chapter) {
 
   useEffect(() => {
     if (!bookId || !chapter) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setVerses([])
-      setIsLoading(false)
       return
     }
 
     let cancelled = false
-    setIsLoading(true)
-    setError(null)
 
-    aionSupabase
-      .from('bible_verses')
-      .select('verse, content, book_name')
-      .eq('book_id', bookId)
-      .eq('chapter', Number(chapter))
-      .order('verse')
-      .then(({ data, error: fetchError }) => {
-        if (cancelled) return
-        if (fetchError) {
-          setError(fetchError.message)
-          setVerses([])
-        } else {
-          setVerses(data ?? [])
-        }
-        setIsLoading(false)
-      })
+    async function fetchVerses() {
+      setIsLoading(true)
+      setError(null)
+
+      const { data, error: fetchError } = await aionSupabase
+        .from('bible_verses')
+        .select('verse, content, book_name')
+        .eq('book_id', bookId)
+        .eq('chapter', Number(chapter))
+        .order('verse')
+
+      if (cancelled) return
+      if (fetchError) {
+        setError(fetchError.message)
+        setVerses([])
+      } else {
+        setVerses(data ?? [])
+      }
+      setIsLoading(false)
+    }
+
+    fetchVerses()
 
     return () => {
       cancelled = true

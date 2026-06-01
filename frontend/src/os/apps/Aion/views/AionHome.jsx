@@ -1,7 +1,7 @@
 import { BookOpen, Search, Brain, Flame, Sparkles, Bird, Zap } from 'lucide-react'
 import { getVerseOfTheDay } from '../lib/bibleData'
 import PromptPill from '../components/PromptPill'
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 
 const SUGGESTIONS = [
   { icon: Search, label: 'Find verses with the number 444' },
@@ -22,7 +22,6 @@ function getGreeting() {
 export default function AionHome({ onNavigate }) {
   const votd = getVerseOfTheDay()
   const [inputValue, setInputValue] = useState('')
-  const inputRef = useRef(null)
 
   const handleSend = (text) => {
     const msg = (text ?? inputValue).trim()
@@ -119,7 +118,6 @@ export default function AionHome({ onNavigate }) {
       <div className="border-t border-white/[0.06] bg-[#0a0a0c] px-4 py-3">
         <div className="mx-auto flex max-w-[480px] items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2">
           <input
-            ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}

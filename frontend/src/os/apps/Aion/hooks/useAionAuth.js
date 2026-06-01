@@ -5,9 +5,12 @@ export function useAionAuth() {
   const [session, setSession] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     let mounted = true
+    setIsLoading(true)
+    setError(null)
 
     async function init() {
       try {
@@ -41,7 +44,12 @@ export function useAionAuth() {
       mounted = false
       subscription.unsubscribe()
     }
-  }, [])
+  }, [retryCount])
 
-  return { session, isLoading, error }
+  const retry = () => {
+    setSession(null)
+    setRetryCount((c) => c + 1)
+  }
+
+  return { session, isLoading, error, retry }
 }

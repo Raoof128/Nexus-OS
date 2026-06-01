@@ -13,6 +13,7 @@ export function useAionChat(session) {
   const sendMessage = useCallback(
     async (text, convId = null) => {
       if (!session) return
+      if (!text.trim()) return
 
       if (abortRef.current) abortRef.current.abort()
       abortRef.current = new AbortController()

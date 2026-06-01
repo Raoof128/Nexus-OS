@@ -5,7 +5,7 @@ import VerseCard from '../components/VerseCard'
 
 export default function AionChat({ view, onNavigate, session }) {
   const { messages, sendMessage, isStreaming, error, reset } = useAionChat(session)
-  const [inputValue, setInputValue] = useState('')
+  const [inputValue, setInputValue] = useState(view.initialMessage ?? '')
   const scrollRef = useRef(null)
   const didAutoSubmitRef = useRef(false)
 
@@ -13,8 +13,6 @@ export default function AionChat({ view, onNavigate, session }) {
   useEffect(() => {
     if (!view.initialMessage || didAutoSubmitRef.current) return
     didAutoSubmitRef.current = true
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setInputValue(view.initialMessage)
     sendMessage(view.initialMessage, view.conversationId ?? null)
   }, [view.initialMessage, view.conversationId, sendMessage])
 
