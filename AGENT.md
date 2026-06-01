@@ -5,6 +5,44 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-06-01 (Australia/Sydney) — Gitleaks Aion Env Example Fix
+
+**Raouf:**
+
+- **Scope:** Fix Gitleaks PR failure caused by Aion Supabase anon-key examples in tracked docs.
+- **Summary:** Replaced JWT-shaped Aion anon-key examples with inert placeholders in `frontend/.env.example` and the Aion implementation plan. Added `.gitleaksignore` entries for the two historical PR fingerprints so the pull-request range scan can pass without broad JWT allowlisting. Also replaced an old base64-looking test key in the unified inbox plan with an inert placeholder.
+- **Verification:** `gitleaks detect --redact -v --exit-code=2 --report-format=sarif --report-path=/tmp/nexus-gitleaks-results.sarif --log-level=debug --log-opts="--no-merges --first-parent a501fb68d15594ce9302a9dfb63466d39916bd96^..HEAD"` reports no leaks.
+
+### 2026-06-01 (Australia/Sydney) — Aion Task 8: useAionChat Hook
+
+**Raouf:**
+
+- **Scope:** `useAionChat` hook — SSE streaming, per-message verses, AbortController.
+- **Summary:** Hook calls the Aion Edge Function directly via `fetch` (not `aionSupabase`). SSE format is `event: <type>\ndata: <json>\n\n`. `currentEvent` resets after each processed `data:` line — critical for correctness. `buffer = lines.pop() ?? ''` handles chunks that don't end with `\n`. Each assistant message owns its own `verses: []` updated via `setMessages` map-by-id (not a global state). AbortController in `useRef` so it persists across renders without causing re-renders.
+- **Files Changed:** `frontend/src/os/apps/Aion/hooks/useAionChat.js` (NEW), `frontend/src/os/apps/Aion/hooks/__tests__/useAionChat.test.js` (NEW).
+- **Verification:** 7/7 tests ✓; 225/225 full suite ✓ (28 files, zero regressions).
+- **Follow-ups:** Tasks 7, 9, 11 replace the view stubs and consume this hook.
+
+### 2026-06-01 (Australia/Sydney) — Aion Task 6: AionApp Root Shell
+
+**Raouf:**
+
+- **Scope:** AionApp root shell — view state machine, auth guard, Esc key handler.
+- **Summary:** Replaced the placeholder AionApp stub (Task 5) with a full implementation. Three-view state machine (`home`/`chat`/`reader`), `useAionAuth` loading/error/ready guards, Esc-to-home listener gated on `activeWindowId === windowId` and not targeting an input/textarea. Created three stub views in `views/` for Tasks 7/9/11. Test uses `vi.hoisted()` to expose the mock spy for per-test `mockReturnValueOnce` calls.
+- **Files Changed:** `frontend/src/os/apps/Aion/AionApp.jsx`, `frontend/src/os/apps/Aion/__tests__/AionApp.test.jsx`, `frontend/src/os/apps/Aion/views/{AionHome,AionChat,AionReader}.jsx`.
+- **Verification:** 6/6 AionApp tests ✓; 218/218 full suite ✓ (27 files, zero regressions).
+- **Follow-ups:** Tasks 7, 9, 11 replace the view stubs.
+
+### 2026-05-31 (Australia/Sydney) — Backend Performance Pass
+
+**Raouf:**
+
+- **Scope:** Implemented the high-impact backend audit findings for a faster, smoother frontend under load.
+- **Summary:** (1) **Event-loop offload** — new `run_blocking()` helper (`anyio.to_thread.run_sync`) in `services.py`; `get_media_suggestion` is now `async`; all blocking PostgREST `.execute()` + Gemini `generate_content` calls on the hot request paths (media CRUD + `/media/suggest`, chat `send_message`, email `ai_draft`/`ai_summarize`) now run in a worker thread so one slow AI call no longer freezes every concurrent request. (2) **gzip** `CompressionConfig(minimum_size=1024)`. (3) **CORS** `max_age=600` (caches preflight). (4) **AI suggestion TTL cache** (10 min, keyed on a hash of `(media_type, pruned library)` → auto per-user) with `reset_suggestion_cache()` for tests.
+- **Files Changed:** `backend/app.py`, `backend/services.py`, `backend/controllers.py`, `backend/chat_controller.py`, `backend/email_controller.py`, `tests/test_services.py`.
+- **Verification:** ruff ✓ (all checks passed), ruff format ✓ (38 files), bandit 0 issues, pytest **102 passed** (3 new).
+- **Follow-ups:** remaining quick-DB offload in lighter chat/email handlers; Gmail N+1 + poller parallelisation; shared httpx transport for the per-request PostgREST client; streaming chat responses. **Not deployed** — pending user go-ahead to redeploy the droplet.
+
 ### 2026-05-31 (Australia/Sydney) — WebOS Upgrade Stage 4 (Completed all remaining items)
 
 **Raouf:**

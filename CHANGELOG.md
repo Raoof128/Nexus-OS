@@ -1,5 +1,48 @@
 # Change Log
 
+### 2026-06-01 (Australia/Sydney) — Gitleaks Aion Env Example Fix
+
+**Raouf:**
+
+- **Scope:** Fix Gitleaks PR failure caused by tracked Aion Supabase anon-key examples.
+- **Summary:** Replaced JWT-shaped Aion anon-key examples with inert placeholders in `frontend/.env.example` and `docs/superpowers/plans/2026-06-01-aion-integration.md`. Added `.gitleaksignore` with the two exact historical fingerprints reported by CI so the PR range scan is narrow and does not suppress unrelated JWT findings. Also replaced an old base64-looking test key in `docs/superpowers/plans/2026-04-10-unified-inbox.md` with an inert placeholder.
+- **Verification:** `gitleaks detect --redact -v --exit-code=2 --report-format=sarif --report-path=/tmp/nexus-gitleaks-results.sarif --log-level=debug --log-opts="--no-merges --first-parent a501fb68d15594ce9302a9dfb63466d39916bd96^..HEAD"` reports no leaks.
+
+### 2026-06-01 (Australia/Sydney) — Aion Task 8: useAionChat Hook
+
+**Raouf:**
+
+- **Scope:** Implement the `useAionChat` hook — SSE streaming chat, per-message verse attachment, AbortController lifecycle.
+- **Summary:** Created `useAionChat(session)` that calls the Aion Edge Function at `VITE_AION_SUPABASE_URL/functions/v1/chat` via `fetch` with the four required headers (`Authorization`, `apikey`, `Content-Type: application/json`, `Accept: text/event-stream`). The hook maintains `messages`, `isStreaming`, `error`, and `conversationId` state. On `sendMessage` it appends a user message + empty assistant message (each with a stable `id`), then streams the SSE response: `text` events accumulate into the assistant message content via `setMessages` map-by-id, `verses` events attach the verse array to the same assistant message, `conversation` events persist the `conversationId` for multi-turn context, `error` events surface the backend error. Malformed SSE data lines (non-JSON) are silently skipped. A `useRef` `AbortController` cancels in-flight requests on new sends and on unmount. `reset()` clears all state and aborts any in-flight request.
+- **Files Changed:** `frontend/src/os/apps/Aion/hooks/useAionChat.js` (NEW), `frontend/src/os/apps/Aion/hooks/__tests__/useAionChat.test.js` (NEW).
+- **Verification:** 7/7 hook tests pass; full suite 225/225 (28 files) — zero regressions.
+- **Follow-ups:** Tasks 7, 9, 11 consume this hook from their view components.
+
+### 2026-06-01 (Australia/Sydney) — Aion Task 6: AionApp Root Shell
+
+**Raouf:**
+
+- **Scope:** Implement the AionApp root shell — view state machine, auth guard, and Esc key handler.
+- **Summary:** Replaced the Task 5 placeholder stub with a full AionApp component. Implements a three-view state machine (`home` → `chat` / `reader` → `home`), reads auth state from `useAionAuth` (loading/error/ready guards), listens for Escape key to return to home when the window is active (skips when an input/textarea has focus), and passes `session` + `onNavigate` down to each view. Created three stub views (`AionHome`, `AionChat`, `AionReader`) in `views/` — to be replaced in Tasks 7, 9, and 11. Test file uses `vi.hoisted()` to work around Vitest's mock-hoisting constraint so the `mockUseAionAuth` spy can be mutated per-test.
+- **Files Changed:** `frontend/src/os/apps/Aion/AionApp.jsx` (REPLACE), `frontend/src/os/apps/Aion/__tests__/AionApp.test.jsx` (NEW), `frontend/src/os/apps/Aion/views/AionHome.jsx` (NEW), `frontend/src/os/apps/Aion/views/AionChat.jsx` (NEW), `frontend/src/os/apps/Aion/views/AionReader.jsx` (NEW).
+- **Verification:** 6/6 AionApp tests pass; full suite 218/218 (27 files) — zero regressions.
+- **Follow-ups:** Tasks 7, 9, 11 will replace the view stubs with full implementations.
+
+### 2026-05-31 (Australia/Sydney) — Backend Performance Pass (Event-Loop, Compression, CORS, AI Cache)
+
+**Raouf:**
+
+- **Scope:** Implement the high-impact findings from the backend performance audit so the frontend feels faster and smoother under concurrent load. Hot request paths only — background email DB ops deferred.
+- **The core problem this fixes:** every controller was `async def` but called the **synchronous** PostgREST and Gemini SDKs directly, so a single multi-second AI call blocked the event loop for _every_ concurrent user on that worker. There was also no response compression and no CORS preflight caching.
+- **Summary:**
+  - **(1) Event-loop offload (Tier 1, biggest win)** — added `run_blocking(func, *args, **kwargs)` in `services.py` (wraps `anyio.to_thread.run_sync(partial(...))`). Made `get_media_suggestion` `async` and routed its Gemini call through it. Offloaded all blocking calls on the hot request paths: media CRUD + `/media/suggest` DB `.execute()` (`controllers.py`), the chat `send_message` path — session/history fetch, user+AI message inserts, and the Gemini call (`chat_controller.py`), and the two Gemini calls in email `ai_draft`/`ai_summarize` (`email_controller.py`). The called functions are unchanged (so all existing mocks still work) — they just run in a worker thread now, keeping the loop free.
+  - **(2) gzip compression** — added `CompressionConfig(backend="gzip", minimum_size=1024)` to the Litestar app; JSON-heavy responses (media lists up to 200 rows, chat history) now compress ~70–80%.
+  - **(3) CORS preflight caching** — added `max_age=600` to `CORSConfig` so each PUT/PATCH/DELETE mutation no longer pays an extra OPTIONS round-trip.
+  - **(4) AI suggestion cache** — a recommendation is a pure function of `(media_type, the user's library)`, so added a 10-minute TTL cache in `services.py` keyed on a hash of the pruned library (automatically per-user, stores no identity). Repeat `/media/suggest` calls with an unchanged library are now instant and stop burning Gemini quota. Added `reset_suggestion_cache()` for test isolation.
+- **Files Changed:** `backend/app.py`, `backend/services.py`, `backend/controllers.py`, `backend/chat_controller.py`, `backend/email_controller.py`, `tests/test_services.py` (3 new tests: `run_blocking` execution, suggestion cache hit, cache reset).
+- **Verification:** `ruff check backend tests` ✓ (All checks passed), `ruff format --check` ✓ (38 files), `bandit -r backend` 0 issues (3061 LOC), `pytest` **102 passed** (99 prior + 3 new). `py_compile` clean on all five edited modules. Confirmed via audit greps that `get_media_suggestion` has no direct test callers, so making it async was safe.
+- **Follow-ups (deliberately deferred, not yet done):** offload the remaining quick DB `.execute()` calls in the lighter chat handlers (session create/list/delete, get_messages) and email_controller (~23 sites) — small per-call blocking, larger surface; Gmail N+1 fetch + sequential account polling parallelisation in `email_service.py`/`email_poller.py` (background path, affects mail freshness not request latency); reuse a shared httpx transport in `create_supabase_user_client` instead of building one per request; streaming Gemini responses for chat (biggest _perceived_ speedup, larger change). **Not deployed** — changes are committed to the branch only; redeploy to the DigitalOcean droplet is pending user go-ahead.
+
 ### 2026-05-31 (Australia/Sydney) — WebOS Upgrade (Stage 4): All Remaining Items
 
 **Raouf:**

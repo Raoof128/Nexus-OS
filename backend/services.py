@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
-from functools import lru_cache
+from functools import lru_cache, partial
 from time import monotonic
 
 import tiktoken
+from anyio import to_thread
 from google import genai
 from postgrest import SyncPostgrestClient
 
@@ -22,6 +23,58 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
     from data_protection import serialize_media_context_for_llm
 
 logger = logging.getLogger(__name__)
+
+
+async def run_blocking(func, *args, **kwargs):
+    """Run a blocking sync call in a worker thread.
+
+    The controllers are ``async`` but the PostgREST and Gemini SDKs are
+    synchronous — calling them directly blocks the event loop and stalls every
+    other concurrent request. Offloading to anyio's thread pool keeps the loop
+    free so the backend stays responsive under load.
+    """
+
+    return await to_thread.run_sync(partial(func, *args, **kwargs))
+
+
+# ── AI suggestion cache ─────────────────────────────────────────────────
+# A recommendation is a pure function of (media_type, the user's library), so a
+# repeat request with an unchanged library can reuse the previous Gemini answer
+# instead of paying the multi-second call + quota again. Keying on a hash of the
+# library content makes the cache automatically per-user (different libraries →
+# different keys) without storing any identity.
+
+_SUGGESTION_CACHE_TTL_SECONDS = 600
+_suggestion_cache: dict[str, tuple[float, "SuggestionPayload"]] = {}
+
+
+def _suggestion_cache_key(media_type: str, pruned: list[dict]) -> str:
+    """Build a stable cache key from the media type + pruned library."""
+
+    payload = json.dumps([pruned, media_type], sort_keys=True, default=str)
+    return f"{media_type}:{hash(payload)}"
+
+
+def _get_cached_suggestion(key: str) -> "SuggestionPayload | None":
+    cached = _suggestion_cache.get(key)
+    if cached is None:
+        return None
+    stored_at, payload = cached
+    if monotonic() - stored_at > _SUGGESTION_CACHE_TTL_SECONDS:
+        _suggestion_cache.pop(key, None)
+        return None
+    return payload
+
+
+def _store_cached_suggestion(key: str, payload: "SuggestionPayload") -> None:
+    _suggestion_cache[key] = (monotonic(), payload)
+
+
+def reset_suggestion_cache() -> None:
+    """Clear the suggestion cache (used by tests for isolation)."""
+
+    _suggestion_cache.clear()
+
 
 # ── Local fallback matrices per media type ──────────────────────────────
 
@@ -458,7 +511,7 @@ def _parse_legacy_response(response_text: str) -> list[SuggestionItem]:
     return [SuggestionItem(title=title, pitch=reasoning)]
 
 
-def get_media_suggestion(
+async def get_media_suggestion(
     media_context: list[dict],
     media_type: str = "book",
 ) -> SuggestionPayload:
@@ -474,8 +527,14 @@ def get_media_suggestion(
         logger.warning("Gemini circuit breaker open, returning local fallback")
         return build_local_suggestion(pruned, media_type)
 
+    cache_key = _suggestion_cache_key(media_type, pruned)
+    cached = _get_cached_suggestion(cache_key)
+    if cached is not None:
+        return cached
+
     try:
-        response = client.models.generate_content(
+        response = await run_blocking(
+            client.models.generate_content,
             model=get_settings().gemini_model,
             contents=build_prompt(pruned, media_type),
         )
@@ -494,4 +553,6 @@ def get_media_suggestion(
     if not items:
         return build_local_suggestion(pruned, media_type)
 
-    return SuggestionPayload(suggestions=items, source="gemini")
+    payload = SuggestionPayload(suggestions=items, source="gemini")
+    _store_cached_suggestion(cache_key, payload)
+    return payload

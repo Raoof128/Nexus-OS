@@ -5,6 +5,7 @@ import {
   FolderOpen,
   Mail,
   MessageSquare,
+  ScrollText,
   Settings,
   StickyNote,
   TerminalSquare,
@@ -20,6 +21,7 @@ const SystemMonitorApp = lazy(() => import('../apps/SystemMonitorApp'))
 const NotesApp = lazy(() => import('../apps/NotesApp'))
 const TerminalApp = lazy(() => import('../apps/TerminalApp'))
 const FileManagerApp = lazy(() => import('../apps/FileManagerApp'))
+const AionApp = lazy(() => import('../apps/Aion/AionApp'))
 
 export const APP_REGISTRY = {
   media: {
@@ -94,6 +96,15 @@ export const APP_REGISTRY = {
     minSize: { width: 350, height: 300 },
     component: NotesApp,
   },
+  aion: {
+    id: 'aion',
+    title: 'Aion',
+    icon: ScrollText,
+    singleton: true,
+    defaultSize: { width: 900, height: 650 },
+    minSize: { width: 700, height: 500 },
+    component: AionApp,
+  },
 }
 
 /** Ordered list of app IDs for the launcher grid */
@@ -106,4 +117,5 @@ export const APP_ORDER = [
   'settings',
   'sysmon',
   'notes',
+  'aion',
 ]

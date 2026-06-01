@@ -1,5 +1,8 @@
 """Tests for recommendation service resilience helpers."""
 
+from unittest.mock import MagicMock
+
+import backend.services as services
 from backend.services import (
     build_local_suggestion,
     parse_gemini_json_response,
@@ -94,3 +97,54 @@ def test_parse_gemini_json_response_falls_back_to_legacy() -> None:
 
     assert len(items) == 1
     assert items[0].title == "Snow Crash"
+
+
+async def test_run_blocking_executes_sync_callable() -> None:
+    """run_blocking offloads a sync call to a thread and returns its result."""
+
+    result = await services.run_blocking(lambda x, y: x + y, 40, y=2)
+    assert result == 42
+
+
+async def test_get_media_suggestion_caches_gemini_result(monkeypatch) -> None:
+    """An unchanged library reuses the prior Gemini answer without re-calling."""
+
+    services.reset_suggestion_cache()
+    fake_response = MagicMock()
+    fake_response.text = (
+        '[{"title": "Dune", "creator": "Herbert", "genre": "Sci-Fi", "pitch": "Epic"}]'
+    )
+    fake_client = MagicMock()
+    fake_client.models.generate_content.return_value = fake_response
+    monkeypatch.setattr(services, "get_genai_client", lambda: fake_client)
+    services.get_gemini_circuit_breaker().record_success()
+
+    media = [{"title": "Neuromancer", "genre": "Sci-Fi", "rating": 9}]
+    first = await services.get_media_suggestion(media, "book")
+    second = await services.get_media_suggestion(media, "book")
+
+    assert first.source == "gemini"
+    assert second.suggestions[0].title == "Dune"
+    # Identical library → Gemini invoked exactly once (second call served cached).
+    assert fake_client.models.generate_content.call_count == 1
+    services.reset_suggestion_cache()
+
+
+async def test_reset_suggestion_cache_clears_entries(monkeypatch) -> None:
+    """reset_suggestion_cache forces the next request to re-call Gemini."""
+
+    services.reset_suggestion_cache()
+    fake_response = MagicMock()
+    fake_response.text = '[{"title": "Dune"}]'
+    fake_client = MagicMock()
+    fake_client.models.generate_content.return_value = fake_response
+    monkeypatch.setattr(services, "get_genai_client", lambda: fake_client)
+    services.get_gemini_circuit_breaker().record_success()
+
+    media = [{"title": "Solaris", "genre": "Sci-Fi", "rating": 8}]
+    await services.get_media_suggestion(media, "book")
+    services.reset_suggestion_cache()
+    await services.get_media_suggestion(media, "book")
+
+    assert fake_client.models.generate_content.call_count == 2
+    services.reset_suggestion_cache()
