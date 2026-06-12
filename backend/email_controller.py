@@ -80,33 +80,33 @@ def _db(access_token: str):
     return create_supabase_user_client(access_token)
 
 
-def _get_account(db, account_id: str, user_id: str) -> dict:
+async def _get_account(db, account_id: str, user_id: str) -> dict:
     """Fetch an email account row and assert ownership."""
 
-    resp = (
+    builder = (
         db.from_("email_accounts")
         .select("*")
         .eq("id", account_id)
         .eq("user_id", user_id)
         .maybe_single()
-        .execute()
     )
+    resp = await run_blocking(builder.execute)
     if not resp or not resp.data:
         raise HTTPException(status_code=404, detail="Email account not found")
     return resp.data
 
 
-def _get_email(db, email_id: str, user_id: str) -> dict:
+async def _get_email(db, email_id: str, user_id: str) -> dict:
     """Fetch an email message row and assert ownership."""
 
-    resp = (
+    builder = (
         db.from_("nexus_emails")
         .select("*")
         .eq("id", email_id)
         .eq("user_id", user_id)
         .maybe_single()
-        .execute()
     )
+    resp = await run_blocking(builder.execute)
     if not resp or not resp.data:
         raise HTTPException(status_code=404, detail="Email not found")
     return resp.data
@@ -132,13 +132,13 @@ class EmailController(Controller):
 
         user_id, access_token = _require_auth(request)
         try:
-            resp = (
+            builder = (
                 _db(access_token)
                 .from_("email_accounts_safe")
                 .select("*")
                 .eq("user_id", user_id)
-                .execute()
             )
+            resp = await run_blocking(builder.execute)
         except Exception as exc:  # pragma: no cover - external dependency failure
             logger.exception("Failed to list email accounts for user %s", user_id)
             raise HTTPException(
@@ -152,9 +152,14 @@ class EmailController(Controller):
 
         user_id, access_token = _require_auth(request)
         try:
-            _db(access_token).from_("email_accounts").delete().eq("id", account_id).eq(
-                "user_id", user_id
-            ).execute()
+            builder = (
+                _db(access_token)
+                .from_("email_accounts")
+                .delete()
+                .eq("id", account_id)
+                .eq("user_id", user_id)
+            )
+            await run_blocking(builder.execute)
         except Exception as exc:  # pragma: no cover
             logger.exception(
                 "Failed to disconnect account %s for user %s", account_id, user_id
@@ -173,7 +178,7 @@ class EmailController(Controller):
 
         user_id, access_token = _require_auth(request)
         db = _db(access_token)
-        account = _get_account(db, data.account_id, user_id)
+        account = await _get_account(db, data.account_id, user_id)
         provider = get_provider(account["provider"])
         token = decrypt_oauth_token(account["access_token_enc"])
 
@@ -206,8 +211,8 @@ class EmailController(Controller):
 
         user_id, access_token = _require_auth(request)
         db = _db(access_token)
-        email_row = _get_email(db, email_id, user_id)
-        account = _get_account(db, email_row["account_id"], user_id)
+        email_row = await _get_email(db, email_id, user_id)
+        account = await _get_account(db, email_row["account_id"], user_id)
         provider = get_provider(account["provider"])
         token = decrypt_oauth_token(account["access_token_enc"])
 
@@ -239,8 +244,8 @@ class EmailController(Controller):
 
         user_id, access_token = _require_auth(request)
         db = _db(access_token)
-        email_row = _get_email(db, email_id, user_id)
-        account = _get_account(db, email_row["account_id"], user_id)
+        email_row = await _get_email(db, email_id, user_id)
+        account = await _get_account(db, email_row["account_id"], user_id)
         provider = get_provider(account["provider"])
         token = decrypt_oauth_token(account["access_token_enc"])
 
@@ -267,7 +272,7 @@ class EmailController(Controller):
         user_id, access_token = _require_auth(request)
         db = _db(access_token)
         # Validate account ownership
-        _get_account(db, data.account_id, user_id)
+        await _get_account(db, data.account_id, user_id)
 
         draft_row = {
             "user_id": user_id,
@@ -282,7 +287,8 @@ class EmailController(Controller):
         }
 
         try:
-            resp = db.from_("email_drafts").insert(draft_row).execute()
+            builder = db.from_("email_drafts").insert(draft_row)
+            resp = await run_blocking(builder.execute)
         except Exception as exc:  # pragma: no cover
             logger.exception("Draft save failed for user %s", user_id)
             raise HTTPException(status_code=502, detail="Draft save failed") from exc
@@ -303,8 +309,8 @@ class EmailController(Controller):
 
         user_id, access_token = _require_auth(request)
         db = _db(access_token)
-        email_row = _get_email(db, email_id, user_id)
-        account = _get_account(db, email_row["account_id"], user_id)
+        email_row = await _get_email(db, email_id, user_id)
+        account = await _get_account(db, email_row["account_id"], user_id)
         provider = get_provider(account["provider"])
         token = decrypt_oauth_token(account["access_token_enc"])
 
@@ -315,9 +321,12 @@ class EmailController(Controller):
             raise HTTPException(status_code=502, detail="Move failed") from exc
 
         try:
-            db.from_("nexus_emails").update({"folder": data.folder}).eq(
-                "id", email_id
-            ).execute()
+            builder = (
+                db.from_("nexus_emails")
+                .update({"folder": data.folder})
+                .eq("id", email_id)
+            )
+            await run_blocking(builder.execute)
         except Exception:  # pragma: no cover
             logger.warning("Local folder update failed for email %s", email_id)
 
@@ -334,8 +343,8 @@ class EmailController(Controller):
 
         user_id, access_token = _require_auth(request)
         db = _db(access_token)
-        email_row = _get_email(db, email_id, user_id)
-        account = _get_account(db, email_row["account_id"], user_id)
+        email_row = await _get_email(db, email_id, user_id)
+        account = await _get_account(db, email_row["account_id"], user_id)
         provider = get_provider(account["provider"])
         token = decrypt_oauth_token(account["access_token_enc"])
 
@@ -360,10 +369,10 @@ class EmailController(Controller):
 
         user_id, access_token = _require_auth(request)
         db = _db(access_token)
-        email_row = _get_email(db, email_id, user_id)
+        email_row = await _get_email(db, email_id, user_id)
         is_read = data.is_read
 
-        account = _get_account(db, email_row["account_id"], user_id)
+        account = await _get_account(db, email_row["account_id"], user_id)
         provider = get_provider(account["provider"])
         token = decrypt_oauth_token(account["access_token_enc"])
 
@@ -374,9 +383,10 @@ class EmailController(Controller):
             raise HTTPException(status_code=502, detail="Mark read failed") from exc
 
         try:
-            db.from_("nexus_emails").update({"is_read": is_read}).eq(
-                "id", email_id
-            ).execute()
+            builder = (
+                db.from_("nexus_emails").update({"is_read": is_read}).eq("id", email_id)
+            )
+            await run_blocking(builder.execute)
         except Exception:  # pragma: no cover
             logger.warning("Local read-status update failed for email %s", email_id)
 
@@ -393,10 +403,10 @@ class EmailController(Controller):
 
         user_id, access_token = _require_auth(request)
         db = _db(access_token)
-        email_row = _get_email(db, email_id, user_id)
+        email_row = await _get_email(db, email_id, user_id)
         is_starred = data.is_starred
 
-        account = _get_account(db, email_row["account_id"], user_id)
+        account = await _get_account(db, email_row["account_id"], user_id)
         provider = get_provider(account["provider"])
         token = decrypt_oauth_token(account["access_token_enc"])
 
@@ -407,9 +417,12 @@ class EmailController(Controller):
             raise HTTPException(status_code=502, detail="Toggle star failed") from exc
 
         try:
-            db.from_("nexus_emails").update({"is_starred": is_starred}).eq(
-                "id", email_id
-            ).execute()
+            builder = (
+                db.from_("nexus_emails")
+                .update({"is_starred": is_starred})
+                .eq("id", email_id)
+            )
+            await run_blocking(builder.execute)
         except Exception:  # pragma: no cover
             logger.warning("Local star update failed for email %s", email_id)
 
@@ -425,8 +438,8 @@ class EmailController(Controller):
 
         user_id, access_token = _require_auth(request)
         db = _db(access_token)
-        email_row = _get_email(db, email_id, user_id)
-        account = _get_account(db, email_row["account_id"], user_id)
+        email_row = await _get_email(db, email_id, user_id)
+        account = await _get_account(db, email_row["account_id"], user_id)
         provider = get_provider(account["provider"])
         token = decrypt_oauth_token(account["access_token_enc"])
 
@@ -449,8 +462,8 @@ class EmailController(Controller):
 
         user_id, access_token = _require_auth(request)
         db = _db(access_token)
-        email_row = _get_email(db, email_id, user_id)
-        account = _get_account(db, email_row["account_id"], user_id)
+        email_row = await _get_email(db, email_id, user_id)
+        account = await _get_account(db, email_row["account_id"], user_id)
         token = decrypt_oauth_token(account["access_token_enc"])
 
         # Gmail attachment download
@@ -515,7 +528,7 @@ class EmailController(Controller):
         enforce_ai_rate_limit(user_id, "email_draft")
 
         db = _db(access_token)
-        email_row = _get_email(db, data.email_id, user_id)
+        email_row = await _get_email(db, data.email_id, user_id)
 
         client = get_genai_client()
         if not client:
@@ -569,13 +582,13 @@ class EmailController(Controller):
         db = _db(access_token)
         # Fetch all requested emails and assert ownership
         try:
-            resp = (
+            builder = (
                 db.from_("nexus_emails")
                 .select("subject, body_text, from_address, provider_date")
                 .in_("id", data.email_ids)
                 .eq("user_id", user_id)
-                .execute()
             )
+            resp = await run_blocking(builder.execute)
         except Exception as exc:  # pragma: no cover
             logger.exception("Failed to fetch emails for summarization")
             raise HTTPException(

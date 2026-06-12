@@ -20,11 +20,11 @@ from litestar.params import Parameter
 try:
     from .config import get_settings
     from .email_service import encrypt_oauth_token
-    from .services import create_supabase_user_client
+    from .services import create_supabase_user_client, run_blocking
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
     from email_service import encrypt_oauth_token
-    from services import create_supabase_user_client
+    from services import create_supabase_user_client, run_blocking
 
 logger = logging.getLogger(__name__)
 
@@ -273,9 +273,10 @@ class OAuthController(Controller):
 
         try:
             db = create_supabase_user_client(access_cookie)
-            db.from_("email_accounts").upsert(
+            builder = db.from_("email_accounts").upsert(
                 row, on_conflict="user_id,email_address"
-            ).execute()
+            )
+            await run_blocking(builder.execute)
         except Exception as exc:  # pragma: no cover - DB failure
             logger.exception("Failed to store email account for user %s", user_id)
             raise HTTPException(

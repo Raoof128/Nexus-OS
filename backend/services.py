@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
@@ -49,10 +50,16 @@ _suggestion_cache: dict[str, tuple[float, "SuggestionPayload"]] = {}
 
 
 def _suggestion_cache_key(media_type: str, pruned: list[dict]) -> str:
-    """Build a stable cache key from the media type + pruned library."""
+    """Build a stable cache key from the media type + pruned library.
+
+    SHA-256 (not the built-in ``hash()``) so the key is collision-resistant —
+    the cache is effectively per-user via library content, and a 64-bit hash
+    collision would hand one user another user's cached suggestions.
+    """
 
     payload = json.dumps([pruned, media_type], sort_keys=True, default=str)
-    return f"{media_type}:{hash(payload)}"
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return f"{media_type}:{digest}"
 
 
 def _get_cached_suggestion(key: str) -> "SuggestionPayload | None":
@@ -67,7 +74,17 @@ def _get_cached_suggestion(key: str) -> "SuggestionPayload | None":
 
 
 def _store_cached_suggestion(key: str, payload: "SuggestionPayload") -> None:
-    _suggestion_cache[key] = (monotonic(), payload)
+    # Sweep expired entries on write — they are otherwise only removed when the
+    # same key is read again, so stale per-library keys would accumulate.
+    now = monotonic()
+    expired = [
+        k
+        for k, (stored_at, _) in _suggestion_cache.items()
+        if now - stored_at > _SUGGESTION_CACHE_TTL_SECONDS
+    ]
+    for k in expired:
+        _suggestion_cache.pop(k, None)
+    _suggestion_cache[key] = (now, payload)
 
 
 def reset_suggestion_cache() -> None:

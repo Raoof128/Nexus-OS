@@ -1,5 +1,15 @@
 # Change Log
 
+### 2026-06-13 (Australia/Sydney) — Full Backend Audit + Hardening/Performance Pass
+
+**Raouf:**
+
+- **Scope:** Full audit of all 21 backend modules with direct fixes (security + performance + production-readiness).
+- **Summary:** Fixed four real issues in an otherwise heavily-hardened backend: (1) offloaded every remaining synchronous Supabase/PostgREST SDK call to worker threads via `run_blocking` — auth endpoints (login, refresh, register, logout, forgot/reset-password), the four lighter chat handlers, ~13 email-controller sites (ownership helpers `_get_account`/`_get_email` are now async), and the OAuth callback upsert — so slow upstream calls no longer stall every concurrent request (completes the deferred follow-up from the 2026-05-31 performance pass); (2) added a compaction sweep to the in-memory sliding-window rate limiter, whose keys embed caller-controlled input and previously grew without bound (memory-exhaustion DoS vector); (3) switched the AI suggestion cache key from Python's 64-bit `hash()` to SHA-256 — a collision could have served one user another user's cached suggestions; (4) the suggestion cache now sweeps expired entries on write instead of leaking them until a same-key read.
+- **Files Changed:** `backend/{auth_controller,chat_controller,email_controller,oauth_controller,rate_limit,services}.py`.
+- **Verification:** ruff check ✓, ruff format ✓ (38 files), pytest 102/102 ✓, bandit 0 issues, frontend build ✓.
+- **Follow-ups:** Optional: parallelise Gmail N+1 fetch + account polling in the poller; shared httpx transport for PostgREST clients; streaming chat responses. Not deployed to the droplet yet.
+
 ### 2026-06-13 (Australia/Sydney) — Full UI/UX Audit + Accessibility/Polish Pass
 
 **Raouf:**

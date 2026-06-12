@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-06-13 (Australia/Sydney) — Full Backend Audit + Hardening/Performance Pass
+
+**Raouf:**
+
+- **Scope:** Audit all 21 backend modules (auth middleware, controllers, services, rate limiting, data protection, email service/poller, OAuth, config, security headers, observability) + schemas/tests, then fix findings directly.
+- **Summary:** The backend was already strongly hardened (alg-confusion-guarded JWT with issuer/audience checks, RLS-scoped per-user PostgREST clients, PKCE+state OAuth with Host validation, Fernet-encrypted tokens/takeaways, prompt scrubbing + circuit breaker, Sentry scrubbing, production config guards). Four real issues fixed: **(1) Event-loop blocking on auth hot paths** — every synchronous Supabase auth SDK call (`/auth/login`, `/auth/refresh` which fires on every silent refresh, `register`, `logout` revocation, `forgot/reset-password`) ran directly on the event loop, stalling all concurrent requests during slow upstream calls; all now offloaded via `run_blocking`. Same completion for the remaining sync `.execute()` sites in `chat_controller` (list/create/delete sessions, get_messages), `email_controller` (~13 sites incl. the `_get_account`/`_get_email` ownership helpers, now async), and the OAuth callback upsert — this clears the deferred follow-up from the 2026-05-31 performance pass. **(2) In-memory rate limiter unbounded key growth (DoS)** — keys embed caller-controlled input (`login:{ip}:{email}`) and were never evicted; an attacker spraying unique emails could grow the dict without bound. Added a compaction sweep (threshold 10k keys) that drops keys whose entries have aged out. **(3) AI suggestion cache cross-user collision risk** — cache keys used Python's built-in 64-bit `hash()`; a collision would hand one user another user's cached suggestions. Switched to SHA-256. **(4) Suggestion cache slow leak** — expired entries were only removed on same-key reads; now swept on every write.
+- **Files Changed:** `backend/auth_controller.py`, `backend/chat_controller.py`, `backend/email_controller.py`, `backend/oauth_controller.py`, `backend/rate_limit.py`, `backend/services.py`.
+- **Verification:** `ruff check backend tests` ✓ (all checks passed), `ruff format --check` ✓ (38 files), `pytest` **102/102 pass**, `bandit -r backend` 0 issues, frontend `npm run build` ✓.
+- **Follow-ups (manual/optional):** Gmail N+1 message fetch + sequential account polling in `email_poller.py` could be parallelised (background path, affects mail freshness only); shared httpx transport for per-request PostgREST clients; streaming Gemini chat responses. **Not deployed** — droplet redeploy pending user go-ahead.
+
 ### 2026-06-13 (Australia/Sydney) — Full UI/UX Audit + Accessibility/Polish Pass
 
 **Raouf:**

@@ -21,7 +21,7 @@ try:
         ResetPasswordRequest,
         SessionUser,
     )
-    from .services import create_supabase_auth_client
+    from .services import create_supabase_auth_client, run_blocking
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from auth import decode_supabase_token
     from config import get_settings
@@ -34,7 +34,7 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
         ResetPasswordRequest,
         SessionUser,
     )
-    from services import create_supabase_auth_client
+    from services import create_supabase_auth_client, run_blocking
 
 logger = logging.getLogger(__name__)
 
@@ -173,8 +173,12 @@ class AuthController(Controller):
 
         enforce_auth_rate_limit(f"login:{_client_ip(request)}:{data.email.lower()}")
         try:
-            auth_response = create_supabase_auth_client().auth.sign_in_with_password(
-                {"email": data.email, "password": data.password}
+            # The Supabase auth SDK is synchronous — offload its network calls
+            # so one slow upstream call doesn't stall every concurrent request.
+            client = create_supabase_auth_client()
+            auth_response = await run_blocking(
+                client.auth.sign_in_with_password,
+                {"email": data.email, "password": data.password},
             )
         except Exception as exc:  # pragma: no cover - upstream auth failure
             logger.exception("Supabase sign-in failed")
@@ -210,8 +214,9 @@ class AuthController(Controller):
             return Response(content={"authenticated": False})
 
         try:
-            auth_response = create_supabase_auth_client().auth.refresh_session(
-                refresh_token
+            client = create_supabase_auth_client()
+            auth_response = await run_blocking(
+                client.auth.refresh_session, refresh_token
             )
         except Exception as exc:  # pragma: no cover - upstream auth failure
             logger.exception("Supabase token refresh failed")
@@ -241,9 +246,13 @@ class AuthController(Controller):
         refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
         if access_token and refresh_token:
             try:
-                client = create_supabase_auth_client()
-                client.auth.set_session(access_token, refresh_token)
-                client.auth.sign_out()
+
+                def _revoke_session() -> None:
+                    client = create_supabase_auth_client()
+                    client.auth.set_session(access_token, refresh_token)
+                    client.auth.sign_out()
+
+                await run_blocking(_revoke_session)
             except Exception:  # pragma: no cover - upstream auth failure
                 logger.warning(
                     "Supabase session revocation failed during logout",
@@ -259,8 +268,10 @@ class AuthController(Controller):
 
         enforce_auth_rate_limit(f"register:{_client_ip(request)}")
         try:
-            auth_response = create_supabase_auth_client().auth.sign_up(
-                {"email": data.email, "password": data.password}
+            client = create_supabase_auth_client()
+            auth_response = await run_blocking(
+                client.auth.sign_up,
+                {"email": data.email, "password": data.password},
             )
         except Exception as exc:  # pragma: no cover - upstream auth failure
             logger.exception("Supabase sign-up failed")
@@ -293,7 +304,9 @@ class AuthController(Controller):
         settings = get_settings()
         redirect_url = settings.password_reset_redirect_url
         try:
-            create_supabase_auth_client().auth.reset_password_email(
+            client = create_supabase_auth_client()
+            await run_blocking(
+                client.auth.reset_password_email,
                 data.email,
                 options={"redirect_to": redirect_url} if redirect_url else {},
             )
@@ -328,8 +341,10 @@ class AuthController(Controller):
             raise HTTPException(status_code=400, detail="Recovery token is required.")
         try:
             client = create_supabase_auth_client()
-            client.auth.set_session(access_token, refresh_token)
-            user_response = client.auth.update_user({"password": data.new_password})
+            await run_blocking(client.auth.set_session, access_token, refresh_token)
+            user_response = await run_blocking(
+                client.auth.update_user, {"password": data.new_password}
+            )
         except Exception as exc:  # pragma: no cover - upstream auth failure
             logger.exception("Password reset failed")
             raise HTTPException(
@@ -344,11 +359,12 @@ class AuthController(Controller):
             )
 
         try:
-            login_response = client.auth.sign_in_with_password(
+            login_response = await run_blocking(
+                client.auth.sign_in_with_password,
                 {
                     "email": user_response.user.email,
                     "password": data.new_password,
-                }
+                },
             )
         except Exception as exc:  # pragma: no cover - upstream auth failure
             logger.exception("Post-reset sign-in failed")

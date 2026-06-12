@@ -122,7 +122,8 @@ class ChatController(Controller):
             query = _get_client(request).from_("chat_sessions").select("*")
             if category:
                 query = query.eq("category", category)
-            response = query.order("created_at", desc=True).execute()
+            builder = query.order("created_at", desc=True)
+            response = await run_blocking(builder.execute)
         except Exception as exc:
             logger.exception("Failed to list chat sessions")
             raise HTTPException(
@@ -136,7 +137,7 @@ class ChatController(Controller):
 
         user_id = request.state.user_id
         try:
-            response = (
+            builder = (
                 _get_client(request)
                 .from_("chat_sessions")
                 .insert(
@@ -146,8 +147,8 @@ class ChatController(Controller):
                         "category": data.category,
                     }
                 )
-                .execute()
             )
+            response = await run_blocking(builder.execute)
         except Exception as exc:
             logger.exception("Failed to create chat session")
             raise HTTPException(
@@ -160,9 +161,13 @@ class ChatController(Controller):
         """Delete a chat session and all its messages (cascade)."""
 
         try:
-            _get_client(request).from_("chat_sessions").delete().eq(
-                "id", session_id
-            ).execute()
+            builder = (
+                _get_client(request)
+                .from_("chat_sessions")
+                .delete()
+                .eq("id", session_id)
+            )
+            await run_blocking(builder.execute)
         except Exception as exc:
             logger.exception("Failed to delete chat session")
             raise HTTPException(
@@ -174,14 +179,14 @@ class ChatController(Controller):
         """Get all messages for a chat session."""
 
         try:
-            response = (
+            builder = (
                 _get_client(request)
                 .from_("chat_messages")
                 .select("*")
                 .eq("session_id", session_id)
                 .order("created_at")
-                .execute()
             )
+            response = await run_blocking(builder.execute)
         except Exception as exc:
             logger.exception("Failed to load chat messages")
             raise HTTPException(

@@ -22,6 +22,12 @@ logger = logging.getLogger(__name__)
 class SlidingWindowRateLimiter:
     """Track requests in-memory over a sliding time window."""
 
+    # When the key map grows past this, stale keys are swept on the next
+    # enforce() call. Keys include caller-controlled input (e.g. the email in
+    # "login:{ip}:{email}"), so without eviction an attacker spraying unique
+    # values could grow the dict without bound.
+    _COMPACT_THRESHOLD = 10_000
+
     def __init__(self, max_requests: int, window_seconds: int) -> None:
         self.max_requests = max_requests
         self.window_seconds = window_seconds
@@ -31,6 +37,17 @@ class SlidingWindowRateLimiter:
         # exceeds the critical section.
         self._lock = Lock()
 
+    def _compact(self, window_start: float) -> None:
+        """Drop keys whose entries have all aged out of the window."""
+
+        stale = [
+            key
+            for key, entries in self._entries.items()
+            if not entries or entries[-1] < window_start
+        ]
+        for key in stale:
+            del self._entries[key]
+
     def enforce(self, key: str) -> None:
         """Raise when a key exceeds the allowed request budget."""
 
@@ -38,6 +55,8 @@ class SlidingWindowRateLimiter:
         window_start = now - self.window_seconds
 
         with self._lock:
+            if len(self._entries) > self._COMPACT_THRESHOLD:
+                self._compact(window_start)
             entries = self._entries[key]
             while entries and entries[0] < window_start:
                 entries.popleft()
