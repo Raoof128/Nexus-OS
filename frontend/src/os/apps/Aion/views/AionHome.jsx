@@ -50,13 +50,15 @@ export default function AionHome({ onNavigate }) {
       {/* Original Aion gradient: top rgba(10,10,12,0.45) → bottom rgba(10,10,12,0.92) */}
       <div
         className="pointer-events-none absolute inset-0"
-        style={{ background: 'linear-gradient(to bottom, rgba(10,10,12,0.45) 0%, rgba(10,10,12,0.92) 100%)' }}
+        style={{
+          background:
+            'linear-gradient(to bottom, rgba(10,10,12,0.45) 0%, rgba(10,10,12,0.92) 100%)',
+        }}
       />
 
       {/* Scrollable content */}
       <div className="relative flex-1 overflow-y-auto">
         <div className="mx-auto flex max-w-[480px] flex-col items-center px-6 py-10">
-
           {/* Greeting — textSecondary #9494A8 */}
           <p className="mb-5 font-mono text-[10px] tracking-[0.25em] text-[#9494A8] uppercase">
             {getGreeting()}
@@ -77,7 +79,9 @@ export default function AionHome({ onNavigate }) {
 
           {/* VOTD card — rgba(17,17,20,0.8) bg, rgba(217,119,6,0.18) border */}
           <button
-            onClick={() => onNavigate({ type: 'reader', bookId: votd.book_id, chapter: votd.chapter })}
+            onClick={() =>
+              onNavigate({ type: 'reader', bookId: votd.book_id, chapter: votd.chapter })
+            }
             className="mb-4 w-full rounded-2xl p-5 text-left transition-colors hover:border-amber-500/30 hover:bg-[rgba(217,119,6,0.07)]"
             style={{
               background: 'rgba(17,17,20,0.80)',
@@ -94,7 +98,10 @@ export default function AionHome({ onNavigate }) {
               <Sparkles className="h-3 w-3 text-[#F59E0B]" />
             </div>
             {/* textPrimary #F0F0F5, italic, 16px */}
-            <p className="mb-2 text-base italic leading-7 text-[#F0F0F5]" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
+            <p
+              className="mb-2 text-base italic leading-7 text-[#F0F0F5]"
+              style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
+            >
               "{votd.content}"
             </p>
             {/* textMuted #7A7A8E */}
@@ -143,7 +150,10 @@ export default function AionHome({ onNavigate }) {
       >
         <div
           className="mx-auto flex max-w-[480px] items-center gap-2 rounded-xl px-3 py-2"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.10)',
+          }}
         >
           <input
             value={inputValue}

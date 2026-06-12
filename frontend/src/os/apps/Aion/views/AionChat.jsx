@@ -119,7 +119,9 @@ export default function AionChat({ view, onNavigate, session }) {
           <div className="rounded-lg border border-red-500/20 bg-red-500/[0.05] px-3 py-2">
             <p className="font-mono text-xs text-red-400/80">{error}</p>
             <button
-              onClick={() => sendMessage(messages.findLast((m) => m.role === 'user')?.content ?? '', null)}
+              onClick={() =>
+                sendMessage(messages.findLast((m) => m.role === 'user')?.content ?? '', null)
+              }
               className="mt-1 font-mono text-[10px] text-red-400 underline underline-offset-2 hover:text-red-300"
             >
               Try again

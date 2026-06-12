@@ -59,7 +59,7 @@ export default function InstallPrompt() {
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss install prompt"
-          className="absolute right-2 top-2 rounded-md p-1 text-cyan-200/60 transition hover:bg-cyan-400/10 hover:text-cyan-100 focus-visible:outline-none"
+          className="absolute right-2 top-2 rounded-md p-1 text-cyan-200/60 transition hover:bg-cyan-400/10 hover:text-cyan-100"
         >
           <X size={16} />
         </button>
@@ -77,7 +77,7 @@ export default function InstallPrompt() {
             <button
               type="button"
               onClick={handleInstall}
-              className="mt-3 w-full rounded-lg border border-cyan-400/50 bg-cyan-400/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-cyan-100 transition hover:bg-cyan-400/25 focus-visible:outline-none"
+              className="mt-3 w-full rounded-lg border border-cyan-400/50 bg-cyan-400/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-cyan-100 transition hover:bg-cyan-400/25"
             >
               Install
             </button>

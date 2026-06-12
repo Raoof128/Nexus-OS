@@ -57,7 +57,7 @@ const EmailList = React.memo(function EmailList({
       ref={containerRef}
       onScroll={handleScroll}
       className="h-full overflow-y-auto custom-scrollbar"
-      role="list"
+      role="listbox"
       aria-label="Email messages"
     >
       <div aria-live="polite">

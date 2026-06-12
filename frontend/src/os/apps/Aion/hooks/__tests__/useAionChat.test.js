@@ -39,10 +39,7 @@ describe('useAionChat', () => {
 
   it('appends user message and empty assistant message on sendMessage', async () => {
     const stream = makeSseStream([{ event: 'done', data: {} }])
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({ ok: true, body: stream }),
-    )
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body: stream }))
 
     const { result } = renderHook(() => useAionChat(mockSession))
     await act(async () => {

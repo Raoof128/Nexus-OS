@@ -370,7 +370,7 @@ export default function CommandPalette() {
                         data-idx={idx}
                         onMouseMove={() => setActiveIdx(idx)}
                         onClick={() => run(item.action)}
-                        className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition focus-visible:outline-none ${
+                        className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition ${
                           active
                             ? 'bg-cyan-400/15 text-cyan-50'
                             : 'text-cyan-100/80 hover:bg-cyan-400/10'

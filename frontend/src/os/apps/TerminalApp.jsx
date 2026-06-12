@@ -7,7 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL
 const WELCOME = [
   { type: 'system', text: '╔══════════════════════════════════════╗' },
   { type: 'system', text: '║  Nexus Terminal v1.0                 ║' },
-  { type: 'system', text: '║  Type "help" for available commands   ║' },
+  { type: 'system', text: '║  Type "help" for available commands  ║' },
   { type: 'system', text: '╚══════════════════════════════════════╝' },
   { type: 'info', text: '' },
 ]
@@ -235,6 +235,7 @@ export default function TerminalApp({ windowId: _windowId }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="type a command..."
+          aria-label="Terminal command input"
           autoFocus
           className="flex-1 bg-transparent text-white/80 placeholder-muted-foreground/30 focus:outline-none caret-primary"
           spellCheck={false}

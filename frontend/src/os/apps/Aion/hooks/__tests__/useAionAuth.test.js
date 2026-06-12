@@ -26,7 +26,10 @@ beforeEach(() => {
 describe('useAionAuth', () => {
   it('starts in loading state', () => {
     aionSupabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null })
-    aionSupabase.auth.signInAnonymously.mockResolvedValue({ data: { session: mockSession }, error: null })
+    aionSupabase.auth.signInAnonymously.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    })
 
     const { result } = renderHook(() => useAionAuth())
     expect(result.current.isLoading).toBe(true)
@@ -45,7 +48,10 @@ describe('useAionAuth', () => {
 
   it('calls signInAnonymously when no session exists', async () => {
     aionSupabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null })
-    aionSupabase.auth.signInAnonymously.mockResolvedValue({ data: { session: mockSession }, error: null })
+    aionSupabase.auth.signInAnonymously.mockResolvedValue({
+      data: { session: mockSession },
+      error: null,
+    })
 
     const { result } = renderHook(() => useAionAuth())
     await waitFor(() => expect(result.current.isLoading).toBe(false))

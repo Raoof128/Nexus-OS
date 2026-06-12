@@ -42,7 +42,7 @@ function NotificationTrayButton() {
       onClick={togglePanel}
       aria-label={`Notifications${unread > 0 ? `, ${unread} unread` : ''}`}
       aria-expanded={panelOpen}
-      className={`relative flex h-7 w-7 items-center justify-center rounded-md transition-colors focus-visible:outline-none ${
+      className={`relative flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
         panelOpen ? 'bg-primary/15 text-primary' : 'text-white/60 hover:text-white'
       }`}
     >

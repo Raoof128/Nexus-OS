@@ -454,6 +454,7 @@ function AboutTab() {
     { keys: 'Alt + [ / ]', action: 'Cycle windows' },
     { keys: 'Alt + 1-8', action: 'Open app' },
     { keys: 'Alt + L', action: 'App launcher' },
+    { keys: 'Cmd/Ctrl + K', action: 'Command palette' },
   ]
 
   return (

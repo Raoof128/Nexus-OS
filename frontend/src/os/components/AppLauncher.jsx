@@ -111,6 +111,7 @@ function AppLauncher() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="search::applications..."
+            aria-label="Search applications"
             className="flex-1 bg-transparent font-mono text-[11px] text-white/70 placeholder-muted-foreground/30 focus:outline-none"
           />
         </div>
@@ -121,7 +122,9 @@ function AppLauncher() {
             <p className="font-mono text-[10px] text-muted-foreground/50">NO_MATCHES_FOUND</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3">
+          // md: (768px) matches the isMobile breakpoint used by the arrow-key column
+          // math above, so keyboard navigation always moves the way the grid looks.
+          <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3">
             {filtered.map((appId, index) => {
               const manifest = APP_REGISTRY[appId]
               if (!manifest) return null

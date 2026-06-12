@@ -1,5 +1,35 @@
 # Change Log
 
+### 2026-06-13 (Australia/Sydney) — Full UI/UX Audit + Accessibility/Polish Pass
+
+**Raouf:**
+
+- **Scope:** Full UI/UX audit of all ~52 frontend UI files (OS shell, windowing, taskbar, launcher, notifications, all apps, auth screens, design-system CSS), with direct fixes.
+- **Summary:** Fixed a systemic keyboard-accessibility bug — 11 controls carried `focus-visible:outline-none` without a replacement ring, suppressing the global neon focus outline (taskbar bell, 5 notification-centre buttons, install prompt ×2, command-palette rows, File Manager download, Email image toggle). Also: added `aria-label`s to unlabeled icon buttons in File Manager; associated the Compose "From" label with its select; corrected EmailList ARIA (`list`→`listbox` to match `option` children); aligned the App Launcher's keyboard column math with its visual grid (640–767px range previously mismatched, `sm:`→`md:`); labelled the launcher search and terminal inputs; fixed the Terminal welcome box border alignment; added the missing `Cmd/Ctrl + K` row to Settings → About shortcuts; ContextMenu now focuses its first item on open so arrow keys work immediately; formatted 8 Prettier-dirty Aion files that were failing `check.sh`.
+- **Files Changed:** `frontend/src/os/components/{Taskbar,NotificationCenter,InstallPrompt,CommandPalette,AppLauncher,ContextMenu}.jsx`, `frontend/src/os/apps/{FileManagerApp,TerminalApp,SettingsApp}.jsx`, `frontend/src/os/apps/Email/{EmailReader,EmailList,ComposeModal}.jsx`, 8 Aion files (format-only).
+- **Verification:** `./check.sh` exit 0 — ESLint ✓, Prettier ✓, build ✓, 244/244 tests ✓, function audit 27/27.
+- **Follow-ups:** Optionally surface live Supabase Realtime channel state in System Monitor (currently a documented static "ACTIVE").
+
+### 2026-06-13 (Australia/Sydney) — Aion Reader Text-Size (Font Zoom) Control
+
+**Raouf:**
+
+- **Scope:** Add an adjustable reader font size to the Aion Bible chapter viewer, like other Bible apps.
+- **Summary:** New `useReaderFontScale` hook with 5 levels (S/M/L/XL/XXL, default M = original 17px), persisted to `localStorage` (`aion.reader.fontScale`) and clamped. Added an on-brand A− / A+ control to the chapter header (shows the active level); verse body size, line height, and the drop cap now scale from the chosen level. Fixed a bug found in testing: an unset `localStorage` key made `Number(null) === 0` default the size to the smallest level — added a null/empty guard so it falls back to M.
+- **Files Changed:** `frontend/src/os/apps/Aion/hooks/useReaderFontScale.js` (NEW), `frontend/src/os/apps/Aion/hooks/__tests__/useReaderFontScale.test.js` (NEW), `frontend/src/os/apps/Aion/views/AionReader.jsx`.
+- **Verification:** ESLint clean; `vitest run` 244/244 pass (30 files, +8 new, zero regressions); `npm run build` ✓.
+- **Follow-ups:** Optionally expose the control in the Settings app as a global Aion preference.
+
+### 2026-06-13 (Australia/Sydney) — Aion Bible Completeness Audit + Omitted-Verse Markers
+
+**Raouf:**
+
+- **Scope:** Audit the Aion Bible reader for "missing verses / incomplete" reports, then fix the only real issue (UX).
+- **Summary:** Direct query of the live Aion Supabase `bible_verses` table confirmed the data is **complete** for the BSB translation: 31,086 verses, 66/66 books, 1,189/1,189 chapters, 0 NULL embeddings, 0 empty content. The 16 apparent "gaps" are the standard Berean Standard Bible critical-text omissions (Matthew 17:21, 18:11, 23:14; Mark 7:16, 9:44, 9:46, 11:26, 15:28; Luke 17:36, 23:17; John 5:4; Acts 8:37, 15:34, 24:7, 28:29; Romans 16:24) — verses absent from the earliest manuscripts and intentionally dropped by modern translations. The reader rendered correctly but skipped verse numbers (e.g. Matthew 17 runs 20 → 22) looked like a bug. Added a `BSB_OMITTED_VERSES` map and `getOmittedVerses(bookId, chapter)` helper to `bibleData.js`; `ChapterViewer` now renders an inline `OmittedVerseNote` (muted mono italic) at each skipped number, plus trailing-omission handling.
+- **Files Changed:** `frontend/src/os/apps/Aion/lib/bibleData.js`, `frontend/src/os/apps/Aion/views/AionReader.jsx`, `frontend/src/os/apps/Aion/lib/__tests__/bibleData.test.js`.
+- **Verification:** ESLint clean on touched files; `vitest run` 236/236 pass (29 files, +11 new tests, zero regressions); `npm run build` ✓.
+- **Follow-ups:** None for completeness — data is full BSB. KJV-style inclusion would require a separate full-text re-ingest + 31k embedding regen.
+
 ### 2026-06-01 (Australia/Sydney) — Gitleaks Aion Env Example Fix
 
 **Raouf:**

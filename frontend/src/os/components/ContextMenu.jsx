@@ -43,6 +43,12 @@ function ContextMenu({ x, y, onClose }) {
   const clampedX = Math.min(x, window.innerWidth - MENU_WIDTH - 8)
   const clampedY = Math.min(y, window.innerHeight - MENU_HEIGHT_EST - 8)
 
+  // Focus the first item on open so arrow-key navigation works immediately
+  // (without this, ArrowDown is dead until the user tabs into the menu).
+  useEffect(() => {
+    menuRef.current?.querySelector('[role="menuitem"]')?.focus()
+  }, [])
+
   // Dismiss on Escape
   useEffect(() => {
     const handleKeyDown = (e) => {

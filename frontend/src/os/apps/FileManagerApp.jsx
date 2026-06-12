@@ -45,11 +45,19 @@ function NewEntryDialog({ type, onSubmit, onCancel }) {
       <button
         type="button"
         onClick={() => name.trim() && onSubmit(name.trim())}
-        className="text-primary hover:text-white"
+        aria-label={type === 'file' ? 'Create file' : 'Create folder'}
+        title="Create"
+        className="rounded p-0.5 text-primary hover:text-white"
       >
         <FilePlus size={12} />
       </button>
-      <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-white">
+      <button
+        type="button"
+        onClick={onCancel}
+        aria-label="Cancel"
+        title="Cancel"
+        className="rounded p-0.5 text-muted-foreground hover:text-white"
+      >
         <X size={12} />
       </button>
     </div>
@@ -141,7 +149,9 @@ function FileViewer({ file, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="text-muted-foreground hover:text-white"
+            aria-label="Close file viewer"
+            title="Close"
+            className="rounded p-1 text-muted-foreground hover:bg-white/[0.06] hover:text-white"
           >
             <X size={12} />
           </button>
@@ -184,7 +194,7 @@ function FileViewer({ file, onClose }) {
             <button
               type="button"
               onClick={download}
-              className="flex items-center gap-1.5 rounded-md bg-primary/15 px-3 py-1.5 font-mono text-[10px] text-primary ring-1 ring-primary/20 transition-colors hover:bg-primary/25 focus-visible:outline-none"
+              className="flex items-center gap-1.5 rounded-md bg-primary/15 px-3 py-1.5 font-mono text-[10px] text-primary ring-1 ring-primary/20 transition-colors hover:bg-primary/25"
             >
               <Download size={12} /> Download {file.name}
             </button>

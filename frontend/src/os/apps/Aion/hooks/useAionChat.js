@@ -77,9 +77,7 @@ export function useAionChat(session) {
                     break
                   case 'verses':
                     setMessages((prev) =>
-                      prev.map((m) =>
-                        m.id === assistantId ? { ...m, verses: data.verses } : m,
-                      ),
+                      prev.map((m) => (m.id === assistantId ? { ...m, verses: data.verses } : m)),
                     )
                     break
                   case 'conversation':

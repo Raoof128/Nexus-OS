@@ -188,7 +188,7 @@ const EmailReader = React.memo(function EmailReader({
           <button
             type="button"
             onClick={toggleImages}
-            className="flex items-center gap-1.5 font-mono text-[10px] font-medium text-primary/60 transition-colors hover:text-primary focus-visible:outline-none"
+            className="flex items-center gap-1.5 font-mono text-[10px] font-medium text-primary/60 transition-colors hover:text-primary"
           >
             {allowImages ? <EyeOff size={11} /> : <Eye size={11} />}
             {allowImages ? 'Block' : 'Allow'}

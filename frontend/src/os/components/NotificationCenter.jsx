@@ -62,7 +62,7 @@ function NotificationRow({ n, onRead, onRemove }) {
         type="button"
         onClick={() => onRead(n.id)}
         disabled={n.read}
-        className="min-w-0 flex-1 text-left focus-visible:outline-none disabled:cursor-default"
+        className="min-w-0 flex-1 text-left disabled:cursor-default"
         title={n.read ? undefined : 'Mark as read'}
       >
         <p className="heading-ui truncate text-[12px] font-semibold leading-tight text-white">
@@ -162,7 +162,7 @@ export default function NotificationCenter() {
                 onClick={toggleDoNotDisturb}
                 aria-pressed={doNotDisturb}
                 title={doNotDisturb ? 'Do Not Disturb: ON' : 'Do Not Disturb: OFF'}
-                className={`rounded-md p-1.5 transition-colors focus-visible:outline-none ${
+                className={`rounded-md p-1.5 transition-colors ${
                   doNotDisturb
                     ? 'bg-amber-500/15 text-amber-300'
                     : 'text-cyan-200/60 hover:text-cyan-100'
@@ -175,7 +175,7 @@ export default function NotificationCenter() {
                 type="button"
                 onClick={closePanel}
                 aria-label="Close notification centre"
-                className="rounded-md p-1.5 text-cyan-200/60 transition-colors hover:text-cyan-100 focus-visible:outline-none"
+                className="rounded-md p-1.5 text-cyan-200/60 transition-colors hover:text-cyan-100"
               >
                 <X size={14} />
               </button>
@@ -188,14 +188,14 @@ export default function NotificationCenter() {
                   type="button"
                   onClick={markAllRead}
                   disabled={unread === 0}
-                  className="flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[10px] text-cyan-200/70 transition-colors hover:bg-cyan-400/10 hover:text-cyan-100 focus-visible:outline-none disabled:opacity-30"
+                  className="flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[10px] text-cyan-200/70 transition-colors hover:bg-cyan-400/10 hover:text-cyan-100 disabled:opacity-30"
                 >
                   <CheckCheck size={12} /> Mark all read
                 </button>
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[10px] text-red-300/70 transition-colors hover:bg-red-500/10 hover:text-red-200 focus-visible:outline-none"
+                  className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[10px] text-red-300/70 transition-colors hover:bg-red-500/10 hover:text-red-200"
                 >
                   <Trash2 size={12} /> Clear all
                 </button>

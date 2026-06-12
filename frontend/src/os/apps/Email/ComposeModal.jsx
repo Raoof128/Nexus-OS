@@ -203,8 +203,11 @@ function ComposeModal({
                   {/* Account selector */}
                   <div className="border-b border-white/[0.04] px-4 py-2.5">
                     <div className="flex items-center gap-2">
-                      <label className={labelClass}>From</label>
+                      <label htmlFor="compose-from" className={labelClass}>
+                        From
+                      </label>
                       <select
+                        id="compose-from"
                         value={selectedAccountId}
                         onChange={(e) => setSelectedAccountId(e.target.value)}
                         className="heading-ui flex-1 rounded border border-white/10 bg-transparent px-2 py-1 text-xs text-white/80 focus:border-primary/40 focus:outline-none"

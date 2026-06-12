@@ -5,6 +5,36 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-06-13 (Australia/Sydney) — Full UI/UX Audit + Accessibility/Polish Pass
+
+**Raouf:**
+
+- **Scope:** Audit every UI file (~52 components across OS shell, Library, Email, Chat, Aion, utility apps, auth screens, design system CSS) and fix the issues found directly.
+- **Summary:** The codebase was already strongly polished; the audit found one systemic accessibility bug plus a set of smaller defects. (1) **Focus-ring killers** — 11 controls used `focus-visible:outline-none` with no replacement ring, which overrode the global `:where(...):focus-visible` neon outline and made keyboard focus invisible: Taskbar notification bell, NotificationCenter (row body, DND, close, mark-all-read, clear-all), InstallPrompt (dismiss + install), CommandPalette result rows, FileManager download button, EmailReader image toggle. Removed the class so the app-wide ring applies. (2) **Unlabeled icon buttons** — FileManager new-entry confirm/cancel and FileViewer close gained `aria-label` + `title` (+ small hit-area padding). (3) **ComposeModal** "From" label now associated with its select (`htmlFor`/`id`). (4) **EmailList ARIA** — container `role="list"` with `role="option"` children was invalid; changed to `role="listbox"`. (5) **AppLauncher** — grid switched to 4 columns at `sm:` (640px) but arrow-key math switched at the 768px isMobile breakpoint, so between 640–767px keyboard navigation moved wrong; grid is now `md:grid-cols-4` to match. Search input gained `aria-label`. (6) **Terminal** — welcome box-art right border was misaligned (line 3 one char wide); input gained `aria-label`. (7) **Settings → About** — added the missing `Cmd/Ctrl + K` (command palette) shortcut row. (8) **ContextMenu** — first menu item is now focused on open so ArrowUp/Down work immediately. Also formatted 8 Aion files that had been left Prettier-dirty by earlier sessions (was failing `check.sh`).
+- **Files Changed:** `frontend/src/os/components/{Taskbar,NotificationCenter,InstallPrompt,CommandPalette,AppLauncher,ContextMenu}.jsx`, `frontend/src/os/apps/{FileManagerApp,TerminalApp,SettingsApp}.jsx`, `frontend/src/os/apps/Email/{EmailReader,EmailList,ComposeModal}.jsx`, plus Prettier-only reformat of 8 Aion files.
+- **Verification:** `./check.sh` exit 0 — ESLint clean, Prettier clean, production build ✓, **244/244 tests pass**, function coverage audit 27/27 zero gaps.
+- **Follow-ups:** Optional: SystemMonitor "Realtime: ACTIVE" is static (documented in-code as subscription-registered, not live connection state) — could wire real channel state later.
+
+### 2026-06-13 (Australia/Sydney) — Aion Reader Text-Size (Font Zoom) Control
+
+**Raouf:**
+
+- **Scope:** Add an adjustable reader font size to the Aion Bible chapter viewer, like other Bible apps.
+- **Summary:** New `useReaderFontScale` hook with 5 levels (S 15px / M 17px default / L 20px / XL 24px / XXL 29px), persisted to `localStorage` key `aion.reader.fontScale` and clamped at both ends. `ChapterViewer` header gained an on-brand A− / A+ control (amber, shows current level label) in the right cluster next to the reading-progress bar; verse body font size and line height now come from the active level, and the first-verse drop cap scales proportionally (2.7×). Caught and fixed a real bug while testing: `Number(localStorage.getItem(key))` returns `0` for an unset key (`Number(null) === 0`), which would have defaulted the size to S — added an explicit null/empty guard so it falls back to M.
+- **Files Changed:** `frontend/src/os/apps/Aion/hooks/useReaderFontScale.js` (NEW), `frontend/src/os/apps/Aion/hooks/__tests__/useReaderFontScale.test.js` (NEW), `frontend/src/os/apps/Aion/views/AionReader.jsx`.
+- **Verification:** ESLint clean; `vitest run` **244/244 pass** (30 files, +8 new, zero regressions); `npm run build` ✓.
+- **Follow-ups:** None. Could later surface the same control in the Settings app if a global Aion preference is wanted.
+
+### 2026-06-13 (Australia/Sydney) — Aion Bible Completeness Audit + Omitted-Verse Markers
+
+**Raouf:**
+
+- **Scope:** Audit the Aion Bible reader for "missing verses / incomplete" reports, then fix the only real issue (UX).
+- **Summary:** Queried the live Aion Supabase `bible_verses` table directly: **31,086 verses, 66/66 books, 1,189/1,189 chapters, 0 NULL embeddings, 0 empty content** — the data is COMPLETE for the BSB (Berean Standard Bible) translation. The only "gaps" are the **16 standard BSB critical-text omissions** (Matthew 17:21, 18:11, 23:14; Mark 7:16, 9:44, 9:46, 11:26, 15:28; Luke 17:36, 23:17; John 5:4; Acts 8:37, 15:34, 24:7, 28:29; Romans 16:24) — verses absent from the earliest manuscripts and intentionally dropped by modern translations. The reader was correct (renders real `v.verse`), but skipped numbers (e.g. Matthew 17 runs 20 → 22) *looked* like a bug. Fix = render an explicit, on-brand omission marker where a gap occurs. Added `BSB_OMITTED_VERSES` map + `getOmittedVerses(bookId, chapter)` helper to `bibleData.js`; `ChapterViewer` now inserts an `OmittedVerseNote` (muted mono italic) inline at the skipped number and handles trailing omissions.
+- **Files Changed:** `frontend/src/os/apps/Aion/lib/bibleData.js`, `frontend/src/os/apps/Aion/views/AionReader.jsx`, `frontend/src/os/apps/Aion/lib/__tests__/bibleData.test.js`, `CHANGELOG.md` (NEW).
+- **Verification:** ESLint clean on touched files; `vitest run` **236/236 pass** (29 files, +11 new bibleData tests, zero regressions); `npm run build` ✓.
+- **Follow-ups:** None for completeness — data is full BSB. If KJV-style inclusion is ever wanted, that's a separate full-text re-ingest + 31k embedding regen (much larger task).
+
 ### 2026-06-01 (Australia/Sydney) — Gitleaks Aion Env Example Fix
 
 **Raouf:**

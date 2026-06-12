@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { Fragment, useState, useCallback } from 'react'
 import { ArrowLeft, Copy, MessageSquare, RefreshCw } from 'lucide-react'
-import { OT_BOOKS, NT_BOOKS, getBookBackground } from '../lib/bibleData'
+import { OT_BOOKS, NT_BOOKS, getBookBackground, getOmittedVerses } from '../lib/bibleData'
 import { useAionReader } from '../hooks/useAionReader'
+import { useReaderFontScale } from '../hooks/useReaderFontScale'
 
 // ── Sub-view: Book list ─────────────────────────────────────
 function BookList({ onSelectBook }) {
@@ -28,7 +29,9 @@ function BookList({ onSelectBook }) {
                 : 'text-white/30 hover:text-white/60'
             }`}
           >
-            {t === 'OT' ? `Old Testament (${OT_BOOKS.length})` : `New Testament (${NT_BOOKS.length})`}
+            {t === 'OT'
+              ? `Old Testament (${OT_BOOKS.length})`
+              : `New Testament (${NT_BOOKS.length})`}
           </button>
         ))}
       </div>
@@ -88,6 +91,23 @@ function ChapterList({ book, onSelectChapter, onBack }) {
   )
 }
 
+// ── Marker for verses the BSB intentionally omits ───────────
+// Renders where a verse number is skipped (e.g. Matthew 17:21) so a deliberate
+// critical-text gap reads as "complete by design", not a loading bug.
+function OmittedVerseNote({ bookName, chapterNum, verse }) {
+  return (
+    <div className="flex items-start gap-3 px-2 py-1">
+      <span className="w-7 shrink-0 pt-0.5 text-right font-mono text-[11px] leading-7 text-white/20">
+        {verse}
+      </span>
+      <span className="flex-1 font-mono text-[11px] leading-7 text-white/30 italic">
+        {bookName} {chapterNum}:{verse} is not found in the earliest manuscripts and is omitted in
+        this translation.
+      </span>
+    </div>
+  )
+}
+
 // ── Sub-view: Chapter viewer ────────────────────────────────
 function ChapterViewer({ book, chapter, onBack, onAskAion, onNavigateChapter }) {
   const { verses, isLoading, error, refetch } = useAionReader(book.id, chapter)
@@ -95,18 +115,24 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onNavigateChapter }) 
   const [scrollPct, setScrollPct] = useState(0)
 
   const chapterNum = Number(chapter)
+  const omittedVerses = getOmittedVerses(book.id, chapterNum)
+  const { level, increase, decrease, canIncrease, canDecrease } = useReaderFontScale()
   const hasPrev = chapterNum > 1
   const hasNext = chapterNum < book.chapters
 
-  const handleScroll = useCallback((e) => {
-    const el = e.currentTarget
-    const pct = el.scrollHeight > el.clientHeight
-      ? Math.min(el.scrollTop / (el.scrollHeight - el.clientHeight), 1)
-      : 1
-    setScrollPct(Math.round(pct * 100))
-    // Dismiss active verse on scroll
-    if (activeVerse !== null) setActiveVerse(null)
-  }, [activeVerse])
+  const handleScroll = useCallback(
+    (e) => {
+      const el = e.currentTarget
+      const pct =
+        el.scrollHeight > el.clientHeight
+          ? Math.min(el.scrollTop / (el.scrollHeight - el.clientHeight), 1)
+          : 1
+      setScrollPct(Math.round(pct * 100))
+      // Dismiss active verse on scroll
+      if (activeVerse !== null) setActiveVerse(null)
+    },
+    [activeVerse],
+  )
 
   const handleCopy = (verse) => {
     const text = `${book.name} ${chapterNum}:${verse.verse} — "${verse.content}"`
@@ -132,7 +158,8 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onNavigateChapter }) 
       <div
         className="pointer-events-none absolute inset-0 z-0"
         style={{
-          background: 'linear-gradient(to bottom, rgba(10,10,12,0.45) 0%, rgba(10,10,12,0.95) 100%)',
+          background:
+            'linear-gradient(to bottom, rgba(10,10,12,0.45) 0%, rgba(10,10,12,0.95) 100%)',
         }}
       />
 
@@ -169,20 +196,59 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onNavigateChapter }) 
           </button>
         </div>
 
-        {/* Reading progress bar replaces the old side bar */}
-        <div className="ml-auto h-0.5 w-16 overflow-hidden rounded-full bg-white/[0.08]">
-          <div
-            className="h-full rounded-full bg-violet-500/70 transition-all"
-            style={{ width: `${scrollPct}%` }}
-          />
+        {/* Right cluster: text-size control + reading progress */}
+        <div className="ml-auto flex items-center gap-2.5">
+          {/* Font size: A− / A+ (like other Bible apps) */}
+          <div className="flex items-center gap-0.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-0.5">
+            <button
+              onClick={decrease}
+              disabled={!canDecrease}
+              aria-label="Decrease text size"
+              title="Decrease text size"
+              className="rounded px-1.5 py-0.5 font-serif text-[11px] leading-none text-amber-400/70 transition-colors hover:bg-white/[0.06] hover:text-amber-300 disabled:opacity-25 disabled:hover:bg-transparent"
+            >
+              A−
+            </button>
+            <span
+              className="min-w-[1.6rem] text-center font-mono text-[9px] text-white/30 tabular-nums"
+              aria-hidden="true"
+            >
+              {level.label}
+            </span>
+            <button
+              onClick={increase}
+              disabled={!canIncrease}
+              aria-label="Increase text size"
+              title="Increase text size"
+              className="rounded px-1.5 py-0.5 font-serif text-[15px] leading-none text-amber-400/70 transition-colors hover:bg-white/[0.06] hover:text-amber-300 disabled:opacity-25 disabled:hover:bg-transparent"
+            >
+              A+
+            </button>
+          </div>
+
+          {/* Reading progress bar */}
+          <div className="h-0.5 w-16 overflow-hidden rounded-full bg-white/[0.08]">
+            <div
+              className="h-full rounded-full bg-violet-500/70 transition-all"
+              style={{ width: `${scrollPct}%` }}
+            />
+          </div>
         </div>
       </div>
 
       {/* States */}
       {isLoading && (
-        <div className="relative z-10 flex flex-1 flex-col gap-3 p-6" role="status" aria-label="Loading verses">
+        <div
+          className="relative z-10 flex flex-1 flex-col gap-3 p-6"
+          role="status"
+          aria-label="Loading verses"
+        >
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-5 animate-pulse rounded bg-white/[0.04]" style={{ width: `${85 - i * 8}%` }} />
+            <div
+              key={i}
+              className="h-5 animate-pulse rounded bg-white/[0.04]"
+              style={{ width: `${85 - i * 8}%` }}
+            />
           ))}
         </div>
       )}
@@ -200,12 +266,8 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onNavigateChapter }) 
       )}
 
       {!isLoading && !error && (
-        <div
-          className="relative z-10 flex-1 overflow-y-auto"
-          onScroll={handleScroll}
-        >
+        <div className="relative z-10 flex-1 overflow-y-auto" onScroll={handleScroll}>
           <div className="mx-auto w-full max-w-[680px] px-4 pb-20 pt-7">
-
             {/* Chapter heading: ——— BOOK NAME ——— */}
             <div className="mb-2 flex items-center gap-3">
               <div className="h-px flex-1 bg-white/[0.08]" />
@@ -225,6 +287,11 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onNavigateChapter }) 
               const isFirst = i === 0
               const isParagraphBreak = i > 0 && i % 5 === 0
 
+              // Omission markers for any BSB-skipped verse number that falls
+              // between the previous rendered verse and this one.
+              const prevVerse = i > 0 ? verses[i - 1].verse : 0
+              const gapMarkers = omittedVerses.filter((n) => n > prevVerse && n < v.verse)
+
               // Drop cap for first verse
               let dropCap = ''
               let rest = v.content
@@ -240,60 +307,100 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onNavigateChapter }) 
               }
 
               return (
-                <div
-                  key={v.verse}
-                  className={isParagraphBreak ? 'mt-5' : ''}
-                >
-                  <button
-                    onClick={() => setActiveVerse(activeVerse === v.verse ? null : v.verse)}
-                    className={`w-full rounded-lg px-2 py-1.5 text-left transition-colors ${
-                      activeVerse === v.verse
-                        ? 'border border-amber-500/25 bg-amber-500/[0.05]'
-                        : 'border border-transparent hover:bg-white/[0.02]'
-                    }`}
-                    aria-label={`Verse ${v.verse}: ${v.content}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      {/* Verse number — purple, right-aligned in fixed column */}
-                      <span className="w-7 shrink-0 pt-0.5 text-right font-mono text-[11px] leading-7 text-violet-400/60">
-                        {v.verse}
-                      </span>
-                      {/* Verse content */}
-                      <span className="flex-1 text-[17px] leading-8 text-white/90" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
-                        {isFirst ? (
-                          <>
-                            <span className="float-left mr-1 font-bold leading-none text-amber-400" style={{ fontSize: '3rem', lineHeight: '3rem', fontFamily: 'Georgia, serif' }}>
-                              {dropCap}
-                            </span>
-                            {rest}
-                          </>
-                        ) : v.content}
-                      </span>
-                    </div>
-                  </button>
+                <Fragment key={v.verse}>
+                  {gapMarkers.map((n) => (
+                    <OmittedVerseNote
+                      key={`omitted-${n}`}
+                      bookName={book.name}
+                      chapterNum={chapterNum}
+                      verse={n}
+                    />
+                  ))}
+                  <div className={isParagraphBreak ? 'mt-5' : ''}>
+                    <button
+                      onClick={() => setActiveVerse(activeVerse === v.verse ? null : v.verse)}
+                      className={`w-full rounded-lg px-2 py-1.5 text-left transition-colors ${
+                        activeVerse === v.verse
+                          ? 'border border-amber-500/25 bg-amber-500/[0.05]'
+                          : 'border border-transparent hover:bg-white/[0.02]'
+                      }`}
+                      aria-label={`Verse ${v.verse}: ${v.content}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Verse number — purple, right-aligned in fixed column */}
+                        <span className="w-7 shrink-0 pt-0.5 text-right font-mono text-[11px] leading-7 text-violet-400/60">
+                          {v.verse}
+                        </span>
+                        {/* Verse content — size driven by the reader font-scale control */}
+                        <span
+                          className="flex-1 text-white/90"
+                          style={{
+                            fontFamily: 'Georgia, "Times New Roman", serif',
+                            fontSize: `${level.size}px`,
+                            lineHeight: level.lineHeight,
+                          }}
+                        >
+                          {isFirst ? (
+                            <>
+                              <span
+                                className="float-left mr-1 font-bold leading-none text-amber-400"
+                                style={{
+                                  fontSize: `${level.size * 2.7}px`,
+                                  lineHeight: `${level.size * 2.7}px`,
+                                  fontFamily: 'Georgia, serif',
+                                }}
+                              >
+                                {dropCap}
+                              </span>
+                              {rest}
+                            </>
+                          ) : (
+                            v.content
+                          )}
+                        </span>
+                      </div>
+                    </button>
 
-                  {/* Actions on tap */}
-                  {activeVerse === v.verse && (
-                    <div className="mt-1 flex gap-2 pl-10">
-                      <button
-                        onClick={() => onAskAion(`What does ${book.name} ${chapterNum}:${v.verse} mean? "${v.content}"`)}
-                        className="flex items-center gap-1.5 rounded border border-violet-500/20 bg-violet-500/[0.06] px-2.5 py-1 font-mono text-[10px] text-violet-300/80 hover:bg-violet-500/10"
-                        aria-label={`Ask Aion about ${book.name} ${chapterNum}:${v.verse}`}
-                      >
-                        <MessageSquare className="h-2.5 w-2.5" /> Ask Aion
-                      </button>
-                      <button
-                        onClick={() => handleCopy(v)}
-                        className="flex items-center gap-1.5 rounded border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 font-mono text-[10px] text-white/40 hover:bg-white/[0.05]"
-                        aria-label={`Copy verse ${v.verse}`}
-                      >
-                        <Copy className="h-2.5 w-2.5" /> Copy
-                      </button>
-                    </div>
-                  )}
-                </div>
+                    {/* Actions on tap */}
+                    {activeVerse === v.verse && (
+                      <div className="mt-1 flex gap-2 pl-10">
+                        <button
+                          onClick={() =>
+                            onAskAion(
+                              `What does ${book.name} ${chapterNum}:${v.verse} mean? "${v.content}"`,
+                            )
+                          }
+                          className="flex items-center gap-1.5 rounded border border-violet-500/20 bg-violet-500/[0.06] px-2.5 py-1 font-mono text-[10px] text-violet-300/80 hover:bg-violet-500/10"
+                          aria-label={`Ask Aion about ${book.name} ${chapterNum}:${v.verse}`}
+                        >
+                          <MessageSquare className="h-2.5 w-2.5" /> Ask Aion
+                        </button>
+                        <button
+                          onClick={() => handleCopy(v)}
+                          className="flex items-center gap-1.5 rounded border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 font-mono text-[10px] text-white/40 hover:bg-white/[0.05]"
+                          aria-label={`Copy verse ${v.verse}`}
+                        >
+                          <Copy className="h-2.5 w-2.5" /> Copy
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </Fragment>
               )
             })}
+
+            {/* Trailing omissions: BSB-skipped verses after the last present verse */}
+            {verses.length > 0 &&
+              omittedVerses
+                .filter((n) => n > verses[verses.length - 1].verse)
+                .map((n) => (
+                  <OmittedVerseNote
+                    key={`omitted-trailing-${n}`}
+                    bookName={book.name}
+                    chapterNum={chapterNum}
+                    verse={n}
+                  />
+                ))}
 
             {/* Bottom navigation — Previous / Next chapter */}
             {verses.length > 0 && (
@@ -334,7 +441,8 @@ export default function AionReader({ view, onNavigate }) {
     : null
 
   const [readerView, setReaderView] = useState(() => {
-    if (initialBook && view.chapter) return { type: 'chapter', book: initialBook, chapter: view.chapter }
+    if (initialBook && view.chapter)
+      return { type: 'chapter', book: initialBook, chapter: view.chapter }
     if (initialBook) return { type: 'chapters', book: initialBook }
     return { type: 'books' }
   })
@@ -348,7 +456,9 @@ export default function AionReader({ view, onNavigate }) {
         chapter={readerView.chapter}
         onBack={() => setReaderView({ type: 'chapters', book: readerView.book })}
         onAskAion={handleAskAion}
-        onNavigateChapter={(ch) => setReaderView({ type: 'chapter', book: readerView.book, chapter: ch })}
+        onNavigateChapter={(ch) =>
+          setReaderView({ type: 'chapter', book: readerView.book, chapter: ch })
+        }
       />
     )
   }
@@ -365,9 +475,5 @@ export default function AionReader({ view, onNavigate }) {
     )
   }
 
-  return (
-    <BookList
-      onSelectBook={(book) => setReaderView({ type: 'chapters', book })}
-    />
-  )
+  return <BookList onSelectBook={(book) => setReaderView({ type: 'chapters', book })} />
 }

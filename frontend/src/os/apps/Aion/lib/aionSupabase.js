@@ -9,11 +9,15 @@ if (!url || !anonKey) {
   )
 }
 
-export const aionSupabase = createClient(url || 'https://placeholder.supabase.co', anonKey || 'placeholder', {
-  auth: {
-    storageKey: 'aion.supabase.auth',
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: false,
+export const aionSupabase = createClient(
+  url || 'https://placeholder.supabase.co',
+  anonKey || 'placeholder',
+  {
+    auth: {
+      storageKey: 'aion.supabase.auth',
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+    },
   },
-})
+)
