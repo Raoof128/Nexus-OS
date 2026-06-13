@@ -1,5 +1,15 @@
 # Change Log
 
+### 2026-06-13 (Australia/Sydney) — Cloudflare Pages auto-deploy (frontend CI/CD)
+
+**Raouf:**
+
+- **Scope:** Add GitHub Actions auto-deploy for the frontend to Cloudflare Pages (`nexus-archive`), mirroring the Portfolio setup, replacing the manual `wrangler pages deploy` step documented in `CLAUDE.md`.
+- **Summary:** Added `.github/workflows/deploy.yml`. On push to `main` (or manual dispatch) a `build` job runs `npm ci`/lint/build/test in `frontend/` with the production `VITE_*` values injected from repo secrets, then uploads `frontend/dist` as an artifact. A separate `deploy` job downloads the artifact and runs `cloudflare/wrangler-action` → `pages deploy dist --project-name=nexus-archive --branch=codex/bootstrap --commit-dirty=true` (production branch label for `home-notes-app.uk`). **Security-hardened:** the sensitive `CLOUDFLARE_API_TOKEN` lives only in the deploy job (never in the env where `npm ci`/build run); the build job carries only the public, browser-shipped `VITE_*` config. Deploy is gated on `github.ref == 'refs/heads/main' && has_token` so non-`main` dispatch can't reach production and runs stay green until the token secret exists. All actions SHA-pinned to match house style; no secrets inline (gitleaks-safe). Set repo secrets via `gh`: `CLOUDFLARE_ACCOUNT_ID` + the five `VITE_*` values (sourced from `frontend/.env`). `CLOUDFLARE_API_TOKEN` must be added by the user (account-scoped Cloudflare Pages:Edit token).
+- **Files Changed:** `.github/workflows/deploy.yml` (new), `AGENT.md`, `CHANGELOG.md`.
+- **Verification:** `prettier --check` ✓ on the workflow; SHAs resolved via GitHub API; `gh secret list` shows 6 of 7 secrets set; deploy run pending `CLOUDFLARE_API_TOKEN`.
+- **Follow-ups:** User creates `CLOUDFLARE_API_TOKEN` (dashboard → Custom Token → Account · Cloudflare Pages · Edit) and `gh secret set CLOUDFLARE_API_TOKEN --repo Raoof128/Nexus-OS`; then every push to `main` auto-deploys. Existing `ci.yml` actions still on Node 20 (deprecation) — bump later if desired.
+
 ### 2026-06-13 (Australia/Sydney) — Full Backend Audit + Hardening/Performance Pass
 
 **Raouf:**
