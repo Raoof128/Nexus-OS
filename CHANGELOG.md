@@ -1,5 +1,15 @@
 # Change Log
 
+### 2026-06-13 (Australia/Sydney) — Bump CI/deploy to Node 24
+
+**Raouf:**
+
+- **Scope:** Move both GitHub Actions workflows off the deprecated Node 20 runtime to Node 24.
+- **Summary:** Bumped `node-version` `20 → 24` in `deploy.yml` (build job) and `ci.yml` (frontend job), and bumped the Node-based actions to their current node24-capable majors, SHA-pinned: `actions/checkout@v4.2.2 → v6.0.3` (all jobs in `ci.yml` + `deploy.yml`), `actions/setup-node@v4.1.0 → v6.4.0`, `actions/upload-artifact@v4.4.3 → v7.0.1`, `actions/download-artifact@v4.1.8 → v8.0.1`. `setup-python` (backend), `gitleaks-action`, and `setup-terraform` left unchanged (not Node-version related). SHAs resolved via the GitHub releases API before pinning.
+- **Files Changed:** `.github/workflows/deploy.yml`, `.github/workflows/ci.yml`, `AGENT.md`, `CHANGELOG.md`.
+- **Verification:** `prettier --check` ✓ on both workflows; pending live CI + deploy runs on push (expect green on Node 24, no deprecation annotation).
+- **Follow-ups:** None.
+
 ### 2026-06-13 (Australia/Sydney) — Cloudflare Pages auto-deploy (frontend CI/CD)
 
 **Raouf:**
