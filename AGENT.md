@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-06-14 (Australia/Sydney) — Fix frontend CI `npm audit` failure (remediate, not ignore)
+
+**Raouf:**
+
+- **Scope:** The `Frontend` CI job's `Security (npm audit --audit-level=high)` step was failing (7 vulns: 5 high + 2 critical), blocking green CI. Pre-existing — failing since ~Jun 12, unrelated to the Node 24 bump (the audit step has no Node-version dependency). Fix by actually patching the vulnerable transitive deps rather than suppressing the advisories.
+- **Summary:** Two real remediations in `frontend/package.json`. **(1)** Added an `overrides` block pinning `esbuild` to `^0.28.1`. The 5 high advisories (`GHSA-gv7w-rqvm-qjhr` NPM_CONFIG_REGISTRY RCE, range `<0.28.1`; `GHSA-g7r4-m6w7-qqqr` Windows dev-server file read, range `<0.28.1`) came in transitively via `vite@7.3.3 → esbuild@0.27.4` — and crucially via the **production** dep `@tailwindcss/vite`, so `--omit=dev` alone did NOT clear them. `0.28.1` is the first patched release and is drop-in compatible with vite 7 (build + tests pass), avoiding the breaking `vite@8` major that `npm audit fix --force` wanted. **(2)** Bumped `vitest` and `@vitest/coverage-v8` `^3.2.4 → ^3.2.6` to clear the 2 criticals (`GHSA-5xrq-8626-4rwp`, Vitest UI server arbitrary file read/exec, range `<3.2.6`) — a patch bump within the same minor, dev-test tooling only. No workflow edit needed: the existing `npm audit --audit-level=high` step now passes unmodified. Verified production-only audit (`--omit=dev`) reports **0 vulnerabilities** independently.
+- **Files Changed:** `frontend/package.json` (+`overrides.esbuild`, vitest/coverage `3.2.4→3.2.6`), `frontend/package-lock.json` (regenerated, esbuild dedup `0.27.4→0.28.1`), `AGENT.md`, `CHANGELOG.md`.
+- **Verification:** `npm audit --audit-level=high` → **found 0 vulnerabilities** (exit 0); `npm run lint` ✓; `npm run build` ✓ (built in 2.35s); `npm run test` → **244/244 pass**. All run on Node 24.
+- **Follow-ups:** When `@tailwindcss/vite` ships a release depending on vite ≥8 (which itself depends on patched esbuild), the `overrides.esbuild` pin can be removed. Until then it's a safe no-downside pin. Vite 8 major upgrade deferred (breaking).
+
 ### 2026-06-13 (Australia/Sydney) — Bump CI/deploy to Node 24
 
 **Raouf:**

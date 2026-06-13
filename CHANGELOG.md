@@ -1,5 +1,15 @@
 # Change Log
 
+### 2026-06-14 (Australia/Sydney) — Fix frontend CI `npm audit` failure (remediate, not ignore)
+
+**Raouf:**
+
+- **Scope:** Frontend CI `Security (npm audit --audit-level=high)` step failing (5 high + 2 critical), blocking green CI. Pre-existing (since ~Jun 12), not caused by the Node 24 bump.
+- **Summary:** Patched the vulnerable transitive deps instead of suppressing advisories. Added `overrides.esbuild: "^0.28.1"` to `frontend/package.json` — clears the 5 high esbuild advisories (`GHSA-gv7w-rqvm-qjhr` RCE, `GHSA-g7r4-m6w7-qqqr` dev-server file read; both `<0.28.1`) that arrived via `vite@7.3.3` AND the production dep `@tailwindcss/vite` (so `--omit=dev` couldn't help). `0.28.1` is drop-in for vite 7, avoiding the breaking `vite@8` bump. Bumped `vitest`/`@vitest/coverage-v8` `3.2.4→3.2.6` to clear the 2 criticals (`GHSA-5xrq-8626-4rwp` Vitest UI server, `<3.2.6`). The existing audit step now passes unmodified; production-only audit is independently 0 vulns.
+- **Files Changed:** `frontend/package.json`, `frontend/package-lock.json`, `AGENT.md`, `CHANGELOG.md`.
+- **Verification:** `npm audit --audit-level=high` → **0 vulnerabilities** (exit 0); lint ✓; build ✓; **244/244 tests** ✓ (Node 24).
+- **Follow-ups:** Drop the `overrides.esbuild` pin once `@tailwindcss/vite` depends on vite ≥8 (patched esbuild). Vite 8 major upgrade deferred.
+
 ### 2026-06-13 (Australia/Sydney) — Bump CI/deploy to Node 24
 
 **Raouf:**
