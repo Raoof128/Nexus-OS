@@ -61,7 +61,7 @@ class TasksController(Controller):
         user_id, access_token = _require_auth(request)
         builder = (
             _db(access_token)
-            .from_("task_lists")
+            .from_("nexus_task_lists")
             .select("*")
             .eq("user_id", user_id)
             .order("position")
@@ -75,7 +75,10 @@ class TasksController(Controller):
         enforce_tasks_rate_limit(user_id)
         db = _db(access_token)
         existing = await run_blocking(
-            db.from_("task_lists").select("position").eq("user_id", user_id).execute
+            db.from_("nexus_task_lists")
+            .select("position")
+            .eq("user_id", user_id)
+            .execute
         )
         positions = [r.get("position", 0.0) for r in (existing.data or [])]  # lists
         row = {
@@ -83,7 +86,7 @@ class TasksController(Controller):
             "name": data.name,
             "position": next_position(positions),
         }
-        resp = await run_blocking(db.from_("task_lists").insert(row).execute)
+        resp = await run_blocking(db.from_("nexus_task_lists").insert(row).execute)
         return (resp.data or [{}])[0]
 
     @patch("/lists/{list_id:str}")
@@ -97,7 +100,7 @@ class TasksController(Controller):
             raise HTTPException(status_code=400, detail="No fields to update")
         builder = (
             _db(access_token)
-            .from_("task_lists")
+            .from_("nexus_task_lists")
             .update(patch_data)
             .eq("id", list_id)
             .eq("user_id", user_id)
@@ -113,7 +116,7 @@ class TasksController(Controller):
         enforce_tasks_rate_limit(user_id)
         builder = (
             _db(access_token)
-            .from_("task_lists")
+            .from_("nexus_task_lists")
             .delete()
             .eq("id", list_id)
             .eq("user_id", user_id)
@@ -128,7 +131,7 @@ class TasksController(Controller):
         user_id, access_token = _require_auth(request)
         query = (
             _db(access_token)
-            .from_("tasks")
+            .from_("nexus_tasks")
             .select("*")
             .eq("user_id", user_id)
             .eq("list_id", list_id)
@@ -149,7 +152,7 @@ class TasksController(Controller):
         # Enforce single subtask level: a parent must not itself be a subtask.
         if data.parent_id:
             parent = await run_blocking(
-                db.from_("tasks")
+                db.from_("nexus_tasks")
                 .select("parent_id")
                 .eq("id", data.parent_id)
                 .eq("user_id", user_id)
@@ -165,7 +168,7 @@ class TasksController(Controller):
                 )
 
         existing = await run_blocking(
-            db.from_("tasks")
+            db.from_("nexus_tasks")
             .select("position")
             .eq("user_id", user_id)
             .eq("list_id", list_id)
@@ -186,7 +189,7 @@ class TasksController(Controller):
             "recurrence": data.recurrence,
             "position": next_position(positions),
         }
-        resp = await run_blocking(db.from_("tasks").insert(row).execute)
+        resp = await run_blocking(db.from_("nexus_tasks").insert(row).execute)
         return hydrate_task_record((resp.data or [{}])[0])
 
     # ---- Tasks: update (with recurrence regen) ----------------------
@@ -202,7 +205,7 @@ class TasksController(Controller):
         db = _db(access_token)
 
         current = await run_blocking(
-            db.from_("tasks")
+            db.from_("nexus_tasks")
             .select("*")
             .eq("id", task_id)
             .eq("user_id", user_id)
@@ -238,7 +241,7 @@ class TasksController(Controller):
             )
 
         updated = await run_blocking(
-            db.from_("tasks")
+            db.from_("nexus_tasks")
             .update(patch_data)
             .eq("id", task_id)
             .eq("user_id", user_id)
@@ -264,7 +267,7 @@ class TasksController(Controller):
             nxt = next_occurrence(recurrence, anchor)
             if nxt is not None:
                 positions = await run_blocking(
-                    db.from_("tasks")
+                    db.from_("nexus_tasks")
                     .select("position")
                     .eq("user_id", user_id)
                     .eq("list_id", existing["list_id"])
@@ -273,7 +276,7 @@ class TasksController(Controller):
                 pos_list = [r.get("position", 0.0) for r in (positions.data or [])]
                 is_dt = isinstance(nxt, _datetime)
                 await run_blocking(
-                    db.from_("tasks")
+                    db.from_("nexus_tasks")
                     .insert(
                         {
                             "user_id": user_id,
@@ -304,7 +307,7 @@ class TasksController(Controller):
         enforce_tasks_rate_limit(user_id)
         db = _db(access_token)
         current = await run_blocking(
-            db.from_("tasks")
+            db.from_("nexus_tasks")
             .select("*")
             .eq("id", task_id)
             .eq("user_id", user_id)
@@ -329,7 +332,7 @@ class TasksController(Controller):
         # Single subtask level: cannot re-parent under a task that is a subtask.
         if data.parent_id:
             parent = await run_blocking(
-                db.from_("tasks")
+                db.from_("nexus_tasks")
                 .select("parent_id")
                 .eq("id", data.parent_id)
                 .eq("user_id", user_id)
@@ -348,7 +351,7 @@ class TasksController(Controller):
         if not patch_data:
             raise HTTPException(status_code=400, detail="No fields to move")
         resp = await run_blocking(
-            db.from_("tasks")
+            db.from_("nexus_tasks")
             .update(patch_data)
             .eq("id", task_id)
             .eq("user_id", user_id)
@@ -362,7 +365,7 @@ class TasksController(Controller):
         enforce_tasks_rate_limit(user_id)
         await run_blocking(
             _db(access_token)
-            .from_("tasks")
+            .from_("nexus_tasks")
             .delete()
             .eq("id", task_id)
             .eq("user_id", user_id)
