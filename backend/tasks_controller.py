@@ -342,7 +342,11 @@ class TasksController(Controller):
                     detail="Subtasks cannot be nested deeper than one level",
                 )
 
-        patch_data = data.model_dump(exclude_none=True)
+        # exclude_unset (not exclude_none) so an explicit parent_id=null clears the
+        # parent (outdent), while fields absent from the request stay untouched.
+        patch_data = data.model_dump(exclude_unset=True)
+        if not patch_data:
+            raise HTTPException(status_code=400, detail="No fields to move")
         resp = await run_blocking(
             db.from_("tasks")
             .update(patch_data)
