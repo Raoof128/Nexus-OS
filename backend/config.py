@@ -50,6 +50,8 @@ class BackendSettings:
     auth_rate_limit_window_seconds: int = 60
     tasks_rate_limit_requests: int = 120
     tasks_rate_limit_window_seconds: int = 60
+    notes_rate_limit_requests: int = 120
+    notes_rate_limit_window_seconds: int = 60
     password_reset_redirect_url: str | None = None
     redis_url: str | None = None
     trusted_proxy_ips: tuple[str, ...] = ()
