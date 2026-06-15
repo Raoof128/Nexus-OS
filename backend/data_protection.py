@@ -220,3 +220,37 @@ def hydrate_task_record(record: dict[str, Any]) -> dict[str, Any]:
     hydrated = dict(record)
     hydrated["notes_encrypted"] = decrypt_takeaway(record.get("notes_encrypted"))
     return hydrated
+
+
+def protect_note_text(text: str | None) -> str | None:
+    """Encrypt note text (title/body/checklist) when a key is configured, else plaintext.
+
+    Mirrors ``protect_chat_content`` / ``protect_task_notes``: graceful in dev
+    (no key -> plaintext) while the ``enc::`` prefix lets ``decrypt_takeaway``
+    transparently restore on read.
+    """
+
+    if text is None:
+        return None
+
+    cipher = get_takeaway_cipher()
+    if cipher is None:
+        return text
+
+    token = cipher.encrypt(text.encode("utf-8")).decode("utf-8")
+    return f"{ENCRYPTED_PREFIX}{token}"
+
+
+def hydrate_note_record(record: dict[str, Any]) -> dict[str, Any]:
+    """Return a note record with encrypted text fields decrypted for the UI."""
+
+    hydrated = dict(record)
+    if "title_encrypted" in record:
+        hydrated["title_encrypted"] = decrypt_takeaway(record.get("title_encrypted"))
+    if "content_encrypted" in record:
+        hydrated["content_encrypted"] = decrypt_takeaway(
+            record.get("content_encrypted")
+        )
+    if "text_encrypted" in record:
+        hydrated["text_encrypted"] = decrypt_takeaway(record.get("text_encrypted"))
+    return hydrated
