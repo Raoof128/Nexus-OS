@@ -48,6 +48,8 @@ class BackendSettings:
     ai_rate_limit_window_seconds: int = 60
     auth_rate_limit_requests: int = 10
     auth_rate_limit_window_seconds: int = 60
+    tasks_rate_limit_requests: int = 120
+    tasks_rate_limit_window_seconds: int = 60
     password_reset_redirect_url: str | None = None
     redis_url: str | None = None
     trusted_proxy_ips: tuple[str, ...] = ()
@@ -163,6 +165,12 @@ def get_settings() -> BackendSettings:
         ),
         auth_rate_limit_window_seconds=int(
             _get_env("AUTH_RATE_LIMIT_WINDOW_SECONDS", "60") or "60"
+        ),
+        tasks_rate_limit_requests=int(
+            _get_env("TASKS_RATE_LIMIT_REQUESTS", "120") or "120"
+        ),
+        tasks_rate_limit_window_seconds=int(
+            _get_env("TASKS_RATE_LIMIT_WINDOW_SECONDS", "60") or "60"
         ),
         password_reset_redirect_url=_get_env("PASSWORD_RESET_REDIRECT_URL"),
         redis_url=_get_env("REDIS_URL"),

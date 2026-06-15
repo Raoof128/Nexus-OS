@@ -142,6 +142,7 @@ RateLimiter = SlidingWindowRateLimiter | RedisSlidingWindowRateLimiter
 
 _ai_rate_limiter: RateLimiter | None = None
 _auth_rate_limiter: RateLimiter | None = None
+_tasks_rate_limiter: RateLimiter | None = None
 
 
 def _create_rate_limiter(max_requests: int, window_seconds: int) -> RateLimiter:
@@ -199,9 +200,27 @@ def enforce_auth_rate_limit(key: str) -> None:
     _auth_rate_limiter.enforce(f"auth:{key}")
 
 
+def enforce_tasks_rate_limit(user_id: str) -> None:
+    """Apply a generous per-user limit to task mutations.
+
+    Separate from the AI limiter: routine task editing is far more frequent than
+    AI calls, so it gets its own, much higher ceiling.
+    """
+
+    global _tasks_rate_limiter
+    settings = get_settings()
+    if _tasks_rate_limiter is None:
+        _tasks_rate_limiter = _create_rate_limiter(
+            max_requests=settings.tasks_rate_limit_requests,
+            window_seconds=settings.tasks_rate_limit_window_seconds,
+        )
+    _tasks_rate_limiter.enforce(f"tasks:{user_id}")
+
+
 def reset_rate_limiters() -> None:
     """Reset cached rate limiter instances for isolated tests."""
 
-    global _ai_rate_limiter, _auth_rate_limiter
+    global _ai_rate_limiter, _auth_rate_limiter, _tasks_rate_limiter
     _ai_rate_limiter = None
     _auth_rate_limiter = None
+    _tasks_rate_limiter = None
