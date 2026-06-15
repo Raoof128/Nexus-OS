@@ -45,6 +45,12 @@ export function useTaskMutations(listId, showCompleted = true) {
     onSettled: () => qc.invalidateQueries({ queryKey: listsKey }),
   })
 
+  const reorderList = useMutation({
+    mutationFn: ({ id, position }) =>
+      apiFetch(`/api/tasks/lists/${id}`, { method: 'PATCH', body: { position } }),
+    onSettled: () => qc.invalidateQueries({ queryKey: listsKey }),
+  })
+
   const createTask = useMutation({
     mutationFn: (payload) =>
       apiFetch(`/api/tasks/lists/${listId}/items`, { method: 'POST', body: payload }),
@@ -79,6 +85,15 @@ export function useTaskMutations(listId, showCompleted = true) {
   const moveTask = useMutation({
     mutationFn: ({ id, body }) =>
       apiFetch(`/api/tasks/items/${id}/move`, { method: 'POST', body }),
+    onMutate: async ({ id, body }) => {
+      await qc.cancelQueries({ queryKey: key })
+      const previous = qc.getQueryData(key)
+      qc.setQueryData(key, (old = []) =>
+        old.map((t) => (t.id === id ? { ...t, ...body } : t)),
+      )
+      return { previous }
+    },
+    onError: (_e, _v, ctx) => ctx?.previous && qc.setQueryData(key, ctx.previous),
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   })
 
@@ -94,13 +109,28 @@ export function useTaskMutations(listId, showCompleted = true) {
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   })
 
+  const clearCompleted = useMutation({
+    mutationFn: () =>
+      apiFetch(`/api/tasks/lists/${listId}/clear-completed`, { method: 'POST' }),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: key })
+      const previous = qc.getQueryData(key)
+      qc.setQueryData(key, (old = []) => old.filter((t) => t.status !== 'completed'))
+      return { previous }
+    },
+    onError: (_e, _v, ctx) => ctx?.previous && qc.setQueryData(key, ctx.previous),
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  })
+
   return {
     createList,
     renameList,
     deleteList,
+    reorderList,
     createTask,
     updateTask,
     moveTask,
     deleteTask,
+    clearCompleted,
   }
 }
