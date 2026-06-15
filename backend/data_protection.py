@@ -223,7 +223,7 @@ def hydrate_task_record(record: dict[str, Any]) -> dict[str, Any]:
 
 
 def protect_note_text(text: str | None) -> str | None:
-    """Encrypt note text (title/body/checklist) when a key is configured, else plaintext.
+    """Encrypt note text (title/body/checklist) when a key is set, else plaintext.
 
     Mirrors ``protect_chat_content`` / ``protect_task_notes``: graceful in dev
     (no key -> plaintext) while the ``enc::`` prefix lets ``decrypt_takeaway``
