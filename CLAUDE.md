@@ -49,6 +49,9 @@ backend/
   app.py              # Litestar app + route registration
   controllers.py      # MediaController — CRUD at /media
   chat_controller.py  # ChatController — AI chat at /chat
+  tasks_controller.py # TasksController — tasks/lists CRUD at /api/tasks
+  tasks_service.py    # Recurrence (dateutil, schedule-based) + position math
+  tasks_schemas.py    # Pydantic v2 task request models
   auth_controller.py  # AuthController — login/refresh/logout at /auth
   auth.py             # JWT middleware (HS256 + ES256 JWKS)
   config.py           # Typed settings from env (loads .env then .env.local)
@@ -90,6 +93,9 @@ frontend/src/
                                    #   MediaForm, MediaDetailModal, Add/EditMediaDialog
   os/apps/Email/                   # EmailApp + FolderSidebar/EmailList/EmailReader/ComposeModal
   os/apps/Chat/                    # ChatApp, ChatSidebar, ChatWindow, (Lazy)AICmdPalette
+  os/apps/Tasks/                   # Google-Tasks-style manager: lists, 1-level subtasks,
+                                   #   due date/time, recurrence, star, drag, encrypted
+                                   #   notes, NL quick-add, notification-center reminders
   os/apps/Auth/                    # AuthPanel (login/register/forgot), ResetPasswordPage
   os/apps/{NotesApp,TerminalApp,FileManagerApp,SystemMonitorApp,SettingsApp}.jsx
   components/ui/CyberCard.jsx      # Memoized media card with Framer Motion layoutId
