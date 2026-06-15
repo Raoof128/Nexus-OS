@@ -1,11 +1,38 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, Reorder } from 'framer-motion'
 import { ChevronDown, ChevronRight, ListChecks } from 'lucide-react'
 import { useTaskItems, useTaskMutations } from '../hooks/useTasks'
 import { useTaskReminders } from '../hooks/useTaskReminders'
+import { between } from '../lib/position'
 import TaskRow from '../components/TaskRow'
 import TaskEditor from '../components/TaskEditor'
 import QuickAddBar from '../components/QuickAddBar'
+import ConfirmDialog from '../../../../components/ui/ConfirmDialog'
+
+// Drag-reorderable top-level task group. Local order is held in state for smooth
+// dragging; the `key` (set by the caller from the server id set) re-initialises it
+// when the server data changes, so no state-sync effect is needed.
+function ReorderableTasks({ tasks, renderRow, onPersist }) {
+  const [order, setOrder] = useState(tasks)
+
+  const handleDragEnd = (task) => {
+    const idx = order.findIndex((t) => t.id === task.id)
+    if (idx === -1) return
+    const prev = order[idx - 1]?.position ?? null
+    const next = order[idx + 1]?.position ?? null
+    onPersist(task.id, between(prev, next))
+  }
+
+  return (
+    <Reorder.Group axis="y" values={order} onReorder={setOrder} as="ul" role="list">
+      {order.map((task) => (
+        <Reorder.Item key={task.id} value={task} onDragEnd={() => handleDragEnd(task)}>
+          {renderRow(task, 0)}
+        </Reorder.Item>
+      ))}
+    </Reorder.Group>
+  )
+}
 
 function sortTasks(tasks, mode) {
   const copy = [...tasks]
@@ -25,16 +52,19 @@ function sortTasks(tasks, mode) {
 export default function TaskListView({
   listId,
   listName,
+  lists = [],
   sortMode,
   onSortModeChange,
   starredActive,
   rootRef,
 }) {
   const { data: items = [], isLoading } = useTaskItems(listId, true)
-  const { createTask, updateTask, moveTask, deleteTask } = useTaskMutations(listId, true)
+  const { createTask, updateTask, moveTask, deleteTask, clearCompleted } =
+    useTaskMutations(listId, true)
   const [editing, setEditing] = useState(null) // null | 'new' | task
   const [showCompleted, setShowCompleted] = useState(true)
   const [focusedTaskId, setFocusedTaskId] = useState(null)
+  const [confirmClear, setConfirmClear] = useState(false)
 
   useTaskReminders(items)
 
@@ -87,6 +117,41 @@ export default function TaskListView({
         // Outdent: clear the parent (explicit null honored by exclude_unset).
         e.preventDefault()
         moveTask.mutate({ id: task.id, body: { parent_id: null } })
+      } else if (
+        (e.metaKey || e.ctrlKey) &&
+        (e.key === 'ArrowUp' || e.key === 'ArrowDown') &&
+        task
+      ) {
+        e.preventDefault()
+        const siblings = items
+          .filter(
+            (t) =>
+              (t.parent_id || null) === (task.parent_id || null) &&
+              t.status === 'needsAction',
+          )
+          .sort((a, b) => (a.position || 0) - (b.position || 0))
+        const i = siblings.findIndex((t) => t.id === task.id)
+        if (i === -1) return
+        const up = e.key === 'ArrowUp'
+        if (e.shiftKey) {
+          // Jump to top / bottom of the sibling group.
+          const target = up ? siblings[0] : siblings[siblings.length - 1]
+          if (!target || target.id === task.id) return
+          const pos = up
+            ? between(null, siblings[0].position)
+            : between(siblings[siblings.length - 1].position, null)
+          moveTask.mutate({ id: task.id, body: { position: pos } })
+        } else {
+          const swapIdx = up ? i - 1 : i + 1
+          if (swapIdx < 0 || swapIdx >= siblings.length) return
+          // Slot the task across its neighbour: midpoint of the neighbour and the
+          // sibling just beyond it (or past the end when there is none).
+          const beyond = up ? siblings[swapIdx - 1] : siblings[swapIdx + 1]
+          const pos = up
+            ? between(beyond?.position ?? null, siblings[swapIdx].position)
+            : between(siblings[swapIdx].position, beyond?.position ?? null)
+          moveTask.mutate({ id: task.id, body: { position: pos } })
+        }
       }
     }
     el.addEventListener('keydown', onKey)
@@ -117,6 +182,10 @@ export default function TaskListView({
       key={task.id}
       task={task}
       depth={depth}
+      lists={lists}
+      onMoveToList={(targetListId) =>
+        moveTask.mutate({ id: task.id, body: { list_id: targetListId } })
+      }
       onToggle={handleToggle}
       onStar={handleStar}
       onEdit={setEditing}
@@ -177,32 +246,46 @@ export default function TaskListView({
             </p>
           </div>
         ) : (
-          <ul role="list" onFocusCapture={(e) => {
-            const li = e.target.closest('[data-task-id]')
-            if (li) setFocusedTaskId(li.getAttribute('data-task-id'))
-          }}>
-            <AnimatePresence initial={false}>
-              {parents.map((p) => (
-                <div key={p.id}>
-                  {renderRow(p, 0)}
-                  {(childrenByParent[p.id] || []).map((c) => renderRow(c, 1))}
-                </div>
-              ))}
-            </AnimatePresence>
-          </ul>
+          <div
+            onFocusCapture={(e) => {
+              const li = e.target.closest('[data-task-id]')
+              if (li) setFocusedTaskId(li.getAttribute('data-task-id'))
+            }}
+          >
+            <ReorderableTasks
+              key={parents.map((p) => p.id).join(',')}
+              tasks={parents}
+              renderRow={(t) => (
+                <>
+                  {renderRow(t, 0)}
+                  {(childrenByParent[t.id] || []).map((c) => renderRow(c, 1))}
+                </>
+              )}
+              onPersist={(id, position) => moveTask.mutate({ id, body: { position } })}
+            />
+          </div>
         )}
 
         {completed.length > 0 && (
           <div className="mt-4">
-            <button
-              type="button"
-              onClick={() => setShowCompleted((v) => !v)}
-              aria-expanded={showCompleted}
-              className="flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
-            >
-              {showCompleted ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              Completed ({completed.length})
-            </button>
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={() => setShowCompleted((v) => !v)}
+                aria-expanded={showCompleted}
+                className="flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+              >
+                {showCompleted ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                Completed ({completed.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmClear(true)}
+                className="ml-3 rounded px-2 py-0.5 text-[11px] text-white/50 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50"
+              >
+                Clear completed
+              </button>
+            </div>
             {showCompleted && (
               <ul role="list" className="mt-1">
                 <AnimatePresence initial={false}>
@@ -213,6 +296,18 @@ export default function TaskListView({
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmClear}
+        title="Clear completed?"
+        message="This permanently deletes all completed tasks in this list."
+        confirmLabel="Clear"
+        onCancel={() => setConfirmClear(false)}
+        onConfirm={() => {
+          clearCompleted.mutate()
+          setConfirmClear(false)
+        }}
+      />
     </section>
   )
 }
