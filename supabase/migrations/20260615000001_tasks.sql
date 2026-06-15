@@ -5,14 +5,17 @@ CREATE TABLE public.task_lists (
   user_id    UUID NOT NULL REFERENCES auth.users ON DELETE CASCADE,
   name       TEXT NOT NULL,
   position   DOUBLE PRECISION NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  -- Composite key target so child rows can require a same-owner reference.
+  CONSTRAINT task_lists_id_user_key UNIQUE (user_id, id)
 );
 
 CREATE TABLE public.tasks (
   id              UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id         UUID NOT NULL REFERENCES auth.users ON DELETE CASCADE,
-  list_id         UUID NOT NULL REFERENCES public.task_lists ON DELETE CASCADE,
-  parent_id       UUID REFERENCES public.tasks ON DELETE CASCADE,
+  list_id         UUID NOT NULL,
+  parent_id       UUID,
   title           TEXT NOT NULL,
   notes_encrypted TEXT,
   status          TEXT NOT NULL DEFAULT 'needsAction'
@@ -25,7 +28,24 @@ CREATE TABLE public.tasks (
   position        DOUBLE PRECISION NOT NULL DEFAULT 0,
   completed_at    TIMESTAMPTZ,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  -- Composite key target so subtasks can require a same-owner parent.
+  CONSTRAINT tasks_id_user_key UNIQUE (user_id, id),
+
+  -- Cross-tenant integrity: a task's list MUST belong to the same user. The
+  -- composite FK makes referencing another user's list structurally impossible,
+  -- closing the IDOR that a plain `list_id -> task_lists(id)` FK would leave open
+  -- (RLS only guards row ownership, not the owner of referenced rows).
+  CONSTRAINT tasks_list_same_owner_fkey
+    FOREIGN KEY (user_id, list_id)
+    REFERENCES public.task_lists (user_id, id) ON DELETE CASCADE,
+
+  -- Same guarantee for subtasks. parent_id is nullable; with MATCH SIMPLE the FK
+  -- is skipped when parent_id IS NULL (top-level tasks), and enforced otherwise.
+  CONSTRAINT tasks_parent_same_owner_fkey
+    FOREIGN KEY (user_id, parent_id)
+    REFERENCES public.tasks (user_id, id) ON DELETE CASCADE
 );
 
 ALTER TABLE public.task_lists ENABLE ROW LEVEL SECURITY;
@@ -33,10 +53,17 @@ ALTER TABLE public.task_lists FORCE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks FORCE ROW LEVEL SECURITY;
 
+-- Row ownership. Cross-tenant references are blocked structurally by the
+-- composite FKs above; WITH CHECK mirrors USING so INSERT/UPDATE can't set a
+-- foreign user_id either (defense in depth).
 CREATE POLICY "Users manage own task lists"
-  ON public.task_lists FOR ALL USING (user_id = auth.uid());
+  ON public.task_lists FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
 CREATE POLICY "Users manage own tasks"
-  ON public.tasks FOR ALL USING (user_id = auth.uid());
+  ON public.tasks FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
 
 CREATE INDEX task_lists_user_position_idx ON public.task_lists (user_id, position);
 CREATE INDEX tasks_user_list_position_idx ON public.tasks (user_id, list_id, position);
