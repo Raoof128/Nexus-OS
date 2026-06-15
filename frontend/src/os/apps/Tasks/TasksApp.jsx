@@ -18,7 +18,7 @@ export default function TasksApp() {
       : (lists[0]?.id ?? null)
 
   // List-level mutations (independent of the items cache key).
-  const { createList, deleteList } = useTaskMutations(activeListId)
+  const { createList, deleteList, reorderList } = useTaskMutations(activeListId)
 
   const activeList = lists.find((l) => l.id === activeListId) || null
 
@@ -42,6 +42,7 @@ export default function TasksApp() {
         onToggleStarred={() => setStarredActive((v) => !v)}
         onCreate={handleCreateList}
         onDelete={handleDeleteList}
+        onReorder={(id, position) => reorderList.mutate({ id, position })}
       />
 
       {lists.length === 0 ? (
@@ -60,6 +61,7 @@ export default function TasksApp() {
           key={`${activeListId}:${starredActive}`}
           listId={activeListId}
           listName={activeList?.name}
+          lists={lists}
           sortMode={sortMode}
           onSortModeChange={setSortMode}
           starredActive={starredActive}

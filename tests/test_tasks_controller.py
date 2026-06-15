@@ -167,3 +167,16 @@ def test_delete_item(client):
     with patch("backend.tasks_controller.create_supabase_user_client", return_value=db):
         res = client.delete("/api/tasks/items/t1")
     assert res.status_code == HTTP_204_NO_CONTENT
+
+
+def test_clear_completed_deletes_only_completed(client):
+    deleted = [{"id": "t1"}, {"id": "t2"}]
+    builder = _chain(FakeResp(data=deleted))
+    db = MagicMock()
+    db.from_.return_value = builder
+    with patch("backend.tasks_controller.create_supabase_user_client", return_value=db):
+        res = client.post("/api/tasks/lists/l1/clear-completed")
+    assert res.status_code == HTTP_200_OK
+    assert res.json()["deleted"] == 2
+    # the delete must be filtered to status=completed
+    builder.eq.assert_any_call("status", "completed")

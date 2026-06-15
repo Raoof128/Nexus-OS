@@ -109,7 +109,7 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            Time
+            Add time
           </label>
           <input
             type="time"
@@ -117,6 +117,7 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
             onChange={(e) => setTime(e.target.value)}
             disabled={!due}
             aria-label="Due time"
+            title={due ? 'Set a due time' : 'Pick a due date first'}
             className="rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1.5 text-sm text-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:opacity-40"
           />
         </div>
