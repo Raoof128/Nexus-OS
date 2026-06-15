@@ -77,3 +77,20 @@ def test_protect_chat_content_round_trips_when_encryption_is_enabled(
         hydrate_chat_message_record({"content": protected})["content"]
         == "Sensitive chat"
     )
+
+
+def test_protect_task_notes_roundtrip_without_key(monkeypatch):
+    from backend import data_protection as dp
+
+    monkeypatch.setattr(dp, "get_takeaway_cipher", lambda: None)
+    protected = dp.protect_task_notes("buy milk")
+    assert protected == "buy milk"  # plaintext fallback when no key
+    record = dp.hydrate_task_record({"notes_encrypted": protected})
+    assert record["notes_encrypted"] == "buy milk"
+
+
+def test_protect_task_notes_none_passthrough():
+    from backend import data_protection as dp
+
+    assert dp.protect_task_notes(None) is None
+    assert dp.hydrate_task_record({"notes_encrypted": None})["notes_encrypted"] is None
