@@ -371,3 +371,18 @@ class TasksController(Controller):
             .eq("user_id", user_id)
             .execute
         )
+
+    @post("/lists/{list_id:str}/clear-completed", status_code=200)
+    async def clear_completed(self, list_id: str, request: Request) -> dict:
+        user_id, access_token = _require_auth(request)
+        enforce_tasks_rate_limit(user_id)
+        builder = (
+            _db(access_token)
+            .from_("nexus_tasks")
+            .delete()
+            .eq("user_id", user_id)
+            .eq("list_id", list_id)
+            .eq("status", "completed")
+        )
+        resp = await run_blocking(builder.execute)
+        return {"deleted": len(resp.data or [])}
