@@ -2,6 +2,8 @@ import { memo } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { Check, Pencil, Repeat2, Star, Trash2 } from 'lucide-react'
 import { DURATION } from '../../../../lib/motion'
+import { labelForRRule } from '../lib/recurrence'
+import TaskMenu from './TaskMenu'
 
 function formatDue(task) {
   const raw = task.due_at || task.due
@@ -31,7 +33,16 @@ function formatDue(task) {
   return { label, overdue: diffDays < 0 }
 }
 
-function TaskRow({ task, depth = 0, onToggle, onStar, onEdit, onDelete }) {
+function TaskRow({
+  task,
+  depth = 0,
+  lists = [],
+  onMoveToList,
+  onToggle,
+  onStar,
+  onEdit,
+  onDelete,
+}) {
   const completed = task.status === 'completed'
   const due = formatDue(task)
   const isSub = depth === 1
@@ -88,7 +99,7 @@ function TaskRow({ task, depth = 0, onToggle, onStar, onEdit, onDelete }) {
             )}
             {task.recurrence && (
               <span className="flex items-center gap-1 text-primary/70">
-                <Repeat2 size={11} /> repeats
+                <Repeat2 size={11} /> {labelForRRule(task.recurrence)}
               </span>
             )}
           </span>
@@ -117,6 +128,10 @@ function TaskRow({ task, depth = 0, onToggle, onStar, onEdit, onDelete }) {
       >
         <Pencil size={14} />
       </button>
+
+      {onMoveToList && lists.length > 0 && (
+        <TaskMenu task={task} lists={lists} onMoveToList={onMoveToList} />
+      )}
 
       <button
         type="button"
