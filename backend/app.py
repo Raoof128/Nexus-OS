@@ -19,6 +19,7 @@ try:
     from .oauth_controller import OAuthController
     from .observability import configure_observability
     from .security import SecurityHeadersMiddleware
+    from .tasks_controller import TasksController
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from auth import SupabaseAuthMiddleware
     from auth_controller import AuthController
@@ -32,6 +33,7 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
     from oauth_controller import OAuthController
     from observability import configure_observability
     from security import SecurityHeadersMiddleware
+    from tasks_controller import TasksController
 
 configure_logging()
 configure_observability()
@@ -77,6 +79,7 @@ app = Litestar(
         MediaController,
         OAuthController,
         EmailController,
+        TasksController,
     ],
     middleware=[SecurityHeadersMiddleware, SupabaseAuthMiddleware],
     cors_config=cors_config,

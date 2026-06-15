@@ -3,6 +3,7 @@ import {
   Activity,
   BookOpen,
   FolderOpen,
+  ListChecks,
   Mail,
   MessageSquare,
   ScrollText,
@@ -22,6 +23,7 @@ const NotesApp = lazy(() => import('../apps/NotesApp'))
 const TerminalApp = lazy(() => import('../apps/TerminalApp'))
 const FileManagerApp = lazy(() => import('../apps/FileManagerApp'))
 const AionApp = lazy(() => import('../apps/Aion/AionApp'))
+const TasksApp = lazy(() => import('../apps/Tasks/TasksApp'))
 
 export const APP_REGISTRY = {
   media: {
@@ -96,6 +98,15 @@ export const APP_REGISTRY = {
     minSize: { width: 350, height: 300 },
     component: NotesApp,
   },
+  tasks: {
+    id: 'tasks',
+    title: 'Tasks',
+    icon: ListChecks,
+    singleton: true,
+    defaultSize: { width: 760, height: 640 },
+    minSize: { width: 420, height: 400 },
+    component: TasksApp,
+  },
   aion: {
     id: 'aion',
     title: 'Aion',
@@ -117,5 +128,6 @@ export const APP_ORDER = [
   'settings',
   'sysmon',
   'notes',
+  'tasks',
   'aion',
 ]

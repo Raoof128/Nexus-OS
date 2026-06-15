@@ -194,3 +194,29 @@ def hydrate_chat_message_record(record: dict[str, Any]) -> dict[str, Any]:
     hydrated = dict(record)
     hydrated["content"] = decrypt_takeaway(record.get("content"))
     return hydrated
+
+
+def protect_task_notes(notes: str | None) -> str | None:
+    """Encrypt task notes when a field-level key is configured, else plaintext.
+
+    Mirrors ``protect_chat_content``: graceful in dev (no key -> plaintext) while
+    the ``enc::`` prefix lets ``decrypt_takeaway`` transparently restore on read.
+    """
+
+    if notes is None:
+        return None
+
+    cipher = get_takeaway_cipher()
+    if cipher is None:
+        return notes
+
+    token = cipher.encrypt(notes.encode("utf-8")).decode("utf-8")
+    return f"{ENCRYPTED_PREFIX}{token}"
+
+
+def hydrate_task_record(record: dict[str, Any]) -> dict[str, Any]:
+    """Return a task record with the notes body decrypted for the UI."""
+
+    hydrated = dict(record)
+    hydrated["notes_encrypted"] = decrypt_takeaway(record.get("notes_encrypted"))
+    return hydrated
