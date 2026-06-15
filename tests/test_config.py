@@ -49,3 +49,21 @@ def test_get_settings_reads_expected_values(monkeypatch: pytest.MonkeyPatch) -> 
         "https://preview.nexus.app",
     )
     assert "nexus.app" in settings.allowed_hosts
+
+
+def test_production_requires_encryption_key(monkeypatch):
+    import pytest
+    from litestar.exceptions import ImproperlyConfiguredException
+
+    from backend.config import get_settings
+
+    get_settings.cache_clear()
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("COOKIE_SECURE", "true")
+    monkeypatch.setenv(
+        "ALLOWED_ORIGINS", "https://home-notes-app.uk,https://www.home-notes-app.uk"
+    )
+    monkeypatch.delenv("TAKEAWAY_ENCRYPTION_KEY", raising=False)
+    with pytest.raises(ImproperlyConfiguredException, match="TAKEAWAY_ENCRYPTION_KEY"):
+        get_settings()
+    get_settings.cache_clear()

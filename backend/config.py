@@ -190,6 +190,12 @@ def get_settings() -> BackendSettings:
                 "Set COOKIE_SECURE=true (or APP_ENV=production) in your environment."
             )
 
+        if not settings.takeaway_encryption_key:
+            raise ImproperlyConfiguredException(
+                "TAKEAWAY_ENCRYPTION_KEY must be set in production — refusing to "
+                "boot with plaintext field-level storage."
+            )
+
         if set(settings.allowed_origins) == set(DEFAULT_ALLOWED_ORIGINS):
             raise ImproperlyConfiguredException(
                 "ALLOWED_ORIGINS must be set to production domains in non-development "
