@@ -60,6 +60,10 @@ patterns, no shared data.
   unset, notes are stored as plaintext (so the app works without the optional key),
   and the `enc::` prefix drives decrypt-on-read. Only the free-text notes body is
   encrypted; structural fields stay plaintext so they remain queryable.
+  **Production guard:** add a startup assertion in `config.py`/app boot — if
+  `environment == "production"` and `TAKEAWAY_ENCRYPTION_KEY` is unset, **fail loud
+  (refuse to boot)** rather than silently downgrading to plaintext. Keeps dev
+  ergonomics without a prod footgun.
 - **Rate limiting** — mutations call the existing sliding-window limiter
   (`rate_limit.py`). AI/quick-add parsing is local (no Gemini), so it does not need
   the AI limiter; standard mutation limiting applies.
@@ -67,6 +71,8 @@ patterns, no shared data.
   `os/stores/appRegistry.js` (`APP_REGISTRY` + `APP_ORDER`). TanStack Query with
   optimistic mutations + invalidate-on-settle (NOT Realtime — tasks don't need the
   cross-device live channel that media/email use; this keeps the dedup logic out).
+  Multi-tab self-heal via `refetchOnWindowFocus: true` (and `refetchOnReconnect: true`)
+  on the tasks queries, so a second tab refreshes on focus.
   Neon-glow + glassmorphism, one global focus ring, full a11y.
 
 ---
@@ -123,17 +129,25 @@ patterns, no shared data.
 
 - `recurrence` stores a subset of RRULE (`FREQ=DAILY|WEEKLY|MONTHLY|YEARLY`
   with optional `INTERVAL`, `BYDAY`, plus a "custom" passthrough).
-- On **complete** of a recurring task: mark the current instance `completed`
-  (`completed_at = now()`), then compute the next occurrence date from
-  `due`/`due_at` + the RRULE and **insert a fresh `needsAction` task** in the
-  same list with the same title/notes/recurrence and the next due date. The
-  completed instance stays in the Completed section as history.
-- Use the `python-dateutil` `rrule` module for date math (add to backend deps if
-  not present; otherwise a small hand-rolled stepper for the supported FREQ set —
-  decided at plan time based on existing deps).
+- **Date math: `python-dateutil`** (`dateutil.rrule`) — decided, added as a backend
+  dependency. Pure-Python, no native build, mature/audited → negligible
+  Bandit/pip-audit/supply-chain surface, and it correctly handles the cases
+  recurrence exists for: month-end clamping (Jan 31 → Feb 28/29 → Mar 31), BYDAY /
+  nth-weekday ("3rd Tuesday", "every weekday"), and leap-year/DST boundaries. A
+  hand-rolled stepper's test matrix would cost more than the dep.
+- **Schedule-based regeneration (Google fidelity):** on **complete** of a recurring
+  task, mark the current instance `completed` (`completed_at = now()`), then compute
+  the next occurrence from the **scheduled** due date — `rrule.after(last_scheduled_due,
+  inc=False)` — NOT from `completed_at`. Insert a fresh `needsAction` task in the same
+  list with the same title/notes/recurrence and the next due date. The completed
+  instance stays in the Completed section as history.
+- **Timezone:** compute in the user's local tz (Australia/Sydney), store UTC.
+  Localize the anchor before stepping the RRULE, then persist `due_at` in UTC so a
+  9am task stays 9am across DST boundaries.
 - Recurring tasks reject the `/move` re-list operation (HTTP 409) to match Google.
-- Edge cases covered by tests: month-end rollover (Jan 31 → Feb 28/29), interval > 1,
-  weekly BYDAY, completing a recurrence with no due date (no regen — needs a date anchor).
+- A recurrence with no due-date anchor does not regenerate (needs a date to step from).
+- Edge cases covered by tests: month-end rollover, interval > 1, weekly BYDAY,
+  schedule-based (not completion-based) next-date, DST boundary, no-anchor no-regen.
 
 ---
 
@@ -185,7 +199,13 @@ Tasks/
 - **Reminders** — `useTaskReminders` runs while the Tasks app (or OS shell) is
   mounted: on an interval it finds tasks whose `due_at`/`due` is now-or-overdue and
   not yet notified, and calls `notificationStore.addNotification({ title, message,
-  type })`. Dedup via a persisted set of already-notified task ids. No backend cron.
+  type })`.
+  - **Dedup:** persist last-fired timestamps per task id in `localStorage` so a
+    reminder doesn't re-fire on every mount/refresh within its window.
+  - **Timezone:** compute fire times in the user's local tz (Australia/Sydney),
+    not UTC, so reminders don't drift.
+  - **Known limitation (accepted):** only fires while a tab is open — inherent to a
+    client-side scheduler; server push is explicitly future. No backend cron.
 - **UX** — left list rail; checkable rows; inline add; one-level indent for subtasks;
   due-date/time chip; star toggle; collapsible Completed section; drag to reorder;
   sort toggle (My order / Date). Optimistic check/create/star with invalidate-on-settle.
@@ -294,6 +314,8 @@ COMMIT;
 
 Implemented locally within the Tasks app (scoped to the focused list pane), not in
 the global `useGlobalShortcuts` hook, to avoid clashing with OS-level Alt shortcuts.
+Listeners bind **only when the Tasks window is focused/active** and are removed on
+unmount, so they never leak into other apps.
 
 ---
 
@@ -337,3 +359,20 @@ build. No new function ships without tests.
 - **API path:** `/api/tasks` (follows Email/worker `/api/*` precedent).
 - **Notes encryption:** graceful (chat-style), works without the optional key.
 - **Reminders:** client-side scheduler → existing `notificationStore`; no server cron.
+- **Recurrence date math:** `python-dateutil` (added dep), schedule-based regen.
+
+---
+
+## 14. Implementation deviations from the original brief (approved)
+
+Each deviation is a fit to the live codebase, confirmed before planning, with the
+guardrail that was attached on approval.
+
+| # | Deviation | Guardrail |
+| --- | --- | --- |
+| 1 | API mounts at `/api/tasks` (not `/tasks`) — follows newest controller + Worker `/api/*` | none needed |
+| 2 | Graceful notes encryption (mirror `protect_chat_content`), plaintext fallback w/o key | **prod startup assertion**: fail to boot if `environment == production` and key unset |
+| 3 | No Supabase Realtime for tasks (optimistic + invalidate-on-settle) | `refetchOnWindowFocus` + `refetchOnReconnect` so a 2nd tab self-heals |
+| 4 | Client-side reminders via `useTaskReminders` → `notificationStore` | `localStorage` last-fired dedup; local tz (Australia/Sydney); tab-open-only is accepted |
+| 5 | App-scoped keyboard shortcuts (not `useGlobalShortcuts`) | bind only when Tasks window focused; remove on unmount |
+| 6 | `python-dateutil` for recurrence (not hand-rolled) | schedule-based regen via `rrule.after(last_scheduled_due, inc=False)`; compute local tz, store UTC |
