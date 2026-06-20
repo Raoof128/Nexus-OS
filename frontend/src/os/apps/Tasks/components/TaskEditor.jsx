@@ -1,8 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { DURATION } from '../../../../lib/motion'
 import RecurrencePicker from './RecurrencePicker'
+import {
+  formatDateTimeInTimeZone,
+  getBrowserTimeZone,
+  getSupportedTimeZones,
+  timeValueInTimeZone,
+} from '../lib/taskDateTime'
 
 // Inline create/edit form. `initial` is a task object (edit) or null (create).
 // Emits a payload shaped for CreateTaskRequest / UpdateTaskRequest.
@@ -10,12 +16,19 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
   const [title, setTitle] = useState(initial?.title || '')
   const [notes, setNotes] = useState(initial?.notes_encrypted || initial?.notes || '')
   const [due, setDue] = useState(initial?.due || '')
+  const initialTimeZone = initial?.due_timezone || getBrowserTimeZone()
   const [time, setTime] = useState(
     initial?.due_at && !initial?.all_day
-      ? new Date(initial.due_at).toTimeString().slice(0, 5)
+      ? timeValueInTimeZone(initial.due_at, initialTimeZone)
       : '',
   )
+  const [dueTimezone, setDueTimezone] = useState(initialTimeZone)
   const [recurrence, setRecurrence] = useState(initial?.recurrence || null)
+  const timeZones = useMemo(() => {
+    const zones = getSupportedTimeZones()
+    const current = getBrowserTimeZone()
+    return zones.includes(current) ? zones : [current, ...zones]
+  }, [])
   const titleRef = useRef(null)
 
   useEffect(() => {
@@ -25,14 +38,15 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
   const buildPayload = () => {
     const trimmed = title.trim()
     if (!trimmed) return null
-    const allDay = !time
-    const dueAt = due && time ? `${due}T${time}:00` : null
+    const hasTimedDue = Boolean(due && time)
+    const dueAt = hasTimedDue ? formatDateTimeInTimeZone(due, time, dueTimezone) : null
     return {
       title: trimmed,
       notes: notes.trim() || null,
       due: due || null,
       due_at: dueAt,
-      all_day: allDay,
+      due_timezone: dueAt ? dueTimezone : null,
+      all_day: !dueAt,
       recurrence: recurrence || null,
     }
   }
@@ -94,7 +108,7 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
         className="mt-2 w-full resize-none rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1.5 text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
       />
 
-      <div className="mt-2 flex flex-wrap gap-3">
+      <div className="mt-2 grid gap-3 sm:grid-cols-[minmax(9rem,1fr)_minmax(7rem,0.7fr)_minmax(12rem,1.4fr)]">
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
             Due date
@@ -109,7 +123,7 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-            Time
+            Clock
           </label>
           <input
             type="time"
@@ -120,6 +134,27 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
             className="rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1.5 text-sm text-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:opacity-40"
           />
         </div>
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            Time zone
+          </label>
+          <select
+            value={dueTimezone}
+            onChange={(e) => setDueTimezone(e.target.value)}
+            disabled={!time}
+            aria-label="Due time zone"
+            className="min-w-0 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1.5 text-sm text-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:opacity-40"
+          >
+            {timeZones.map((zone) => (
+              <option key={zone} value={zone} className="bg-zinc-900">
+                {zone.replace(/_/g, ' ')}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-3">
         <RecurrencePicker value={recurrence} onChange={setRecurrence} />
       </div>
 

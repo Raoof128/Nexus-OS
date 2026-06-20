@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from backend.data_protection import hydrate_note_record, protect_note_text
+from backend.data_protection import protect_note_text
 
 
 def test_protect_note_text_none_passthrough():

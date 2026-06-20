@@ -19,7 +19,11 @@ try:
         TaskListUpdateRequest,
         UpdateTaskRequest,
     )
-    from .tasks_service import next_occurrence, next_position
+    from .tasks_service import (
+        next_occurrence,
+        next_position,
+        recurrence_for_next_instance,
+    )
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
     from data_protection import hydrate_task_record, protect_task_notes
@@ -32,7 +36,11 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
         TaskListUpdateRequest,
         UpdateTaskRequest,
     )
-    from tasks_service import next_occurrence, next_position
+    from tasks_service import (
+        next_occurrence,
+        next_position,
+        recurrence_for_next_instance,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +161,7 @@ class TasksController(Controller):
         if data.parent_id:
             parent = await run_blocking(
                 db.from_("nexus_tasks")
-                .select("parent_id")
+                .select("parent_id,list_id")
                 .eq("id", data.parent_id)
                 .eq("user_id", user_id)
                 .maybe_single()
@@ -161,6 +169,11 @@ class TasksController(Controller):
             )
             if not parent or not parent.data:
                 raise HTTPException(status_code=404, detail="Parent task not found")
+            if parent.data.get("list_id") != list_id:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Subtasks must stay in the same list as their parent",
+                )
             if parent.data.get("parent_id"):
                 raise HTTPException(
                     status_code=409,
@@ -184,6 +197,7 @@ class TasksController(Controller):
             "status": data.status,
             "due": data.due.isoformat() if data.due else None,
             "due_at": data.due_at.isoformat() if data.due_at else None,
+            "due_timezone": data.due_timezone if data.due_at else None,
             "all_day": data.all_day,
             "starred": data.starred,
             "recurrence": data.recurrence,
@@ -226,6 +240,8 @@ class TasksController(Controller):
             patch_data["due"] = data.due.isoformat() if data.due else None
         if "due_at" in fields:
             patch_data["due_at"] = data.due_at.isoformat() if data.due_at else None
+        if "due_timezone" in fields:
+            patch_data["due_timezone"] = data.due_timezone
         if "all_day" in fields and data.all_day is not None:
             patch_data["all_day"] = data.all_day
         if "starred" in fields and data.starred is not None:
@@ -239,6 +255,8 @@ class TasksController(Controller):
                 if data.status == "completed"
                 else None
             )
+        if not patch_data:
+            raise HTTPException(status_code=400, detail="No fields to update")
 
         updated = await run_blocking(
             db.from_("nexus_tasks")
@@ -250,7 +268,10 @@ class TasksController(Controller):
 
         # Recurrence regen: on completion of a recurring task, spawn the next
         # occurrence anchored on the SCHEDULED due date (not completion time).
-        becoming_completed = patch_data.get("status") == "completed"
+        becoming_completed = (
+            patch_data.get("status") == "completed"
+            and existing.get("status") != "completed"
+        )
         recurrence = existing.get("recurrence")
         if becoming_completed and recurrence:
             anchor_raw = existing.get("due_at") or existing.get("due")
@@ -264,8 +285,9 @@ class TasksController(Controller):
                     )
                 except ValueError:
                     anchor = None
-            nxt = next_occurrence(recurrence, anchor)
+            nxt = next_occurrence(recurrence, anchor, existing.get("due_timezone"))
             if nxt is not None:
+                next_recurrence = recurrence_for_next_instance(recurrence)
                 positions = await run_blocking(
                     db.from_("nexus_tasks")
                     .select("position")
@@ -287,9 +309,12 @@ class TasksController(Controller):
                             "status": "needsAction",
                             "due": (nxt.date() if is_dt else nxt).isoformat(),
                             "due_at": nxt.isoformat() if is_dt else None,
+                            "due_timezone": (
+                                existing.get("due_timezone") if is_dt else None
+                            ),
                             "all_day": existing.get("all_day", True),
                             "starred": existing.get("starred", False),
-                            "recurrence": recurrence,
+                            "recurrence": next_recurrence,
                             "position": next_position(pos_list),
                         }
                     )
@@ -317,29 +342,57 @@ class TasksController(Controller):
         if not current or not current.data:
             raise HTTPException(status_code=404, detail="Task not found")
         existing = current.data
+        patch_data = data.model_dump(exclude_unset=True)
+        if not patch_data:
+            raise HTTPException(status_code=400, detail="No fields to move")
+        target_list_id = patch_data.get("list_id", existing["list_id"])
 
         # Google parity: recurring tasks cannot move between lists.
-        if (
-            data.list_id
-            and data.list_id != existing["list_id"]
-            and existing.get("recurrence")
-        ):
+        if target_list_id != existing["list_id"] and existing.get("recurrence"):
             raise HTTPException(
                 status_code=409,
                 detail="Recurring tasks cannot be moved between lists",
             )
 
+        if target_list_id != existing["list_id"]:
+            if existing.get("parent_id") and "parent_id" not in patch_data:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Moving a subtask to another list requires re-parenting",
+                )
+            children = await run_blocking(
+                db.from_("nexus_tasks")
+                .select("id")
+                .eq("user_id", user_id)
+                .eq("parent_id", task_id)
+                .execute
+            )
+            if children and children.data:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Tasks with subtasks cannot be moved between lists",
+                )
+
         # Single subtask level: cannot re-parent under a task that is a subtask.
         if data.parent_id:
+            if data.parent_id == task_id:
+                raise HTTPException(status_code=409, detail="Task cannot parent itself")
             parent = await run_blocking(
                 db.from_("nexus_tasks")
-                .select("parent_id")
+                .select("parent_id,list_id")
                 .eq("id", data.parent_id)
                 .eq("user_id", user_id)
                 .maybe_single()
                 .execute
             )
-            if parent and parent.data and parent.data.get("parent_id"):
+            if not parent or not parent.data:
+                raise HTTPException(status_code=404, detail="Parent task not found")
+            if parent.data.get("list_id") != target_list_id:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Subtasks must stay in the same list as their parent",
+                )
+            if parent.data.get("parent_id"):
                 raise HTTPException(
                     status_code=409,
                     detail="Subtasks cannot be nested deeper than one level",
@@ -347,9 +400,6 @@ class TasksController(Controller):
 
         # exclude_unset (not exclude_none) so an explicit parent_id=null clears the
         # parent (outdent), while fields absent from the request stay untouched.
-        patch_data = data.model_dump(exclude_unset=True)
-        if not patch_data:
-            raise HTTPException(status_code=400, detail="No fields to move")
         resp = await run_blocking(
             db.from_("nexus_tasks")
             .update(patch_data)

@@ -16,6 +16,7 @@ try:
     from .email_poller import start_email_poller, stop_email_poller
     from .health import healthcheck
     from .logging_config import configure_logging
+    from .notes_controller import NotesController
     from .oauth_controller import OAuthController
     from .observability import configure_observability
     from .security import SecurityHeadersMiddleware
@@ -30,6 +31,7 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
     from email_poller import start_email_poller, stop_email_poller
     from health import healthcheck
     from logging_config import configure_logging
+    from notes_controller import NotesController
     from oauth_controller import OAuthController
     from observability import configure_observability
     from security import SecurityHeadersMiddleware
@@ -80,6 +82,7 @@ app = Litestar(
         OAuthController,
         EmailController,
         TasksController,
+        NotesController,
     ],
     middleware=[SecurityHeadersMiddleware, SupabaseAuthMiddleware],
     cors_config=cors_config,

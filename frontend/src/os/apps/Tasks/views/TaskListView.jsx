@@ -6,20 +6,13 @@ import { useTaskReminders } from '../hooks/useTaskReminders'
 import TaskRow from '../components/TaskRow'
 import TaskEditor from '../components/TaskEditor'
 import QuickAddBar from '../components/QuickAddBar'
+import { groupVisibleTasks } from '../lib/taskGrouping'
 
-function sortTasks(tasks, mode) {
-  const copy = [...tasks]
-  if (mode === 'date') {
-    copy.sort((a, b) => {
-      const da = a.due_at || a.due || '9999'
-      const db = b.due_at || b.due || '9999'
-      if (da === db) return (a.position || 0) - (b.position || 0)
-      return da < db ? -1 : 1
-    })
-  } else {
-    copy.sort((a, b) => (a.position || 0) - (b.position || 0))
-  }
-  return copy
+function positionBetween(previous, next, fallback) {
+  if (previous && next) return ((previous.position || 0) + (next.position || 0)) / 2
+  if (previous) return (previous.position || 0) + 1
+  if (next) return (next.position || 0) - 1
+  return fallback?.position || 1
 }
 
 export default function TaskListView({
@@ -32,7 +25,7 @@ export default function TaskListView({
 }) {
   const { data: items = [], isLoading } = useTaskItems(listId, true)
   const { createTask, updateTask, moveTask, deleteTask } = useTaskMutations(listId, true)
-  const [editing, setEditing] = useState(null) // null | 'new' | task
+  const [editing, setEditing] = useState(null) // null | 'new' | { mode, parent } | task
   const [showCompleted, setShowCompleted] = useState(true)
   const [focusedTaskId, setFocusedTaskId] = useState(null)
 
@@ -43,20 +36,10 @@ export default function TaskListView({
     [items, starredActive],
   )
 
-  const { parents, childrenByParent, completed } = useMemo(() => {
-    const active = visible.filter((t) => t.status === 'needsAction')
-    const done = visible.filter((t) => t.status === 'completed')
-    const tops = sortTasks(
-      active.filter((t) => !t.parent_id),
-      sortMode,
-    )
-    const byParent = {}
-    for (const t of active.filter((t) => t.parent_id)) {
-      ;(byParent[t.parent_id] ||= []).push(t)
-    }
-    for (const key of Object.keys(byParent)) byParent[key] = sortTasks(byParent[key], sortMode)
-    return { parents: tops, childrenByParent: byParent, completed: sortTasks(done, sortMode) }
-  }, [visible, sortMode])
+  const { parents, childrenByParent, completed } = useMemo(
+    () => groupVisibleTasks(visible, sortMode),
+    [visible, sortMode],
+  )
 
   // Keyboard shortcuts scoped to the Tasks window (Task 17).
   useEffect(() => {
@@ -101,36 +84,64 @@ export default function TaskListView({
   const handleStar = (task) =>
     updateTask.mutate({ id: task.id, patch: { starred: !task.starred } })
   const handleDelete = (task) => deleteTask.mutate(task.id)
-  const handleAdd = ({ title, due }) =>
-    createTask.mutate({ title, due, all_day: true })
+  const handleAdd = ({ title, due, due_at, due_timezone, all_day }) =>
+    createTask.mutate({ title, due, due_at, due_timezone, all_day })
   const handleSave = (payload) => {
-    if (editing && editing !== 'new') {
+    if (editing && editing !== 'new' && editing.mode !== 'new-subtask') {
       updateTask.mutate({ id: editing.id, patch: payload })
     } else {
-      createTask.mutate(payload)
+      createTask.mutate({
+        ...payload,
+        parent_id: editing?.mode === 'new-subtask' ? editing.parent.id : undefined,
+      })
     }
     setEditing(null)
   }
 
-  const renderRow = (task, depth) => (
-    <TaskRow
-      key={task.id}
-      task={task}
-      depth={depth}
-      onToggle={handleToggle}
-      onStar={handleStar}
-      onEdit={setEditing}
-      onDelete={handleDelete}
-    />
-  )
+  const moveWithin = (task, siblings, direction) => {
+    if (sortMode !== 'myorder') return
+    const index = siblings.findIndex((item) => item.id === task.id)
+    const targetIndex = direction === 'up' ? index - 1 : index + 1
+    if (index < 0 || targetIndex < 0 || targetIndex >= siblings.length) return
+    const reordered = [...siblings]
+    const [item] = reordered.splice(index, 1)
+    reordered.splice(targetIndex, 0, item)
+    const previous = reordered[targetIndex - 1] || null
+    const next = reordered[targetIndex + 1] || null
+    moveTask.mutate({
+      id: task.id,
+      body: { position: positionBetween(previous, next, task) },
+    })
+  }
+
+  const renderRow = (task, depth, siblings = []) => {
+    const index = siblings.findIndex((item) => item.id === task.id)
+    const canReorder = sortMode === 'myorder' && index !== -1
+    return (
+      <TaskRow
+        key={task.id}
+        task={task}
+        depth={depth}
+        canMoveDown={canReorder && index < siblings.length - 1}
+        canMoveUp={canReorder && index > 0}
+        onAddSubtask={(parent) => setEditing({ mode: 'new-subtask', parent })}
+        onMoveDown={(item) => moveWithin(item, siblings, 'down')}
+        onMoveUp={(item) => moveWithin(item, siblings, 'up')}
+        onToggle={handleToggle}
+        onStar={handleStar}
+        onEdit={setEditing}
+        onDelete={handleDelete}
+      />
+    )
+  }
 
   return (
     <section className="flex min-w-0 flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
-        <h2 className="heading-display flex items-center gap-2 text-base text-white">
+      <header className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-3 py-3 sm:px-4">
+        <h2 className="heading-display flex min-w-0 items-center gap-2 truncate text-base text-white">
           {starredActive ? 'Starred' : listName || 'Tasks'}
         </h2>
-        <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+        <label className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
           Sort
           <select
             value={sortMode}
@@ -159,7 +170,7 @@ export default function TaskListView({
           {editing && (
             <div className="mb-3">
               <TaskEditor
-                initial={editing === 'new' ? null : editing}
+                initial={editing === 'new' || editing.mode === 'new-subtask' ? null : editing}
                 onSave={handleSave}
                 onCancel={() => setEditing(null)}
               />
@@ -184,8 +195,10 @@ export default function TaskListView({
             <AnimatePresence initial={false}>
               {parents.map((p) => (
                 <div key={p.id}>
-                  {renderRow(p, 0)}
-                  {(childrenByParent[p.id] || []).map((c) => renderRow(c, 1))}
+                  {renderRow(p, 0, parents)}
+                  {(childrenByParent[p.id] || []).map((c) =>
+                    renderRow(c, 1, childrenByParent[p.id] || []),
+                  )}
                 </div>
               ))}
             </AnimatePresence>
@@ -206,7 +219,7 @@ export default function TaskListView({
             {showCompleted && (
               <ul role="list" className="mt-1">
                 <AnimatePresence initial={false}>
-                  {completed.map((t) => renderRow(t, 0))}
+                  {completed.map((t) => renderRow(t, 0, completed))}
                 </AnimatePresence>
               </ul>
             )}

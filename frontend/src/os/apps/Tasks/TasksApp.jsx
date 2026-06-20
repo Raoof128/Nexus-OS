@@ -18,7 +18,7 @@ export default function TasksApp() {
       : (lists[0]?.id ?? null)
 
   // List-level mutations (independent of the items cache key).
-  const { createList, deleteList } = useTaskMutations(activeListId)
+  const { createList, deleteList, renameList } = useTaskMutations(activeListId)
 
   const activeList = lists.find((l) => l.id === activeListId) || null
 
@@ -28,9 +28,10 @@ export default function TasksApp() {
     })
 
   const handleDeleteList = (list) => deleteList.mutate(list.id)
+  const handleRenameList = (list, name) => renameList.mutate({ id: list.id, name })
 
   return (
-    <div ref={rootRef} className="flex h-full w-full overflow-hidden text-white">
+    <div ref={rootRef} className="flex h-full w-full flex-col overflow-hidden text-white sm:flex-row">
       <ListSidebar
         lists={lists}
         activeListId={activeListId}
@@ -42,6 +43,7 @@ export default function TasksApp() {
         onToggleStarred={() => setStarredActive((v) => !v)}
         onCreate={handleCreateList}
         onDelete={handleDeleteList}
+        onRename={handleRenameList}
       />
 
       {lists.length === 0 ? (

@@ -1,6 +1,15 @@
 import { memo } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { Check, Pencil, Repeat2, Star, Trash2 } from 'lucide-react'
+import {
+  Check,
+  ChevronDown,
+  ChevronUp,
+  CornerDownRight,
+  Pencil,
+  Repeat2,
+  Star,
+  Trash2,
+} from 'lucide-react'
 import { DURATION } from '../../../../lib/motion'
 
 function formatDue(task) {
@@ -26,19 +35,33 @@ function formatDue(task) {
     label += ` · ${when.toLocaleTimeString(undefined, {
       hour: 'numeric',
       minute: '2-digit',
+      timeZone: task.due_timezone || undefined,
     })}`
   }
   return { label, overdue: diffDays < 0 }
 }
 
-function TaskRow({ task, depth = 0, onToggle, onStar, onEdit, onDelete }) {
+function TaskRow({
+  task,
+  depth = 0,
+  canMoveDown = false,
+  canMoveUp = false,
+  onAddSubtask,
+  onMoveDown,
+  onMoveUp,
+  onToggle,
+  onStar,
+  onEdit,
+  onDelete,
+}) {
   const completed = task.status === 'completed'
   const due = formatDue(task)
   const isSub = depth === 1
 
   return (
-    <Motion.li
+    <Motion.div
       layout
+      role="listitem"
       data-task-id={task.id}
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
@@ -109,6 +132,40 @@ function TaskRow({ task, depth = 0, onToggle, onStar, onEdit, onDelete }) {
         <Star size={15} fill={task.starred ? 'currentColor' : 'none'} />
       </button>
 
+      {!completed && !isSub && (
+        <button
+          type="button"
+          aria-label={`Add subtask to "${task.title}"`}
+          onClick={() => onAddSubtask(task)}
+          className="shrink-0 rounded p-1 text-white/25 opacity-0 transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 group-hover:opacity-100"
+        >
+          <CornerDownRight size={14} />
+        </button>
+      )}
+
+      {!completed && (
+        <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
+          <button
+            type="button"
+            aria-label={`Move "${task.title}" up`}
+            disabled={!canMoveUp}
+            onClick={() => onMoveUp(task)}
+            className="rounded p-0.5 text-white/25 transition-colors hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:opacity-25 disabled:hover:text-white/25"
+          >
+            <ChevronUp size={14} />
+          </button>
+          <button
+            type="button"
+            aria-label={`Move "${task.title}" down`}
+            disabled={!canMoveDown}
+            onClick={() => onMoveDown(task)}
+            className="rounded p-0.5 text-white/25 transition-colors hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:opacity-25 disabled:hover:text-white/25"
+          >
+            <ChevronDown size={14} />
+          </button>
+        </div>
+      )}
+
       <button
         type="button"
         aria-label={`Edit "${task.title}"`}
@@ -126,7 +183,7 @@ function TaskRow({ task, depth = 0, onToggle, onStar, onEdit, onDelete }) {
       >
         <Trash2 size={14} />
       </button>
-    </Motion.li>
+    </Motion.div>
   )
 }
 

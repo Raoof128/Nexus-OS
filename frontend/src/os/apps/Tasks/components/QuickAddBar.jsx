@@ -11,7 +11,7 @@ export default function QuickAddBar({ onAdd, disabled }) {
     e.preventDefault()
     const parsed = parseQuickAdd(value)
     if (!parsed.title) return
-    onAdd({ title: parsed.title, due: parsed.due })
+    onAdd(parsed)
     setValue('')
   }
 

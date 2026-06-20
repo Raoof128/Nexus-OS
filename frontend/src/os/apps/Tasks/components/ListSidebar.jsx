@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Check, ListChecks, Plus, Star, Trash2, X } from 'lucide-react'
+import { Check, ListChecks, Pencil, Plus, Star, Trash2, X } from 'lucide-react'
 
 // Left rail: task lists + a cross-cutting "Starred" filter. List CRUD handlers
 // are passed in from TasksApp so the sidebar stays presentational.
@@ -11,8 +11,10 @@ export default function ListSidebar({
   onToggleStarred,
   onCreate,
   onDelete,
+  onRename,
 }) {
   const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [name, setName] = useState('')
   const navRef = useRef(null)
 
@@ -23,6 +25,14 @@ export default function ListSidebar({
     onCreate(trimmed)
     setName('')
     setCreating(false)
+  }
+
+  const submitRename = (e, list) => {
+    e.preventDefault()
+    const trimmed = name.trim()
+    if (trimmed && trimmed !== list.name) onRename(list, trimmed)
+    setEditingId(null)
+    setName('')
   }
 
   // Roving arrow-key navigation between list buttons.
@@ -37,8 +47,8 @@ export default function ListSidebar({
   }
 
   return (
-    <aside className="flex w-52 shrink-0 flex-col border-r border-white/[0.06] bg-black/20">
-      <div className="flex items-center justify-between px-3 py-3">
+    <aside className="flex h-40 w-full shrink-0 flex-col border-b border-white/[0.06] bg-black/20 sm:h-auto sm:w-52 sm:border-r sm:border-b-0">
+      <div className="flex items-center justify-between px-3 py-2 sm:py-3">
         <span className="heading-display text-sm text-primary">Tasks</span>
         <button
           type="button"
@@ -77,19 +87,70 @@ export default function ListSidebar({
             const active = !starredActive && list.id === activeListId
             return (
               <li key={list.id} role="listitem" className="group flex items-center">
+                {editingId === list.id ? (
+                  <form
+                    onSubmit={(e) => submitRename(e, list)}
+                    className="flex min-w-0 flex-1 items-center gap-1"
+                  >
+                    <input
+                      type="text"
+                      autoFocus
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          setEditingId(null)
+                          setName('')
+                        }
+                      }}
+                      aria-label={`Rename list "${list.name}"`}
+                      className="min-w-0 flex-1 rounded-md border border-primary/30 bg-white/[0.03] px-2 py-1.5 text-sm text-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                    />
+                    <button
+                      type="submit"
+                      aria-label={`Save list name "${list.name}"`}
+                      className="rounded p-1 text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                    >
+                      <Check size={14} />
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    data-list-btn
+                    onClick={() => onSelect(list.id)}
+                    onDoubleClick={() => {
+                      setEditingId(list.id)
+                      setName(list.name)
+                    }}
+                    aria-current={active ? 'true' : undefined}
+                    className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
+                      active
+                        ? 'bg-primary/15 text-primary'
+                        : 'text-white/70 hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    <ListChecks size={15} className="shrink-0 opacity-70" />
+                    <span className="truncate">{list.name}</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  data-list-btn
-                  onClick={() => onSelect(list.id)}
-                  aria-current={active ? 'true' : undefined}
-                  className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
-                    active
-                      ? 'bg-primary/15 text-primary'
-                      : 'text-white/70 hover:bg-white/[0.04]'
-                  }`}
+                  aria-label={
+                    editingId === list.id ? `Cancel rename "${list.name}"` : `Rename list "${list.name}"`
+                  }
+                  onClick={() => {
+                    if (editingId === list.id) {
+                      setEditingId(null)
+                      setName('')
+                    } else {
+                      setEditingId(list.id)
+                      setName(list.name)
+                    }
+                  }}
+                  className="shrink-0 rounded p-1 text-white/20 opacity-0 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 group-hover:opacity-100"
                 >
-                  <ListChecks size={15} className="shrink-0 opacity-70" />
-                  <span className="truncate">{list.name}</span>
+                  {editingId === list.id ? <X size={13} /> : <Pencil size={13} />}
                 </button>
                 <button
                   type="button"

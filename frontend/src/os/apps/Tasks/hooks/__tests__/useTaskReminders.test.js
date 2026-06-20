@@ -33,6 +33,25 @@ describe('dueTasksToNotify', () => {
     expect(result.map((t) => t.id)).toEqual(['a'])
   })
 
+  it('honors timezone offsets in due_at', () => {
+    const tasks = [
+      {
+        id: 'a',
+        title: 'Offset due',
+        due_at: '2026-06-15T10:30:00+10:00',
+        status: 'needsAction',
+      },
+      {
+        id: 'b',
+        title: 'Offset future',
+        due_at: '2026-06-15T10:32:00+10:00',
+        status: 'needsAction',
+      },
+    ]
+    const result = dueTasksToNotify(tasks, new Date('2026-06-15T00:31:00Z'), {})
+    expect(result.map((t) => t.id)).toEqual(['a'])
+  })
+
   it('ignores tasks without a due date', () => {
     const tasks = [{ id: 'a', title: 'No date', status: 'needsAction' }]
     expect(dueTasksToNotify(tasks, now, {})).toEqual([])
