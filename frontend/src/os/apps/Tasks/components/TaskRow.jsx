@@ -11,6 +11,8 @@ import {
   Trash2,
 } from 'lucide-react'
 import { DURATION } from '../../../../lib/motion'
+import { labelForRRule } from '../lib/recurrence'
+import TaskMenu from './TaskMenu'
 
 function formatDue(task) {
   const raw = task.due_at || task.due
@@ -45,9 +47,11 @@ function TaskRow({
   depth = 0,
   canMoveDown = false,
   canMoveUp = false,
+  lists = [],
   onAddSubtask,
   onMoveDown,
   onMoveUp,
+  onMoveToList,
   onToggle,
   onStar,
   onEdit,
@@ -58,7 +62,7 @@ function TaskRow({
   const isSub = depth === 1
 
   return (
-    <Motion.li
+    <Motion.div
       layout
       data-task-id={task.id}
       initial={{ opacity: 0, y: 4 }}
@@ -107,7 +111,7 @@ function TaskRow({
             )}
             {task.recurrence && (
               <span className="flex items-center gap-1 text-primary/70">
-                <Repeat2 size={11} /> repeats
+                <Repeat2 size={11} /> {labelForRRule(task.recurrence)}
               </span>
             )}
           </span>
@@ -163,6 +167,10 @@ function TaskRow({
           </div>
         )}
 
+        {onMoveToList && lists.length > 0 && (
+          <TaskMenu task={task} lists={lists} onMoveToList={onMoveToList} />
+        )}
+
         <button
           type="button"
           aria-label={`Edit "${task.title}"`}
@@ -181,7 +189,7 @@ function TaskRow({
           <Trash2 size={14} />
         </button>
       </div>
-    </Motion.li>
+    </Motion.div>
   )
 }
 

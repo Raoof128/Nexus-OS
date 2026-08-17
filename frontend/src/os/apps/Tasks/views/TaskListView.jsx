@@ -1,12 +1,44 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion as Motion, Reorder } from 'framer-motion'
 import { ChevronDown, ChevronRight, ListChecks } from 'lucide-react'
 import { useTaskItems, useTaskMutations } from '../hooks/useTasks'
 import { useTaskReminders } from '../hooks/useTaskReminders'
+import { between } from '../lib/position'
 import TaskRow from '../components/TaskRow'
 import TaskEditor from '../components/TaskEditor'
 import QuickAddBar from '../components/QuickAddBar'
 import { groupVisibleTasks } from '../lib/taskGrouping'
+import ConfirmDialog from '../../../../components/ui/ConfirmDialog'
+
+// Drag-reorderable top-level task group. Local order is held in state for smooth
+// dragging; the `key` (set by the caller from the server id set) re-initialises it
+// when the server data changes, so no state-sync effect is needed.
+function ReorderableTasks({ tasks, renderRow, onPersist }) {
+  const [order, setOrder] = useState(tasks)
+
+  const handleDragEnd = (task) => {
+    const idx = order.findIndex((t) => t.id === task.id)
+    if (idx === -1) return
+    const prev = order[idx - 1]?.position ?? null
+    const next = order[idx + 1]?.position ?? null
+    onPersist(task.id, between(prev, next))
+  }
+
+  return (
+    <Reorder.Group axis="y" values={order} onReorder={setOrder} as="ul" role="list">
+      {order.map((task) => (
+        <Reorder.Item
+          key={task.id}
+          value={task}
+          role="listitem"
+          onDragEnd={() => handleDragEnd(task)}
+        >
+          {renderRow(task, 0)}
+        </Reorder.Item>
+      ))}
+    </Reorder.Group>
+  )
+}
 
 function positionBetween(previous, next, fallback) {
   if (previous && next) return ((previous.position || 0) + (next.position || 0)) / 2
@@ -18,6 +50,7 @@ function positionBetween(previous, next, fallback) {
 export default function TaskListView({
   listId,
   listName,
+  lists = [],
   sortMode,
   onSortModeChange,
   starredActive,
@@ -25,10 +58,14 @@ export default function TaskListView({
   userId,
 }) {
   const { data: items = [], isLoading, error, refetch } = useTaskItems(listId, true)
-  const { createTask, updateTask, moveTask, deleteTask } = useTaskMutations(listId, true)
+  const { createTask, updateTask, moveTask, deleteTask, clearCompleted } = useTaskMutations(
+    listId,
+    true,
+  )
   const [editing, setEditing] = useState(null) // null | 'new' | { mode, parent } | task
   const [showCompleted, setShowCompleted] = useState(true)
   const [focusedTaskId, setFocusedTaskId] = useState(null)
+  const [confirmClear, setConfirmClear] = useState(false)
 
   useTaskReminders(items, userId)
 
@@ -71,6 +108,39 @@ export default function TaskListView({
         // Outdent: clear the parent (explicit null honored by exclude_unset).
         e.preventDefault()
         moveTask.mutate({ id: task.id, body: { parent_id: null } })
+      } else if (
+        (e.metaKey || e.ctrlKey) &&
+        (e.key === 'ArrowUp' || e.key === 'ArrowDown') &&
+        task
+      ) {
+        e.preventDefault()
+        const siblings = items
+          .filter(
+            (t) => (t.parent_id || null) === (task.parent_id || null) && t.status === 'needsAction',
+          )
+          .sort((a, b) => (a.position || 0) - (b.position || 0))
+        const i = siblings.findIndex((t) => t.id === task.id)
+        if (i === -1) return
+        const up = e.key === 'ArrowUp'
+        if (e.shiftKey) {
+          // Jump to top / bottom of the sibling group.
+          const target = up ? siblings[0] : siblings[siblings.length - 1]
+          if (!target || target.id === task.id) return
+          const pos = up
+            ? between(null, siblings[0].position)
+            : between(siblings[siblings.length - 1].position, null)
+          moveTask.mutate({ id: task.id, body: { position: pos } })
+        } else {
+          const swapIdx = up ? i - 1 : i + 1
+          if (swapIdx < 0 || swapIdx >= siblings.length) return
+          // Slot the task across its neighbour: midpoint of the neighbour and the
+          // sibling just beyond it (or past the end when there is none).
+          const beyond = up ? siblings[swapIdx - 1] : siblings[swapIdx + 1]
+          const pos = up
+            ? between(beyond?.position ?? null, siblings[swapIdx].position)
+            : between(siblings[swapIdx].position, beyond?.position ?? null)
+          moveTask.mutate({ id: task.id, body: { position: pos } })
+        }
       }
     }
     el.addEventListener('keydown', onKey)
@@ -124,9 +194,13 @@ export default function TaskListView({
         depth={depth}
         canMoveDown={canReorder && index < siblings.length - 1}
         canMoveUp={canReorder && index > 0}
+        lists={lists}
         onAddSubtask={(parent) => setEditing({ mode: 'new-subtask', parent })}
         onMoveDown={(item) => moveWithin(item, siblings, 'down')}
         onMoveUp={(item) => moveWithin(item, siblings, 'up')}
+        onMoveToList={(targetListId) =>
+          moveTask.mutate({ id: task.id, body: { list_id: targetListId } })
+        }
         onToggle={handleToggle}
         onStar={handleStar}
         onEdit={setEditing}
@@ -134,6 +208,12 @@ export default function TaskListView({
       />
     )
   }
+
+  const renderListItem = (task, depth, siblings) => (
+    <Motion.li key={task.id} layout>
+      {renderRow(task, depth, siblings)}
+    </Motion.li>
+  )
 
   return (
     <section className="flex min-w-0 flex-1 flex-col">
@@ -202,45 +282,87 @@ export default function TaskListView({
             </p>
           </div>
         ) : (
-          <ul
-            role="list"
+          <div
             onFocusCapture={(e) => {
               const li = e.target.closest('[data-task-id]')
               if (li) setFocusedTaskId(li.getAttribute('data-task-id'))
             }}
           >
-            <AnimatePresence initial={false}>
-              {parents.flatMap((parent) => [
-                renderRow(parent, 0, parents),
-                ...(childrenByParent[parent.id] || []).map((child) =>
-                  renderRow(child, 1, childrenByParent[parent.id] || []),
-                ),
-              ])}
-            </AnimatePresence>
-          </ul>
+            {sortMode === 'myorder' ? (
+              <ReorderableTasks
+                key={parents.map((parent) => `${parent.id}:${parent.position}`).join(',')}
+                tasks={parents}
+                renderRow={(task) => (
+                  <>
+                    {renderRow(task, 0, parents)}
+                    {(childrenByParent[task.id] || []).length > 0 && (
+                      <ul role="list">
+                        {(childrenByParent[task.id] || []).map((child) =>
+                          renderListItem(child, 1, childrenByParent[task.id] || []),
+                        )}
+                      </ul>
+                    )}
+                  </>
+                )}
+                onPersist={(id, position) => moveTask.mutate({ id, body: { position } })}
+              />
+            ) : (
+              <ul role="list">
+                <AnimatePresence initial={false}>
+                  {parents.flatMap((parent) => [
+                    renderListItem(parent, 0, parents),
+                    ...(childrenByParent[parent.id] || []).map((child) =>
+                      renderListItem(child, 1, childrenByParent[parent.id] || []),
+                    ),
+                  ])}
+                </AnimatePresence>
+              </ul>
+            )}
+          </div>
         )}
 
         {completed.length > 0 && (
           <div className="mt-4">
-            <button
-              type="button"
-              onClick={() => setShowCompleted((v) => !v)}
-              aria-expanded={showCompleted}
-              className="flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
-            >
-              {showCompleted ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              Completed ({completed.length})
-            </button>
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={() => setShowCompleted((v) => !v)}
+                aria-expanded={showCompleted}
+                className="flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+              >
+                {showCompleted ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                Completed ({completed.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmClear(true)}
+                className="ml-3 rounded px-2 py-0.5 text-[11px] text-white/50 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50"
+              >
+                Clear completed
+              </button>
+            </div>
             {showCompleted && (
               <ul role="list" className="mt-1">
                 <AnimatePresence initial={false}>
-                  {completed.map((t) => renderRow(t, 0, completed))}
+                  {completed.map((task) => renderListItem(task, 0, completed))}
                 </AnimatePresence>
               </ul>
             )}
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmClear}
+        title="Clear completed?"
+        message="This permanently deletes all completed tasks in this list."
+        confirmLabel="Clear"
+        onCancel={() => setConfirmClear(false)}
+        onConfirm={() => {
+          clearCompleted.mutate()
+          setConfirmClear(false)
+        }}
+      />
     </section>
   )
 }
