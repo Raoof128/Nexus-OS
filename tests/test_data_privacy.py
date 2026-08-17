@@ -31,14 +31,18 @@ def test_session_user_strips_sensitive_data():
 
 
 def test_auth_session_response_structure():
-    """AuthSessionResponse must have a nested user and safe top-level fields."""
+    """AuthSessionResponse exposes identity but never the bearer credential."""
     user = SessionUser(id="u1", email="test@nexus.net")
-    resp = AuthSessionResponse(user=user, expires_at=123456789, access_token="token")
+    resp = AuthSessionResponse(
+        user=user,
+        expires_at=123456789,
+        access_token="must-be-ignored",
+    )
 
     resp_dict = resp.model_dump()
     assert resp_dict["user"]["id"] == "u1"
     assert resp_dict["expires_at"] == 123456789
-    assert resp_dict["access_token"] == "token"
+    assert "access_token" not in resp_dict
 
 
 def test_rate_limiter_logic():

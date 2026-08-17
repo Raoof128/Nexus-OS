@@ -122,14 +122,14 @@ export default function AionHome({ onNavigate }) {
           >
             <BookOpen className="h-4 w-4 shrink-0 text-[#F59E0B]" />
             <span className="flex-1 font-mono text-[15px] text-[#F0F0F5]">Read the Bible</span>
-            <span className="font-mono text-xs text-[#56566A]">→</span>
+            <span className="font-mono text-xs text-[#9494A8]">→</span>
           </button>
 
           {/* Suggestions */}
           <div className="w-full">
             <div className="mb-4 flex items-center gap-3">
               <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
-              <span className="font-mono text-[9px] tracking-[0.2em] text-[#56566A] uppercase">
+              <span className="font-mono text-[9px] tracking-[0.2em] text-[#9494A8] uppercase">
                 Explore
               </span>
               <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
@@ -161,7 +161,7 @@ export default function AionHome({ onNavigate }) {
             onKeyDown={handleKeyDown}
             placeholder="Ask anything about Scripture…"
             aria-label="Ask Aion a question"
-            className="flex-1 bg-transparent font-mono text-sm text-[#F0F0F5] placeholder:text-[#56566A] focus:outline-none"
+            className="flex-1 bg-transparent font-mono text-sm text-[#F0F0F5] placeholder:text-[#9494A8] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"
           />
           <button
             onClick={() => handleSend()}

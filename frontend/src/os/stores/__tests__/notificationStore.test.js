@@ -2,11 +2,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { useNotificationStore } from '../notificationStore'
 
 const reset = () =>
-  useNotificationStore.setState({ notifications: [], panelOpen: false, doNotDisturb: false })
+  useNotificationStore.setState({
+    notifications: [],
+    panelOpen: false,
+    doNotDisturb: false,
+    storageUserId: null,
+  })
 
 describe('notificationStore', () => {
   beforeEach(() => {
     vi.useFakeTimers()
+    localStorage.clear()
     reset()
   })
 
@@ -79,5 +85,33 @@ describe('notificationStore', () => {
     expect(useNotificationStore.getState().panelOpen).toBe(true)
     useNotificationStore.getState().togglePanel()
     expect(useNotificationStore.getState().panelOpen).toBe(false)
+  })
+
+  it('hydrates private notification history only for the active user', () => {
+    const saved = {
+      schemaVersion: 1,
+      notifications: [
+        {
+          id: 'private-a',
+          title: 'Private task',
+          message: 'User A only',
+          read: false,
+          toastDismissed: false,
+        },
+      ],
+      doNotDisturb: true,
+    }
+    localStorage.setItem('nexus-os:notifications:user-a', JSON.stringify(saved))
+    // Legacy unowned data is deliberately not adopted by a new account.
+    localStorage.setItem('nexus-os:notifications', JSON.stringify(saved))
+
+    useNotificationStore.getState().hydrateNotifications('user-a')
+    expect(useNotificationStore.getState().notifications[0].title).toBe('Private task')
+    expect(useNotificationStore.getState().notifications[0].toastDismissed).toBe(true)
+
+    useNotificationStore.getState().hydrateNotifications('user-b')
+    expect(useNotificationStore.getState().notifications).toEqual([])
+    expect(useNotificationStore.getState().doNotDisturb).toBe(false)
+    expect(useNotificationStore.getState().storageUserId).toBe('user-b')
   })
 })

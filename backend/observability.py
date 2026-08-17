@@ -26,6 +26,12 @@ _SCRUB_KEYS = frozenset(
         "client_secret",
     }
 )
+_RECOVERY_HEADER_KEYS = frozenset(
+    {
+        "x-recovery-access-token",
+        "x-recovery-refresh-token",
+    }
+)
 
 
 def _scrub_event(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any]:
@@ -36,6 +42,14 @@ def _scrub_event(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any]
     # Scrub cookies — session tokens live here
     if request.get("cookies"):
         request["cookies"] = "[Filtered]"
+
+    # Sentry's built-in denylist does not match these compound custom header
+    # names, so redact them explicitly before an event leaves the process.
+    headers = request.get("headers")
+    if isinstance(headers, dict):
+        for key in list(headers):
+            if isinstance(key, str) and key.lower() in _RECOVERY_HEADER_KEYS:
+                headers[key] = "[Filtered]"
 
     # Scrub known sensitive keys from POST body (dict or string form)
     body = request.get("data")

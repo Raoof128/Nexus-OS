@@ -24,6 +24,8 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
   )
   const [dueTimezone, setDueTimezone] = useState(initialTimeZone)
   const [recurrence, setRecurrence] = useState(initial?.recurrence || null)
+  const [saveError, setSaveError] = useState(null)
+  const [saving, setSaving] = useState(false)
   const timeZones = useMemo(() => {
     const zones = getSupportedTimeZones()
     const current = getBrowserTimeZone()
@@ -51,9 +53,18 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
     }
   }
 
-  const save = () => {
+  const save = async () => {
     const payload = buildPayload()
-    if (payload) onSave(payload)
+    if (!payload) return
+    setSaveError(null)
+    setSaving(true)
+    try {
+      await onSave(payload)
+    } catch (error) {
+      setSaveError(error?.message || 'Unable to save task')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const onTitleKeyDown = (e) => {
@@ -108,7 +119,13 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
         className="mt-2 w-full resize-none rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1.5 text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
       />
 
-      <div className="mt-2 grid gap-3 sm:grid-cols-[minmax(9rem,1fr)_minmax(7rem,0.7fr)_minmax(12rem,1.4fr)]">
+      {saveError ? (
+        <p role="alert" className="mt-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-200">
+          {saveError}
+        </p>
+      ) : null}
+
+      <div className="mt-2 grid gap-3 @sm:grid-cols-[minmax(9rem,1fr)_minmax(7rem,0.7fr)_minmax(12rem,1.4fr)]">
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
             Due date
@@ -169,10 +186,10 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
         <button
           type="button"
           onClick={save}
-          disabled={!title.trim()}
+          disabled={saving || !title.trim()}
           className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-black transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 disabled:opacity-40"
         >
-          {initial ? 'Save' : 'Add task'}
+          {saving ? 'Saving…' : initial ? 'Save' : 'Add task'}
         </button>
       </div>
     </Motion.div>

@@ -28,7 +28,7 @@ build: ## Build frontend assets
 
 security: ## Run security audits
 	python3 -m bandit -r backend -c pyproject.toml
-	python3 -m pip_audit
+	python3 -m pip_audit .
 	cd frontend && npm audit --audit-level=high
 
 docker: ## Build backend docker image

@@ -80,7 +80,7 @@ class TasksController(Controller):
     @post("/lists", status_code=201)
     async def create_list(self, data: TaskListCreateRequest, request: Request) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_tasks_rate_limit(user_id)
+        await run_blocking(enforce_tasks_rate_limit, user_id)
         db = _db(access_token)
         existing = await run_blocking(
             db.from_("nexus_task_lists")
@@ -102,7 +102,7 @@ class TasksController(Controller):
         self, list_id: str, data: TaskListUpdateRequest, request: Request
     ) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_tasks_rate_limit(user_id)
+        await run_blocking(enforce_tasks_rate_limit, user_id)
         patch_data = data.model_dump(exclude_none=True)
         if not patch_data:
             raise HTTPException(status_code=400, detail="No fields to update")
@@ -121,7 +121,7 @@ class TasksController(Controller):
     @delete("/lists/{list_id:str}", status_code=204)
     async def delete_list(self, list_id: str, request: Request) -> None:
         user_id, access_token = _require_auth(request)
-        enforce_tasks_rate_limit(user_id)
+        await run_blocking(enforce_tasks_rate_limit, user_id)
         builder = (
             _db(access_token)
             .from_("nexus_task_lists")
@@ -154,7 +154,7 @@ class TasksController(Controller):
         self, list_id: str, data: CreateTaskRequest, request: Request
     ) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_tasks_rate_limit(user_id)
+        await run_blocking(enforce_tasks_rate_limit, user_id)
         db = _db(access_token)
 
         # Enforce single subtask level: a parent must not itself be a subtask.
@@ -215,7 +215,7 @@ class TasksController(Controller):
         from datetime import datetime as _datetime
 
         user_id, access_token = _require_auth(request)
-        enforce_tasks_rate_limit(user_id)
+        await run_blocking(enforce_tasks_rate_limit, user_id)
         db = _db(access_token)
 
         current = await run_blocking(
@@ -258,23 +258,23 @@ class TasksController(Controller):
         if not patch_data:
             raise HTTPException(status_code=400, detail="No fields to update")
 
-        updated = await run_blocking(
-            db.from_("nexus_tasks")
-            .update(patch_data)
-            .eq("id", task_id)
-            .eq("user_id", user_id)
-            .execute
-        )
-
-        # Recurrence regen: on completion of a recurring task, spawn the next
-        # occurrence anchored on the SCHEDULED due date (not completion time).
+        # Recurrence regen is a read/compute/write flow, so its completion and
+        # successor insert must cross the database boundary as one transaction.
+        # The RPC locks the source row and uses generated_from_task_id uniqueness
+        # to make racing completion requests idempotent.
         becoming_completed = (
             patch_data.get("status") == "completed"
             and existing.get("status") != "completed"
         )
-        recurrence = existing.get("recurrence")
+        recurrence = patch_data.get("recurrence", existing.get("recurrence"))
         if becoming_completed and recurrence:
-            anchor_raw = existing.get("due_at") or existing.get("due")
+            effective_due_at = patch_data.get("due_at", existing.get("due_at"))
+            effective_due = patch_data.get("due", existing.get("due"))
+            effective_timezone = patch_data.get(
+                "due_timezone",
+                existing.get("due_timezone"),
+            )
+            anchor_raw = effective_due_at or effective_due
             anchor = None
             if isinstance(anchor_raw, str):
                 try:
@@ -285,41 +285,48 @@ class TasksController(Controller):
                     )
                 except ValueError:
                     anchor = None
-            nxt = next_occurrence(recurrence, anchor, existing.get("due_timezone"))
+            nxt = next_occurrence(recurrence, anchor, effective_timezone)
             if nxt is not None:
                 next_recurrence = recurrence_for_next_instance(recurrence)
-                positions = await run_blocking(
-                    db.from_("nexus_tasks")
-                    .select("position")
-                    .eq("user_id", user_id)
-                    .eq("list_id", existing["list_id"])
-                    .execute
-                )
-                pos_list = [r.get("position", 0.0) for r in (positions.data or [])]
                 is_dt = isinstance(nxt, _datetime)
-                await run_blocking(
-                    db.from_("nexus_tasks")
-                    .insert(
+                completed = await run_blocking(
+                    db.rpc(
+                        "complete_recurring_task",
                         {
-                            "user_id": user_id,
-                            "list_id": existing["list_id"],
-                            "parent_id": existing.get("parent_id"),
-                            "title": existing["title"],
-                            "notes_encrypted": existing.get("notes_encrypted"),
-                            "status": "needsAction",
-                            "due": (nxt.date() if is_dt else nxt).isoformat(),
-                            "due_at": nxt.isoformat() if is_dt else None,
-                            "due_timezone": (
-                                existing.get("due_timezone") if is_dt else None
+                            "p_task_id": task_id,
+                            "p_patch": patch_data,
+                            "p_next_due": (nxt.date() if is_dt else nxt).isoformat(),
+                            "p_next_due_at": nxt.isoformat() if is_dt else None,
+                            "p_next_due_timezone": (
+                                effective_timezone if is_dt else None
                             ),
-                            "all_day": existing.get("all_day", True),
-                            "starred": existing.get("starred", False),
-                            "recurrence": next_recurrence,
-                            "position": next_position(pos_list),
-                        }
-                    )
-                    .execute
+                            "p_next_recurrence": next_recurrence,
+                            "p_expected_due": existing.get("due"),
+                            "p_expected_due_at": existing.get("due_at"),
+                            "p_expected_due_timezone": existing.get("due_timezone"),
+                            "p_expected_recurrence": recurrence,
+                        },
+                    ).execute
                 )
+                return hydrate_task_record((completed.data or [existing])[0])
+
+        update_builder = (
+            db.from_("nexus_tasks")
+            .update(patch_data)
+            .eq("id", task_id)
+            .eq("user_id", user_id)
+        )
+        expected_updated_at = existing.get("updated_at")
+        if expected_updated_at:
+            # Prevent a stale read from overwriting a completion/reschedule that
+            # committed while this request was waiting on the row lock.
+            update_builder = update_builder.eq("updated_at", expected_updated_at)
+        updated = await run_blocking(update_builder.execute)
+        if expected_updated_at and not (updated.data or []):
+            raise HTTPException(
+                status_code=409,
+                detail="Task changed during update; retry with fresh data",
+            )
 
         return hydrate_task_record((updated.data or [existing])[0])
 
@@ -329,7 +336,7 @@ class TasksController(Controller):
         self, task_id: str, data: MoveTaskRequest, request: Request
     ) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_tasks_rate_limit(user_id)
+        await run_blocking(enforce_tasks_rate_limit, user_id)
         db = _db(access_token)
         current = await run_blocking(
             db.from_("nexus_tasks")
@@ -412,7 +419,7 @@ class TasksController(Controller):
     @delete("/items/{task_id:str}", status_code=204)
     async def delete_item(self, task_id: str, request: Request) -> None:
         user_id, access_token = _require_auth(request)
-        enforce_tasks_rate_limit(user_id)
+        await run_blocking(enforce_tasks_rate_limit, user_id)
         await run_blocking(
             _db(access_token)
             .from_("nexus_tasks")

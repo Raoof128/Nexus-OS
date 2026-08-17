@@ -1,16 +1,69 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../lib/apiClient'
+import { mapEmailPages } from './useEmails'
 
 function getEmailsQueryKeyPattern(userId) {
   return ['emails', userId ?? 'anonymous']
 }
 
-export function useEmailActions(userId, folder, accountId) {
+function createIdempotencyKey() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID()
+  const bytes = new Uint8Array(16)
+  globalThis.crypto.getRandomValues(bytes)
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('')
+}
+
+export function createOutboundEmailSender(requestFn = apiFetch) {
+  const attempts = new Map()
+
+  return async (operation, path, data) => {
+    const fingerprint = JSON.stringify(data)
+    let attempt = attempts.get(operation)
+    if (!attempt || attempt.fingerprint !== fingerprint) {
+      attempt = { fingerprint, key: createIdempotencyKey() }
+      attempts.set(operation, attempt)
+    }
+
+    // A failed request is ambiguous: the provider may already have accepted
+    // the message. Only success clears the key, so a same-payload retry is
+    // safely coalesced by the backend.
+    const result = await requestFn(path, {
+      method: 'POST',
+      body: data,
+      headers: { 'Idempotency-Key': attempt.key },
+    })
+    if (attempts.get(operation) === attempt) attempts.delete(operation)
+    return result
+  }
+}
+
+export function updateEmailInCache(data, emailId, update) {
+  return mapEmailPages(data, (items) =>
+    items.map((email) => (email.id === emailId ? update(email) : email)),
+  )
+}
+
+export function removeEmailFromCache(data, emailId) {
+  return mapEmailPages(data, (items) => items.filter((email) => email.id !== emailId))
+}
+
+function updateAllEmailQueries(queryClient, userId, updater) {
+  const queryPattern = getEmailsQueryKeyPattern(userId)
+  queryClient.getQueriesData({ queryKey: queryPattern }).forEach(([queryKey, data]) => {
+    queryClient.setQueryData(queryKey, updater(data, queryKey))
+  })
+}
+
+function restoreEmailQueries(queryClient, snapshots) {
+  snapshots?.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data))
+}
+
+export function useEmailActions(userId) {
   const queryClient = useQueryClient()
   const [sendError, setSendError] = useState(null)
-
-  const currentQueryKey = ['emails', userId ?? 'anonymous', folder ?? 'inbox', accountId ?? 'all']
+  const [sendOutbound] = useState(() => createOutboundEmailSender())
+  const queryPattern = getEmailsQueryKeyPattern(userId)
 
   // --- Optimistic mutations ---
 
@@ -21,20 +74,19 @@ export function useEmailActions(userId, folder, accountId) {
         body: { is_read: isRead },
       }),
     onMutate: async ({ emailId, isRead }) => {
-      await queryClient.cancelQueries({ queryKey: currentQueryKey })
-      const previous = queryClient.getQueryData(currentQueryKey) ?? []
-      queryClient.setQueryData(
-        currentQueryKey,
-        previous.map((e) => (e.id === emailId ? { ...e, is_read: isRead } : e)),
+      await queryClient.cancelQueries({ queryKey: queryPattern })
+      const snapshots = queryClient.getQueriesData({ queryKey: queryPattern })
+      updateAllEmailQueries(queryClient, userId, (data) =>
+        updateEmailInCache(data, emailId, (email) => ({ ...email, is_read: isRead })),
       )
-      return { previous }
+      return { snapshots }
     },
     onError: (_error, _vars, context) => {
-      queryClient.setQueryData(currentQueryKey, context?.previous ?? [])
+      restoreEmailQueries(queryClient, context?.snapshots)
     },
     onSuccess: (serverData, { emailId }) => {
-      queryClient.setQueryData(currentQueryKey, (current) =>
-        (current ?? []).map((e) => (e.id === emailId ? { ...e, ...serverData } : e)),
+      updateAllEmailQueries(queryClient, userId, (data) =>
+        updateEmailInCache(data, emailId, (email) => ({ ...email, ...serverData })),
       )
     },
   })
@@ -46,21 +98,29 @@ export function useEmailActions(userId, folder, accountId) {
         body: { is_starred: isStarred },
       }),
     onMutate: async ({ emailId, isStarred }) => {
-      await queryClient.cancelQueries({ queryKey: currentQueryKey })
-      const previous = queryClient.getQueryData(currentQueryKey) ?? []
-      queryClient.setQueryData(
-        currentQueryKey,
-        previous.map((e) => (e.id === emailId ? { ...e, is_starred: isStarred } : e)),
-      )
-      return { previous }
+      await queryClient.cancelQueries({ queryKey: queryPattern })
+      const snapshots = queryClient.getQueriesData({ queryKey: queryPattern })
+      updateAllEmailQueries(queryClient, userId, (data, queryKey) => {
+        if (queryKey[2] === 'starred' && !isStarred) {
+          return removeEmailFromCache(data, emailId)
+        }
+        return updateEmailInCache(data, emailId, (email) => ({
+          ...email,
+          is_starred: isStarred,
+        }))
+      })
+      return { snapshots }
     },
     onError: (_error, _vars, context) => {
-      queryClient.setQueryData(currentQueryKey, context?.previous ?? [])
+      restoreEmailQueries(queryClient, context?.snapshots)
     },
     onSuccess: (serverData, { emailId }) => {
-      queryClient.setQueryData(currentQueryKey, (current) =>
-        (current ?? []).map((e) => (e.id === emailId ? { ...e, ...serverData } : e)),
+      updateAllEmailQueries(queryClient, userId, (data) =>
+        updateEmailInCache(data, emailId, (email) => ({ ...email, ...serverData })),
       )
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: queryPattern })
     },
   })
 
@@ -71,51 +131,47 @@ export function useEmailActions(userId, folder, accountId) {
         body: { folder: targetFolder },
       }),
     onMutate: async ({ emailId }) => {
-      await queryClient.cancelQueries({ queryKey: currentQueryKey })
-      const previous = queryClient.getQueryData(currentQueryKey) ?? []
-      // Remove from current view optimistically
-      queryClient.setQueryData(
-        currentQueryKey,
-        previous.filter((e) => e.id !== emailId),
-      )
-      return { previous }
+      await queryClient.cancelQueries({ queryKey: queryPattern })
+      const snapshots = queryClient.getQueriesData({ queryKey: queryPattern })
+      updateAllEmailQueries(queryClient, userId, (data) => removeEmailFromCache(data, emailId))
+      return { snapshots }
     },
     onError: (_error, _vars, context) => {
-      queryClient.setQueryData(currentQueryKey, context?.previous ?? [])
+      restoreEmailQueries(queryClient, context?.snapshots)
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: getEmailsQueryKeyPattern(userId) })
+      queryClient.invalidateQueries({ queryKey: queryPattern })
     },
   })
 
   // --- Non-optimistic mutations ---
 
   const sendEmail = useMutation({
-    mutationFn: (data) => apiFetch('/api/email/send', { method: 'POST', body: data }),
+    mutationFn: (data) => sendOutbound('send', '/api/email/send', data),
     onError: (error) => setSendError(error.message),
     onSuccess: () => {
       setSendError(null)
-      queryClient.invalidateQueries({ queryKey: getEmailsQueryKeyPattern(userId) })
+      queryClient.invalidateQueries({ queryKey: queryPattern })
     },
   })
 
   const replyEmail = useMutation({
     mutationFn: ({ emailId, data }) =>
-      apiFetch(`/api/email/${emailId}/reply`, { method: 'POST', body: data }),
+      sendOutbound(`reply:${emailId}`, `/api/email/${emailId}/reply`, data),
     onError: (error) => setSendError(error.message),
     onSuccess: () => {
       setSendError(null)
-      queryClient.invalidateQueries({ queryKey: getEmailsQueryKeyPattern(userId) })
+      queryClient.invalidateQueries({ queryKey: queryPattern })
     },
   })
 
   const forwardEmail = useMutation({
     mutationFn: ({ emailId, data }) =>
-      apiFetch(`/api/email/${emailId}/forward`, { method: 'POST', body: data }),
+      sendOutbound(`forward:${emailId}`, `/api/email/${emailId}/forward`, data),
     onError: (error) => setSendError(error.message),
     onSuccess: () => {
       setSendError(null)
-      queryClient.invalidateQueries({ queryKey: getEmailsQueryKeyPattern(userId) })
+      queryClient.invalidateQueries({ queryKey: queryPattern })
     },
   })
 

@@ -45,7 +45,14 @@ cors_config = CORSConfig(
     allow_origins=list(settings.allowed_origins),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-Requested-With",
+        "Idempotency-Key",
+        "X-Recovery-Access-Token",
+        "X-Recovery-Refresh-Token",
+    ],
     # Cache CORS preflight (OPTIONS) responses in the browser so each PUT/PATCH/
     # DELETE mutation doesn't pay an extra round-trip re-negotiating CORS.
     max_age=600,

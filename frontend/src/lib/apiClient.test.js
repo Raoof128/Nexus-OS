@@ -47,6 +47,30 @@ describe('setAuthExpiredCallback', () => {
     await expect(apiFetch('/protected')).rejects.toThrow()
     expect(onExpired).toHaveBeenCalled()
   })
+
+  it('expires without retrying when refresh reports no authenticated user', async () => {
+    const { setAuthExpiredCallback, apiFetch } = await freshModule()
+    const onExpired = vi.fn()
+    setAuthExpiredCallback(onExpired)
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: vi.fn().mockResolvedValue({ detail: 'Unauthorized' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({ authenticated: false }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(apiFetch('/protected')).rejects.toThrow('session has expired')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(onExpired).toHaveBeenCalledTimes(1)
+  })
 })
 
 // ── apiFetch ──────────────────────────────────────────────────────────────────

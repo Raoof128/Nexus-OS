@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
+import time
+from types import SimpleNamespace
+
+import pytest
+
 from backend.email_poller import detect_ghost_emails
 
 # ---------------------------------------------------------------------------
@@ -169,10 +175,11 @@ class _FakeDB:
 
 
 class _FakeProvider:
-    def __init__(self, recent_page, full_ids, raise_on_ids=False):
+    def __init__(self, recent_page, full_ids, raise_on_ids=False, ids_complete=True):
         self._recent = recent_page
         self._full_ids = full_ids
         self._raise_on_ids = raise_on_ids
+        self._ids_complete = ids_complete
         self.fetch_message_ids_called = False
 
     async def fetch_messages(self, _token, *, since=None):
@@ -182,7 +189,7 @@ class _FakeProvider:
         self.fetch_message_ids_called = True
         if self._raise_on_ids:
             raise RuntimeError("provider id list unavailable")
-        return self._full_ids
+        return SimpleNamespace(ids=self._full_ids, complete=self._ids_complete)
 
 
 def _run_sync_account(monkeypatch, provider, db_inbox_ids):
@@ -250,3 +257,51 @@ def test_ghost_detection_skipped_when_full_fetch_fails(monkeypatch):
 
     assert provider.fetch_message_ids_called is True
     assert [c for c in log if c["op"] == "update"] == []
+
+
+def test_ghost_detection_skipped_when_id_listing_is_incomplete(monkeypatch):
+    """Hitting a provider page cap must never mark unseen older mail deleted."""
+
+    provider = _FakeProvider(
+        recent_page=[],
+        full_ids=["recent-1"],
+        ids_complete=False,
+    )
+    log = _run_sync_account(monkeypatch, provider, db_inbox_ids=["recent-1", "older-1"])
+
+    assert provider.fetch_message_ids_called is True
+    assert [c for c in log if c["op"] == "update"] == []
+
+
+@pytest.mark.anyio
+async def test_poll_account_query_does_not_block_event_loop(monkeypatch):
+    """A slow synchronous PostgREST execute must run outside the event loop."""
+
+    import backend.email_poller as poller
+
+    class SlowQuery:
+        def select(self, *_args):
+            return self
+
+        def eq(self, *_args):
+            return self
+
+        def execute(self):
+            time.sleep(0.15)
+            return SimpleNamespace(data=[])
+
+    db = SimpleNamespace(postgrest=SimpleNamespace(from_=lambda _table: SlowQuery()))
+    monkeypatch.setattr(poller, "create_supabase_service_client", lambda: db)
+
+    started = time.monotonic()
+    heartbeat_elapsed = None
+
+    async def heartbeat():
+        nonlocal heartbeat_elapsed
+        await asyncio.sleep(0.02)
+        heartbeat_elapsed = time.monotonic() - started
+
+    await asyncio.gather(poller.poll_all_accounts(), heartbeat())
+
+    assert heartbeat_elapsed is not None
+    assert heartbeat_elapsed < 0.1

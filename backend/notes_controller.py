@@ -56,6 +56,7 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
 logger = logging.getLogger(__name__)
 
 MAX_LABELS = 50
+MAX_LABEL_NAME_LENGTH = 50
 
 
 def _require_auth(request: Request) -> tuple[str, str]:
@@ -78,10 +79,101 @@ def _validate_palette(color: str | None, background: str | None) -> None:
         raise HTTPException(status_code=400, detail="Unknown background")
 
 
+def _normalize_label_names(labels: list[str] | None) -> list[str]:
+    """Normalize user-provided label names while preserving first-seen order."""
+
+    names: list[str] = []
+    seen: set[str] = set()
+    for raw in labels or []:
+        name = raw.strip().lstrip("#").strip()
+        if not name:
+            continue
+        if len(name) > MAX_LABEL_NAME_LENGTH:
+            raise HTTPException(status_code=400, detail="Label name too long")
+        key = name.casefold()
+        if key not in seen:
+            seen.add(key)
+            names.append(name)
+    return names
+
+
+async def _labels_for_notes(db, user_id: str, notes: list[dict]) -> list[dict]:
+    if not notes:
+        return notes
+    links_resp = await run_blocking(
+        db.from_("nexus_note_label_links").select("note_id,label_id").execute
+    )
+    labels_resp = await run_blocking(
+        db.from_("nexus_note_labels")
+        .select("id,name")
+        .eq("user_id", user_id)
+        .order("name")
+        .execute
+    )
+    label_names = {row["id"]: row["name"] for row in (labels_resp.data or [])}
+    note_ids = {note["id"] for note in notes}
+    labels_by_note: dict[str, list[dict]] = {note_id: [] for note_id in note_ids}
+    for link in links_resp.data or []:
+        note_id = link.get("note_id")
+        label_id = link.get("label_id")
+        if note_id in labels_by_note and label_id in label_names:
+            labels_by_note[note_id].append(
+                {"id": label_id, "name": label_names[label_id]}
+            )
+    for note in notes:
+        note["labels"] = sorted(
+            labels_by_note.get(note["id"], []),
+            key=lambda row: row["name"].casefold(),
+        )
+    return notes
+
+
+async def _ensure_labels(db, user_id: str, names: list[str]) -> list[dict]:
+    if not names:
+        return []
+    existing_resp = await run_blocking(
+        db.from_("nexus_note_labels").select("*").eq("user_id", user_id).execute
+    )
+    existing = existing_resp.data or []
+    by_key = {row["name"].casefold(): row for row in existing}
+    missing = [name for name in names if name.casefold() not in by_key]
+    if len(existing) + len(missing) > MAX_LABELS:
+        raise HTTPException(
+            status_code=409, detail=f"Label limit reached ({MAX_LABELS})"
+        )
+    for name in missing:
+        inserted = await run_blocking(
+            db.from_("nexus_note_labels")
+            .insert({"user_id": user_id, "name": name})
+            .execute
+        )
+        row = (inserted.data or [{}])[0]
+        if row.get("id"):
+            by_key[name.casefold()] = row
+    return [by_key[name.casefold()] for name in names if name.casefold() in by_key]
+
+
+async def _sync_note_labels(
+    db, user_id: str, note_id: str, labels: list[str] | None
+) -> list[dict]:
+    names = _normalize_label_names(labels)
+    rows = await _ensure_labels(db, user_id, names)
+    await run_blocking(
+        db.from_("nexus_note_label_links").delete().eq("note_id", note_id).execute
+    )
+    if rows:
+        await run_blocking(
+            db.from_("nexus_note_label_links")
+            .insert([{"note_id": note_id, "label_id": row["id"]} for row in rows])
+            .execute
+        )
+    return [{"id": row["id"], "name": row["name"]} for row in rows]
+
+
 class NotesController(Controller):
     """Authenticated note, label, and checklist-item endpoints."""
 
-    path = "/api/notes"
+    path = "/notes"
 
     # ---- Notes: read + create ---------------------------------------
     @get("")
@@ -115,6 +207,7 @@ class NotesController(Controller):
             query = query.eq("type", type)
         resp = await run_blocking(query.order("position").execute)
         notes = [hydrate_note_record(r) for r in (resp.data or [])]
+        notes = await _labels_for_notes(db, user_id, notes)
 
         if label:
             links = await run_blocking(
@@ -130,7 +223,7 @@ class NotesController(Controller):
     @post("", status_code=201)
     async def create_note(self, data: CreateNoteRequest, request: Request) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         _validate_palette(data.color, data.background)
         db = _db(access_token)
         existing = await run_blocking(
@@ -148,7 +241,11 @@ class NotesController(Controller):
             "reminder_at": data.reminder_at.isoformat() if data.reminder_at else None,
         }
         resp = await run_blocking(db.from_("nexus_notes").insert(row).execute)
-        return hydrate_note_record((resp.data or [{}])[0])
+        created = hydrate_note_record((resp.data or [{}])[0])
+        created["labels"] = await _sync_note_labels(
+            db, user_id, created["id"], data.labels
+        )
+        return created
 
     # ---- Notes: update / soft-delete / restore ----------------------
     @patch("/{note_id:str}")
@@ -156,7 +253,7 @@ class NotesController(Controller):
         self, note_id: str, data: UpdateNoteRequest, request: Request
     ) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         _validate_palette(data.color, data.background)
         fields = data.model_dump(exclude_unset=True)
         patch_data: dict = {}
@@ -182,12 +279,21 @@ class NotesController(Controller):
         )
         if not resp.data:
             raise HTTPException(status_code=404, detail="Note not found")
-        return hydrate_note_record(resp.data[0])
+        updated = hydrate_note_record(resp.data[0])
+        if "labels" in fields and data.labels is not None:
+            updated["labels"] = await _sync_note_labels(
+                _db(access_token), user_id, note_id, data.labels
+            )
+        else:
+            updated = (await _labels_for_notes(_db(access_token), user_id, [updated]))[
+                0
+            ]
+        return updated
 
     @delete("/{note_id:str}", status_code=204)
     async def soft_delete_note(self, note_id: str, request: Request) -> None:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         await run_blocking(
             _db(access_token)
             .from_("nexus_notes")
@@ -200,7 +306,7 @@ class NotesController(Controller):
     @post("/{note_id:str}/restore", status_code=200)
     async def restore_note(self, note_id: str, request: Request) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         resp = await run_blocking(
             _db(access_token)
             .from_("nexus_notes")
@@ -217,7 +323,7 @@ class NotesController(Controller):
     @post("/{note_id:str}/pin", status_code=200)
     async def pin_note(self, note_id: str, data: PinRequest, request: Request) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         resp = await run_blocking(
             _db(access_token)
             .from_("nexus_notes")
@@ -235,7 +341,7 @@ class NotesController(Controller):
         self, note_id: str, data: ArchiveRequest, request: Request
     ) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         resp = await run_blocking(
             _db(access_token)
             .from_("nexus_notes")
@@ -253,7 +359,7 @@ class NotesController(Controller):
         self, note_id: str, data: MoveNoteRequest, request: Request
     ) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         resp = await run_blocking(
             _db(access_token)
             .from_("nexus_notes")
@@ -269,7 +375,7 @@ class NotesController(Controller):
     @post("/{note_id:str}/copy", status_code=201)
     async def copy_note(self, note_id: str, request: Request) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         db = _db(access_token)
         current = await run_blocking(
             db.from_("nexus_notes")
@@ -282,6 +388,9 @@ class NotesController(Controller):
         if not current or not current.data:
             raise HTTPException(status_code=404, detail="Note not found")
         src = current.data
+        source_labels = await _labels_for_notes(
+            db, user_id, [hydrate_note_record(dict(src))]
+        )
         existing = await run_blocking(
             db.from_("nexus_notes").select("position").eq("user_id", user_id).execute
         )
@@ -297,7 +406,14 @@ class NotesController(Controller):
             "reminder_at": src.get("reminder_at"),
         }
         resp = await run_blocking(db.from_("nexus_notes").insert(row).execute)
-        return hydrate_note_record((resp.data or [{}])[0])
+        copied = hydrate_note_record((resp.data or [{}])[0])
+        copied["labels"] = await _sync_note_labels(
+            db,
+            user_id,
+            copied["id"],
+            [label["name"] for label in source_labels[0].get("labels", [])],
+        )
+        return copied
 
     # ---- Labels -----------------------------------------------------
     @get("/labels")
@@ -316,7 +432,7 @@ class NotesController(Controller):
     @post("/labels", status_code=201)
     async def create_label(self, data: LabelCreateRequest, request: Request) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         db = _db(access_token)
         existing = await run_blocking(
             db.from_("nexus_note_labels").select("id").eq("user_id", user_id).execute
@@ -335,7 +451,7 @@ class NotesController(Controller):
     @delete("/labels/{label_id:str}", status_code=204)
     async def delete_label(self, label_id: str, request: Request) -> None:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         await run_blocking(
             _db(access_token)
             .from_("nexus_note_labels")
@@ -365,7 +481,7 @@ class NotesController(Controller):
         self, note_id: str, data: CreateNoteItemRequest, request: Request
     ) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         db = _db(access_token)
         existing = await run_blocking(
             db.from_("nexus_note_items")
@@ -391,7 +507,7 @@ class NotesController(Controller):
         self, item_id: str, data: UpdateNoteItemRequest, request: Request
     ) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         fields = data.model_dump(exclude_unset=True)
         patch_data: dict = {}
         if "text" in fields:
@@ -416,7 +532,7 @@ class NotesController(Controller):
         self, item_id: str, data: MoveNoteItemRequest, request: Request
     ) -> dict:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         patch_data = data.model_dump(exclude_unset=True)
         if not patch_data:
             raise HTTPException(status_code=400, detail="No fields to move")
@@ -435,7 +551,7 @@ class NotesController(Controller):
     @delete("/items/{item_id:str}", status_code=204)
     async def delete_item(self, item_id: str, request: Request) -> None:
         user_id, access_token = _require_auth(request)
-        enforce_notes_rate_limit(user_id)
+        await run_blocking(enforce_notes_rate_limit, user_id)
         await run_blocking(
             _db(access_token)
             .from_("nexus_note_items")

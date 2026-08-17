@@ -45,6 +45,14 @@ _GMAIL_SYSTEM_LABELS = {
 }
 
 
+@dataclass(frozen=True)
+class MessageIdListing:
+    """A provider ID snapshot plus whether pagination reached the true end."""
+
+    ids: list[str]
+    complete: bool
+
+
 def encrypt_oauth_token(plaintext: str) -> str:
     """Encrypt an OAuth access/refresh token for at-rest storage."""
     return encrypt_takeaway(plaintext)
@@ -326,9 +334,13 @@ class EmailProvider(Protocol):
 
     async def send_message(self, access_token: str, message: dict) -> dict: ...
 
+    async def reply_message(
+        self, access_token: str, message_id: str, message: dict
+    ) -> dict: ...
+
     async def move_message(
         self, access_token: str, message_id: str, folder: str
-    ) -> None: ...
+    ) -> str | None: ...
 
     async def update_labels(
         self,
@@ -348,7 +360,7 @@ class EmailProvider(Protocol):
 
     async def delete_message(self, access_token: str, message_id: str) -> None: ...
 
-    async def fetch_message_ids(self, access_token: str) -> list[str]: ...
+    async def fetch_message_ids(self, access_token: str) -> MessageIdListing: ...
 
 
 # ---------------------------------------------------------------------------
@@ -387,7 +399,7 @@ class GmailProvider:
                 messages.append(r.json())
             return messages
 
-    async def fetch_message_ids(self, access_token: str) -> list[str]:
+    async def fetch_message_ids(self, access_token: str) -> MessageIdListing:
         """Return the full inbox-primary message id list, following pagination.
 
         Used by the poller's ghost detection, so it must return the COMPLETE
@@ -410,9 +422,9 @@ class GmailProvider:
                 ids.extend(m["id"] for m in body.get("messages", []))
                 next_token = body.get("nextPageToken")
                 if not next_token:
-                    break
+                    return MessageIdListing(ids=ids, complete=True)
                 params = {**params, "pageToken": next_token}
-        return ids
+        return MessageIdListing(ids=ids, complete=False)
 
     async def fetch_message_html(self, access_token: str, message_id: str) -> str:
         async with httpx.AsyncClient() as client:
@@ -432,6 +444,9 @@ class GmailProvider:
         cc_list = message.get("cc") or []
         if cc_list:
             mime_msg["Cc"] = ", ".join(cc_list)
+        bcc_list = message.get("bcc") or []
+        if bcc_list:
+            mime_msg["Bcc"] = ", ".join(bcc_list)
         in_reply_to = message.get("in_reply_to")
         if in_reply_to:
             mime_msg["In-Reply-To"] = in_reply_to
@@ -453,18 +468,49 @@ class GmailProvider:
             resp.raise_for_status()
             return resp.json()
 
+    async def reply_message(
+        self, access_token: str, message_id: str, message: dict
+    ) -> dict:
+        """Reply using the original RFC Message-ID required for threading."""
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{_GMAIL_BASE}/messages/{message_id}",
+                headers=self._headers(access_token),
+                params=[
+                    ("format", "metadata"),
+                    ("metadataHeaders", "Message-ID"),
+                    ("metadataHeaders", "Subject"),
+                ],
+            )
+            response.raise_for_status()
+            headers = {
+                str(item.get("name", "")).lower(): str(item.get("value", ""))
+                for item in response.json().get("payload", {}).get("headers", [])
+            }
+
+        reply = {
+            **message,
+            "in_reply_to": headers.get("message-id") or None,
+            "subject": headers.get("subject") or message.get("subject", ""),
+        }
+        return await self.send_message(access_token, reply)
+
     async def move_message(
         self, access_token: str, message_id: str, folder: str
-    ) -> None:
+    ) -> str | None:
         folder_map = {
-            "inbox": ("INBOX", []),
-            "trash": ("TRASH", ["INBOX"]),
-            "sent": ("SENT", ["INBOX"]),
-            "drafts": ("DRAFT", ["INBOX"]),
-            "spam": ("SPAM", ["INBOX"]),
+            "inbox": (["INBOX"], []),
+            "archive": ([], ["INBOX"]),
+            "trash": (["TRASH"], ["INBOX"]),
+            "spam": (["SPAM"], ["INBOX"]),
         }
-        add_label, remove_labels = folder_map.get(folder.lower(), (folder.upper(), []))
-        await self.update_labels(access_token, message_id, [add_label], remove_labels)
+        try:
+            add_labels, remove_labels = folder_map[folder.lower()]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported Gmail folder: {folder}") from exc
+        await self.update_labels(access_token, message_id, add_labels, remove_labels)
+        return None
 
     async def update_labels(
         self,
@@ -513,7 +559,12 @@ class GraphProvider:
     """Email provider backed by the Microsoft Graph REST API."""
 
     def _headers(self, access_token: str) -> dict[str, str]:
-        return {"Authorization": f"Bearer {access_token}"}
+        # Outlook's default message IDs change when a message moves folders.
+        # Immutable IDs keep cached identifiers valid across subsequent calls.
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Prefer": 'IdType="ImmutableId"',
+        }
 
     async def fetch_messages(
         self, access_token: str, *, since: str | None = None
@@ -530,7 +581,7 @@ class GraphProvider:
             resp.raise_for_status()
             return resp.json().get("value", [])
 
-    async def fetch_message_ids(self, access_token: str) -> list[str]:
+    async def fetch_message_ids(self, access_token: str) -> MessageIdListing:
         """Return the full inbox message id list, following @odata.nextLink.
 
         Used by the poller's ghost detection, so it must return the COMPLETE
@@ -552,11 +603,11 @@ class GraphProvider:
                 ids.extend(m["id"] for m in body.get("value", []))
                 next_link = body.get("@odata.nextLink")
                 if not next_link:
-                    break
+                    return MessageIdListing(ids=ids, complete=True)
                 # nextLink already embeds the query params (incl. skiptoken).
                 url = next_link
                 params = None
-        return ids
+        return MessageIdListing(ids=ids, complete=False)
 
     async def fetch_message_html(self, access_token: str, message_id: str) -> str:
         async with httpx.AsyncClient() as client:
@@ -591,11 +642,6 @@ class GraphProvider:
             graph_message["bccRecipients"] = [
                 {"emailAddress": {"address": addr}} for addr in bcc_list
             ]
-        if message.get("in_reply_to"):
-            graph_message["replyTo"] = [
-                {"emailAddress": {"address": message["in_reply_to"]}}
-            ]
-
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"{_GRAPH_BASE}/sendMail",
@@ -605,16 +651,65 @@ class GraphProvider:
             resp.raise_for_status()
             return {}
 
+    async def reply_message(
+        self, access_token: str, message_id: str, message: dict
+    ) -> dict:
+        """Reply to an existing Graph message using the provider reply action."""
+
+        graph_message: dict = {
+            "body": {
+                "contentType": "HTML",
+                "content": message.get("body_html") or "",
+            }
+        }
+        to_list = message.get("to") or []
+        if to_list:
+            graph_message["toRecipients"] = [
+                {"emailAddress": {"address": address}} for address in to_list
+            ]
+        cc_list = message.get("cc") or []
+        if cc_list:
+            graph_message["ccRecipients"] = [
+                {"emailAddress": {"address": address}} for address in cc_list
+            ]
+        bcc_list = message.get("bcc") or []
+        if bcc_list:
+            graph_message["bccRecipients"] = [
+                {"emailAddress": {"address": address}} for address in bcc_list
+            ]
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{_GRAPH_BASE}/messages/{message_id}/reply",
+                headers=self._headers(access_token),
+                json={"message": graph_message},
+            )
+            response.raise_for_status()
+            return {}
+
     async def move_message(
         self, access_token: str, message_id: str, folder: str
-    ) -> None:
+    ) -> str | None:
+        folder_map = {
+            "inbox": "inbox",
+            "archive": "archive",
+            "trash": "deleteditems",
+            "spam": "junkemail",
+        }
+        try:
+            destination_id = folder_map[folder.lower()]
+        except KeyError as exc:
+            raise ValueError(f"Unsupported Graph folder: {folder}") from exc
+
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"{_GRAPH_BASE}/messages/{message_id}/move",
                 headers=self._headers(access_token),
-                json={"destinationId": folder},
+                json={"destinationId": destination_id},
             )
             resp.raise_for_status()
+            moved = resp.json()
+            return moved.get("id") or None
 
     async def update_labels(
         self,

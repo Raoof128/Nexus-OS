@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
 import { authFetch, refreshSession, setAuthExpiredCallback } from '../lib/apiClient'
 import { queryClient } from '../lib/queryClient'
-import { realtimeClient } from '../lib/realtimeClient'
+import { clearLegacyRealtimeAuthStorage, realtimeClient } from '../lib/realtimeClient'
+import { useFileSystemStore } from '../os/stores/fileSystemStore'
+import { useNotificationStore } from '../os/stores/notificationStore'
 import { AuthContext } from './auth-context'
+
+function clearPrivateClientState() {
+  useNotificationStore.getState().resetPrivateState()
+  useFileSystemStore.getState().resetPrivateState()
+}
 
 async function loadCurrentSession() {
   // /auth/session returns:
@@ -35,7 +42,16 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setAuthExpiredCallback(() => setSession(null))
+    setAuthExpiredCallback(() => {
+      // Fail closed immediately, then tear down best-effort live connections.
+      setSession(null)
+      queryClient.clear()
+      clearPrivateClientState()
+      clearLegacyRealtimeAuthStorage()
+      realtimeClient.removeAllChannels().catch(() => {
+        // A transport failure must not keep an expired session mounted.
+      })
+    })
     return () => setAuthExpiredCallback(null)
   }, [])
 
@@ -87,7 +103,9 @@ export function AuthProvider({ children }) {
       } catch {
         // Best-effort — failures here must not block logout.
       }
+      clearLegacyRealtimeAuthStorage()
       queryClient.clear()
+      clearPrivateClientState()
       setSession(null)
     }
   }

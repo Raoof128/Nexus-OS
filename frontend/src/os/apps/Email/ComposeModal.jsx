@@ -5,6 +5,7 @@ import { Loader2, Sparkles, X, Send } from 'lucide-react'
 import { getProviderBadge } from '../../../lib/emailConfig'
 import { DURATION, SPRING, TRANSITION_FADE, TRANSITION_FAST } from '../../../lib/motion'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
+import { buildAiDraftPayload, buildComposePayload } from './composePayload'
 
 const MODAL_VARIANTS = {
   hidden: { opacity: 0, y: 24, scale: 0.96 },
@@ -23,7 +24,7 @@ const inputClass =
 const labelClass =
   'w-10 shrink-0 font-mono text-[9px] uppercase tracking-wider text-primary/40 sm:w-12 sm:text-[10px]'
 
-function ComposeModal({
+export function ComposeModal({
   isOpen,
   onClose,
   accounts = [],
@@ -76,7 +77,12 @@ function ComposeModal({
       setSubject('')
       setBody('')
     }
-    if (accounts.length > 0) setSelectedAccountId(accounts[0].id)
+    const replyAccountId = replyTo?.email?.account_id
+    if (replyAccountId && accounts.some((account) => account.id === replyAccountId)) {
+      setSelectedAccountId(replyAccountId)
+    } else if (accounts.length > 0) {
+      setSelectedAccountId(accounts[0].id)
+    }
   }, [isOpen, isReply, isForward, replyTo, accounts])
 
   useEffect(() => {
@@ -91,7 +97,13 @@ function ComposeModal({
       // Don't submit without a chosen account — the button should already be
       // disabled, but guard here so a misconfigured parent can't slip through.
       if (!selectedAccountId) return
-      const data = { accountId: selectedAccountId, to, cc, subject, body }
+      const data = buildComposePayload({
+        accountId: selectedAccountId,
+        to,
+        cc,
+        subject,
+        body,
+      })
       try {
         if (isReply && replyTo?.email?.id) {
           await onReply?.({ emailId: replyTo.email.id, data })
@@ -125,19 +137,14 @@ function ComposeModal({
     setIsDrafting(true)
     setDraftError(null)
     try {
-      const result = await onAiDraft?.({
-        accountId: selectedAccountId,
-        replyTo: replyTo?.email,
-        subject,
-        to,
-      })
+      const result = await onAiDraft?.(buildAiDraftPayload(replyTo?.email?.id, isForward))
       if (result?.draft) setBody(result.draft)
     } catch (err) {
       setDraftError(err.message)
     } finally {
       setIsDrafting(false)
     }
-  }, [onAiDraft, selectedAccountId, replyTo, subject, to])
+  }, [onAiDraft, replyTo, isForward])
 
   const handleKeyDown = useCallback(
     (e) => {
@@ -216,7 +223,7 @@ function ComposeModal({
                           const badge = getProviderBadge(account.provider)
                           return (
                             <option key={account.id} value={account.id}>
-                              {badge.label} — {account.email}
+                              {badge.label} — {account.email_address}
                             </option>
                           )
                         })}
@@ -332,7 +339,7 @@ function ComposeModal({
                       </button>
                       <button
                         type="submit"
-                        disabled={isSending || isDrafting}
+                        disabled={isSending || isDrafting || !selectedAccountId}
                         className="neon-pulse flex items-center gap-1.5 rounded-lg bg-primary px-4 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-[0_0_10px_var(--color-primary)] transition-all hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
                       >
                         {isSending ? (

@@ -37,16 +37,15 @@ function SortableCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
-      <div {...listeners} className="cursor-grab active:cursor-grabbing">
-        <CyberCard
-          item={item}
-          onUpdate={onUpdate}
-          onDelete={onDelete}
-          onSelect={onSelect}
-          onEdit={onEdit}
-        />
-      </div>
+    <div ref={setNodeRef} style={style}>
+      <CyberCard
+        item={item}
+        onUpdate={onUpdate}
+        onDelete={onDelete}
+        onSelect={onSelect}
+        onEdit={onEdit}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
     </div>
   )
 }

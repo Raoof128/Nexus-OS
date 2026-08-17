@@ -205,7 +205,7 @@ class MediaController(Controller):
 
         user_id = request.state.user_id
         media_type = type if type in VALID_MEDIA_TYPES else "book"
-        enforce_ai_rate_limit(user_id, "suggest")
+        await run_blocking(enforce_ai_rate_limit, user_id, "suggest")
         try:
             query = (
                 _get_user_client(request)

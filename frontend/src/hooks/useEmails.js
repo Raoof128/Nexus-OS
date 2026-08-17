@@ -1,169 +1,89 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { realtimeClient } from '../lib/realtimeClient'
+import { useCallback, useMemo } from 'react'
+import { useInfiniteQuery } from '@tanstack/react-query'
+import { apiFetch } from '../lib/apiClient'
 
-function getEmailsQueryKey(userId, folder, accountId) {
-  return ['emails', userId ?? 'anonymous', folder ?? 'inbox', accountId ?? 'all']
+const EMAIL_PAGE_SIZE = 50
+
+export function getEmailsQueryKey(userId, folder, accountId, searchTerm = '') {
+  return ['emails', userId ?? 'anonymous', folder ?? 'inbox', accountId ?? 'all', searchTerm.trim()]
 }
 
-/**
- * Handles a Realtime DELETE by removing the item from the emails cache.
- * Exported for unit testing.
- */
-export function handleEmailRealtimeDelete(oldData, payload) {
-  const oldItem = payload.old
-  if (!oldItem?.id) return oldData
-  return oldData.filter((email) => email.id !== oldItem.id)
-}
-
-async function fetchEmails({ userId, folder, accountId, cursor = null }) {
-  let query = realtimeClient
-    .from('nexus_emails')
-    .select('*')
-    .eq('user_id', userId)
-    .order('provider_date', { ascending: false })
-    .limit(50)
-
-  if (folder === 'starred') {
-    query = query.eq('is_starred', true)
-  } else {
-    query = query.eq('folder', folder)
-  }
-
-  if (accountId && accountId !== 'all') {
-    query = query.eq('account_id', accountId)
-  }
-
+export function buildEmailsPath({
+  folder = 'inbox',
+  accountId = 'all',
+  searchTerm = '',
+  cursor = null,
+  limit = EMAIL_PAGE_SIZE,
+}) {
+  const params = new URLSearchParams({ folder, limit: String(limit) })
+  if (accountId && accountId !== 'all') params.set('account_id', accountId)
+  if (searchTerm.trim()) params.set('search', searchTerm.trim())
   if (cursor) {
-    query = query.lt('provider_date', cursor)
+    params.set('cursor_date', cursor.provider_date)
+    params.set('cursor_id', cursor.id)
   }
-
-  const { data, error } = await query
-  if (error) throw new Error(error.message)
-  return data ?? []
+  return `/api/email/messages?${params.toString()}`
 }
 
-export function useEmails(session, folder = 'inbox', accountId = 'all') {
-  const queryClient = useQueryClient()
+/** Update every page in an infinite email query without losing page metadata. */
+export function mapEmailPages(oldData, updateItems) {
+  if (!oldData?.pages) return oldData
+  return {
+    ...oldData,
+    pages: oldData.pages.map((page) => ({
+      ...page,
+      items: updateItems(page.items ?? []),
+    })),
+  }
+}
+
+export function useEmails(session, folder = 'inbox', accountId = 'all', searchTerm = '') {
   const userId = session?.user?.id
   const isAuthenticated = Boolean(userId)
-  const accessToken = session?.access_token
+  const normalizedSearch = searchTerm.trim()
   const emailsQueryKey = useMemo(
-    () => getEmailsQueryKey(userId, folder, accountId),
-    [userId, folder, accountId],
+    () => getEmailsQueryKey(userId, folder, accountId, normalizedSearch),
+    [userId, folder, accountId, normalizedSearch],
   )
 
-  // Cursor for pagination — last email's provider_date
-  const [_cursor, setCursor] = useState(null)
-  // Extra pages loaded via loadMore, accumulated
-  const [extraEmails, setExtraEmails] = useState([])
-
-  const emailsQuery = useQuery({
+  const emailsQuery = useInfiniteQuery({
     queryKey: emailsQueryKey,
     enabled: isAuthenticated,
     staleTime: 30_000,
     retry: 1,
-    queryFn: () => fetchEmails({ userId, folder, accountId }),
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    initialPageParam: null,
+    queryFn: ({ pageParam }) =>
+      apiFetch(
+        buildEmailsPath({
+          folder,
+          accountId,
+          searchTerm: normalizedSearch,
+          cursor: pageParam,
+        }),
+      ),
+    getNextPageParam: (lastPage) => lastPage.next_cursor ?? undefined,
   })
 
-  // Reset extra emails when query key changes (folder/account switch)
-  const prevKeyRef = useRef(emailsQueryKey)
-  useEffect(() => {
-    if (prevKeyRef.current !== emailsQueryKey) {
-      setExtraEmails([])
-      setCursor(null)
-      prevKeyRef.current = emailsQueryKey
-    }
-  }, [emailsQueryKey])
-
-  // --- Supabase Realtime subscription ---
-  useEffect(() => {
-    if (!isAuthenticated || !accessToken) return
-
-    realtimeClient.realtime.setAuth(accessToken)
-
-    const channel = realtimeClient
-      .channel(`emails-sync-${userId}-${folder}-${accountId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'nexus_emails',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            queryClient.setQueryData(emailsQueryKey, (current) =>
-              handleEmailRealtimeDelete(current ?? [], payload),
-            )
-            setExtraEmails((prev) => handleEmailRealtimeDelete(prev, payload))
-          } else {
-            // INSERT / UPDATE — invalidate so the fresh row is fetched via API
-            queryClient.invalidateQueries({ queryKey: emailsQueryKey })
-          }
-        },
-      )
-      .subscribe()
-
-    return () => {
-      realtimeClient.removeChannel(channel)
-    }
-  }, [isAuthenticated, accessToken, userId, folder, accountId, emailsQueryKey, queryClient])
-
-  const loadingMoreRef = useRef(false)
-
-  const loadMore = useCallback(async () => {
-    if (loadingMoreRef.current) return
-    const all = [...(emailsQuery.data ?? []), ...extraEmails]
-    if (all.length === 0) return
-    const lastEmail = all[all.length - 1]
-    const newCursor = lastEmail.provider_date
-    setCursor(newCursor)
-
-    loadingMoreRef.current = true
-    try {
-      const nextPage = await fetchEmails({ userId, folder, accountId, cursor: newCursor })
-      setExtraEmails((prev) => [...prev, ...nextPage])
-    } finally {
-      loadingMoreRef.current = false
-    }
-  }, [emailsQuery.data, extraEmails, userId, folder, accountId])
-
-  const search = useCallback(
-    async (term) => {
-      if (!term?.trim()) return emailsQuery.data ?? []
-
-      let query = realtimeClient
-        .from('nexus_emails')
-        .select('*')
-        .eq('user_id', userId)
-        .textSearch('body_text', term, { type: 'websearch' })
-        .order('provider_date', { ascending: false })
-        .limit(50)
-
-      if (accountId && accountId !== 'all') {
-        query = query.eq('account_id', accountId)
-      }
-
-      const { data, error } = await query
-      if (error) throw new Error(error.message)
-      return data ?? []
-    },
-    [userId, accountId, emailsQuery.data],
-  )
+  const loadMore = useCallback(() => {
+    if (!emailsQuery.hasNextPage || emailsQuery.isFetchingNextPage) return Promise.resolve()
+    return emailsQuery.fetchNextPage()
+  }, [emailsQuery])
 
   const emails = useMemo(
-    () => [...(emailsQuery.data ?? []), ...extraEmails],
-    [emailsQuery.data, extraEmails],
+    () => emailsQuery.data?.pages.flatMap((page) => page.items ?? []) ?? [],
+    [emailsQuery.data],
   )
 
   return {
     emails,
     loading: emailsQuery.isPending,
+    loadingMore: emailsQuery.isFetchingNextPage,
+    hasMore: Boolean(emailsQuery.hasNextPage),
     error: emailsQuery.error?.message ?? null,
     refetch: emailsQuery.refetch,
     loadMore,
-    search,
   }
 }

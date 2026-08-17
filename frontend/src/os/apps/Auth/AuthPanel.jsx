@@ -179,10 +179,10 @@ export default function AuthPanel() {
 
       {/* Cyber Brackets */}
       <div className="pointer-events-none absolute inset-0 z-10">
-        <div className="cyber-bracket cyber-bracket-tl h-full w-full" />
-        <div className="cyber-bracket cyber-bracket-tr h-full w-full" />
-        <div className="cyber-bracket cyber-bracket-bl h-full w-full" />
-        <div className="cyber-bracket cyber-bracket-br h-full w-full" />
+        <div className="cyber-bracket cyber-bracket-tl absolute inset-0" />
+        <div className="cyber-bracket cyber-bracket-tr absolute inset-0" />
+        <div className="cyber-bracket cyber-bracket-bl absolute inset-0" />
+        <div className="cyber-bracket cyber-bracket-br absolute inset-0" />
       </div>
 
       <Motion.div

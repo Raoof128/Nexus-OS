@@ -109,14 +109,13 @@ class OAuthController(Controller):
         state = secrets.token_urlsafe(32)
         verifier, challenge = _generate_pkce_pair()
 
-        # Build redirect_uri from request origin, but only after confirming the
-        # Host header matches a configured allowed host — otherwise an attacker
-        # with a spoofed Host could steer the provider back to their domain.
+        # Keep validating Host even though the externally-visible callback is
+        # configuration-owned. This rejects spoofed direct-origin requests and
+        # preserves the application's allowed-host boundary.
         host = (request.headers.get("host") or "").split(":")[0].lower()
         if host and host not in {h.lower() for h in settings.allowed_hosts}:
             raise HTTPException(status_code=400, detail="Invalid Host header")
-        base = str(request.base_url).rstrip("/")
-        redirect_uri = f"{base}/api/email/accounts/callback"
+        redirect_uri = settings.oauth_callback_url
 
         # Persist state + verifier in an HttpOnly cookie (JSON-encoded)
         cookie_payload = json.dumps(
@@ -124,7 +123,6 @@ class OAuthController(Controller):
                 "state": state,
                 "verifier": verifier,
                 "provider": provider,
-                "redirect_uri": redirect_uri,
                 "ts": int(time.time()),
             }
         )
@@ -191,9 +189,12 @@ class OAuthController(Controller):
 
         provider = cookie_data.get("provider", "")
         verifier = cookie_data.get("verifier", "")
-        redirect_uri = cookie_data.get("redirect_uri", "")
 
         settings = get_settings()
+        # Never trust redirect targets recovered from a client cookie. The
+        # configured URL is validated at startup and must exactly match the URL
+        # used for the authorization request and provider registration.
+        redirect_uri = settings.oauth_callback_url
 
         if provider == "google":
             client_id = settings.google_oauth_client_id
@@ -274,7 +275,7 @@ class OAuthController(Controller):
         try:
             db = create_supabase_user_client(access_cookie)
             builder = db.from_("email_accounts").upsert(
-                row, on_conflict="user_id,email_address"
+                row, on_conflict="user_id,provider,email_address"
             )
             await run_blocking(builder.execute)
         except Exception as exc:  # pragma: no cover - DB failure
@@ -284,8 +285,14 @@ class OAuthController(Controller):
             ) from exc
 
         # Clear the OAuth state cookie and redirect back to the app
-        base = str(request.base_url).rstrip("/")
-        app_redirect = f"{base}/?email_connected=1"
+        frontend_url = urllib.parse.urlsplit(settings.frontend_app_url)
+        frontend_query = urllib.parse.parse_qsl(
+            frontend_url.query, keep_blank_values=True
+        )
+        frontend_query.append(("email_connected", "1"))
+        app_redirect = urllib.parse.urlunsplit(
+            frontend_url._replace(query=urllib.parse.urlencode(frontend_query))
+        )
 
         response = Response(
             content=None,

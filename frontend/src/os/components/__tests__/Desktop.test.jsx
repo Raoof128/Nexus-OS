@@ -7,6 +7,10 @@ let mockActiveWindowId = null
 let mockIsMobile = false
 let mockLauncherOpen = false
 
+vi.mock('../../../hooks/useAuth', () => ({
+  useAuth: () => ({ session: { user: { id: 'desktop-test-user' } } }),
+}))
+
 vi.mock('../../stores/windowStore', () => {
   const useWindowStore = (selector) => {
     const state = {

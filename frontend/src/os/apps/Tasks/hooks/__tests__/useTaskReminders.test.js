@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { dueTasksToNotify } from '../useTaskReminders'
+import { dueTasksToNotify, reminderStorageKey } from '../useTaskReminders'
 
 describe('dueTasksToNotify', () => {
   beforeEach(() => localStorage.clear())
@@ -17,9 +17,7 @@ describe('dueTasksToNotify', () => {
   })
 
   it('skips tasks already notified', () => {
-    const tasks = [
-      { id: 'a', title: 'Overdue', due: '2026-06-14', status: 'needsAction' },
-    ]
+    const tasks = [{ id: 'a', title: 'Overdue', due: '2026-06-14', status: 'needsAction' }]
     const result = dueTasksToNotify(tasks, now, { a: now.getTime() })
     expect(result).toEqual([])
   })
@@ -55,5 +53,10 @@ describe('dueTasksToNotify', () => {
   it('ignores tasks without a due date', () => {
     const tasks = [{ id: 'a', title: 'No date', status: 'needsAction' }]
     expect(dueTasksToNotify(tasks, now, {})).toEqual([])
+  })
+
+  it('namespaces fired reminders by authenticated user', () => {
+    expect(reminderStorageKey('user-a')).not.toBe(reminderStorageKey('user-b'))
+    expect(reminderStorageKey('user-a')).toContain('user-a')
   })
 })

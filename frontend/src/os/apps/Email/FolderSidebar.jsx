@@ -47,7 +47,7 @@ const FolderSidebar = React.memo(function FolderSidebar({
               const badge = getProviderBadge(account.provider)
               return (
                 <option key={account.id} value={account.id}>
-                  {badge.label} — {account.email}
+                  {badge.label} — {account.email_address}
                 </option>
               )
             })}

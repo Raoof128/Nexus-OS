@@ -104,19 +104,18 @@ def _client_ip(request: Request) -> str:
     return forwarded_chain[0] if forwarded_chain else direct_client_ip
 
 
-def _build_session_response(
-    access_token: str, *, include_token: bool = False
-) -> AuthSessionResponse:
+async def _build_session_response(access_token: str) -> AuthSessionResponse:
     """Derive a frontend-safe session snapshot from a Supabase access token."""
 
-    payload = decode_supabase_token(access_token)
+    # ES256 verification may refresh Supabase JWKS. Keep that bounded blocking
+    # work out of the event loop just like the other synchronous auth SDK calls.
+    payload = await run_blocking(decode_supabase_token, access_token)
     return AuthSessionResponse(
         user=SessionUser(
             id=payload.get("sub", ""),
             email=payload.get("email"),
         ),
         expires_at=payload.get("exp"),
-        access_token=access_token if include_token else None,
     )
 
 
@@ -171,7 +170,10 @@ class AuthController(Controller):
     async def login(self, data: LoginRequest, request: Request) -> Response:
         """Authenticate with Supabase and set secure session cookies."""
 
-        enforce_auth_rate_limit(f"login:{_client_ip(request)}:{data.email.lower()}")
+        await run_blocking(
+            enforce_auth_rate_limit,
+            f"login:{_client_ip(request)}:{data.email.lower()}",
+        )
         try:
             # The Supabase auth SDK is synchronous — offload its network calls
             # so one slow upstream call doesn't stall every concurrent request.
@@ -187,9 +189,7 @@ class AuthController(Controller):
         if not auth_response.session:
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        payload = _build_session_response(
-            auth_response.session.access_token, include_token=True
-        )
+        payload = await _build_session_response(auth_response.session.access_token)
         response = Response(content=payload.model_dump())
         _attach_auth_cookies(
             response,
@@ -208,7 +208,7 @@ class AuthController(Controller):
         the Supabase rotation call fails.
         """
 
-        enforce_auth_rate_limit(f"refresh:{_client_ip(request)}")
+        await run_blocking(enforce_auth_rate_limit, f"refresh:{_client_ip(request)}")
         refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
         if not refresh_token:
             return Response(content={"authenticated": False})
@@ -227,9 +227,7 @@ class AuthController(Controller):
         if not auth_response.session:
             raise HTTPException(status_code=401, detail="Session refresh failed")
 
-        payload = _build_session_response(
-            auth_response.session.access_token, include_token=True
-        )
+        payload = await _build_session_response(auth_response.session.access_token)
         response = Response(content=payload.model_dump())
         _attach_auth_cookies(
             response,
@@ -244,12 +242,19 @@ class AuthController(Controller):
 
         access_token = request.cookies.get(get_settings().access_cookie_name)
         refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
-        if access_token and refresh_token:
+        if refresh_token:
             try:
 
                 def _revoke_session() -> None:
                     client = create_supabase_auth_client()
-                    client.auth.set_session(access_token, refresh_token)
+                    if access_token:
+                        client.auth.set_session(access_token, refresh_token)
+                    else:
+                        # Access cookies expire much earlier than refresh cookies.
+                        # Restore the SDK session from the remaining credential so
+                        # sign_out revokes it upstream instead of only clearing the
+                        # browser's local cookie.
+                        client.auth.refresh_session(refresh_token)
                     client.auth.sign_out()
 
                 await run_blocking(_revoke_session)
@@ -266,7 +271,7 @@ class AuthController(Controller):
     async def register(self, data: RegisterRequest, request: Request) -> Response:
         """Create a new account and set secure session cookies."""
 
-        enforce_auth_rate_limit(f"register:{_client_ip(request)}")
+        await run_blocking(enforce_auth_rate_limit, f"register:{_client_ip(request)}")
         try:
             client = create_supabase_auth_client()
             auth_response = await run_blocking(
@@ -283,9 +288,7 @@ class AuthController(Controller):
                 status_code=200,
             )
 
-        payload = _build_session_response(
-            auth_response.session.access_token, include_token=True
-        )
+        payload = await _build_session_response(auth_response.session.access_token)
         response = Response(content=payload.model_dump())
         _attach_auth_cookies(
             response,
@@ -300,7 +303,7 @@ class AuthController(Controller):
     ) -> dict:
         """Send a password reset email. Always succeeds to block enumeration."""
 
-        enforce_auth_rate_limit(f"forgot:{_client_ip(request)}")
+        await run_blocking(enforce_auth_rate_limit, f"forgot:{_client_ip(request)}")
         settings = get_settings()
         redirect_url = settings.password_reset_redirect_url
         try:
@@ -327,7 +330,7 @@ class AuthController(Controller):
         that cannot set custom headers.
         """
 
-        enforce_auth_rate_limit(f"reset:{_client_ip(request)}")
+        await run_blocking(enforce_auth_rate_limit, f"reset:{_client_ip(request)}")
         # Prefer header-borne tokens (avoid body logging) with body fallback
         access_token = (
             request.headers.get("x-recovery-access-token") or data.access_token
@@ -377,9 +380,7 @@ class AuthController(Controller):
                 status_code=400, detail="Password updated but login failed"
             )
 
-        payload = _build_session_response(
-            login_response.session.access_token, include_token=True
-        )
+        payload = await _build_session_response(login_response.session.access_token)
         response = Response(content=payload.model_dump())
         _attach_auth_cookies(
             response,
@@ -404,7 +405,7 @@ class AuthController(Controller):
         if not access_token:
             return {"authenticated": False}
         try:
-            return _build_session_response(access_token).model_dump()
+            return (await _build_session_response(access_token)).model_dump()
         except Exception as exc:
             raise HTTPException(
                 status_code=401, detail="Session expired or invalid"

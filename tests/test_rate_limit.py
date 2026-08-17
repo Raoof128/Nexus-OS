@@ -3,6 +3,7 @@
 import pytest
 from litestar.exceptions import HTTPException
 
+import backend.rate_limit as rate_limit
 from backend.config import get_settings
 from backend.rate_limit import (
     SlidingWindowRateLimiter,
@@ -41,3 +42,21 @@ def test_ai_rate_limit_blocks_after_shared_budget(
 
     reset_rate_limiters()
     get_settings.cache_clear()
+
+
+def test_email_send_limit_is_scoped_by_user_and_account(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A sender cannot bypass one account's quota, while another account is isolated."""
+
+    rate_limit.reset_rate_limiters()
+    monkeypatch.setattr(rate_limit, "EMAIL_SEND_RATE_LIMIT_REQUESTS", 2)
+
+    rate_limit.enforce_email_send_rate_limit("user-1", "account-1")
+    rate_limit.enforce_email_send_rate_limit("user-1", "account-1")
+    rate_limit.enforce_email_send_rate_limit("user-1", "account-2")
+
+    with pytest.raises(HTTPException):
+        rate_limit.enforce_email_send_rate_limit("user-1", "account-1")
+
+    rate_limit.reset_rate_limiters()

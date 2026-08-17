@@ -63,15 +63,19 @@ function AppLauncher() {
     // No results → nothing to navigate; bail before any modulo-by-zero math.
     if (filtered.length === 0) return
     if (e.key === 'ArrowRight') {
+      e.preventDefault()
       setSelectedIndex((prev) => (prev + 1) % filtered.length)
     } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
       setSelectedIndex((prev) => (prev - 1 + filtered.length) % filtered.length)
     } else if (e.key === 'ArrowDown') {
+      e.preventDefault()
       const cols = isMobile ? 3 : 4
       if (selectedIndex + cols < filtered.length) {
         setSelectedIndex((prev) => prev + cols)
       }
     } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
       const cols = isMobile ? 3 : 4
       if (selectedIndex - cols >= 0) {
         setSelectedIndex((prev) => prev - cols)
@@ -93,6 +97,9 @@ function AppLauncher() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 40 }}
         transition={SPRING.snappy}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Applications"
         className="neon-border glass-panel fixed bottom-14 left-1/2 z-[600] w-[90vw] max-w-md -translate-x-1/2 rounded-2xl p-4 shadow-[0_0_60px_rgba(0,255,255,0.05)] sm:bottom-16 sm:p-6"
       >
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
@@ -112,6 +119,10 @@ function AppLauncher() {
             onKeyDown={handleKeyDown}
             placeholder="search::applications..."
             aria-label="Search applications"
+            aria-controls="launcher-options"
+            aria-activedescendant={
+              filtered[selectedIndex] ? `launcher-option-${filtered[selectedIndex]}` : undefined
+            }
             className="flex-1 bg-transparent font-mono text-[11px] text-white/70 placeholder-muted-foreground/30 focus:outline-none"
           />
         </div>
@@ -124,7 +135,12 @@ function AppLauncher() {
         ) : (
           // md: (768px) matches the isMobile breakpoint used by the arrow-key column
           // math above, so keyboard navigation always moves the way the grid looks.
-          <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3">
+          <div
+            id="launcher-options"
+            role="listbox"
+            aria-label="Applications"
+            className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3"
+          >
             {filtered.map((appId, index) => {
               const manifest = APP_REGISTRY[appId]
               if (!manifest) return null
@@ -133,7 +149,10 @@ function AppLauncher() {
               return (
                 <button
                   key={appId}
+                  id={`launcher-option-${appId}`}
                   type="button"
+                  role="option"
+                  aria-selected={isSelected}
                   onClick={() => handleLaunch(appId)}
                   aria-label={manifest.title}
                   onMouseEnter={() => setSelectedIndex(index)}

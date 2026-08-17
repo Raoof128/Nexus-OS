@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { ArrowLeft, Menu, Search, X } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
@@ -26,8 +26,7 @@ export default function EmailApp() {
 
   // Search state
   const [searchTerm, setSearchTerm] = useState('')
-  const [searchResults, setSearchResults] = useState([])
-  const searchDebounceRef = useRef(null)
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
 
   const { accounts } = useEmailAccounts(userId)
   const {
@@ -36,37 +35,20 @@ export default function EmailApp() {
     error,
     refetch,
     loadMore,
-    search,
-  } = useEmails(session, activeFolder, activeAccountId)
-  const actions = useEmailActions(userId, activeFolder, activeAccountId)
+    loadingMore,
+    hasMore,
+  } = useEmails(session, activeFolder, activeAccountId, debouncedSearchTerm)
+  const actions = useEmailActions(userId)
 
   const selectedEmail = emails.find((e) => e.id === selectedEmailId) || null
 
   // Unread dot for inbox
   const hasUnread = activeFolder === 'inbox' && emails.some((e) => !e.is_read)
 
-  // Debounced search
   useEffect(() => {
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
-    if (!searchTerm.trim()) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSearchResults([])
-      return
-    }
-    searchDebounceRef.current = setTimeout(async () => {
-      try {
-        const results = await search(searchTerm)
-        setSearchResults(results)
-      } catch {
-        setSearchResults([])
-      }
-    }, 300)
-    return () => {
-      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
-    }
-  }, [searchTerm, search])
-
-  const displayedEmails = searchTerm.trim() ? searchResults : emails
+    const timer = setTimeout(() => setDebouncedSearchTerm(searchTerm.trim()), 300)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
 
   const handleSelect = useCallback(
     (id) => {
@@ -96,7 +78,7 @@ export default function EmailApp() {
     setActiveFolder(f)
     setSelectedEmailId(null)
     setSearchTerm('')
-    setSearchResults([])
+    setDebouncedSearchTerm('')
     setMobileView('list')
     setMobileSidebarOpen(false)
   }, [])
@@ -211,7 +193,7 @@ export default function EmailApp() {
                 type="button"
                 onClick={() => {
                   setSearchTerm('')
-                  setSearchResults([])
+                  setDebouncedSearchTerm('')
                 }}
                 className="text-muted-foreground/40 hover:text-white"
                 aria-label="Clear search"
@@ -240,12 +222,12 @@ export default function EmailApp() {
         )}
 
         <EmailList
-          emails={displayedEmails}
+          emails={emails}
           selectedEmailId={selectedEmailId}
-          loading={emailsLoading}
+          loading={emailsLoading || loadingMore}
           onSelectEmail={(email) => handleSelect(email.id)}
           onToggleStar={actions.toggleStar}
-          onLoadMore={loadMore}
+          onLoadMore={hasMore ? loadMore : undefined}
           activeFolder={activeFolder}
         />
       </div>

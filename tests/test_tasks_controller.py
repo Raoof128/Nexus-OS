@@ -158,20 +158,28 @@ def test_completing_recurring_task_spawns_next(client):
     }
     # maybe_single returns a single object (dict); list selects return lists.
     fetch = _chain(FakeResp(data=existing))
-    update = _chain(FakeResp(data=[{**existing, "status": "completed"}]))
-    positions = _chain(FakeResp(data=[{"position": 1.0}]))
-    insert = _chain(FakeResp(data=[{**existing, "id": "t10", "due": "2026-06-16"}]))
+    completed = {**existing, "status": "completed"}
+    rpc = _chain(FakeResp(data=[completed]))
 
     db = MagicMock()
-    # maybe_single fetch -> update -> position-select -> insert
-    db.from_.side_effect = [fetch, update, positions, insert]
+    db.from_.return_value = fetch
+    db.rpc.return_value = rpc
     with patch("backend.tasks_controller.create_supabase_user_client", return_value=db):
         res = client.patch("/api/tasks/items/t9", json={"status": "completed"})
     assert res.status_code == HTTP_200_OK
-    assert insert.insert.called
-    spawned = insert.insert.call_args.args[0]
-    assert spawned["due"] == "2026-06-16"
-    assert spawned["recurrence"] == "FREQ=DAILY;COUNT=2"
+    assert res.json()["status"] == "completed"
+    db.rpc.assert_called_once()
+    function_name, params = db.rpc.call_args.args
+    assert function_name == "complete_recurring_task"
+    assert params["p_task_id"] == "t9"
+    assert params["p_next_due"] == "2026-06-16"
+    assert params["p_next_due_at"] is None
+    assert params["p_next_due_timezone"] is None
+    assert params["p_next_recurrence"] == "FREQ=DAILY;COUNT=2"
+    assert params["p_expected_due"] == "2026-06-15"
+    assert params["p_expected_due_at"] is None
+    assert params["p_expected_due_timezone"] is None
+    assert params["p_expected_recurrence"] == "FREQ=DAILY;COUNT=3"
 
 
 def test_completing_timed_recurring_task_uses_due_timezone(client):
@@ -192,20 +200,105 @@ def test_completing_timed_recurring_task_uses_due_timezone(client):
         "position": 1.0,
     }
     fetch = _chain(FakeResp(data=existing))
-    update = _chain(FakeResp(data=[{**existing, "status": "completed"}]))
-    positions = _chain(FakeResp(data=[{"position": 1.0}]))
-    insert = _chain(FakeResp(data=[{**existing, "id": "t10"}]))
+    rpc = _chain(FakeResp(data=[{**existing, "status": "completed"}]))
 
     db = MagicMock()
-    db.from_.side_effect = [fetch, update, positions, insert]
+    db.from_.return_value = fetch
+    db.rpc.return_value = rpc
     with patch("backend.tasks_controller.create_supabase_user_client", return_value=db):
         res = client.patch("/api/tasks/items/t9", json={"status": "completed"})
 
     assert res.status_code == HTTP_200_OK
-    spawned = insert.insert.call_args.args[0]
-    assert spawned["due"] == "2026-03-08"
-    assert spawned["due_at"] == "2026-03-08T09:00:00-04:00"
-    assert spawned["due_timezone"] == "America/New_York"
+    _, params = db.rpc.call_args.args
+    assert params["p_next_due"] == "2026-03-08"
+    assert params["p_next_due_at"] == "2026-03-08T09:00:00-04:00"
+    assert params["p_next_due_timezone"] == "America/New_York"
+
+
+def test_completing_and_clearing_recurrence_does_not_spawn_successor(client):
+    existing = {
+        "id": "t9",
+        "user_id": "user-123",
+        "list_id": "l1",
+        "status": "needsAction",
+        "due": "2026-06-15",
+        "due_at": None,
+        "due_timezone": None,
+        "recurrence": "FREQ=DAILY",
+    }
+    fetch = _chain(FakeResp(data=existing))
+    update = _chain(
+        FakeResp(data=[{**existing, "status": "completed", "recurrence": None}])
+    )
+    db = MagicMock()
+    db.from_.side_effect = [fetch, update]
+
+    with patch("backend.tasks_controller.create_supabase_user_client", return_value=db):
+        response = client.patch(
+            "/api/tasks/items/t9",
+            json={"status": "completed", "recurrence": None},
+        )
+
+    assert response.status_code == HTTP_200_OK
+    db.rpc.assert_not_called()
+    update.update.assert_called_once()
+    assert update.update.call_args.args[0]["recurrence"] is None
+
+
+def test_completing_with_new_due_anchors_successor_on_patched_schedule(client):
+    existing = {
+        "id": "t9",
+        "user_id": "user-123",
+        "list_id": "l1",
+        "parent_id": None,
+        "title": "Standup",
+        "status": "needsAction",
+        "due": "2026-06-15",
+        "due_at": None,
+        "due_timezone": None,
+        "recurrence": "FREQ=DAILY",
+    }
+    fetch = _chain(FakeResp(data=existing))
+    rpc = _chain(FakeResp(data=[{**existing, "status": "completed"}]))
+    db = MagicMock()
+    db.from_.return_value = fetch
+    db.rpc.return_value = rpc
+
+    with patch("backend.tasks_controller.create_supabase_user_client", return_value=db):
+        response = client.patch(
+            "/api/tasks/items/t9",
+            json={"status": "completed", "due": "2026-07-01"},
+        )
+
+    assert response.status_code == HTTP_200_OK
+    _, params = db.rpc.call_args.args
+    assert params["p_next_due"] == "2026-07-02"
+    assert params["p_expected_due"] == "2026-06-15"
+
+
+def test_task_update_rejects_stale_updated_at(client):
+    existing = {
+        "id": "t1",
+        "user_id": "user-123",
+        "status": "needsAction",
+        "updated_at": "2026-08-17T00:00:00+00:00",
+    }
+    fetch = _chain(FakeResp(data=existing))
+    conflicting_update = _chain(FakeResp(data=[]))
+    db = MagicMock()
+    db.from_.side_effect = [fetch, conflicting_update]
+
+    with patch("backend.tasks_controller.create_supabase_user_client", return_value=db):
+        response = client.patch("/api/tasks/items/t1", json={"title": "Fresh"})
+
+    assert response.status_code == HTTP_409_CONFLICT
+    assert response.json()["detail"] == (
+        "Task changed during update; retry with fresh data"
+    )
+    conflicting_update.eq.assert_any_call(
+        "updated_at",
+        "2026-08-17T00:00:00+00:00",
+    )
 
 
 def test_recompleting_completed_recurring_task_does_not_spawn_duplicate(client):

@@ -88,4 +88,20 @@ describe('AppLauncher', () => {
     fireEvent.change(input, { target: { value: 'zzzzz' } })
     expect(screen.getByText('NO_MATCHES_FOUND')).toBeDefined()
   })
+
+  it('exposes a labelled modal and announces the arrow-selected app', () => {
+    render(<AppLauncher />)
+    const dialog = screen.getByRole('dialog', { name: 'Applications' })
+    const input = screen.getByLabelText('Search applications')
+
+    expect(dialog).toBeDefined()
+    expect(input.getAttribute('aria-activedescendant')).toBe('launcher-option-media')
+
+    fireEvent.keyDown(input, { key: 'ArrowRight' })
+
+    expect(input.getAttribute('aria-activedescendant')).toBe('launcher-option-chat')
+    expect(screen.getByRole('option', { name: 'AI Chat' }).getAttribute('aria-selected')).toBe(
+      'true',
+    )
+  })
 })

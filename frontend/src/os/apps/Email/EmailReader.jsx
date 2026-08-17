@@ -8,9 +8,8 @@ import { apiFetch } from '../../../lib/apiClient'
 import EmailToolbar from './EmailToolbar'
 
 function buildSrcdoc(html, allowImages) {
-  const csp = allowImages
-    ? ''
-    : `<meta http-equiv="Content-Security-Policy" content="img-src 'none' data:;">`
+  const imageSources = allowImages ? 'https: http: data: blob:' : 'data:'
+  const csp = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'none'; img-src ${imageSources}; style-src 'unsafe-inline'; font-src 'none'; connect-src 'none'; frame-src 'none'; child-src 'none'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none';">`
 
   const sanitized = DOMPurify.sanitize(html, {
     ADD_TAGS: ['style'],
@@ -68,26 +67,41 @@ const EmailReader = React.memo(function EmailReader({
     if (!email?.id) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setHtmlContent(null)
+      setHtmlError(null)
+      setHtmlLoading(false)
+      lastEmailId.current = null
       return
     }
     if (email.id === lastEmailId.current) return
 
-    lastEmailId.current = email.id
+    const requestedEmailId = email.id
+    let active = true
+    lastEmailId.current = requestedEmailId
     setAllowImages(false)
     setHtmlError(null)
     setHtmlContent(null)
     setHtmlLoading(true)
 
-    apiFetch(`/api/email/${email.id}/html`)
+    apiFetch(`/api/email/${requestedEmailId}/html`)
       .then((data) => {
-        setHtmlContent(data?.html ?? null)
+        if (active && lastEmailId.current === requestedEmailId) {
+          setHtmlContent(data?.html ?? null)
+        }
       })
       .catch((err) => {
-        setHtmlError(err.message)
+        if (active && lastEmailId.current === requestedEmailId) {
+          setHtmlError(err.message)
+        }
       })
       .finally(() => {
-        setHtmlLoading(false)
+        if (active && lastEmailId.current === requestedEmailId) {
+          setHtmlLoading(false)
+        }
       })
+
+    return () => {
+      active = false
+    }
   }, [email?.id])
 
   const toggleImages = useCallback(() => setAllowImages((v) => !v), [])

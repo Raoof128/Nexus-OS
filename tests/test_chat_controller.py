@@ -85,6 +85,7 @@ class TestChatController:
         mock_history_query.select.return_value = mock_history_query
         mock_history_query.eq.return_value = mock_history_query
         mock_history_query.order.return_value = mock_history_query
+        mock_history_query.limit.return_value = mock_history_query
         mock_history_query.execute.return_value = FakeSupabaseResponse(data=[])
 
         mock_db = MagicMock()
@@ -118,6 +119,8 @@ class TestChatController:
 
         # Verify success was recorded
         mock_breaker.record_success.assert_called_once()
+        mock_history_query.order.assert_called_once_with("created_at", desc=True)
+        mock_history_query.limit.assert_called_once_with(12)
 
     @patch("backend.chat_controller.create_supabase_user_client")
     def test_send_message_session_not_found(self, mock_db_fn, client):

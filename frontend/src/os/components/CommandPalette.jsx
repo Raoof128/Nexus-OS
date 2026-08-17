@@ -71,6 +71,9 @@ export default function CommandPalette() {
   // happens here in the event handler, not in an effect.
   useEffect(() => {
     const onKey = (e) => {
+      // App-scoped palettes (for example Library AI) claim the same shortcut
+      // with preventDefault. Respect that ownership instead of opening both.
+      if (e.defaultPrevented) return
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         if (open) {

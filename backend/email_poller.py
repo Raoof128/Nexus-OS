@@ -17,7 +17,7 @@ try:
         encrypt_oauth_token,
         get_provider,
     )
-    from .services import create_supabase_service_client
+    from .services import create_supabase_service_client, run_blocking
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from config import get_settings
     from email_service import (
@@ -26,7 +26,7 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
         encrypt_oauth_token,
         get_provider,
     )
-    from services import create_supabase_service_client
+    from services import create_supabase_service_client, run_blocking
 
 if TYPE_CHECKING:
     from litestar import Litestar
@@ -145,12 +145,12 @@ async def refresh_token_if_needed(account: dict, settings) -> str:
 
     try:
         db = create_supabase_service_client()
-        (
+        builder = (
             db.postgrest.from_("email_accounts")
             .update(update_row)
             .eq("id", account["id"])
-            .execute()
         )
+        await run_blocking(builder.execute)
     except Exception:
         logger.exception(
             "Failed to persist refreshed token for account %s", account.get("id")
@@ -217,9 +217,10 @@ async def sync_account(account: dict, settings) -> None:
     if rows:
         try:
             db = create_supabase_service_client()
-            db.postgrest.from_("nexus_emails").upsert(
+            builder = db.postgrest.from_("nexus_emails").upsert(
                 rows, on_conflict="account_id,provider_id"
-            ).execute()
+            )
+            await run_blocking(builder.execute)
         except Exception:
             logger.exception("Failed to upsert messages for account %s", account_id)
 
@@ -228,13 +229,13 @@ async def sync_account(account: dict, settings) -> None:
     # ``fetch_messages`` only returns a small recent page (Gmail ~100, Graph
     # defaults to 10), so it must NOT be used as the "what still exists
     # remotely" set — doing so would flag the entire older inbox as deleted on
-    # every poll.  ``fetch_message_ids`` returns the full inbox id list (capped
-    # at 500) for exactly this comparison.  Both the DB read and the delete are
+    # every poll. ``fetch_message_ids`` returns an ID snapshot plus an explicit
+    # completeness flag. Both the DB read and the delete are
     # scoped to ``folder == "inbox"`` so messages the user has moved locally
     # (trash/sent/archive) are never clobbered.  If the full id fetch fails we
     # skip ghost detection entirely rather than fall back to the partial set.
     try:
-        full_remote_ids = set(await provider.fetch_message_ids(access_token))
+        remote_listing = await provider.fetch_message_ids(access_token)
     except Exception:
         logger.exception(
             "Failed to fetch full message id list for account %s; "
@@ -243,24 +244,39 @@ async def sync_account(account: dict, settings) -> None:
         )
         return
 
+    if not remote_listing.complete:
+        logger.warning(
+            "Mailbox ID listing hit its safety cap for account %s; "
+            "skipping ghost detection this cycle",
+            account_id,
+        )
+        return
+
+    full_remote_ids = set(remote_listing.ids)
+
     try:
         db = create_supabase_service_client()
-        db_resp = (
+        select_builder = (
             db.postgrest.from_("nexus_emails")
             .select("provider_id")
             .eq("account_id", account_id)
             .eq("folder", "inbox")
-            .execute()
         )
+        db_resp = await run_blocking(select_builder.execute)
         db_ids = {row["provider_id"] for row in (db_resp.data or [])}
         ghosts = detect_ghost_emails(db_ids, full_remote_ids)
         if ghosts:
             logger.info(
                 "Detected %d ghost email(s) for account %s", len(ghosts), account_id
             )
-            db.postgrest.from_("nexus_emails").update({"folder": "deleted"}).in_(
-                "provider_id", list(ghosts)
-            ).eq("account_id", account_id).eq("folder", "inbox").execute()
+            update_builder = (
+                db.postgrest.from_("nexus_emails")
+                .update({"folder": "deleted"})
+                .in_("provider_id", list(ghosts))
+                .eq("account_id", account_id)
+                .eq("folder", "inbox")
+            )
+            await run_blocking(update_builder.execute)
     except Exception:
         logger.exception("Ghost detection failed for account %s", account_id)
 
@@ -278,12 +294,10 @@ async def poll_all_accounts() -> None:
     settings = get_settings()
     try:
         db = create_supabase_service_client()
-        resp = (
-            db.postgrest.from_("email_accounts")
-            .select("*")
-            .eq("status", "active")
-            .execute()
+        builder = (
+            db.postgrest.from_("email_accounts").select("*").eq("status", "active")
         )
+        resp = await run_blocking(builder.execute)
         accounts = resp.data or []
     except Exception:
         logger.exception("Failed to fetch email accounts for polling")

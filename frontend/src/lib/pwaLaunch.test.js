@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { consumeShareTarget, consumeFileHandlers } from './pwaLaunch'
 
-const NOTES_KEY = 'nexus-os:notes'
-
 function setUrl(search) {
   window.history.replaceState({}, '', search)
 }
@@ -25,28 +23,24 @@ describe('consumeShareTarget', () => {
     expect(consumeShareTarget()).toBeNull()
   })
 
-  it('returns "notes" and appends shared text to the Notes buffer', () => {
+  it('returns "notes" and persists shared text through the authenticated Notes API', async () => {
+    const createNote = vi.fn().mockResolvedValue({ id: 'note-1' })
+    const onSaved = vi.fn()
     setUrl('/?share-target=1&title=Hello&text=World&url=https://example.com')
-    const result = consumeShareTarget()
+    const result = consumeShareTarget({ createNote, onSaved })
     expect(result).toBe('notes')
-    const notes = localStorage.getItem(NOTES_KEY)
-    expect(notes).toContain('Hello')
-    expect(notes).toContain('World')
-    expect(notes).toContain('https://example.com')
-  })
-
-  it('appends to existing notes rather than overwriting', () => {
-    localStorage.setItem(NOTES_KEY, 'existing content')
-    setUrl('/?share-target=1&text=new+stuff')
-    consumeShareTarget()
-    const notes = localStorage.getItem(NOTES_KEY)
-    expect(notes).toContain('existing content')
-    expect(notes).toContain('new stuff')
+    expect(createNote).toHaveBeenCalledWith({
+      title: 'Hello',
+      content: 'World\nhttps://example.com',
+      type: 'text',
+    })
+    await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith({ id: 'note-1' }))
+    expect(localStorage.getItem('nexus-os:notes')).toBeNull()
   })
 
   it('strips the share params from the URL after consuming', () => {
     setUrl('/?share-target=1&text=hi&app=keep')
-    consumeShareTarget()
+    consumeShareTarget({ createNote: vi.fn() })
     const params = new URLSearchParams(window.location.search)
     expect(params.has('share-target')).toBe(false)
     expect(params.has('text')).toBe(false)
@@ -56,9 +50,20 @@ describe('consumeShareTarget', () => {
 
   it('still returns "notes" even when all shared fields are empty', () => {
     setUrl('/?share-target=1')
-    expect(consumeShareTarget()).toBe('notes')
-    // nothing written when there's no content
-    expect(localStorage.getItem(NOTES_KEY)).toBeNull()
+    const createNote = vi.fn()
+    expect(consumeShareTarget({ createNote })).toBe('notes')
+    expect(createNote).not.toHaveBeenCalled()
+  })
+
+  it('reports an API failure after scrubbing sensitive share parameters', async () => {
+    const onError = vi.fn()
+    setUrl('/?share-target=1&text=private')
+
+    consumeShareTarget({ createNote: vi.fn().mockRejectedValue(new Error('offline')), onError })
+
+    expect(window.location.search).toBe('')
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledWith(expect.any(Error)))
+    expect(localStorage.getItem('nexus-os:notes')).toBeNull()
   })
 })
 

@@ -22,14 +22,15 @@ export default function TaskListView({
   onSortModeChange,
   starredActive,
   rootRef,
+  userId,
 }) {
-  const { data: items = [], isLoading } = useTaskItems(listId, true)
+  const { data: items = [], isLoading, error, refetch } = useTaskItems(listId, true)
   const { createTask, updateTask, moveTask, deleteTask } = useTaskMutations(listId, true)
   const [editing, setEditing] = useState(null) // null | 'new' | { mode, parent } | task
   const [showCompleted, setShowCompleted] = useState(true)
   const [focusedTaskId, setFocusedTaskId] = useState(null)
 
-  useTaskReminders(items)
+  useTaskReminders(items, userId)
 
   const visible = useMemo(
     () => (starredActive ? items.filter((t) => t.starred) : items),
@@ -81,16 +82,15 @@ export default function TaskListView({
       id: task.id,
       patch: { status: task.status === 'completed' ? 'needsAction' : 'completed' },
     })
-  const handleStar = (task) =>
-    updateTask.mutate({ id: task.id, patch: { starred: !task.starred } })
+  const handleStar = (task) => updateTask.mutate({ id: task.id, patch: { starred: !task.starred } })
   const handleDelete = (task) => deleteTask.mutate(task.id)
   const handleAdd = ({ title, due, due_at, due_timezone, all_day }) =>
-    createTask.mutate({ title, due, due_at, due_timezone, all_day })
-  const handleSave = (payload) => {
+    createTask.mutateAsync({ title, due, due_at, due_timezone, all_day })
+  const handleSave = async (payload) => {
     if (editing && editing !== 'new' && editing.mode !== 'new-subtask') {
-      updateTask.mutate({ id: editing.id, patch: payload })
+      await updateTask.mutateAsync({ id: editing.id, patch: payload })
     } else {
-      createTask.mutate({
+      await createTask.mutateAsync({
         ...payload,
         parent_id: editing?.mode === 'new-subtask' ? editing.parent.id : undefined,
       })
@@ -137,7 +137,7 @@ export default function TaskListView({
 
   return (
     <section className="flex min-w-0 flex-1 flex-col">
-      <header className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-3 py-3 sm:px-4">
+      <header className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-3 py-3 @sm:px-4">
         <h2 className="heading-display flex min-w-0 items-center gap-2 truncate text-base text-white">
           {starredActive ? 'Starred' : listName || 'Tasks'}
         </h2>
@@ -162,7 +162,7 @@ export default function TaskListView({
       <div className="flex-1 overflow-y-auto px-4 py-3">
         {!starredActive && (
           <div className="mb-3">
-            <QuickAddBar onAdd={handleAdd} disabled={!listId} />
+            <QuickAddBar onAdd={handleAdd} disabled={!listId || createTask.isPending} />
           </div>
         )}
 
@@ -180,6 +180,20 @@ export default function TaskListView({
 
         {isLoading ? (
           <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
+        ) : error ? (
+          <div
+            role="alert"
+            className="flex flex-col items-center gap-3 rounded-xl border border-red-400/25 bg-red-500/10 p-4 text-center text-sm text-red-100"
+          >
+            <p>{error.message || 'Unable to load tasks.'}</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="rounded-lg border border-red-300/30 px-3 py-2 text-xs hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/60"
+            >
+              Retry
+            </button>
+          </div>
         ) : parents.length === 0 && completed.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
             <ListChecks size={28} className="opacity-40" />
@@ -188,19 +202,20 @@ export default function TaskListView({
             </p>
           </div>
         ) : (
-          <ul role="list" onFocusCapture={(e) => {
-            const li = e.target.closest('[data-task-id]')
-            if (li) setFocusedTaskId(li.getAttribute('data-task-id'))
-          }}>
+          <ul
+            role="list"
+            onFocusCapture={(e) => {
+              const li = e.target.closest('[data-task-id]')
+              if (li) setFocusedTaskId(li.getAttribute('data-task-id'))
+            }}
+          >
             <AnimatePresence initial={false}>
-              {parents.map((p) => (
-                <div key={p.id}>
-                  {renderRow(p, 0, parents)}
-                  {(childrenByParent[p.id] || []).map((c) =>
-                    renderRow(c, 1, childrenByParent[p.id] || []),
-                  )}
-                </div>
-              ))}
+              {parents.flatMap((parent) => [
+                renderRow(parent, 0, parents),
+                ...(childrenByParent[parent.id] || []).map((child) =>
+                  renderRow(child, 1, childrenByParent[parent.id] || []),
+                ),
+              ])}
             </AnimatePresence>
           </ul>
         )}

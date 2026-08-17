@@ -34,6 +34,10 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd }) {
       if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return
       if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault()
+        // The application palette owns this shortcut while Library is open.
+        // Stop the bubbled event before the OS-wide window listener can also
+        // open its command palette.
+        event.stopPropagation()
         openPalette()
       }
     }

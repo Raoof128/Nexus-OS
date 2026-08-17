@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import email
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -243,14 +244,15 @@ class TestGmailProviderFetchMessageIds:
 
         with patch("backend.email_service.httpx.AsyncClient", return_value=mock_client):
             provider = GmailProvider()
-            ids = await provider.fetch_message_ids("token-abc")
+            result = await provider.fetch_message_ids("token-abc")
 
         mock_client.get.assert_called_once()
         call_args = mock_client.get.call_args
         url = call_args.args[0] if call_args.args else call_args.kwargs.get("url", "")
         assert "gmail.googleapis.com" in url
         assert "messages" in url
-        assert ids == ["abc", "def"]
+        assert result.ids == ["abc", "def"]
+        assert result.complete is True
 
     @pytest.mark.anyio
     async def test_follows_pagination(self) -> None:
@@ -273,13 +275,44 @@ class TestGmailProviderFetchMessageIds:
 
         with patch("backend.email_service.httpx.AsyncClient", return_value=mock_client):
             provider = GmailProvider()
-            ids = await provider.fetch_message_ids("token-abc")
+            result = await provider.fetch_message_ids("token-abc")
 
         assert mock_client.get.call_count == 2
-        assert ids == ["a", "b", "c"]
+        assert result.ids == ["a", "b", "c"]
+        assert result.complete is True
         # Second call must carry the page token.
         second_call = mock_client.get.call_args_list[1]
         assert second_call.kwargs["params"].get("pageToken") == "PAGE2"
+
+    @pytest.mark.anyio
+    async def test_reports_incomplete_when_page_cap_is_exhausted(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A capped listing must not masquerade as a complete mailbox snapshot."""
+
+        page1 = MagicMock()
+        page1.raise_for_status = MagicMock()
+        page1.json.return_value = {
+            "messages": [{"id": "a"}],
+            "nextPageToken": "PAGE2",
+        }
+        page2 = MagicMock()
+        page2.raise_for_status = MagicMock()
+        page2.json.return_value = {
+            "messages": [{"id": "b"}],
+            "nextPageToken": "PAGE3",
+        }
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client.get = AsyncMock(side_effect=[page1, page2])
+        monkeypatch.setattr("backend.email_service._MAX_ID_PAGES", 2)
+
+        with patch("backend.email_service.httpx.AsyncClient", return_value=mock_client):
+            result = await GmailProvider().fetch_message_ids("token-abc")
+
+        assert result.ids == ["a", "b"]
+        assert result.complete is False
 
 
 # ---------------------------------------------------------------------------
@@ -301,14 +334,184 @@ class TestGraphProviderFetchMessageIds:
 
         with patch("backend.email_service.httpx.AsyncClient", return_value=mock_client):
             provider = GraphProvider()
-            ids = await provider.fetch_message_ids("token-xyz")
+            result = await provider.fetch_message_ids("token-xyz")
 
         mock_client.get.assert_called_once()
         call_args = mock_client.get.call_args
         url = call_args.args[0] if call_args.args else call_args.kwargs.get("url", "")
         assert "graph.microsoft.com" in url
         assert "Inbox" in url or "messages" in url
-        assert ids == ["graph-id-1"]
+        assert result.ids == ["graph-id-1"]
+        assert result.complete is True
+
+    @pytest.mark.anyio
+    async def test_reports_incomplete_when_page_cap_is_exhausted(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Graph pagination caps must also suppress destructive reconciliation."""
+
+        page1 = MagicMock()
+        page1.raise_for_status = MagicMock()
+        page1.json.return_value = {
+            "value": [{"id": "a"}],
+            "@odata.nextLink": "https://graph.microsoft.com/page-2",
+        }
+        page2 = MagicMock()
+        page2.raise_for_status = MagicMock()
+        page2.json.return_value = {
+            "value": [{"id": "b"}],
+            "@odata.nextLink": "https://graph.microsoft.com/page-3",
+        }
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client.get = AsyncMock(side_effect=[page1, page2])
+        monkeypatch.setattr("backend.email_service._MAX_ID_PAGES", 2)
+
+        with patch("backend.email_service.httpx.AsyncClient", return_value=mock_client):
+            result = await GraphProvider().fetch_message_ids("token-xyz")
+
+        assert result.ids == ["a", "b"]
+        assert result.complete is False
+
+
+@pytest.mark.anyio
+async def test_gmail_send_includes_bcc_header() -> None:
+    """Removing the Bcc MIME header would silently drop Gmail BCC recipients."""
+
+    response = MagicMock()
+    response.raise_for_status = MagicMock()
+    response.json.return_value = {"id": "sent-1"}
+    client = AsyncMock()
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=False)
+    client.post = AsyncMock(return_value=response)
+
+    with patch("backend.email_service.httpx.AsyncClient", return_value=client):
+        await GmailProvider().send_message(
+            "token",
+            {
+                "to": ["to@example.com"],
+                "bcc": ["hidden@example.com"],
+                "subject": "Confidential",
+                "body_html": "<p>Hello</p>",
+            },
+        )
+
+    raw = client.post.call_args.kwargs["json"]["raw"]
+    decoded = base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4))
+    message = email.message_from_bytes(decoded)
+    assert message["Bcc"] == "hidden@example.com"
+
+
+@pytest.mark.anyio
+async def test_gmail_archive_removes_inbox_without_adding_fake_label() -> None:
+    """Archiving in Gmail means removing INBOX, not adding an ARCHIVE label."""
+
+    provider = GmailProvider()
+    provider.update_labels = AsyncMock()
+
+    await provider.move_message("token", "message-1", "archive")
+
+    provider.update_labels.assert_awaited_once_with("token", "message-1", [], ["INBOX"])
+
+
+@pytest.mark.anyio
+async def test_gmail_move_rejects_unknown_folder() -> None:
+    provider = GmailProvider()
+    provider.update_labels = AsyncMock()
+
+    with pytest.raises(ValueError, match="Unsupported Gmail folder"):
+        await provider.move_message("token", "message-1", "arbitrary")
+
+    provider.update_labels.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_gmail_reply_uses_original_rfc_message_id_and_subject() -> None:
+    response = MagicMock()
+    response.raise_for_status = MagicMock()
+    response.json.return_value = {
+        "payload": {
+            "headers": [
+                {"name": "Message-ID", "value": "<original@example.com>"},
+                {"name": "Subject", "value": "Original subject"},
+            ]
+        }
+    }
+    client = AsyncMock()
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=False)
+    client.get = AsyncMock(return_value=response)
+    provider = GmailProvider()
+    provider.send_message = AsyncMock(return_value={"id": "reply-1"})
+
+    with patch("backend.email_service.httpx.AsyncClient", return_value=client):
+        await provider.reply_message(
+            "token",
+            "opaque-gmail-api-id",
+            {
+                "to": ["sender@example.com"],
+                "subject": "Edited subject",
+                "body_html": "<p>Reply</p>",
+                "thread_id": "thread-1",
+            },
+        )
+
+    sent = provider.send_message.await_args.args[1]
+    assert sent["in_reply_to"] == "<original@example.com>"
+    assert sent["subject"] == "Original subject"
+    assert "opaque-gmail-api-id" not in sent.values()
+
+
+@pytest.mark.anyio
+async def test_graph_trash_uses_deleted_items_well_known_folder() -> None:
+    response = MagicMock()
+    response.raise_for_status = MagicMock()
+    response.json.return_value = {"id": "immutable-message-id"}
+    client = AsyncMock()
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=False)
+    client.post = AsyncMock(return_value=response)
+
+    with patch("backend.email_service.httpx.AsyncClient", return_value=client):
+        moved_id = await GraphProvider().move_message("token", "message-1", "trash")
+
+    assert client.post.call_args.kwargs["json"] == {"destinationId": "deleteditems"}
+    assert client.post.call_args.kwargs["headers"]["Prefer"] == 'IdType="ImmutableId"'
+    assert moved_id == "immutable-message-id"
+
+
+@pytest.mark.anyio
+async def test_graph_reply_uses_reply_endpoint_and_message_body() -> None:
+    """A Graph reply must target the reply action, not put a message ID in replyTo."""
+
+    response = MagicMock()
+    response.raise_for_status = MagicMock()
+    client = AsyncMock()
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=False)
+    client.post = AsyncMock(return_value=response)
+
+    with patch("backend.email_service.httpx.AsyncClient", return_value=client):
+        await GraphProvider().reply_message(
+            "token",
+            "opaque-provider-message-id",
+            {
+                "to": ["sender@example.com"],
+                "cc": [],
+                "body_html": "<p>Reply</p>",
+            },
+        )
+
+    call = client.post.call_args
+    assert call.args[0].endswith("/messages/opaque-provider-message-id/reply")
+    assert call.kwargs["json"] == {
+        "message": {
+            "body": {"contentType": "HTML", "content": "<p>Reply</p>"},
+            "toRecipients": [{"emailAddress": {"address": "sender@example.com"}}],
+        }
+    }
 
 
 # ---------------------------------------------------------------------------

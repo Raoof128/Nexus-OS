@@ -43,8 +43,7 @@ function withTime(d, hour, minute) {
 }
 
 function extractTime(text, baseDate) {
-  const twelveHour =
-    /\b(?:at\s*)?([1-9]|1[0-2])(?::([0-5]\d))?\s*(am|pm)\b/i
+  const twelveHour = /\b(?:at\s*)?([1-9]|1[0-2])(?::([0-5]\d))?\s*(am|pm)\b/i
   const twentyFourHour = /\bat\s+([01]?\d|2[0-3]):([0-5]\d)\b/i
 
   let match = text.match(twelveHour)

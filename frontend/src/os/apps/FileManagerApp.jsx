@@ -40,7 +40,7 @@ function NewEntryDialog({ type, onSubmit, onCancel }) {
         }}
         placeholder={label}
         autoFocus
-        className="flex-1 bg-transparent font-mono text-[11px] text-white/80 placeholder-muted-foreground/30 focus:outline-none"
+        className="flex-1 bg-transparent font-mono text-[11px] text-white/80 placeholder-muted-foreground/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
       />
       <button
         type="button"
@@ -247,7 +247,6 @@ export default function FileManagerApp() {
   const deleteEntry = useFileSystemStore((s) => s.deleteEntry)
   const renameEntry = useFileSystemStore((s) => s.renameEntry)
   const importFile = useFileSystemStore((s) => s.importFile)
-  const hydrateFileSystem = useFileSystemStore((s) => s.hydrateFileSystem)
 
   const [creating, setCreating] = useState(null) // 'file' | 'folder' | null
   const [viewingFile, setViewingFile] = useState(null)
@@ -259,11 +258,6 @@ export default function FileManagerApp() {
   const fileInputRef = useRef(null)
   const opfsAvailable = isOpfsSupported()
 
-  useEffect(() => {
-    hydrateFileSystem()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   const currentFolder = files[currentPath]
   const children = currentFolder?.children || []
 
@@ -272,11 +266,13 @@ export default function FileManagerApp() {
 
   const handleCreate = useCallback(
     (name) => {
-      if (creating === 'file') {
-        createFile(currentPath, name, '')
-      } else {
-        createFolder(currentPath, name)
+      const created =
+        creating === 'file' ? createFile(currentPath, name, '') : createFolder(currentPath, name)
+      if (!created) {
+        setImportError(`An item named "${name}" already exists or the name is invalid.`)
+        return
       }
+      setImportError(null)
       setCreating(null)
     },
     [creating, currentPath, createFile, createFolder],
@@ -296,8 +292,15 @@ export default function FileManagerApp() {
 
   const handleRenameSubmit = useCallback(() => {
     if (renameValue.trim() && renameValue !== renamingEntry) {
-      renameEntry(currentPath, renamingEntry, renameValue.trim())
+      const renamed = renameEntry(currentPath, renamingEntry, renameValue.trim())
+      if (!renamed) {
+        setImportError(
+          `An item named "${renameValue.trim()}" already exists or the name is invalid.`,
+        )
+        return
+      }
     }
+    setImportError(null)
     setRenamingEntry(null)
   }, [currentPath, renamingEntry, renameValue, renameEntry])
 
@@ -327,12 +330,6 @@ export default function FileManagerApp() {
     },
     [currentPath, importFile, opfsAvailable],
   )
-
-  useEffect(() => {
-    if (viewingFile && !files[viewingFile]) {
-      setViewingFile(null)
-    }
-  }, [viewingFile, files])
 
   if (viewingFile && files[viewingFile]) {
     return (
@@ -472,7 +469,7 @@ export default function FileManagerApp() {
                     }}
                     onBlur={handleRenameSubmit}
                     autoFocus
-                    className="flex-1 bg-transparent font-mono text-[11px] text-white/80 focus:outline-none"
+                    className="flex-1 bg-transparent font-mono text-[11px] text-white/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                   />
                 </div>
               ) : (

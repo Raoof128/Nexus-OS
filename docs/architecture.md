@@ -26,7 +26,7 @@ flowchart TD
     Audit["Audit Logs + Sentry"]
   end
 
-  F -->|Secure Cookies| C
+  F -->|Secure cookies for API| C
   C --> A
   A --> V
   V --> Auth
@@ -41,9 +41,15 @@ flowchart TD
 
 Nexus OS uses a backend-mediated auth flow.
 
-- **Access Tokens**: Stored in `HttpOnly`, `SameSite=Strict` cookies. Never readable by JavaScript.
+- **API Access Tokens**: Stored in `HttpOnly`, `SameSite=Lax` cookies. Auth
+  responses expose only identity metadata; bearer tokens are not available to
+  application JavaScript or browser storage.
 - **Refresh Flow**: Handled via `/auth/refresh` on the backend, preventing token theft from localStorage.
-- **CSRF Protection**: Enforced via `SameSite` and strict CORS policies.
+- **CSRF Protection**: Enforced with `SameSite=Lax`, an `X-Requested-With`
+  requirement on state-changing API calls, and credentialed-origin allowlists.
+- **Freshness Model**: Private media and email views use bounded foreground
+  polling plus focus refresh through the authenticated API. This intentionally
+  trades instant cross-tab updates for a smaller browser credential surface.
 
 ### 2. AI Prompt Isolation
 
@@ -61,7 +67,8 @@ Nexus OS uses a backend-mediated auth flow.
 ### State Management
 
 - **Zustand**: Manages ephemeral OS state (windows, app launcher, taskbar).
-- **TanStack Query**: Manages server-state and cache invalidation with Realtime Supabase sync.
+- **TanStack Query**: Manages server state, optimistic mutations, bounded
+  foreground polling, and focus refresh.
 
 ## Backend Service Layer
 
@@ -81,6 +88,11 @@ Nexus OS uses a modular application registry. Each "App" is self-contained in `f
 
 ## Trust Boundaries
 
-1.  **Browser to API**: Secured by HttpOnly cookies and CORS.
-2.  **API to Supabase**: Secured by Service Role keys (server-side only) and RLS.
-3.  **API to Gemini**: Secured by server-side API keys and prompt sanitization.
+1.  **Browser to API**: Secured by HttpOnly cookies, CSRF header checks, allowed
+    hosts, and credentialed CORS allowlists.
+2.  **API to Supabase**: User requests carry the caller JWT so RLS remains the
+    primary tenant boundary; only the background email poller uses service role.
+3.  **API to Redis**: Shared rate-limit state; failures fall back to bounded
+    per-process limits.
+4.  **API to Gemini and email providers**: Server-side credentials, bounded
+    inputs, request timeouts, and provider-specific validation.

@@ -59,11 +59,10 @@ class SessionUser(BaseModel):
 
 
 class AuthSessionResponse(BaseModel):
-    """Frontend-safe session snapshot."""
+    """Frontend-safe identity snapshot; credentials remain in HttpOnly cookies."""
 
     user: SessionUser
     expires_at: int | None = None
-    access_token: str | None = None
 
 
 class RegisterRequest(BaseModel):

@@ -209,6 +209,7 @@ function LockLogo() {
 export default function LockScreen({ onUnlock }) {
   const [exiting, setExiting] = useState(false)
   const exitingRef = useRef(false)
+  const lockRef = useRef(null)
 
   const dismiss = useCallback(() => {
     if (exitingRef.current) return
@@ -241,10 +242,21 @@ export default function LockScreen({ onUnlock }) {
     }
   }, [dismiss])
 
+  useEffect(() => {
+    const previouslyFocused = document.activeElement
+    lockRef.current?.focus()
+    return () => {
+      if (previouslyFocused instanceof HTMLElement && previouslyFocused.isConnected) {
+        previouslyFocused.focus()
+      }
+    }
+  }, [])
+
   return (
     <AnimatePresence onExitComplete={onUnlock}>
       {!exiting && (
         <Motion.div
+          ref={lockRef}
           key="lock-screen"
           className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
           style={{
@@ -259,6 +271,7 @@ export default function LockScreen({ onUnlock }) {
           aria-label="Lock screen — click or press any key to unlock"
           role="dialog"
           aria-modal
+          tabIndex={-1}
         >
           <CircuitBackground />
 

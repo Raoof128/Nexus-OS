@@ -24,6 +24,7 @@ const resetTree = () =>
       '/documents': { type: 'folder', name: 'documents', children: [] },
     },
     currentPath: '/',
+    storageUserId: null,
   })
 
 function fakeFile(name, content = 'data', type = 'text/plain') {
@@ -57,6 +58,38 @@ describe('fileSystemStore — OPFS import', () => {
     expect(useFileSystemStore.getState().files['/documents'].children).toEqual([
       'a.txt',
       'a (1).txt',
+    ])
+  })
+
+  it('rechecks names when concurrent imports finish', async () => {
+    useFileSystemStore.getState().createFile('/documents', 'a.txt', 'existing')
+    let resolveFirst
+    let resolveSecond
+    writeBlob
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = () => resolve(true)
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = () => resolve(true)
+          }),
+      )
+
+    const first = useFileSystemStore.getState().importFile('/documents', fakeFile('a.txt'))
+    const second = useFileSystemStore.getState().importFile('/documents', fakeFile('a.txt'))
+    resolveFirst()
+    expect(await first).toBe('/documents/a (1).txt')
+    resolveSecond()
+    expect(await second).toBe('/documents/a (2).txt')
+
+    expect(useFileSystemStore.getState().files['/documents'].children).toEqual([
+      'a.txt',
+      'a (1).txt',
+      'a (2).txt',
     ])
   })
 

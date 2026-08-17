@@ -237,7 +237,7 @@ export default function TerminalApp({ windowId: _windowId }) {
           placeholder="type a command..."
           aria-label="Terminal command input"
           autoFocus
-          className="flex-1 bg-transparent text-white/80 placeholder-muted-foreground/30 focus:outline-none caret-primary"
+          className="flex-1 bg-transparent text-white/80 placeholder-muted-foreground/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 caret-primary"
           spellCheck={false}
         />
       </div>

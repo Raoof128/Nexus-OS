@@ -5,6 +5,8 @@ from unittest.mock import MagicMock
 import backend.services as services
 from backend.services import (
     build_local_suggestion,
+    create_supabase_user_client,
+    get_genai_client,
     parse_gemini_json_response,
     prune_media_context,
 )
@@ -104,6 +106,47 @@ async def test_run_blocking_executes_sync_callable() -> None:
 
     result = await services.run_blocking(lambda x, y: x + y, 40, y=2)
     assert result == 42
+
+
+def test_supabase_client_has_bounded_request_timeout(monkeypatch) -> None:
+    """Caller-scoped PostgREST requests must not wait forever upstream."""
+
+    settings = MagicMock(
+        supabase_url="https://example.supabase.co",
+        supabase_auth_key="anon-key",
+        supabase_request_timeout_seconds=12,
+    )
+    client_factory = MagicMock()
+    monkeypatch.setattr(services, "get_settings", lambda: settings)
+    monkeypatch.setattr(services, "SyncPostgrestClient", client_factory)
+
+    create_supabase_user_client("access-token")
+
+    client_factory.assert_called_once_with(
+        "https://example.supabase.co/rest/v1",
+        headers={
+            "apikey": "anon-key",
+            "Authorization": "Bearer access-token",
+        },
+        timeout=12,
+    )
+
+
+def test_gemini_client_has_bounded_request_timeout(monkeypatch) -> None:
+    """Gemini requests must release worker capacity after a fixed deadline."""
+
+    settings = MagicMock(gemini_api_key="gemini-key", gemini_request_timeout_ms=45_000)
+    client_factory = MagicMock()
+    monkeypatch.setattr(services, "get_settings", lambda: settings)
+    monkeypatch.setattr(services.genai, "Client", client_factory)
+    get_genai_client.cache_clear()
+
+    get_genai_client()
+
+    kwargs = client_factory.call_args.kwargs
+    assert kwargs["api_key"] == "gemini-key"
+    assert kwargs["http_options"].timeout == 45_000
+    get_genai_client.cache_clear()
 
 
 async def test_get_media_suggestion_caches_gemini_result(monkeypatch) -> None:

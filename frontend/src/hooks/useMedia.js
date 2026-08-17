@@ -1,31 +1,24 @@
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../lib/apiClient'
-import { realtimeClient } from '../lib/realtimeClient'
 
 function getMediaQueryKey(userId, type) {
   return ['media', userId ?? 'anonymous', type]
 }
 
-/**
- * Handles a Realtime DELETE by removing the item from cache directly.
- * For INSERT and UPDATE events, we use invalidateQueries instead of
- * touching the cache — the raw Postgres row from Realtime may contain
- * encrypted fields or stale timestamps that would corrupt the hydrated
- * cache managed by React Query + the API layer.
- * Exported for unit testing.
- */
-export function handleRealtimeDelete(oldData, payload) {
-  const oldItem = payload.old
-  if (!oldItem?.id) return oldData
-  return oldData.filter((item) => item.id !== oldItem.id)
+export function createOptimisticMediaId() {
+  const uniquePart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
+  return `optimistic-${uniquePart}`
+}
+
+export function replaceOptimisticMedia(items, optimisticId, serverData) {
+  return items.map((item) => (item.id === optimisticId ? serverData : item))
 }
 
 export function useMedia(session, type = 'book') {
   const queryClient = useQueryClient()
   const userId = session?.user?.id
   const isAuthenticated = Boolean(userId)
-  const accessToken = session?.access_token
   const mediaQueryKey = useMemo(() => getMediaQueryKey(userId, type), [userId, type])
 
   const mediaQuery = useQuery({
@@ -33,49 +26,11 @@ export function useMedia(session, type = 'book') {
     enabled: isAuthenticated,
     staleTime: 60_000,
     retry: 1,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
     queryFn: () => apiFetch(`/media?type=${type}`),
   })
-
-  // --- Supabase Realtime subscription ---
-  useEffect(() => {
-    if (!isAuthenticated || !accessToken) return
-
-    // Keep Realtime auth in sync with the current access token
-    realtimeClient.realtime.setAuth(accessToken)
-
-    const channel = realtimeClient
-      .channel(`media-sync-${userId}-${type}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'media',
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const targetType = payload.new?.type || payload.old?.type
-          if (targetType !== type) return
-
-          // Only handle DELETEs from Realtime — safe since no field data needed.
-          // INSERT/UPDATE events are intentionally ignored: the raw Postgres row
-          // contains encrypted fields and server-only timestamps that corrupt the
-          // hydrated cache. User mutations are fully handled by the optimistic
-          // update + onSuccess pattern. External changes are picked up when the
-          // query becomes stale (staleTime: 60s).
-          if (payload.eventType === 'DELETE') {
-            queryClient.setQueryData(mediaQueryKey, (current) =>
-              handleRealtimeDelete(current ?? [], payload),
-            )
-          }
-        },
-      )
-      .subscribe()
-
-    return () => {
-      realtimeClient.removeChannel(channel)
-    }
-  }, [isAuthenticated, accessToken, userId, type, mediaQueryKey, queryClient])
 
   const addMediaMutation = useMutation({
     mutationFn: (data) =>
@@ -89,19 +44,19 @@ export function useMedia(session, type = 'book') {
       const optimistic = {
         ...data,
         type,
-        id: `optimistic-${Date.now()}`,
+        id: createOptimisticMediaId(),
       }
       queryClient.setQueryData(mediaQueryKey, [...previous, optimistic])
-      return { previous }
+      return { optimisticId: optimistic.id }
     },
     onError: (_error, _variables, context) => {
-      queryClient.setQueryData(mediaQueryKey, context?.previous ?? [])
-    },
-    onSuccess: (serverData) => {
       queryClient.setQueryData(mediaQueryKey, (current) =>
-        (current ?? []).map((item) =>
-          item.id?.toString().startsWith('optimistic-') ? serverData : item,
-        ),
+        (current ?? []).filter((item) => item.id !== context?.optimisticId),
+      )
+    },
+    onSuccess: (serverData, _variables, context) => {
+      queryClient.setQueryData(mediaQueryKey, (current) =>
+        replaceOptimisticMedia(current ?? [], context?.optimisticId, serverData),
       )
     },
   })

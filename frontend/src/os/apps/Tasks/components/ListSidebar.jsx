@@ -47,8 +47,8 @@ export default function ListSidebar({
   }
 
   return (
-    <aside className="flex h-40 w-full shrink-0 flex-col border-b border-white/[0.06] bg-black/20 sm:h-auto sm:w-52 sm:border-r sm:border-b-0">
-      <div className="flex items-center justify-between px-3 py-2 sm:py-3">
+    <aside className="flex h-40 w-full shrink-0 flex-col border-b border-white/[0.06] bg-black/20 @lg:h-auto @lg:w-52 @lg:border-r @lg:border-b-0">
+      <div className="flex items-center justify-between px-3 py-2 @lg:py-3">
         <span className="heading-display text-sm text-primary">Tasks</span>
         <button
           type="button"
@@ -65,9 +65,7 @@ export default function ListSidebar({
         onClick={onToggleStarred}
         aria-pressed={starredActive}
         className={`mx-2 mb-1 flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
-          starredActive
-            ? 'bg-primary/15 text-primary'
-            : 'text-white/70 hover:bg-white/[0.04]'
+          starredActive ? 'bg-primary/15 text-primary' : 'text-white/70 hover:bg-white/[0.04]'
         }`}
       >
         <Star size={15} fill={starredActive ? 'currentColor' : 'none'} />
@@ -125,9 +123,7 @@ export default function ListSidebar({
                     }}
                     aria-current={active ? 'true' : undefined}
                     className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
-                      active
-                        ? 'bg-primary/15 text-primary'
-                        : 'text-white/70 hover:bg-white/[0.04]'
+                      active ? 'bg-primary/15 text-primary' : 'text-white/70 hover:bg-white/[0.04]'
                     }`}
                   >
                     <ListChecks size={15} className="shrink-0 opacity-70" />
@@ -137,7 +133,9 @@ export default function ListSidebar({
                 <button
                   type="button"
                   aria-label={
-                    editingId === list.id ? `Cancel rename "${list.name}"` : `Rename list "${list.name}"`
+                    editingId === list.id
+                      ? `Cancel rename "${list.name}"`
+                      : `Rename list "${list.name}"`
                   }
                   onClick={() => {
                     if (editingId === list.id) {
@@ -148,7 +146,7 @@ export default function ListSidebar({
                       setName(list.name)
                     }
                   }}
-                  className="shrink-0 rounded p-1 text-white/20 opacity-0 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 group-hover:opacity-100"
+                  className="shrink-0 rounded p-1 text-white/20 opacity-0 transition-colors hover:text-primary focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:opacity-100"
                 >
                   {editingId === list.id ? <X size={13} /> : <Pencil size={13} />}
                 </button>
@@ -156,7 +154,7 @@ export default function ListSidebar({
                   type="button"
                   aria-label={`Delete list "${list.name}"`}
                   onClick={() => onDelete(list)}
-                  className="shrink-0 rounded p-1 text-white/20 opacity-0 transition-colors hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60 group-hover:opacity-100"
+                  className="shrink-0 rounded p-1 text-white/20 opacity-0 transition-colors hover:text-red-400 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:min-h-11 pointer-coarse:min-w-11 pointer-coarse:opacity-100"
                 >
                   <Trash2 size={13} />
                 </button>

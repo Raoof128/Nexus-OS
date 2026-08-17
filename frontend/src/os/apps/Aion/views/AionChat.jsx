@@ -139,7 +139,7 @@ export default function AionChat({ view, onNavigate, session }) {
             onKeyDown={handleKeyDown}
             placeholder="Ask anything about Scripture…"
             aria-label="Chat message"
-            className="flex-1 bg-transparent font-mono text-sm text-white/80 placeholder:text-white/20 focus:outline-none"
+            className="flex-1 bg-transparent font-mono text-sm text-white/80 placeholder:text-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/70"
           />
           <button
             onClick={handleSend}

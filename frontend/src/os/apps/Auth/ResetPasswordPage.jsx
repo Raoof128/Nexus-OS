@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { KeyRound, Loader2, ShieldCheck, ArrowLeft } from 'lucide-react'
 import { authFetch } from '../../../lib/apiClient'
-import { realtimeClient } from '../../../lib/realtimeClient'
+import { clearLegacyRealtimeAuthStorage, verifyRecoveryOtp } from '../../../lib/realtimeClient'
 import Navbar from '../../../components/layout/Navbar'
 import PasswordInput from '../../../components/ui/PasswordInput'
 
@@ -61,10 +61,12 @@ export default function ResetPasswordPage({
   useEffect(() => {
     if (!tokenHash || accessToken) return
     let cancelled = false
-    realtimeClient.auth
-      .verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+    verifyRecoveryOtp(tokenHash)
       .then(({ data, error: otpError }) => {
         if (cancelled) return
+        // Defense in depth: current builds use non-persistent Supabase auth, but
+        // remove any credential a historical or altered client may have written.
+        clearLegacyRealtimeAuthStorage()
         if (otpError || !data?.session) {
           setError('Recovery link is invalid or has expired.')
           setExchanging(false)

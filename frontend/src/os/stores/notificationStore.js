@@ -8,6 +8,10 @@ const SAVE_DEBOUNCE_MS = 400
 const MAX_NOTIFICATIONS = 50
 const TOAST_TIMEOUT_MS = 5000
 
+function storageKeyForUser(userId) {
+  return `${STORAGE_KEY}:${encodeURIComponent(userId)}`
+}
+
 /**
  * Notification model: { id, title, message, type, timestamp, read, toastDismissed }
  *
@@ -22,6 +26,7 @@ export const useNotificationStore = create((set, get) => ({
   notifications: [],
   panelOpen: false,
   doNotDisturb: false,
+  storageUserId: null,
 
   addNotification: ({ title, message, type = 'info' }) => {
     const id = nanoid(8)
@@ -80,23 +85,39 @@ export const useNotificationStore = create((set, get) => ({
 
   toggleDoNotDisturb: () => set((state) => ({ doNotDisturb: !state.doNotDisturb })),
 
-  hydrateNotifications: () => {
+  hydrateNotifications: (userId) => {
+    if (typeof userId !== 'string' || !userId) {
+      set({ notifications: [], panelOpen: false, doNotDisturb: false, storageUserId: null })
+      return
+    }
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) return
+      const raw = localStorage.getItem(storageKeyForUser(userId))
+      if (!raw) {
+        set({ notifications: [], panelOpen: false, doNotDisturb: false, storageUserId: userId })
+        return
+      }
       const saved = JSON.parse(raw)
-      if (!saved || saved.schemaVersion !== SCHEMA_VERSION) return
+      if (!saved || saved.schemaVersion !== SCHEMA_VERSION) {
+        set({ notifications: [], panelOpen: false, doNotDisturb: false, storageUserId: userId })
+        return
+      }
       set({
         // Restored items are never re-toasted — they live in the centre only.
         notifications: Array.isArray(saved.notifications)
           ? saved.notifications.map((n) => ({ ...n, toastDismissed: true }))
           : [],
         doNotDisturb: Boolean(saved.doNotDisturb),
+        panelOpen: false,
+        storageUserId: userId,
       })
     } catch {
-      // Corrupt data — keep defaults in place.
+      // Corrupt data must not leave another account's notifications visible.
+      set({ notifications: [], panelOpen: false, doNotDisturb: false, storageUserId: userId })
     }
   },
+
+  resetPrivateState: () =>
+    set({ notifications: [], panelOpen: false, doNotDisturb: false, storageUserId: null }),
 }))
 
 // ── Side-effect: keep the PWA app-icon badge in sync with the unread count ──
@@ -113,6 +134,13 @@ let saveTimeout = null
 let lastNotifications = null
 let lastDnd = null
 useNotificationStore.subscribe((state) => {
+  if (!state.storageUserId) {
+    if (saveTimeout) clearTimeout(saveTimeout)
+    saveTimeout = null
+    lastNotifications = null
+    lastDnd = null
+    return
+  }
   if (state.notifications === lastNotifications && state.doNotDisturb === lastDnd) return
   lastNotifications = state.notifications
   lastDnd = state.doNotDisturb
@@ -120,7 +148,7 @@ useNotificationStore.subscribe((state) => {
   saveTimeout = setTimeout(() => {
     try {
       localStorage.setItem(
-        STORAGE_KEY,
+        storageKeyForUser(state.storageUserId),
         JSON.stringify({
           schemaVersion: SCHEMA_VERSION,
           notifications: lastNotifications,

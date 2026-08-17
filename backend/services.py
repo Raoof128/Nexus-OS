@@ -12,6 +12,7 @@ from time import monotonic
 import tiktoken
 from anyio import to_thread
 from google import genai
+from google.genai import types
 from postgrest import SyncPostgrestClient
 
 from supabase import Client, create_client
@@ -350,6 +351,7 @@ def create_supabase_user_client(access_token: str) -> SyncPostgrestClient:
             "apikey": settings.supabase_auth_key,
             "Authorization": f"Bearer {access_token}",
         },
+        timeout=settings.supabase_request_timeout_seconds,
     )
 
 
@@ -382,10 +384,13 @@ def create_supabase_service_client() -> Client:
 def get_genai_client() -> genai.Client | None:
     """Return a Gemini client when configured."""
 
-    api_key = get_settings().gemini_api_key
-    if not api_key:
+    settings = get_settings()
+    if not settings.gemini_api_key:
         return None
-    return genai.Client(api_key=api_key)
+    return genai.Client(
+        api_key=settings.gemini_api_key,
+        http_options=types.HttpOptions(timeout=settings.gemini_request_timeout_ms),
+    )
 
 
 @lru_cache(maxsize=1)

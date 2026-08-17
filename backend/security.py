@@ -64,6 +64,15 @@ SECURITY_HEADERS = (
     ("cross-origin-resource-policy", lambda: "same-origin"),
 )
 
+_UNSAFE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+
+
+def _request_header(scope: Scope, name: bytes) -> str | None:
+    for key, value in scope.get("headers", []):
+        if key.lower() == name:
+            return value.decode("latin-1")
+    return None
+
 
 class SecurityHeadersMiddleware(MiddlewareProtocol):
     """Attach secure default headers to every HTTP response."""
@@ -87,5 +96,31 @@ class SecurityHeadersMiddleware(MiddlewareProtocol):
                         (key.encode("latin-1"), value_factory().encode("latin-1"))
                     )
             await send(message)
+
+        # Browsers attach Origin to unsafe fetch/form requests. Requiring the
+        # non-simple frontend header means a cross-origin script must pass CORS
+        # preflight before a cookie-authenticated mutation can execute. Non-
+        # browser API clients without Origin remain supported.
+        if (
+            scope.get("type") == "http"
+            and scope.get("method") in _UNSAFE_METHODS
+            and _request_header(scope, b"origin") is not None
+            and _request_header(scope, b"x-requested-with") != "XMLHttpRequest"
+        ):
+            body = b'{"detail":"CSRF validation failed"}'
+            await send_with_headers(
+                {
+                    "type": "http.response.start",
+                    "status": 403,
+                    "headers": [
+                        (b"content-type", b"application/json"),
+                        (b"content-length", str(len(body)).encode("ascii")),
+                    ],
+                }
+            )
+            await send_with_headers(
+                {"type": "http.response.body", "body": body, "more_body": False}
+            )
+            return
 
         await self.app(scope, receive, send_with_headers)

@@ -50,6 +50,18 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /authenticate/i })).toBeTruthy()
   })
 
+  it('keeps registration decorations out of the panel scroll flow', () => {
+    render(<App />)
+
+    const brackets = document.querySelectorAll('#auth-panel .cyber-bracket')
+    expect(brackets).toHaveLength(4)
+    for (const bracket of brackets) {
+      expect(bracket.className).toContain('absolute')
+      expect(bracket.className).toContain('inset-0')
+      expect(bracket.className).not.toContain('h-full')
+    }
+  })
+
   it('shows loading spinner when auth is loading', () => {
     useAuth.mockReturnValue({ session: null, loading: true, signIn: vi.fn(), signOut: vi.fn() })
     render(<App />)

@@ -18,6 +18,9 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
 
 logger = logging.getLogger(__name__)
 
+EMAIL_SEND_RATE_LIMIT_REQUESTS = 20
+EMAIL_SEND_RATE_LIMIT_WINDOW_SECONDS = 60
+
 
 class SlidingWindowRateLimiter:
     """Track requests in-memory over a sliding time window."""
@@ -144,6 +147,7 @@ _ai_rate_limiter: RateLimiter | None = None
 _auth_rate_limiter: RateLimiter | None = None
 _tasks_rate_limiter: RateLimiter | None = None
 _notes_rate_limiter: RateLimiter | None = None
+_email_send_rate_limiter: RateLimiter | None = None
 
 
 def _create_rate_limiter(max_requests: int, window_seconds: int) -> RateLimiter:
@@ -158,7 +162,13 @@ def _create_rate_limiter(max_requests: int, window_seconds: int) -> RateLimiter:
     if redis_url:
         try:
             return RedisSlidingWindowRateLimiter(
-                redis_client=Redis.from_url(redis_url, decode_responses=True),
+                redis_client=Redis.from_url(
+                    redis_url,
+                    decode_responses=True,
+                    socket_connect_timeout=2.0,
+                    socket_timeout=2.0,
+                    health_check_interval=30,
+                ),
                 max_requests=max_requests,
                 window_seconds=window_seconds,
             )
@@ -231,12 +241,25 @@ def enforce_notes_rate_limit(user_id: str) -> None:
     _notes_rate_limiter.enforce(f"notes:{user_id}")
 
 
+def enforce_email_send_rate_limit(user_id: str, account_id: str) -> None:
+    """Limit outbound email separately for each caller-owned provider account."""
+
+    global _email_send_rate_limiter
+    if _email_send_rate_limiter is None:
+        _email_send_rate_limiter = _create_rate_limiter(
+            max_requests=EMAIL_SEND_RATE_LIMIT_REQUESTS,
+            window_seconds=EMAIL_SEND_RATE_LIMIT_WINDOW_SECONDS,
+        )
+    _email_send_rate_limiter.enforce(f"email-send:{user_id}:{account_id}")
+
+
 def reset_rate_limiters() -> None:
     """Reset cached rate limiter instances for isolated tests."""
 
     global _ai_rate_limiter, _auth_rate_limiter, _tasks_rate_limiter
-    global _notes_rate_limiter
+    global _notes_rate_limiter, _email_send_rate_limiter
     _ai_rate_limiter = None
     _auth_rate_limiter = None
     _tasks_rate_limiter = None
     _notes_rate_limiter = None
+    _email_send_rate_limiter = None

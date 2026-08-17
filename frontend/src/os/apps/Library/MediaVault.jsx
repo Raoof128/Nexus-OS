@@ -144,13 +144,20 @@ function MediaVault({
               key={item.id}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              onClick={() => onSelect?.(item)}
-              className={`group cursor-pointer border-b border-white/[0.03] px-4 py-3 transition-colors hover:bg-white/[0.03] @sm:grid ${isJob ? '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'} @sm:items-center`}
+              className={`group border-b border-white/[0.03] px-4 py-3 transition-colors hover:bg-white/[0.03] @sm:grid ${isJob ? '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'} @sm:items-center`}
             >
               {/* Title */}
-              <div className="mb-1 font-medium text-white transition-colors group-hover:text-primary @sm:mb-0 @sm:text-sm">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onSelect?.(item)
+                }}
+                aria-label={`Open ${item.title} details`}
+                className="mb-1 rounded text-left font-medium text-white transition-colors group-hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary @sm:mb-0 @sm:text-sm"
+              >
                 {item.title}
-              </div>
+              </button>
 
               {/* Creator */}
               <div className="mb-1 font-mono text-xs text-muted-foreground @sm:mb-0">

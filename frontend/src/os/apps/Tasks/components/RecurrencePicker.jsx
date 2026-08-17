@@ -22,9 +22,7 @@ export default function RecurrencePicker({ value, onChange }) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-        Repeat
-      </label>
+      <label className="text-[11px] uppercase tracking-wider text-muted-foreground">Repeat</label>
       <select
         value={preset}
         onChange={handlePreset}
@@ -49,9 +47,7 @@ export default function RecurrencePicker({ value, onChange }) {
         />
       )}
 
-      {value && (
-        <span className="text-[11px] text-muted-foreground">{labelForRRule(value)}</span>
-      )}
+      {value && <span className="text-[11px] text-muted-foreground">{labelForRRule(value)}</span>}
     </div>
   )
 }

@@ -1,11 +1,11 @@
 import { memo, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, GripVertical, Pencil, Trash2 } from 'lucide-react'
 import { TYPE_ICONS, getStatusNav } from '../../lib/mediaConfig'
 import { SPRING } from '../../lib/motion'
 import ConfirmDialog from './ConfirmDialog'
 
-function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
+function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit, dragHandleProps }) {
   const mediaType = item.type || 'book'
   const Icon = TYPE_ICONS[mediaType]
   const { prev, next } = getStatusNav(mediaType, item.status)
@@ -41,13 +41,6 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
     setConfirmDelete(false)
   }
 
-  const handleCardClick = (event) => {
-    // Only open detail modal if the click was directly on the card,
-    // not on any button or interactive element inside it
-    if (event.target.closest('button')) return
-    onSelect?.(item)
-  }
-
   return (
     // No `layoutId` here: the detail modal used to share `card-${item.id}` for
     // a morph-from-card entry, but sharing the id while both the card and the
@@ -57,10 +50,9 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
     // stalled exit animation when the close button was clicked. `layout="position"`
     // is kept so within-column drag reorder still settles smoothly.
     <Motion.div
-      onClick={handleCardClick}
       layout="position"
       transition={SPRING.soft}
-      className="neon-border group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-4 hover:brightness-110 hover:shadow-[0_0_20px_hsl(var(--neon-yellow)/0.15)] sm:p-6 transition-all duration-200"
+      className="neon-border group relative overflow-hidden rounded-xl glass-panel p-4 hover:brightness-110 hover:shadow-[0_0_20px_hsl(var(--neon-yellow)/0.15)] sm:p-6 transition-all duration-200"
     >
       {/* Neon glowing artifact behind */}
       <div className="absolute -inset-1 z-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/5 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
@@ -71,16 +63,38 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
             className="h-5 w-5 text-primary drop-shadow-[0_0_8px_hsl(var(--neon-yellow)/0.8)] sm:h-6 sm:w-6"
             aria-hidden="true"
           />
-          <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-mono font-medium text-primary sm:text-xs">
-            {item.status}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="whitespace-nowrap rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-mono font-medium text-primary sm:text-xs">
+              {item.status}
+            </span>
+            {dragHandleProps ? (
+              <button
+                type="button"
+                {...dragHandleProps}
+                aria-label={`Drag ${item.title}`}
+                className="cursor-grab rounded p-1 text-muted-foreground/60 hover:bg-white/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:cursor-grabbing"
+              >
+                <GripVertical size={14} aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
         </div>
 
-        <h3 className="heading-ui mb-1 text-base font-bold tracking-tight text-white transition-colors group-hover:text-primary line-clamp-2 sm:text-lg">
-          {item.title}
+        <h3 className="heading-ui mb-1 text-base font-bold tracking-tight sm:text-lg">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              onSelect?.(item)
+            }}
+            className="line-clamp-2 rounded text-left text-white transition-colors group-hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+            aria-label={`Open ${item.title} details`}
+          >
+            {item.title}
+          </button>
         </h3>
         {item.creator && item.creator !== '—' && (
-          <p className="font-mono text-xs text-muted-foreground mb-3 sm:text-sm">
+          <p className="mb-3 line-clamp-2 break-words font-mono text-xs text-muted-foreground sm:text-sm">
             // {item.creator}
           </p>
         )}
@@ -165,5 +179,6 @@ export default memo(
     prev.item.rating === next.item.rating &&
     prev.item.takeaway === next.item.takeaway &&
     prev.item.sub_info === next.item.sub_info &&
-    prev.item.type === next.item.type,
+    prev.item.type === next.item.type &&
+    prev.dragHandleProps === next.dragHandleProps,
 )

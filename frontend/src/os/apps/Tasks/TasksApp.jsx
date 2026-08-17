@@ -2,9 +2,12 @@ import { useRef, useState } from 'react'
 import { useTaskLists, useTaskMutations } from './hooks/useTasks'
 import ListSidebar from './components/ListSidebar'
 import TaskListView from './views/TaskListView'
+import { useAuth } from '../../../hooks/useAuth'
 
 export default function TasksApp() {
-  const { data: lists = [] } = useTaskLists()
+  const { session } = useAuth()
+  const userId = session?.user?.id
+  const { data: lists = [], isLoading, error, refetch } = useTaskLists()
   const [selectedListId, setSelectedListId] = useState(null)
   const [starredActive, setStarredActive] = useState(false)
   const [sortMode, setSortMode] = useState('myorder')
@@ -31,7 +34,10 @@ export default function TasksApp() {
   const handleRenameList = (list, name) => renameList.mutate({ id: list.id, name })
 
   return (
-    <div ref={rootRef} className="flex h-full w-full flex-col overflow-hidden text-white sm:flex-row">
+    <div
+      ref={rootRef}
+      className="flex h-full w-full flex-col overflow-hidden text-white @lg:flex-row"
+    >
       <ListSidebar
         lists={lists}
         activeListId={activeListId}
@@ -46,7 +52,25 @@ export default function TasksApp() {
         onRename={handleRenameList}
       />
 
-      {lists.length === 0 ? (
+      {isLoading ? (
+        <p className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+          Loading task lists…
+        </p>
+      ) : error ? (
+        <div
+          role="alert"
+          className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center text-sm text-red-200"
+        >
+          <p>{error.message || 'Unable to load task lists.'}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="rounded-lg border border-red-300/30 px-3 py-2 text-xs hover:bg-red-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300/60"
+          >
+            Retry
+          </button>
+        </div>
+      ) : lists.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center text-muted-foreground">
           <p className="text-sm">No task lists yet.</p>
           <button
@@ -66,6 +90,7 @@ export default function TasksApp() {
           onSortModeChange={setSortMode}
           starredActive={starredActive}
           rootRef={rootRef}
+          userId={userId}
         />
       )}
     </div>

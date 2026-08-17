@@ -21,12 +21,17 @@ import CommandPalette from './components/CommandPalette'
 import InstallPrompt from './components/InstallPrompt'
 import TitlebarOverlay from './components/TitlebarOverlay'
 import { consumeShareTarget, consumeFileHandlers } from '../lib/pwaLaunch'
+import { useAuth } from '../hooks/useAuth'
+import { apiFetch } from '../lib/apiClient'
+import { queryClient } from '../lib/queryClient'
 
 const Z_INDEX_BASE = 100
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
 const BOOT_SESSION_KEY = 'nexus_booted'
 
 export default function Desktop() {
+  const { session } = useAuth()
+  const userId = session?.user?.id
   const desktopRef = useRef(null)
   const [snapPreview, setSnapPreview] = useState(null) // null | 'left' | 'right' | 'top'
   const [contextMenu, setContextMenu] = useState(null) // null | { x, y }
@@ -99,12 +104,25 @@ export default function Desktop() {
   const hydrateFromStorage = useWindowStore((s) => s.hydrateFromStorage)
 
   useEffect(() => {
+    useNotificationStore.getState().hydrateNotifications(userId)
+    useFileSystemStore.getState().hydrateFileSystem(userId)
+  }, [userId])
+
+  useEffect(() => {
     hydrateFromStorage()
     hydrateSettings()
-    // Restore notification history + Do Not Disturb preference from last session.
-    useNotificationStore.getState().hydrateNotifications()
-    // PWA Web Share Target: shared text/url is appended to Notes, which we open.
-    const sharedApp = consumeShareTarget()
+    // PWA Web Share Target: persist through the authenticated API instead of
+    // leaking shared content into a browser-global localStorage buffer.
+    const sharedApp = consumeShareTarget({
+      createNote: (body) => apiFetch('/notes', { method: 'POST', body }),
+      onSaved: () => queryClient.invalidateQueries({ queryKey: ['notes'] }),
+      onError: () =>
+        useNotificationStore.getState().addNotification({
+          title: 'Share not saved',
+          message: 'Nexus could not save the shared item. Please try again.',
+          type: 'error',
+        }),
+    })
     if (sharedApp) openApp(sharedApp)
     // getState() is safe here because hydrateFromStorage() is synchronous —
     // it calls set() internally and Zustand's set() updates the store synchronously,
@@ -171,94 +189,100 @@ export default function Desktop() {
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >
-        {/* Wallpaper layers ─────────────────────────────────────────
+        <div
+          className="contents"
+          inert={locked ? true : undefined}
+          aria-hidden={locked ? 'true' : undefined}
+        >
+          {/* Wallpaper layers ─────────────────────────────────────────
              Stacking order (all z-index: -1, DOM order = bottom→top):
                1. wallpaper  — base texture / image (rendered first = lowest)
                2. orbs       — neon glow on top of wallpaper
                3. scanlines  — CRT overlay on top of everything
              Image wallpapers use `background-size: cover` which fills the
              full viewport on every device and orientation. */}
-        <div
-          className={`pointer-events-none absolute inset-0 -z-1 ${
-            wallpaperPreset.image ? '' : `wallpaper-${wallpaperKey}`
-          }`}
-          style={
-            wallpaperPreset.image
-              ? {
-                  backgroundImage: `url(${wallpaperPreset.image})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                }
-              : {}
-          }
-        />
-        {orbsEnabled && <div className="ambient-orbs" />}
-        {scanlinesEnabled && <div className="scanlines" />}
+          <div
+            className={`pointer-events-none absolute inset-0 -z-1 ${
+              wallpaperPreset.image ? '' : `wallpaper-${wallpaperKey}`
+            }`}
+            style={
+              wallpaperPreset.image
+                ? {
+                    backgroundImage: `url(${wallpaperPreset.image})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                  }
+                : {}
+            }
+          />
+          {orbsEnabled && <div className="ambient-orbs" />}
+          {scanlinesEnabled && <div className="scanlines" />}
 
-        {/* Work area — takes all space above the taskbar */}
-        <div ref={desktopRef} data-testid="desktop" className="relative flex-1 overflow-hidden">
-          {/* Desktop icons — behind all windows */}
-          <DesktopIcons />
+          {/* Work area — takes all space above the taskbar */}
+          <div ref={desktopRef} data-testid="desktop" className="relative flex-1 overflow-hidden">
+            {/* Desktop icons — behind all windows */}
+            <DesktopIcons />
+
+            <AnimatePresence>
+              {visibleWindows.map((win) => {
+                const manifest = APP_REGISTRY[win.appId]
+                if (!manifest) return null
+                const AppComponent = manifest.component
+                const zIndex = Z_INDEX_BASE + zStack.indexOf(win.windowId)
+                return (
+                  <Window
+                    key={win.windowId}
+                    windowId={win.windowId}
+                    appId={win.appId}
+                    title={win.title}
+                    position={win.position}
+                    size={win.size}
+                    minSize={win.minSize}
+                    state={win.state}
+                    restoredRect={win.restoredRect}
+                    zIndex={zIndex}
+                    desktopRef={desktopRef}
+                    onSnapHint={handleSnapHint}
+                  >
+                    <Suspense
+                      fallback={
+                        <div className="flex h-full items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                      }
+                    >
+                      <AppComponent appId={win.appId} windowId={win.windowId} />
+                    </Suspense>
+                  </Window>
+                )
+              })}
+            </AnimatePresence>
+
+            {/* Snap preview overlay */}
+            <SnapPreview hint={snapPreview} />
+          </div>
+
+          {/* Taskbar — normal flex child at the bottom, NOT fixed */}
+          <Taskbar />
+
+          {/* Overlays — these use fixed/absolute positioning above everything */}
+          {!locked && <NotificationToast />}
+
+          <AnimatePresence>{launcherOpen && <AppLauncher />}</AnimatePresence>
 
           <AnimatePresence>
-            {visibleWindows.map((win) => {
-              const manifest = APP_REGISTRY[win.appId]
-              if (!manifest) return null
-              const AppComponent = manifest.component
-              const zIndex = Z_INDEX_BASE + zStack.indexOf(win.windowId)
-              return (
-                <Window
-                  key={win.windowId}
-                  windowId={win.windowId}
-                  appId={win.appId}
-                  title={win.title}
-                  position={win.position}
-                  size={win.size}
-                  minSize={win.minSize}
-                  state={win.state}
-                  restoredRect={win.restoredRect}
-                  zIndex={zIndex}
-                  desktopRef={desktopRef}
-                  onSnapHint={handleSnapHint}
-                >
-                  <Suspense
-                    fallback={
-                      <div className="flex h-full items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      </div>
-                    }
-                  >
-                    <AppComponent appId={win.appId} windowId={win.windowId} />
-                  </Suspense>
-                </Window>
-              )
-            })}
+            {contextMenu && (
+              <ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={closeContextMenu} />
+            )}
           </AnimatePresence>
-
-          {/* Snap preview overlay */}
-          <SnapPreview hint={snapPreview} />
         </div>
-
-        {/* Taskbar — normal flex child at the bottom, NOT fixed */}
-        <Taskbar />
-
-        {/* Overlays — these use fixed/absolute positioning above everything */}
-        {!locked && <NotificationToast />}
-
-        <AnimatePresence>{launcherOpen && <AppLauncher />}</AnimatePresence>
-
-        <AnimatePresence>
-          {contextMenu && (
-            <ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={closeContextMenu} />
-          )}
-        </AnimatePresence>
 
         {locked && <LockScreen onUnlock={() => setLocked(false)} />}
       </div>
 
       {/* Window Controls Overlay titlebar — only renders in WCO mode */}
-      <TitlebarOverlay />
+      {!locked && <TitlebarOverlay />}
 
       {/* OS-grade overlays — only live on the unlocked desktop */}
       {!locked && <CommandPalette />}

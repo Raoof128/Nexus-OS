@@ -204,7 +204,7 @@ class ChatController(Controller):
         """Send a message and get an AI response."""
 
         user_id = request.state.user_id
-        enforce_ai_rate_limit(user_id, "chat")
+        await run_blocking(enforce_ai_rate_limit, user_id, "chat")
         client = _get_client(request)
 
         # 1. Verify session ownership via RLS (fetch will be empty if not owned)
@@ -232,7 +232,8 @@ class ChatController(Controller):
                 client.from_("chat_messages")
                 .select("role, content")
                 .eq("session_id", session_id)
-                .order("created_at")
+                .order("created_at", desc=True)
+                .limit(CHAT_HISTORY_MAX_MESSAGES)
             )
             history_resp = await run_blocking(history_builder.execute)
         except Exception as exc:
@@ -247,9 +248,12 @@ class ChatController(Controller):
         )
 
         contents = []
+        # PostgREST response caps must not decide which messages Gemini sees.
+        # Fetch the newest bounded window in SQL, then restore chronological
+        # order for the model conversation.
         recent_history = [
             hydrate_chat_message_record(record)
-            for record in (history_resp.data or [])[-CHAT_HISTORY_MAX_MESSAGES:]
+            for record in reversed(history_resp.data or [])
         ]
         for msg in recent_history:
             role = msg["role"]

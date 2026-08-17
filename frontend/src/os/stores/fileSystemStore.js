@@ -16,9 +16,46 @@ function buildPath(parentPath, name) {
   return parentPath === '/' ? `/${name}` : `${parentPath}/${name}`
 }
 
+function storageKeyForUser(userId) {
+  return `${STORAGE_KEY}:${encodeURIComponent(userId)}`
+}
+
+function isValidEntryName(name) {
+  return (
+    typeof name === 'string' &&
+    name === name.trim() &&
+    name.length > 0 &&
+    name.length <= 255 &&
+    name !== '.' &&
+    name !== '..' &&
+    !name.includes('/') &&
+    !name.includes('\\')
+  )
+}
+
+function availableName(children, requestedName) {
+  if (!children.includes(requestedName)) return requestedName
+  const dot = requestedName.lastIndexOf('.')
+  const stem = dot > 0 ? requestedName.slice(0, dot) : requestedName
+  const ext = dot > 0 ? requestedName.slice(dot) : ''
+  let i = 1
+  while (children.includes(`${stem} (${i})${ext}`)) i++
+  return `${stem} (${i})${ext}`
+}
+
+function createDefaultFiles() {
+  return Object.fromEntries(
+    Object.entries(DEFAULT_FILES).map(([path, entry]) => [
+      path,
+      entry.type === 'folder' ? { ...entry, children: [...entry.children] } : { ...entry },
+    ]),
+  )
+}
+
 export const useFileSystemStore = create((set, get) => ({
-  files: { ...DEFAULT_FILES },
+  files: createDefaultFiles(),
   currentPath: '/',
+  storageUserId: null,
 
   navigateTo: (path) => {
     const { files } = get()
@@ -28,33 +65,69 @@ export const useFileSystemStore = create((set, get) => ({
   },
 
   createFile: (parentPath, name, content = '') => {
+    const parent = get().files[parentPath]
+    const filePath = buildPath(parentPath, name)
+    if (
+      !parent ||
+      parent.type !== 'folder' ||
+      !isValidEntryName(name) ||
+      parent.children.includes(name) ||
+      get().files[filePath]
+    ) {
+      return false
+    }
     set((state) => {
-      const parent = state.files[parentPath]
-      if (!parent || parent.type !== 'folder') return state
-      const filePath = buildPath(parentPath, name)
+      const currentParent = state.files[parentPath]
+      if (
+        !currentParent ||
+        currentParent.type !== 'folder' ||
+        currentParent.children.includes(name) ||
+        state.files[filePath]
+      ) {
+        return state
+      }
       return {
         files: {
           ...state.files,
-          [parentPath]: { ...parent, children: [...parent.children, name] },
+          [parentPath]: { ...currentParent, children: [...currentParent.children, name] },
           [filePath]: { type: 'file', name, content, createdAt: Date.now(), updatedAt: Date.now() },
         },
       }
     })
+    return true
   },
 
   createFolder: (parentPath, name) => {
+    const parent = get().files[parentPath]
+    const folderPath = buildPath(parentPath, name)
+    if (
+      !parent ||
+      parent.type !== 'folder' ||
+      !isValidEntryName(name) ||
+      parent.children.includes(name) ||
+      get().files[folderPath]
+    ) {
+      return false
+    }
     set((state) => {
-      const parent = state.files[parentPath]
-      if (!parent || parent.type !== 'folder') return state
-      const folderPath = buildPath(parentPath, name)
+      const currentParent = state.files[parentPath]
+      if (
+        !currentParent ||
+        currentParent.type !== 'folder' ||
+        currentParent.children.includes(name) ||
+        state.files[folderPath]
+      ) {
+        return state
+      }
       return {
         files: {
           ...state.files,
-          [parentPath]: { ...parent, children: [...parent.children, name] },
+          [parentPath]: { ...currentParent, children: [...currentParent.children, name] },
           [folderPath]: { type: 'folder', name, children: [] },
         },
       }
     })
+    return true
   },
 
   updateFileContent: (filePath, content) => {
@@ -104,24 +177,26 @@ export const useFileSystemStore = create((set, get) => ({
     if (!parent || parent.type !== 'folder') return null
 
     // De-dupe the name within the folder ("photo.png" → "photo (1).png").
-    let name = file.name || `import-${Date.now()}`
-    if (parent.children.includes(name)) {
-      const dot = name.lastIndexOf('.')
-      const stem = dot > 0 ? name.slice(0, dot) : name
-      const ext = dot > 0 ? name.slice(dot) : ''
-      let i = 1
-      while (parent.children.includes(`${stem} (${i})${ext}`)) i++
-      name = `${stem} (${i})${ext}`
-    }
+    const requestedName = file.name || `import-${Date.now()}`
+    if (!isValidEntryName(requestedName)) return null
+    let name = availableName(parent.children, requestedName)
 
     const blobId = nanoid(16)
     const ok = await writeBlob(blobId, file)
     if (!ok) return null
 
-    const filePath = buildPath(parentPath, name)
+    let filePath = null
+    let committed = false
     set((state) => {
       const p = state.files[parentPath]
       if (!p || p.type !== 'folder') return state
+
+      // Another import may have completed while this blob was being written.
+      // Resolve the final name against the current tree so neither file nor blob
+      // is silently overwritten or orphaned.
+      name = availableName(p.children, requestedName)
+      filePath = buildPath(parentPath, name)
+      committed = true
       return {
         files: {
           ...state.files,
@@ -138,15 +213,31 @@ export const useFileSystemStore = create((set, get) => ({
         },
       }
     })
+    if (!committed) {
+      await deleteBlob(blobId)
+      return null
+    }
     return filePath
   },
 
   renameEntry: (parentPath, oldName, newName) => {
+    const parent = get().files[parentPath]
+    const oldPath = buildPath(parentPath, oldName)
+    const newPath = buildPath(parentPath, newName)
+    if (
+      !parent ||
+      parent.type !== 'folder' ||
+      !get().files[oldPath] ||
+      !isValidEntryName(newName) ||
+      newName === oldName ||
+      parent.children.includes(newName) ||
+      get().files[newPath]
+    ) {
+      return false
+    }
     set((state) => {
-      const parent = state.files[parentPath]
-      if (!parent) return state
-      const oldPath = buildPath(parentPath, oldName)
-      const newPath = buildPath(parentPath, newName)
+      const currentParent = state.files[parentPath]
+      if (!currentParent || currentParent.type !== 'folder' || state.files[newPath]) return state
       const entry = state.files[oldPath]
       if (!entry) return state
       // Remap the entry key AND all descendant keys
@@ -162,39 +253,62 @@ export const useFileSystemStore = create((set, get) => ({
         }
       }
       newFiles[parentPath] = {
-        ...parent,
-        children: parent.children.map((c) => (c === oldName ? newName : c)),
+        ...currentParent,
+        children: currentParent.children.map((c) => (c === oldName ? newName : c)),
       }
       return { files: newFiles }
     })
+    return true
   },
 
-  hydrateFileSystem: () => {
+  hydrateFileSystem: (userId) => {
+    if (typeof userId !== 'string' || !userId) {
+      set({ files: createDefaultFiles(), currentPath: '/', storageUserId: null })
+      return
+    }
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) return
+      const raw = localStorage.getItem(storageKeyForUser(userId))
+      if (!raw) {
+        set({ files: createDefaultFiles(), currentPath: '/', storageUserId: userId })
+        return
+      }
       const saved = JSON.parse(raw)
-      if (!saved || saved.schemaVersion !== SCHEMA_VERSION) return
+      if (!saved || saved.schemaVersion !== SCHEMA_VERSION) {
+        set({ files: createDefaultFiles(), currentPath: '/', storageUserId: userId })
+        return
+      }
       if (saved.files) {
-        set({ files: saved.files, currentPath: saved.currentPath || '/' })
+        set({ files: saved.files, currentPath: saved.currentPath || '/', storageUserId: userId })
+      } else {
+        set({ files: createDefaultFiles(), currentPath: '/', storageUserId: userId })
       }
     } catch {
-      // Corrupt data — leave defaults in place
+      // Corrupt data must not leave another account's in-memory tree visible.
+      set({ files: createDefaultFiles(), currentPath: '/', storageUserId: userId })
     }
   },
+
+  resetPrivateState: () =>
+    set({ files: createDefaultFiles(), currentPath: '/', storageUserId: null }),
 }))
 
 // Debounced persistence — only save when `files` actually changes
 let fsSaveTimeout = null
 let lastSavedFiles = null
 useFileSystemStore.subscribe((state) => {
+  if (!state.storageUserId) {
+    if (fsSaveTimeout) clearTimeout(fsSaveTimeout)
+    fsSaveTimeout = null
+    lastSavedFiles = null
+    return
+  }
   if (state.files === lastSavedFiles) return
   if (fsSaveTimeout) clearTimeout(fsSaveTimeout)
   fsSaveTimeout = setTimeout(() => {
     lastSavedFiles = state.files
     try {
       localStorage.setItem(
-        STORAGE_KEY,
+        storageKeyForUser(state.storageUserId),
         JSON.stringify({
           schemaVersion: SCHEMA_VERSION,
           files: state.files,

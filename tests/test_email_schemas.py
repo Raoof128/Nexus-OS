@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from backend.email_schemas import (
     ComposeEmailRequest,
@@ -107,9 +108,41 @@ def test_compose_email_request_validates_cc_and_bcc():
     assert req.bcc == ["sec@nexus.net"]
 
 
+def test_compose_email_request_rejects_too_many_total_recipients():
+    """Recipient fan-out must be bounded across To, Cc, and Bcc together."""
+
+    with pytest.raises(ValidationError):
+        ComposeEmailRequest(
+            account_id="account-1",
+            to=[f"to-{i}@example.com" for i in range(60)],
+            cc=[f"cc-{i}@example.com" for i in range(41)],
+            subject="Too many",
+            body_html="<p>Hello</p>",
+        )
+
+
+def test_compose_email_request_rejects_oversized_body():
+    """An authenticated caller must not submit an unbounded HTML body."""
+
+    with pytest.raises(ValidationError):
+        ComposeEmailRequest(
+            account_id="account-1",
+            to=["to@example.com"],
+            subject="Oversized",
+            body_html="x" * 1_000_001,
+        )
+
+
 def test_move_email_request_validates_folder():
     req = MoveEmailRequest(folder="archive")
     assert req.folder == "archive"
+
+    with pytest.raises(ValidationError):
+        MoveEmailRequest(folder="../../arbitrary-provider-folder")
+    with pytest.raises(ValidationError):
+        MoveEmailRequest(folder="sent")
+    with pytest.raises(ValidationError):
+        MoveEmailRequest(folder="drafts")
 
 
 def test_label_email_request():
