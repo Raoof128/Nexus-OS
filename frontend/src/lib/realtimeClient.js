@@ -1,4 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
+import { clearLegacyRealtimeAuthStorage } from './legacyAuthStorage'
+
+// This module pulls in the whole Supabase client. It is only reached from lazy
+// paths: the SystemMonitor chunk (sync connection readout) and the recovery
+// exchange (dynamic import in ResetPasswordPage). It must not be statically
+// imported by the eager shell, or Supabase lands in the main bundle again.
+
+export { clearLegacyRealtimeAuthStorage }
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -10,38 +18,6 @@ if (!supabaseUrl) {
 if (!supabaseAnonKey) {
   throw new Error('Missing required environment variable: VITE_SUPABASE_ANON_KEY')
 }
-
-function getLegacyAuthStorageKey() {
-  try {
-    const projectRef = new URL(supabaseUrl).hostname.split('.')[0]
-    return projectRef ? `sb-${projectRef}-auth-token` : null
-  } catch {
-    return null
-  }
-}
-
-/**
- * Remove credentials written by the Supabase client's historical default auth
- * configuration. The key is derived from this project's configured URL so we
- * never sweep unrelated Supabase applications or other local browser data.
- */
-export function clearLegacyRealtimeAuthStorage(storage) {
-  const storageKey = getLegacyAuthStorageKey()
-  if (!storageKey) return
-
-  try {
-    const targetStorage = storage ?? globalThis.localStorage
-    if (!targetStorage) return
-    targetStorage.removeItem(storageKey)
-    targetStorage.removeItem(`${storageKey}-user`)
-    targetStorage.removeItem(`${storageKey}-code-verifier`)
-  } catch {
-    // Storage may be unavailable in private mode or hardened browser contexts.
-  }
-}
-
-// Migrate any credential left by earlier builds before the client initializes.
-clearLegacyRealtimeAuthStorage()
 
 const COOKIE_OWNED_AUTH_OPTIONS = {
   // Nexus authentication is owned by HttpOnly backend cookies. Supabase clients

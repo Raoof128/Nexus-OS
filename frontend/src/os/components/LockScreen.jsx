@@ -3,7 +3,7 @@ import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../../hooks/useAuth'
 import PasswordInput from '../../components/ui/PasswordInput'
 import { ArrowSubmitButton, FormBalloon, UserTile } from '../apps/Auth/LogonParts'
-import { fieldClass } from '../apps/Auth/logonStyles'
+import { fieldClass, scrimClass } from '../apps/Auth/logonStyles'
 import { PASSWORD_INCORRECT } from '../apps/Auth/copy'
 
 const TEXT_SHADOW = '0 1px 2px #000, 0 0 8px #0008'
@@ -157,36 +157,38 @@ export default function LockScreen({ onUnlock }) {
           {/* Centre sign-in block */}
           <div className="relative flex flex-col items-center gap-3" style={{ zIndex: 5 }}>
             <UserTile />
-            <p
-              id="lock-user-name"
-              className="mt-2 select-none text-[18px] text-white"
-              style={{ textShadow: TEXT_SHADOW }}
-            >
-              {displayName}
-            </p>
-            <form onSubmit={handleSubmit} className="flex flex-col items-center gap-2">
-              <div className="flex items-center gap-2">
-                <PasswordInput
-                  id="lock-password"
-                  ref={passwordRef}
-                  wrapperClassName="w-[200px]"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={fieldClass}
-                  placeholder="Password"
-                  aria-label="Password"
-                  autoComplete="current-password"
-                  required
-                  {...(error ? { 'aria-describedby': 'lock-error', 'aria-invalid': true } : {})}
-                />
-                <ArrowSubmitButton submitting={submitting} label="Unlock" />
-              </div>
-              <FormBalloon id="lock-error">{error}</FormBalloon>
-            </form>
-            <p className="select-none text-[12px] text-white" style={{ textShadow: TEXT_SHADOW }}>
-              Locked
-            </p>
-            <LockClock />
+            <div className={`flex flex-col items-center gap-3 ${scrimClass}`}>
+              <p
+                id="lock-user-name"
+                className="mt-2 select-none text-[18px] text-white"
+                style={{ textShadow: TEXT_SHADOW }}
+              >
+                {displayName}
+              </p>
+              <form onSubmit={handleSubmit} className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <PasswordInput
+                    id="lock-password"
+                    ref={passwordRef}
+                    wrapperClassName="w-[200px]"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={fieldClass}
+                    placeholder="Password"
+                    aria-label="Password"
+                    autoComplete="current-password"
+                    required
+                    {...(error ? { 'aria-describedby': 'lock-error', 'aria-invalid': true } : {})}
+                  />
+                  <ArrowSubmitButton submitting={submitting} label="Unlock" />
+                </div>
+                <FormBalloon id="lock-error">{error}</FormBalloon>
+              </form>
+              <p className="select-none text-[12px] text-white" style={{ textShadow: TEXT_SHADOW }}>
+                Locked
+              </p>
+              <LockClock />
+            </div>
           </div>
 
           {/* Bottom-left actions, as on the Windows 7 lock screen */}

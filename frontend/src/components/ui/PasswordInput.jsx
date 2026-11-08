@@ -4,7 +4,8 @@ import { Eye, EyeOff } from 'lucide-react'
 // Password field with a show/hide toggle. The toggle is kept on purpose (audit
 // finding #49): it helps people check what they typed, and it is a small Win7
 // tool button. It is type="button", so it never submits the form, and it is
-// reachable by Tab. `ref` is a plain prop (React 19), so callers can focus the input.
+// reachable by Tab. The toggle is 24px square (44px on touch) for pointer targets.
+// `ref` is a plain prop (React 19), so callers can focus the input.
 export default function PasswordInput({
   id,
   ref,
@@ -34,7 +35,7 @@ export default function PasswordInput({
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
-        className="w7-toolbtn absolute right-[2px] top-1/2 h-[19px] w-[21px] min-h-0 -translate-y-1/2 p-0 text-[#5c5c5c] focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-dotted focus-visible:outline-black"
+        className="w7-toolbtn absolute right-[2px] top-1/2 size-6 min-h-0 min-w-0 -translate-y-1/2 p-0 text-[#5c5c5c] pointer-coarse:size-11 focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-dotted focus-visible:outline-black"
         aria-label={label}
         title={label}
       >

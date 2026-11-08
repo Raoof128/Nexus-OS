@@ -2,7 +2,7 @@ import { Loader2 } from 'lucide-react'
 import AuthPanel from './os/apps/Auth/AuthPanel'
 import ResetPasswordPage from './os/apps/Auth/ResetPasswordPage'
 import { UserTile } from './os/apps/Auth/LogonParts'
-import { brandClass, bodyTextClass } from './os/apps/Auth/logonStyles'
+import { brandClass, bodyTextClass, scrimClass } from './os/apps/Auth/logonStyles'
 import Navbar from './components/layout/Navbar'
 import Desktop from './os/Desktop'
 import { useAuth } from './hooks/useAuth'
@@ -16,8 +16,8 @@ function LoadingScreen() {
       role="status"
       aria-label="Loading Nexus OS"
     >
-      <p>Welcome</p>
-      <div className={`flex items-center gap-2 ${bodyTextClass}`}>
+      <p className={scrimClass}>Welcome</p>
+      <div className={`flex items-center gap-2 ${bodyTextClass} ${scrimClass}`}>
         <Loader2 size={16} className="animate-spin" aria-hidden="true" />
         <span>Loading…</span>
       </div>
@@ -62,14 +62,16 @@ function App() {
 
         <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-4 px-4 py-8">
           <UserTile />
-          <h1 className={brandClass}>Nexus OS</h1>
+          <h1 className={`${brandClass} ${scrimClass}`}>Nexus OS</h1>
           <div id="auth-panel" className="flex w-full justify-center">
             <AuthPanel />
           </div>
         </main>
 
         <footer className={`relative z-10 px-4 pb-3 text-right ${bodyTextClass}`}>
-          Nexus OS © {new Date().getFullYear()}
+          <span className={`inline-block ${scrimClass}`}>
+            Nexus OS © {new Date().getFullYear()}
+          </span>
         </footer>
       </div>
     )

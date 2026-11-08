@@ -2,7 +2,8 @@ import * as Sentry from '@sentry/react'
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN
 const tracesSampleRate = Number(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE ?? '0')
-const SENSITIVE_RECOVERY_KEYS = ['access_token', 'refresh_token']
+// Recovery-link parameters: tokens, the one-time token hash, and the link type.
+const SENSITIVE_RECOVERY_KEYS = ['access_token', 'refresh_token', 'token_hash', 'type']
 
 let initialized = false
 
@@ -17,14 +18,15 @@ function sanitizeUrl(rawUrl) {
     let changed = false
 
     for (const key of SENSITIVE_RECOVERY_KEYS) {
-      if (url.searchParams.has(key)) {
+      // `type` is also an app filter (?type=book): only the recovery value is scrubbed.
+      if (key === 'type' ? url.searchParams.get(key) === 'recovery' : url.searchParams.has(key)) {
         url.searchParams.delete(key)
         changed = true
       }
     }
 
     const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''))
-    for (const key of ['type', ...SENSITIVE_RECOVERY_KEYS]) {
+    for (const key of SENSITIVE_RECOVERY_KEYS) {
       if (hashParams.has(key)) {
         hashParams.delete(key)
         changed = true
@@ -34,9 +36,10 @@ function sanitizeUrl(rawUrl) {
     if (changed) {
       const nextHash = hashParams.toString()
       url.hash = nextHash ? `#${nextHash}` : ''
+      return url.toString()
     }
 
-    return url.toString()
+    return rawUrl
   } catch {
     return rawUrl
   }
@@ -55,6 +58,12 @@ export function initializeSentry() {
     beforeBreadcrumb(breadcrumb) {
       if (breadcrumb?.data?.url) {
         breadcrumb.data.url = sanitizeUrl(breadcrumb.data.url)
+      }
+      // Navigation breadcrumbs carry the page location as from/to.
+      for (const key of ['from', 'to']) {
+        if (typeof breadcrumb?.data?.[key] === 'string') {
+          breadcrumb.data[key] = sanitizeUrl(breadcrumb.data[key])
+        }
       }
       return breadcrumb
     },

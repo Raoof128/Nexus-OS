@@ -1,23 +1,30 @@
 import { useEffect, useState } from 'react'
 import { authFetch, refreshSession, setAuthExpiredCallback } from '../lib/apiClient'
 import { queryClient } from '../lib/queryClient'
-import { realtimeClient } from '../lib/realtimeClient'
 import { AuthContext } from './auth-context'
 
 // Backend detail for a rejected login (auth_controller.py). Matched exactly so
 // that only a credential rejection, not a network failure, reads as "wrong password".
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid credentials'
 
+// Only the server rejecting the session (401/403) means it is expired. A network
+// error or 5xx at boot is not a sign-out: the cookies are untouched, so the
+// next load can pick the session up again.
+function isSessionRejection(error) {
+  return error?.status === 401 || error?.status === 403
+}
+
 async function loadCurrentSession() {
   // /auth/session returns:
   //   { user, expires_at, ... }  → valid session
   //   { authenticated: false }   → no cookies present at all (logged out / first visit)
-  //   throws 401                 → cookie present but expired — try silent refresh
+  //   401/403                    → cookie present but expired — try silent refresh
   let sessionResult
   try {
     sessionResult = await authFetch('/auth/session')
-  } catch {
-    // 401: access cookie IS present but expired — attempt silent refresh
+  } catch (sessionError) {
+    if (!isSessionRejection(sessionError)) return null
+    // Access cookie IS present but expired — attempt silent refresh
     try {
       const refreshResult = await refreshSession()
       // Refresh also returned no-cookie sentinel → nothing to do
@@ -39,7 +46,11 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setAuthExpiredCallback(() => setSession(null))
+    // Expiry is a sign-out: drop the cached account data along with the session.
+    setAuthExpiredCallback(() => {
+      queryClient.clear()
+      setSession(null)
+    })
     return () => setAuthExpiredCallback(null)
   }, [])
 
@@ -100,20 +111,16 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Never rejects: callers (Log off, Switch user, lock screen) do not catch.
+  // The local session is cleared even when the server call fails.
   const signOut = async () => {
     try {
       await authFetch('/auth/logout', { method: 'POST' })
-    } finally {
-      // Tear down Realtime channels before clearing the session so no
-      // authenticated events land in a cache that is about to be wiped.
-      try {
-        await realtimeClient.removeAllChannels()
-      } catch {
-        // Best-effort — failures here must not block logout.
-      }
-      queryClient.clear()
-      setSession(null)
+    } catch {
+      // The server-side cookies may survive; the local sign-out still happens.
     }
+    queryClient.clear()
+    setSession(null)
   }
 
   const value = {

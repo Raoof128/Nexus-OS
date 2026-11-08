@@ -214,3 +214,170 @@ describe('refreshSession', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })
+
+// ── session expiry vs. transient refresh failures (ARCH-06 / SEC-16 / ARCH-08) ─
+
+function jsonResponse(status, body = {}) {
+  return { ok: status >= 200 && status < 300, status, json: vi.fn().mockResolvedValue(body) }
+}
+
+const refreshCalls = (fetchMock) =>
+  fetchMock.mock.calls.filter(([url]) => url.endsWith('/auth/refresh'))
+
+describe('session expiry', () => {
+  it('keeps the session when /auth/refresh answers 503 and surfaces the original error', async () => {
+    const { apiFetch, setAuthExpiredCallback } = await freshModule()
+    const onExpired = vi.fn()
+    setAuthExpiredCallback(onExpired)
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(401, { detail: 'Unauthorized' }))
+        .mockResolvedValueOnce(jsonResponse(503, { detail: 'Service unavailable' })),
+    )
+
+    await expect(apiFetch('/media')).rejects.toThrow('Unauthorized')
+    expect(onExpired).not.toHaveBeenCalled()
+  })
+
+  it('keeps the session on a network failure during refresh', async () => {
+    const { apiFetch, setAuthExpiredCallback } = await freshModule()
+    const onExpired = vi.fn()
+    setAuthExpiredCallback(onExpired)
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(401, { detail: 'Unauthorized' }))
+        .mockRejectedValueOnce(new TypeError('Failed to fetch')),
+    )
+
+    await expect(apiFetch('/media')).rejects.toThrow('Unauthorized')
+    expect(onExpired).not.toHaveBeenCalled()
+  })
+
+  it('keeps the session when /auth/refresh is rate limited (429)', async () => {
+    const { apiFetch, setAuthExpiredCallback } = await freshModule()
+    const onExpired = vi.fn()
+    setAuthExpiredCallback(onExpired)
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(401, { detail: 'Unauthorized' }))
+        .mockResolvedValueOnce(jsonResponse(429, { detail: 'Too many requests' })),
+    )
+
+    await expect(apiFetch('/media')).rejects.toThrow('Unauthorized')
+    expect(onExpired).not.toHaveBeenCalled()
+  })
+
+  it('expires the session when /auth/refresh rejects it with 403', async () => {
+    const { apiFetch, setAuthExpiredCallback } = await freshModule()
+    const onExpired = vi.fn()
+    setAuthExpiredCallback(onExpired)
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(401, { detail: 'Unauthorized' }))
+        .mockResolvedValueOnce(jsonResponse(403, { detail: 'Forbidden' })),
+    )
+
+    await expect(apiFetch('/media')).rejects.toThrow('session has expired')
+    expect(onExpired).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries the original request once after a successful refresh', async () => {
+    const { apiFetch, setAuthExpiredCallback } = await freshModule()
+    const onExpired = vi.fn()
+    setAuthExpiredCallback(onExpired)
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(401, { detail: 'Unauthorized' }))
+      .mockResolvedValueOnce(jsonResponse(200, { user: { email: 'runner@nexus.net' } }))
+      .mockResolvedValueOnce(jsonResponse(200, { items: [1] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(apiFetch('/media')).resolves.toEqual({ items: [1] })
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(fetchMock.mock.calls[2][0]).toBe('https://api.nexus-os.local/media')
+    expect(refreshCalls(fetchMock)).toHaveLength(1)
+    expect(onExpired).not.toHaveBeenCalled()
+  })
+
+  it('sends concurrent 401s through one shared refresh', async () => {
+    const { apiFetch } = await freshModule()
+    let resolveRefresh
+    const pendingRefresh = new Promise((resolve) => {
+      resolveRefresh = resolve
+    })
+    const seen = new Set()
+    const fetchMock = vi.fn((url) => {
+      if (url.endsWith('/auth/refresh')) return pendingRefresh
+      if (!seen.has(url)) {
+        seen.add(url)
+        return Promise.resolve(jsonResponse(401, { detail: 'Unauthorized' }))
+      }
+      return Promise.resolve(jsonResponse(200, { url }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const first = apiFetch('/media/a')
+    const second = apiFetch('/media/b')
+    await vi.waitFor(() => expect(refreshCalls(fetchMock)).toHaveLength(1))
+    resolveRefresh(jsonResponse(200, { user: { email: 'runner@nexus.net' } }))
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { url: 'https://api.nexus-os.local/media/a' },
+      { url: 'https://api.nexus-os.local/media/b' },
+    ])
+    expect(refreshCalls(fetchMock)).toHaveLength(1)
+  })
+
+  it('reuses a refresh that settled moments ago instead of refreshing again', async () => {
+    const { apiFetch } = await freshModule()
+    const seen = new Set()
+    const fetchMock = vi.fn(async (url) => {
+      if (url.endsWith('/auth/refresh')) return jsonResponse(200, { user: { email: 'a@b.co' } })
+      if (!seen.has(url)) {
+        seen.add(url)
+        return jsonResponse(401, { detail: 'Unauthorized' })
+      }
+      return jsonResponse(200, { url })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await apiFetch('/media/a')
+    // This 401 was already in flight when the refresh settled.
+    await expect(apiFetch('/media/b')).resolves.toEqual({
+      url: 'https://api.nexus-os.local/media/b',
+    })
+    expect(refreshCalls(fetchMock)).toHaveLength(1)
+  })
+
+  it('refreshes again once the grace window has passed', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      const { apiFetch } = await freshModule()
+      const seen = new Set()
+      const fetchMock = vi.fn(async (url) => {
+        if (url.endsWith('/auth/refresh')) return jsonResponse(200, { user: { email: 'a@b.co' } })
+        if (!seen.has(url)) {
+          seen.add(url)
+          return jsonResponse(401, { detail: 'Unauthorized' })
+        }
+        return jsonResponse(200, { url })
+      })
+      vi.stubGlobal('fetch', fetchMock)
+
+      await apiFetch('/media/a')
+      vi.setSystemTime(Date.now() + 10_000)
+      await apiFetch('/media/b')
+      expect(refreshCalls(fetchMock)).toHaveLength(2)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

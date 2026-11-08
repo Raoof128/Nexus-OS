@@ -5,7 +5,14 @@ import { authFetch } from '../../../lib/apiClient'
 import { useAuth } from '../../../hooks/useAuth'
 import PasswordInput from '../../../components/ui/PasswordInput'
 import { ArrowSubmitButton, FormBalloon } from './LogonParts'
-import { fieldClass, headingClass, labelClass, linkClass, panelClass } from './logonStyles'
+import {
+  fieldClass,
+  headingClass,
+  labelClass,
+  linkClass,
+  panelClass,
+  scrimClass,
+} from './logonStyles'
 import { friendlySignInError } from './signInErrors'
 import { PASSWORDS_MISMATCH } from './copy'
 
@@ -28,11 +35,21 @@ export default function AuthPanel() {
 
   const submittingRef = useRef(false)
 
-  const slideTo = (panel) => {
-    setError(null)
-    setSuccess(null)
+  // `keepMessage` carries a success notice across the slide (e.g. "Account created"
+  // when the user is sent back to sign in).
+  const slideTo = (panel, { keepMessage = false } = {}) => {
+    if (!keepMessage) {
+      setError(null)
+      setSuccess(null)
+    }
     setForgotSent(false)
     setActive(panel)
+  }
+
+  // Typing clears the message that may have described the old values.
+  const typed = (setter) => (event) => {
+    setter(event.target.value)
+    setError(null)
   }
 
   // Escape navigates sub-panels back to login
@@ -85,7 +102,7 @@ export default function AuthPanel() {
         const { error: loginError } = await signIn(regEmail, regPassword)
         if (loginError) {
           setSuccess('Account created. Please log in.')
-          slideTo('login')
+          slideTo('login', { keepMessage: true })
         }
       } else {
         setSuccess(result.message || 'Check your email to confirm registration')
@@ -135,8 +152,15 @@ export default function AuthPanel() {
       >
         <AnimatePresence mode="wait" initial={false}>
           {active === 'login' && (
-            <Motion.div key="login" {...fade} className="flex flex-col items-center">
+            <Motion.div
+              key="login"
+              {...fade}
+              className={`mx-auto flex w-fit flex-col items-center ${scrimClass}`}
+            >
               <form onSubmit={handleLogin} className="flex w-[264px] flex-col gap-3">
+                <FormBalloon id="login-success" tone="success">
+                  {success}
+                </FormBalloon>
                 <div className="w-[230px]">
                   <label htmlFor="login-email" className={labelClass}>
                     Email
@@ -145,7 +169,7 @@ export default function AuthPanel() {
                     id="login-email"
                     type="email"
                     value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
+                    onChange={typed(setLoginEmail)}
                     className={fieldClass}
                     placeholder="runner@nexus.net"
                     autoComplete="email"
@@ -162,7 +186,7 @@ export default function AuthPanel() {
                       id="login-password"
                       wrapperClassName="w-[230px]"
                       value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
+                      onChange={typed(setLoginPassword)}
                       className={fieldClass}
                       placeholder="Password"
                       autoComplete="current-password"
@@ -213,7 +237,7 @@ export default function AuthPanel() {
                       id="reg-email"
                       type="email"
                       value={regEmail}
-                      onChange={(e) => setRegEmail(e.target.value)}
+                      onChange={typed(setRegEmail)}
                       className={fieldClass}
                       placeholder="runner@nexus.net"
                       autoComplete="email"
@@ -231,7 +255,7 @@ export default function AuthPanel() {
                       id="reg-password"
                       wrapperClassName="w-full"
                       value={regPassword}
-                      onChange={(e) => setRegPassword(e.target.value)}
+                      onChange={typed(setRegPassword)}
                       className={fieldClass}
                       placeholder="Min 12 characters"
                       autoComplete="new-password"
@@ -250,7 +274,7 @@ export default function AuthPanel() {
                       id="reg-confirm"
                       wrapperClassName="w-full"
                       value={regConfirm}
-                      onChange={(e) => setRegConfirm(e.target.value)}
+                      onChange={typed(setRegConfirm)}
                       className={fieldClass}
                       placeholder="Repeat password"
                       autoComplete="new-password"
@@ -301,7 +325,7 @@ export default function AuthPanel() {
                       id="forgot-email"
                       type="email"
                       value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)}
+                      onChange={typed(setForgotEmail)}
                       className={fieldClass}
                       placeholder="runner@nexus.net"
                       autoComplete="email"

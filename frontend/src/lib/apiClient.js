@@ -10,8 +10,13 @@ if (!API_URL) {
 }
 
 const REQUEST_TIMEOUT_MS = 30_000
+// A 401 that arrives this soon after a successful refresh reuses that refresh
+// instead of starting another one (the cookies were just rotated).
+const REFRESH_GRACE_MS = 2_000
+const EXPIRED_MESSAGE = 'Your session has expired. Please log in again.'
 
 let refreshPromise = null
+let lastRefresh = null // { result, settledAt } of the most recent successful refresh
 
 async function extractError(response) {
   try {
@@ -20,6 +25,26 @@ async function extractError(response) {
   } catch {
     return `Request failed with ${response.status}`
   }
+}
+
+// Error for a non-2xx response. `status` lets callers tell a rejected session
+// (401/403) apart from transient failures (5xx, 429, network).
+async function httpError(response) {
+  const error = new Error(await extractError(response))
+  error.status = response.status
+  return error
+}
+
+// Only the server rejecting the session counts as expiry. Anything else
+// (network failure, timeout, 5xx, 429) leaves the session in place.
+function isSessionRejection(error) {
+  return error?.status === 401 || error?.status === 403
+}
+
+function expireSession() {
+  lastRefresh = null
+  onAuthExpired?.()
+  return new Error(EXPIRED_MESSAGE)
 }
 
 async function request(path, { method = 'GET', body, headers = {} } = {}, retry = true) {
@@ -45,22 +70,27 @@ async function request(path, { method = 'GET', body, headers = {} } = {}, retry 
       !path.startsWith('/auth/') &&
       path !== '/auth/refresh'
     ) {
+      const originalError = await httpError(response)
+      let refreshed
       try {
-        const refreshed = await refreshSession()
-        if (!refreshed?.user) {
-          throw new Error('Your session has expired. Please log in again.')
-        }
+        refreshed = await refreshSession()
       } catch (refreshError) {
-        onAuthExpired?.()
-        if (refreshError?.message) throw refreshError
-        throw new Error('Your session has expired. Please log in again.')
+        if (!isSessionRejection(refreshError)) {
+          // Transient: the session is still valid as far as we know. Fail this
+          // request with its own error; the next request retries the refresh.
+          throw originalError
+        }
+        throw expireSession()
+      }
+      if (!refreshed?.user) {
+        throw expireSession()
       }
       // retry=false guarantees we can't recurse on a second 401
       return request(path, { method, body, headers }, false)
     }
 
     if (!response.ok) {
-      throw new Error(await extractError(response))
+      throw await httpError(response)
     }
 
     if (response.status === 204) return null
@@ -75,12 +105,21 @@ async function request(path, { method = 'GET', body, headers = {} } = {}, retry 
   }
 }
 
-export async function refreshSession() {
-  if (!refreshPromise) {
-    refreshPromise = request('/auth/refresh', { method: 'POST' }, false).finally(() => {
+export function refreshSession() {
+  if (refreshPromise) return refreshPromise
+
+  if (lastRefresh && Date.now() - lastRefresh.settledAt < REFRESH_GRACE_MS) {
+    return Promise.resolve(lastRefresh.result)
+  }
+
+  refreshPromise = request('/auth/refresh', { method: 'POST' }, false)
+    .then((result) => {
+      lastRefresh = result?.user ? { result, settledAt: Date.now() } : null
+      return result
+    })
+    .finally(() => {
       refreshPromise = null
     })
-  }
 
   return refreshPromise
 }

@@ -7,9 +7,12 @@ import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { queryClient } from './lib/queryClient.js'
 import { bootstrapRecoveryTokens } from './lib/recoveryTokens.js'
+import { clearLegacyRealtimeAuthStorage } from './lib/legacyAuthStorage.js'
 import { initializeSentry } from './observability/sentry.js'
 import { registerServiceWorker } from './lib/registerServiceWorker.js'
 import './index.css'
+
+clearLegacyRealtimeAuthStorage()
 
 try {
   bootstrapRecoveryTokens()

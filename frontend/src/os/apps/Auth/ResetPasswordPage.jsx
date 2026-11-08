@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { authFetch } from '../../../lib/apiClient'
-import { realtimeClient } from '../../../lib/realtimeClient'
 import Navbar from '../../../components/layout/Navbar'
 import PasswordInput from '../../../components/ui/PasswordInput'
 import { FormBalloon, UserTile } from './LogonParts'
@@ -14,7 +13,22 @@ import {
   headingClass,
   labelClass,
   panelClass,
+  scrimClass,
 } from './logonStyles'
+
+// Exchanges the emailed token_hash on an isolated, non-persistent Supabase client
+// (lib/realtimeClient.js). The Supabase module loads only when a recovery link is
+// opened. A rejected link rejects this promise.
+function exchangeRecoveryToken(tokenHash) {
+  return import('../../../lib/realtimeClient')
+    .then(({ verifyRecoveryOtp }) => verifyRecoveryOtp(tokenHash))
+    .then(({ data, error }) => {
+      if (error || !data?.session?.access_token) {
+        throw new Error('Recovery link is invalid or has expired.')
+      }
+      return data.session
+    })
+}
 
 export default function ResetPasswordPage({
   accessToken: initialAccessToken,
@@ -30,6 +44,11 @@ export default function ResetPasswordPage({
   const [submitting, setSubmitting] = useState(false)
   const submittingRef = useRef(false)
   const [exchanging, setExchanging] = useState(Boolean(tokenHash && !initialAccessToken))
+  // Explicit: a rejected or expired link must never fall through to the form.
+  const [expired, setExpired] = useState(false)
+  // One exchange per link, shared by the StrictMode double effect (a second
+  // verify of a consumed token would wrongly report the link as expired).
+  const exchangeRef = useRef(null)
 
   // Escape cancels when the form is active
   useEffect(() => {
@@ -41,33 +60,33 @@ export default function ResetPasswordPage({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [accessToken, exchanging, onComplete])
 
-  // Exchange token_hash for a session via Supabase verifyOtp
+  // Exchange token_hash for a session (isolated client, see exchangeRecoveryToken)
   useEffect(() => {
     if (!tokenHash || accessToken) return
     let cancelled = false
-    realtimeClient.auth
-      .verifyOtp({ token_hash: tokenHash, type: 'recovery' })
-      .then(({ data, error: otpError }) => {
+    if (!exchangeRef.current) exchangeRef.current = exchangeRecoveryToken(tokenHash)
+    exchangeRef.current
+      .then((session) => {
         if (cancelled) return
-        if (otpError || !data?.session) {
-          setError('Recovery link is invalid or has expired.')
-          setExchanging(false)
-          return
-        }
-        setAccessToken(data.session.access_token)
-        setRefreshToken(data.session.refresh_token || '')
+        setAccessToken(session.access_token)
+        setRefreshToken(session.refresh_token || '')
         setExchanging(false)
       })
       .catch(() => {
-        if (!cancelled) {
-          setError('Recovery link is invalid or has expired.')
-          setExchanging(false)
-        }
+        if (cancelled) return
+        setExpired(true)
+        setExchanging(false)
       })
     return () => {
       cancelled = true
     }
   }, [tokenHash, accessToken])
+
+  // Editing a field clears the message it may have caused.
+  const typed = (setter) => (event) => {
+    setter(event.target.value)
+    setError(null)
+  }
 
   if (exchanging) {
     return (
@@ -76,18 +95,18 @@ export default function ResetPasswordPage({
         role="status"
       >
         <Loader2 size={24} className="animate-spin" aria-hidden="true" />
-        <span>Verifying recovery link…</span>
+        <span className={scrimClass}>Verifying recovery link…</span>
       </div>
     )
   }
 
-  if (!accessToken && !tokenHash) {
+  if (expired || (!accessToken && !tokenHash)) {
     return (
       <div className="nx-wallpaper-aero relative flex min-h-screen flex-col">
         <Navbar />
         <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-4 px-4 py-8">
           <UserTile />
-          <h1 className={brandClass}>Nexus OS</h1>
+          <h1 className={`${brandClass} ${scrimClass}`}>Nexus OS</h1>
           <Motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -146,7 +165,7 @@ export default function ResetPasswordPage({
       <Navbar />
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center gap-4 px-4 py-8">
         <UserTile />
-        <h1 className={brandClass}>Nexus OS</h1>
+        <h1 className={`${brandClass} ${scrimClass}`}>Nexus OS</h1>
         <Motion.div
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -166,7 +185,7 @@ export default function ResetPasswordPage({
                 id="new-password"
                 wrapperClassName="w-full"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={typed(setPassword)}
                 className={fieldClass}
                 placeholder="Min 12 characters"
                 autoComplete="new-password"
@@ -183,7 +202,7 @@ export default function ResetPasswordPage({
                 id="confirm-password"
                 wrapperClassName="w-full"
                 value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
+                onChange={typed(setConfirm)}
                 className={fieldClass}
                 placeholder="Repeat password"
                 autoComplete="new-password"
