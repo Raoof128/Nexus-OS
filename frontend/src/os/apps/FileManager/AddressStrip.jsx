@@ -94,7 +94,7 @@ export default function AddressStrip({
         })}
       </nav>
 
-      <div className="w-[150px] shrink-0 @md:w-[200px]">
+      <div className="w-24 shrink-0 @lg:w-[150px] @xl:w-[200px]">
         <input
           type="search"
           value={query}

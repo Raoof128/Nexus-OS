@@ -106,21 +106,21 @@ export default function EntryList({
               sortKey="modified"
               sort={sort}
               onSort={onSort}
-              className="hidden text-left @md:table-cell"
+              className="hidden w-36 text-left whitespace-nowrap @xl:table-cell"
             />
             <SortHeader
               label="Type"
               sortKey="type"
               sort={sort}
               onSort={onSort}
-              className="hidden text-left @md:table-cell"
+              className="hidden w-28 text-left whitespace-nowrap @lg:table-cell"
             />
             <SortHeader
               label="Size"
               sortKey="size"
               sort={sort}
               onSort={onSort}
-              className="hidden text-right @md:table-cell"
+              className="hidden w-20 text-right whitespace-nowrap @3xs:table-cell"
             />
           </tr>
         </thead>
@@ -204,13 +204,13 @@ export default function EntryList({
                     </button>
                   )}
                 </td>
-                <td className="hidden whitespace-nowrap text-muted-foreground @md:table-cell">
+                <td className="hidden whitespace-nowrap text-muted-foreground @xl:table-cell">
                   {formatModified(row.modified)}
                 </td>
-                <td className="hidden whitespace-nowrap text-muted-foreground @md:table-cell">
+                <td className="hidden whitespace-nowrap text-muted-foreground @lg:table-cell">
                   {row.type}
                 </td>
-                <td className="hidden text-right font-mono text-[11px] whitespace-nowrap text-muted-foreground @md:table-cell">
+                <td className="hidden text-right font-mono text-[11px] whitespace-nowrap text-muted-foreground @3xs:table-cell">
                   {row.size != null ? formatBytes(row.size) : '—'}
                 </td>
               </tr>

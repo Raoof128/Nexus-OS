@@ -680,7 +680,7 @@ export default function FileManagerApp({ windowId }) {
         />
 
         <div
-          className="flex min-h-0 min-w-0 flex-1 flex-col"
+          className="@container flex min-h-0 min-w-0 flex-1 flex-col"
           onContextMenu={(e) => {
             // Text fields (new-item and rename) keep the native menu for cut and paste.
             if (isTextField(e.target)) return
@@ -733,7 +733,7 @@ export default function FileManagerApp({ windowId }) {
         {viewer && (
           <aside
             aria-label={`Preview of ${viewer.name}`}
-            className="absolute inset-y-0 right-0 z-10 flex w-full flex-col border-l border-[#a0afc3] bg-white @md:static @md:w-[46%] @md:min-w-[260px]"
+            className="absolute inset-y-0 right-0 z-10 flex w-full flex-col border-l border-[#a0afc3] bg-white @2xl:static @2xl:w-[38%] @2xl:max-w-[420px] @2xl:min-w-[240px] @2xl:shrink-0"
           >
             <FileViewer key={viewingFile} file={viewer} onClose={() => setViewingFile(null)} />
           </aside>
