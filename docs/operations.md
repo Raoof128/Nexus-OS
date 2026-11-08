@@ -21,15 +21,23 @@
 - CI runs Ruff, pytest, Bandit, pip-audit, ESLint, Prettier, Vitest, npm audit,
   gitleaks and the Playwright functional suite (`npm run test:e2e`).
 - Send, reply and forward share a per-user budget (50 per hour, `429` with
-  `Retry-After`) checked before any provider call.
-- The browser sends an `Idempotency-Key` with send, reply and forward, but the
-  backend does **not** deduplicate on it yet: a retry after an ambiguous timeout
-  can send a duplicate message. Treat server-side idempotency as open work.
+  `Retry-After`) checked after the idempotency lookup and before any provider
+  call, so a replayed request does not consume it.
+- Send, reply and forward honour an `Idempotency-Key` header (8-128 characters
+  from `A-Z a-z 0-9 _ -`; malformed returns `400`). A retry with the same key
+  and the same request returns the first response with `Idempotent-Replayed:
+true` and does not call the provider. A retry while the first request is
+  still running returns `409` with `Retry-After`; the same key with a
+  different request returns `422`. Keys are per user and kept for 24 hours; a
+  provider failure before the message is accepted releases the key. Requests
+  without the header are not deduplicated. With `REDIS_URL` the store is
+  shared across instances; without it, it is per process and bounded.
 - Login has two budgets: per IP + account, and per account from any IP (20 per
   15 minutes). The account budget stops rotating-IP guessing, at a known cost:
   anyone who knows an address can throttle that account's sign-in (and lock
-  screen unlock, which uses `/auth/login`) for 15 minutes. Successful sign-ins
-  count too.
+  screen unlock, which uses `/auth/login`) for 15 minutes. Only failed
+  credential attempts count; once the budget is spent even the correct
+  password is refused before Supabase is asked.
 - `/auth/refresh` is budgeted per refresh session plus a per-IP ceiling (60 per
   minute). The frontend treats a `429` from refresh as transient, never as a
   sign-out.
@@ -49,11 +57,22 @@
   **Without it, every request appears to come from the proxy**, so per-IP
   budgets (including the `/auth/refresh` ceiling of 60/minute) become one shared
   bucket for all users.
-- Make the reverse proxy **overwrite** `X-Forwarded-For` (nginx:
-  `proxy_set_header X-Forwarded-For $remote_addr;`) rather than append to it,
-  and firewall the origin to Cloudflare's ranges. The backend trusts the
-  leftmost hop from a trusted peer, so an appended, client-supplied value would
-  let a client choose its own rate-limit identity.
+- **Client IP for rate limits (`CLIENT_IP_STRATEGY`).** Requests reach nginx
+  from Cloudflare, so nginx's `$remote_addr` is a Cloudflare edge address, not
+  the visitor. Do **not** simply overwrite `X-Forwarded-For` with
+  `$remote_addr`: every user would share Cloudflare's rate-limit buckets.
+  Either:
+  - keep the default `CLIENT_IP_STRATEGY=leftmost` and (a) firewall the droplet
+    to Cloudflare's ranges so nothing reaches nginx except through Cloudflare,
+    and (b) use nginx's `real_ip` module (`set_real_ip_from <each Cloudflare
+range>;` and `real_ip_header CF-Connecting-IP;`) so `$remote_addr` is the
+    visitor, then send `proxy_set_header X-Forwarded-For $remote_addr;`. The
+    Worker already sets `X-Forwarded-For` from `CF-Connecting-IP`; or
+  - set `CLIENT_IP_STRATEGY=rightmost` and list **every** proxy hop in
+    `TRUSTED_PROXY_IPS` (all Cloudflare IPv4/IPv6 ranges and nginx). The
+    backend then takes the first untrusted hop from the right, so an appended
+    client-supplied value is never used. The backend logs a warning at startup
+    if `rightmost` is set without any public proxy ranges.
 - After deploying the Sentry header scrubbing, purge older Sentry events that
   may contain `X-Recovery-Access-Token` / `X-Recovery-Refresh-Token` headers.
 - `supabase/seed.sql` refuses to run unless the server address is local
