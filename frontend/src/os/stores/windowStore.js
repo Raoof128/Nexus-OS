@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { nanoid } from 'nanoid'
 import { APP_REGISTRY } from './appRegistry'
+import { ownsLocalState } from '../../lib/localOwner'
 import { TASKBAR_HEIGHT, readTaskbarHeight } from './taskbarHeight'
 
 // Live taskbar height is --w7-taskbar-h (48px on pointer:coarse); Desktop calls
@@ -573,7 +574,8 @@ function writeLayout(state) {
       zStack,
       activeWindowId,
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
+    // A tab left signed in as a previous account must not write its layout back.
+    if (ownsLocalState()) localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
   } catch {
     // Storage full or unavailable
   }

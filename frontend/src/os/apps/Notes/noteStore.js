@@ -15,11 +15,20 @@
  * can say so. Window rules (which note a new window gets) live in noteWindows.js.
  */
 import { nanoid } from 'nanoid'
+import { ownsLocalState } from '../../../lib/localOwner'
 
 export const UNTITLED = 'Untitled'
 export const INDEX_KEY = 'nexus-os:notes:index'
 export const WINDOWS_KEY = 'nexus-os:notes:windows'
 export const PENDING_KEY = 'nexus-os:notes:pending'
+
+// Every note write goes through here. A tab left signed in as a previous
+// account (another tab claimed the browser for a new one) must not write notes
+// back; throwing surfaces as the normal "could not save" path.
+function ownedSetItem(key, value) {
+  if (!ownsLocalState()) throw new Error('Signed in as another account in a different tab.')
+  localStorage.setItem(key, value)
+}
 
 const BODY_PREFIX = 'nexus-os:notes:'
 const LEGACY_PREFIX = 'nexus-os:note-'
@@ -58,7 +67,7 @@ function removeKey(key) {
 function restoreRaw(key, raw) {
   try {
     if (raw === null) localStorage.removeItem(key)
-    else localStorage.setItem(key, raw)
+    else ownedSetItem(key, raw)
   } catch {
     // Best effort: the failed write is already reported to the caller.
   }
@@ -91,7 +100,7 @@ function parseIndex(raw) {
 }
 
 function writeIndex(notes) {
-  localStorage.setItem(INDEX_KEY, JSON.stringify({ version: 1, notes }))
+  ownedSetItem(INDEX_KEY, JSON.stringify({ version: 1, notes }))
 }
 
 function bodyText(raw) {
@@ -105,7 +114,7 @@ function bodyText(raw) {
 }
 
 function writeBody(id, content) {
-  localStorage.setItem(noteKey(id), JSON.stringify({ content }))
+  ownedSetItem(noteKey(id), JSON.stringify({ content }))
 }
 
 function readWindowLinksRaw() {
@@ -126,7 +135,7 @@ export function readWindowLinks() {
 export function writeWindowLinks(links) {
   try {
     if (Object.keys(links).length === 0) localStorage.removeItem(WINDOWS_KEY)
-    else localStorage.setItem(WINDOWS_KEY, JSON.stringify(links))
+    else ownedSetItem(WINDOWS_KEY, JSON.stringify(links))
   } catch {
     // Storage unavailable: windows fall back to a note on their next mount.
   }
@@ -279,7 +288,7 @@ export function createNote({ title = '', content = '' } = {}) {
   const text = head && body ? `${head}\n\n${body}` : head || body
   const note = addNote({ content: text })
   try {
-    localStorage.setItem(PENDING_KEY, note.id)
+    ownedSetItem(PENDING_KEY, note.id)
   } catch {
     // The note is saved; only the auto-open is lost.
   }

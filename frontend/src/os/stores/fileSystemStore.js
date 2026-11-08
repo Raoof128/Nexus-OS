@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { nanoid } from 'nanoid'
 import { writeBlob, deleteBlob } from '../../lib/opfsDrive'
+import { ownsLocalState } from '../../lib/localOwner'
 
 const STORAGE_KEY = 'nexus-os:filesystem'
 const SCHEMA_VERSION = 1
@@ -231,6 +232,8 @@ useFileSystemStore.subscribe((state) => {
   if (fsSaveTimeout) clearTimeout(fsSaveTimeout)
   fsSaveTimeout = setTimeout(() => {
     lastSavedFiles = state.files
+    // A tab left signed in as a previous account must not write its tree back.
+    if (!ownsLocalState()) return
     try {
       localStorage.setItem(
         STORAGE_KEY,

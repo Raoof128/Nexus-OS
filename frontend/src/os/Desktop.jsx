@@ -43,6 +43,7 @@ import InstallPrompt from './components/InstallPrompt'
 import TitlebarOverlay from './components/TitlebarOverlay'
 import { consumeShareTarget, consumeFileHandlers } from '../lib/pwaLaunch'
 import { claimLocalState } from '../lib/privateState'
+import { watchOwner } from '../lib/localOwner'
 import { useAuth } from '../hooks/useAuth'
 
 const Z_INDEX_BASE = 100
@@ -68,6 +69,13 @@ function writeBootFlag() {
 }
 
 export default function Desktop() {
+  const { session } = useAuth()
+  const userId = session?.user?.id
+  // Files, notes and window layout live in this browser. If another account
+  // owned them, wipe them before anything renders: claiming in an effect let
+  // the previous account's windows paint for a frame (see lib/privateState).
+  // Runs once per mount and is idempotent, so StrictMode's double render is safe.
+  useState(() => claimLocalState(userId))
   const desktopRef = useRef(null)
   const [snapPreview, setSnapPreview] = useState(null) // null | 'left' | 'right' | 'top'
   // null | { id, kind: 'desktop' | 'taskbar' | 'icon', x, y, appId? }
@@ -182,8 +190,6 @@ export default function Desktop() {
   const hydrateSettings = useSettingsStore((s) => s.hydrateSettings)
 
   const hydrateFromStorage = useWindowStore((s) => s.hydrateFromStorage)
-  const { session } = useAuth()
-  const userId = session?.user?.id
   // StrictMode runs mount effects twice in development. Booting twice re-read
   // the saved layout and dropped a window the first run had just opened (a
   // deep link or share target), so the boot sequence runs once per mount.
@@ -192,9 +198,6 @@ export default function Desktop() {
   useEffect(() => {
     if (bootedRef.current) return
     bootedRef.current = true
-    // Files, notes and window layout live in this browser. If another account
-    // owned them, wipe them before any store hydrates (see lib/privateState).
-    claimLocalState(userId)
     hydrateFromStorage()
     hydrateSettings()
     // Restore this account's notification history + Do Not Disturb preference.
@@ -245,6 +248,11 @@ export default function Desktop() {
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Another tab signed in as a different account and wiped this browser's local
+  // data. This tab still holds the old account in memory and must not write it
+  // back (stores also refuse); reload so it boots as whoever owns the cookie now.
+  useEffect(() => watchOwner(() => window.location.reload()), [])
 
   useGlobalShortcuts({ disabled: locked })
 

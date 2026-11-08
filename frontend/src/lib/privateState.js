@@ -13,14 +13,27 @@
  * before owners were recorded is claimed by the first account that signs in.
  */
 import { clearAllBlobs } from './opfsDrive'
+import { OWNER_KEY, setClaimedOwner } from './localOwner'
 import { useFileSystemStore } from '../os/stores/fileSystemStore'
 import { useWindowStore } from '../os/stores/windowStore'
 import { useNotificationStore } from '../os/stores/notificationStore'
 
-export const OWNER_KEY = 'nexus-os:owner'
-const PRIVATE_KEYS = ['nexus-os:filesystem', 'nexus-os:window-layout']
+export { OWNER_KEY }
+const PRIVATE_KEYS = [
+  'nexus-os:filesystem',
+  'nexus-os:window-layout',
+  // Which task reminders already fired (task ids and times).
+  'nexus-os:tasks:reminders-fired',
+  // Aion's anonymous companion session must not carry over between accounts.
+  'aion.supabase.auth',
+]
 // Note bodies (per window today, per note in future) and anything else note-scoped.
-const PRIVATE_PREFIXES = ['nexus-os:note-', 'nexus-os:notes:']
+const PRIVATE_PREFIXES = [
+  'nexus-os:note-',
+  'nexus-os:notes:',
+  // Per-user notification history (can include task titles).
+  'nexus-os:notifications:',
+]
 
 function readOwner() {
   try {
@@ -71,5 +84,6 @@ export function claimLocalState(userId) {
   const wiped = Boolean(owner) && owner !== userId
   if (wiped) wipePrivateLocalState()
   writeOwner(userId)
+  setClaimedOwner(userId)
   return wiped
 }

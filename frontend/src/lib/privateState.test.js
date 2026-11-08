@@ -13,6 +13,9 @@ function seedUserA() {
   localStorage.setItem('nexus-os:window-layout', '{"windows":"A"}')
   localStorage.setItem('nexus-os:note-notes-abc123', 'A private note')
   localStorage.setItem('nexus-os:settings', '{"wallpaper":"aero"}')
+  localStorage.setItem('nexus-os:notifications:user-a', '{"notifications":["A task"]}')
+  localStorage.setItem('nexus-os:tasks:reminders-fired', '{"t1":1}')
+  localStorage.setItem('aion.supabase.auth', '{"refresh_token":"anon-a"}')
   useFileSystemStore.getState().createFile('/documents', 'a-secret.txt', 'A')
   useWindowStore.getState().openApp('notes')
 }
@@ -51,6 +54,10 @@ describe('claimLocalState', () => {
     expect(localStorage.getItem('nexus-os:note-notes-abc123')).toBeNull()
     expect(localStorage.getItem('nexus-os:window-layout')).toBeNull()
     expect(localStorage.getItem('nexus-os:settings')).not.toBeNull()
+    // Review follow-up: these private keys were left behind.
+    expect(localStorage.getItem('nexus-os:notifications:user-a')).toBeNull()
+    expect(localStorage.getItem('nexus-os:tasks:reminders-fired')).toBeNull()
+    expect(localStorage.getItem('aion.supabase.auth')).toBeNull()
     expect(localStorage.getItem(OWNER_KEY)).toBe('user-b')
     // Memory: same-tab stores no longer hold user A's data.
     expect(useFileSystemStore.getState().files['/documents/a-secret.txt']).toBeUndefined()
