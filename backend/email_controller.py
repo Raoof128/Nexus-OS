@@ -34,7 +34,7 @@ if __package__:
         ToggleStarRequest,
     )
     from .email_service import decrypt_oauth_token, get_provider
-    from .rate_limit import enforce_ai_rate_limit
+    from .rate_limit import enforce_ai_rate_limit, enforce_email_send_rate_limit_async
     from .services import (
         create_supabase_user_client,
         get_gemini_circuit_breaker,
@@ -57,7 +57,7 @@ else:  # pragma: no cover - backend-cwd execution (``python email_controller.py`
         ToggleStarRequest,
     )
     from email_service import decrypt_oauth_token, get_provider
-    from rate_limit import enforce_ai_rate_limit
+    from rate_limit import enforce_ai_rate_limit, enforce_email_send_rate_limit_async
     from services import (
         create_supabase_user_client,
         get_gemini_circuit_breaker,
@@ -360,6 +360,7 @@ class EmailController(Controller):
         """Send an email via the connected provider."""
 
         user_id, access_token = _require_auth(request)
+        await enforce_email_send_rate_limit_async(user_id)
         _enforce_compose_limits(data)
         _reject_header_breaks(data.subject)
 
@@ -401,6 +402,7 @@ class EmailController(Controller):
         """
 
         user_id, access_token = _require_auth(request)
+        await enforce_email_send_rate_limit_async(user_id)
         _enforce_compose_limits(data)
         _reject_header_breaks(data.subject)
 
@@ -447,6 +449,7 @@ class EmailController(Controller):
         """
 
         user_id, access_token = _require_auth(request)
+        await enforce_email_send_rate_limit_async(user_id)
         _enforce_compose_limits(data)
 
         db = _db(access_token)

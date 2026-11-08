@@ -7,18 +7,43 @@
 --    This file creates an account with a publicly known password.
 -- =============================================================================
 
--- Production guard: abort if the database is not a local/test instance.
+-- Production guard. The seed runs only when BOTH checks pass:
+--
+--   1. The server is local. inet_server_addr() is NULL for a Unix-socket
+--      connection. For TCP it must be loopback, or in a Docker bridge range,
+--      which is where `supabase start` runs Postgres. A hosted project reports
+--      its own internal address. The database name is NOT checked: the hosted
+--      default is also 'postgres', so a name cannot tell local from hosted.
+--   2. auth.users holds no account except the dev seed user. A local
+--      `supabase db reset` starts from an empty database, so it passes. A
+--      populated database is refused.
+--
+-- Known residual risk: a hosted project that is EMPTY and whose server address
+-- falls in 172.16.0.0/12 (AWS default VPCs use 172.31.x.x) would pass both
+-- checks. Do not run this file against any hosted project.
 DO $$
+DECLARE
+  _addr   inet := inet_server_addr();
+  _dev_id uuid := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid;
+  _others bigint;
 BEGIN
-  IF current_database() NOT ILIKE '%local%'
-     AND current_database() NOT ILIKE '%test%'
-     AND current_database() NOT ILIKE '%dev%'
-     AND current_database() NOT ILIKE '%postgres%'   -- default supabase local db name
-  THEN
+  IF NOT (
+       _addr IS NULL
+    OR _addr <<= '127.0.0.0/8'::inet
+    OR _addr  = '::1'::inet
+    OR _addr <<= '172.16.0.0/12'::inet
+    OR _addr <<= '192.168.0.0/16'::inet
+  ) THEN
     RAISE EXCEPTION
-      'seed.sql must only run on local or test databases (got: %). '
-      'Refusing to create dev credentials in a production environment.',
-      current_database();
+      'seed.sql refused: server address % is not local. Dev credentials are only seeded into a local Supabase stack.',
+      _addr;
+  END IF;
+
+  SELECT count(*) INTO _others FROM auth.users WHERE id <> _dev_id;
+  IF _others > 0 THEN
+    RAISE EXCEPTION
+      'seed.sql refused: % non-seed account(s) exist in auth.users. Dev credentials are only seeded into an empty local database.',
+      _others;
   END IF;
 END $$;
 

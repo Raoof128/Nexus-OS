@@ -24,6 +24,7 @@ from litestar.testing import TestClient
 
 from backend import email_controller
 from backend.app import app
+from backend.config import get_settings
 from backend.email_controller import (
     MAX_BODY_HTML_CHARS,
     MAX_RECIPIENTS_PER_LIST,
@@ -824,3 +825,56 @@ async def test_gmail_message_id_lookup_requests_only_message_id_header(monkeypat
 async def test_gmail_message_id_lookup_failure_returns_none(monkeypatch):
     _mock_httpx(monkeypatch, lambda request: httpx.Response(500))
     assert await _fetch_gmail_message_id("tok", "gmail-hex-id") is None
+
+
+# ---------------------------------------------------------------------------
+# Per-user send budget (send, reply and forward share one budget)
+# ---------------------------------------------------------------------------
+
+
+@patch("backend.email_controller.decrypt_oauth_token", return_value="plain")
+@patch("backend.email_controller.get_provider")
+@patch("backend.email_controller.create_supabase_user_client")
+def test_send_budget_stops_provider_calls_after_limit(
+    mock_db_fn, mock_get_provider, _mock_decrypt, client, _inject_auth
+):
+    client.cookies.set(_inject_auth.access_cookie_name, "fake-token")
+    mock_db_fn.return_value = _db_for_tables({"email_accounts": GMAIL_ACCOUNT_ROW})
+    provider = _fake_provider()
+    mock_get_provider.return_value = provider
+    budget = get_settings().email_send_rate_limit_requests
+
+    for _ in range(budget):
+        response = client.post("/api/email/send", json=COMPOSE_BODY)
+        assert response.status_code == HTTP_201_CREATED, response.text
+
+    response = client.post("/api/email/send", json=COMPOSE_BODY)
+
+    assert response.status_code == 429
+    assert int(response.headers["Retry-After"]) >= 1
+    assert provider.send_message.call_count == budget
+
+
+@patch("backend.email_controller.decrypt_oauth_token", return_value="plain")
+@patch("backend.email_controller.get_provider")
+@patch("backend.email_controller.create_supabase_user_client")
+def test_forward_counts_against_the_same_send_budget(
+    mock_db_fn, mock_get_provider, _mock_decrypt, client, _inject_auth
+):
+    client.cookies.set(_inject_auth.access_cookie_name, "fake-token")
+    mock_db_fn.return_value = _db_for_tables(
+        {"nexus_emails": GMAIL_EMAIL_ROW, "email_accounts": GMAIL_ACCOUNT_ROW}
+    )
+    provider = _fake_provider("google")
+    mock_get_provider.return_value = provider
+    budget = get_settings().email_send_rate_limit_requests
+
+    for _ in range(budget):
+        assert client.post("/api/email/send", json=COMPOSE_BODY).status_code == (
+            HTTP_201_CREATED
+        )
+
+    response = client.post("/api/email/e1/forward", json=COMPOSE_BODY)
+
+    assert response.status_code == 429
+    assert provider.send_message.call_count == budget

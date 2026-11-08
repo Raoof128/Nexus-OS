@@ -329,6 +329,29 @@ def _notes_limiter() -> RateLimiter:
     return _notes_rate_limiter
 
 
+# Named budgets with their own settings pair. They are built on first use and
+# cleared by reset_rate_limiters(), like the fixed slots above.
+_budget_limiters: dict[str, RateLimiter] = {}
+
+
+def _budget_limiter(name: str, budget: Callable[[Any], tuple[int, int]]) -> RateLimiter:
+    """Return the limiter for a named budget, building it on first use.
+
+    ``budget`` maps the settings object to ``(max_requests, window_seconds)``.
+    """
+
+    limiter = _budget_limiters.get(name)
+    if limiter is not None:
+        return limiter
+    with _init_lock:
+        limiter = _budget_limiters.get(name)
+        if limiter is None:
+            max_requests, window_seconds = budget(get_settings())
+            limiter = _create_rate_limiter(max_requests, window_seconds)
+            _budget_limiters[name] = limiter
+    return limiter
+
+
 def enforce_notes_rate_limit(user_id: str) -> None:
     """Apply the per-user limit to Notes API requests. Blocking."""
 
@@ -405,6 +428,77 @@ async def enforce_tasks_rate_limit_async(user_id: str) -> None:
     await _run_enforce(limiter, lambda: limiter.enforce(f"tasks:{user_id}"))
 
 
+async def enforce_auth_account_rate_limit_async(account_digest: str) -> None:
+    """Budget login attempts for one account, whatever the source IP.
+
+    Keyed by the account digest only, never the IP, so rotating addresses
+    cannot multiply the guesses allowed against one account. The cost is that
+    anyone can lock out a known account for the window by sending failed
+    attempts, including one IP at the per-IP limit (about two minutes to reach
+    this budget). The locked-out owner waits out the window. Every attempt
+    counts, including successful sign-ins, because the limiter records before
+    the upstream call.
+    """
+
+    limiter = _budget_limiter(
+        "auth-account",
+        lambda s: (
+            s.auth_account_rate_limit_requests,
+            s.auth_account_rate_limit_window_seconds,
+        ),
+    )
+    await _run_enforce(
+        limiter, lambda: limiter.enforce(f"auth-account:{account_digest}")
+    )
+
+
+async def enforce_refresh_session_rate_limit_async(token_digest: str) -> None:
+    """Budget ``/auth/refresh`` per refresh session, keyed by a token digest.
+
+    The key is the digest of the refresh cookie, so NAT users each get their
+    own budget. A successful refresh rotates the token, which moves the session
+    to a new key. The per-IP ceiling (below) remains the backstop against
+    cycling through junk cookie values.
+    """
+
+    limiter = _budget_limiter(
+        "refresh-session",
+        lambda s: (
+            s.refresh_session_rate_limit_requests,
+            s.refresh_session_rate_limit_window_seconds,
+        ),
+    )
+    await _run_enforce(
+        limiter, lambda: limiter.enforce(f"refresh-session:{token_digest}")
+    )
+
+
+async def enforce_refresh_ip_rate_limit_async(client_ip: str) -> None:
+    """Ceiling on ``/auth/refresh`` per source IP, applied to every request."""
+
+    limiter = _budget_limiter(
+        "refresh-ip",
+        lambda s: (
+            s.refresh_ip_rate_limit_requests,
+            s.refresh_ip_rate_limit_window_seconds,
+        ),
+    )
+    await _run_enforce(limiter, lambda: limiter.enforce(f"refresh-ip:{client_ip}"))
+
+
+async def enforce_email_send_rate_limit_async(user_id: str) -> None:
+    """Cap outbound mail per user across send, reply and forward."""
+
+    limiter = _budget_limiter(
+        "email-send",
+        lambda s: (
+            s.email_send_rate_limit_requests,
+            s.email_send_rate_limit_window_seconds,
+        ),
+    )
+    await _run_enforce(limiter, lambda: limiter.enforce(f"email-send:{user_id}"))
+
+
 def reset_rate_limiters() -> None:
     """Reset cached limiter instances so each test starts from empty state."""
 
@@ -415,6 +509,7 @@ def reset_rate_limiters() -> None:
         _auth_rate_limiter = None
         _tasks_rate_limiter = None
         _notes_rate_limiter = None
+        _budget_limiters.clear()
 
 
 __all__ = [
@@ -425,8 +520,12 @@ __all__ = [
     "enforce_ai_rate_limit",
     "enforce_ai_rate_limit_async",
     "enforce_auth_rate_limit",
+    "enforce_auth_account_rate_limit_async",
     "enforce_auth_rate_limit_async",
+    "enforce_email_send_rate_limit_async",
     "enforce_notes_rate_limit",
+    "enforce_refresh_ip_rate_limit_async",
+    "enforce_refresh_session_rate_limit_async",
     "enforce_tasks_rate_limit",
     "enforce_tasks_rate_limit_async",
     "reset_rate_limiters",

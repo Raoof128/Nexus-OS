@@ -4,16 +4,13 @@ Token model
 -----------
 The browser never stores Supabase tokens. ``access_token`` and
 ``refresh_token`` are set as HttpOnly, SameSite=Lax cookies (see
-``_attach_auth_cookies``). The access token is also returned in the JSON body
-of ``POST /auth/login`` and ``POST /auth/register`` only. The frontend keeps
-that body token in JavaScript memory to authenticate Supabase Realtime
-subscriptions (``useMedia.js``, ``useEmails.js``). Page JavaScript can read
-that token, so its lifetime is the only bound on that exposure.
+``_attach_auth_cookies``). No endpoint returns the access token in its JSON
+body, so page JavaScript cannot read it. The ``access_token`` field stays in
+the response model and is always ``null``, so older clients still parse the
+body.
 
-``/auth/refresh``, ``/auth/reset-password`` and ``/auth/session`` never return
-a token. The Aion companion app uses its own anonymous Supabase session, not
-this token. Known gap: ``/auth/session`` does not return the token, so Realtime
-is not authenticated after a page reload until the user signs in again.
+The Aion companion app uses its own anonymous Supabase session, not this
+token. Realtime subscriptions in the main app do not use this token either.
 
 Error mapping
 -------------
@@ -41,7 +38,12 @@ from supabase_auth.types import Session
 try:
     from .auth import decode_supabase_token
     from .config import get_settings
-    from .rate_limit import enforce_auth_rate_limit_async
+    from .rate_limit import (
+        enforce_auth_account_rate_limit_async,
+        enforce_auth_rate_limit_async,
+        enforce_refresh_ip_rate_limit_async,
+        enforce_refresh_session_rate_limit_async,
+    )
     from .schemas import (
         AuthSessionResponse,
         ForgotPasswordRequest,
@@ -54,7 +56,12 @@ try:
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from auth import decode_supabase_token
     from config import get_settings
-    from rate_limit import enforce_auth_rate_limit_async
+    from rate_limit import (
+        enforce_auth_account_rate_limit_async,
+        enforce_auth_rate_limit_async,
+        enforce_refresh_ip_rate_limit_async,
+        enforce_refresh_session_rate_limit_async,
+    )
     from schemas import (
         AuthSessionResponse,
         ForgotPasswordRequest,
@@ -156,17 +163,22 @@ def _client_ip(request: Request) -> str:
         return direct_client_ip
 
 
-def _account_digest(email: str) -> str:
-    """Return a keyed digest of an email for use in rate-limit keys.
+def _keyed_digest(value: str) -> str:
+    """Return an HMAC-SHA256 digest of ``value`` for use in rate-limit keys.
 
-    Keeps raw addresses out of Redis keys and the in-memory limiter. HMAC uses
-    the server-side ``AUDIT_LOG_SALT`` so the digest cannot be reversed by
-    hashing guessed addresses.
+    Keeps raw secrets and addresses out of Redis keys and the in-memory limiter.
+    The server-side ``AUDIT_LOG_SALT`` keys the HMAC, so a guessed value cannot
+    be checked against the digest.
     """
 
     key = get_settings().audit_log_salt.encode("utf-8")
-    message = email.strip().lower().encode("utf-8")
-    return hmac.new(key, message, hashlib.sha256).hexdigest()
+    return hmac.new(key, value.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def _account_digest(email: str) -> str:
+    """Return the keyed digest of an account email, normalised for matching."""
+
+    return _keyed_digest(email.strip().lower())
 
 
 async def _enforce_limit(key: str) -> None:
@@ -222,27 +234,24 @@ def _unavailable() -> HTTPException:
     return HTTPException(status_code=503, detail=_AUTH_UNAVAILABLE_DETAIL)
 
 
-def _session_snapshot(session: Session, *, include_token: bool) -> AuthSessionResponse:
+def _session_snapshot(session: Session) -> AuthSessionResponse:
     """Build the frontend-safe session view from a Supabase session.
 
     Uses the identity Supabase just returned, so the JWKS signature path is not
     needed here. A decode failure can therefore never discard a freshly rotated
-    refresh token.
+    refresh token. The access token is never included.
     """
 
     return AuthSessionResponse(
         user=SessionUser(id=session.user.id, email=session.user.email),
         expires_at=session.expires_at,
-        access_token=session.access_token if include_token else None,
     )
 
 
-def _session_response(session: Session, *, include_token: bool) -> Response:
+def _session_response(session: Session) -> Response:
     """Return the session snapshot and set the auth cookies on the response."""
 
-    response = Response(
-        content=_session_snapshot(session, include_token=include_token).model_dump()
-    )
+    response = Response(content=_session_snapshot(session).model_dump())
     _attach_auth_cookies(
         response,
         access_token=session.access_token,
@@ -310,9 +319,13 @@ class AuthController(Controller):
         """Authenticate with Supabase and set secure session cookies."""
 
         _enforce_request_origin(request)
-        await _enforce_limit(
-            f"login:{_client_ip(request)}:{_account_digest(data.email)}"
-        )
+        account = _account_digest(data.email)
+        # Two budgets. The IP+account key stops one client from hammering one
+        # account. The account-only budget stops a rotating-IP attacker from
+        # making unlimited guesses at one account. See
+        # enforce_auth_account_rate_limit_async for the lockout trade-off.
+        await _enforce_limit(f"login:{_client_ip(request)}:{account}")
+        await enforce_auth_account_rate_limit_async(account)
         # Built outside the upstream try so a configuration error surfaces as a
         # server error instead of a credential rejection.
         client = create_supabase_auth_client()
@@ -333,7 +346,7 @@ class AuthController(Controller):
         if not auth_response.session:
             raise HTTPException(status_code=401, detail=_INVALID_CREDENTIALS_DETAIL)
 
-        return _session_response(auth_response.session, include_token=True)
+        return _session_response(auth_response.session)
 
     @post("/refresh")
     async def refresh(self, request: Request) -> Response:
@@ -343,13 +356,20 @@ class AuthController(Controller):
         cookie is present, so the browser console stays clean for logged-out
         visitors. A rejected refresh token returns 401. An upstream outage
         returns 503, so the client keeps its session.
+
+        Budgets: a per-IP ceiling applies to every request. A per-session budget
+        applies when a refresh cookie is present, keyed by its digest. Users
+        behind one NAT address therefore do not share a budget. A 429 here makes
+        the client sign out, so the per-session limit is set well above normal
+        use.
         """
 
         _enforce_request_origin(request)
-        await _enforce_limit(f"refresh:{_client_ip(request)}")
+        await enforce_refresh_ip_rate_limit_async(_client_ip(request))
         refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
         if not refresh_token:
             return Response(content={"authenticated": False})
+        await enforce_refresh_session_rate_limit_async(_keyed_digest(refresh_token))
 
         client = create_supabase_auth_client()
         try:
@@ -368,7 +388,7 @@ class AuthController(Controller):
         if not auth_response.session:
             raise HTTPException(status_code=401, detail="Session refresh failed")
 
-        return _session_response(auth_response.session, include_token=False)
+        return _session_response(auth_response.session)
 
     @post("/logout")
     async def logout(self, request: Request) -> Response:
@@ -436,7 +456,7 @@ class AuthController(Controller):
                 status_code=200,
             )
 
-        return _session_response(auth_response.session, include_token=True)
+        return _session_response(auth_response.session)
 
     @post("/forgot-password")
     async def forgot_password(
@@ -536,7 +556,7 @@ class AuthController(Controller):
         if not login_response.session:
             raise HTTPException(status_code=400, detail=_RESET_LOGIN_FAILED_DETAIL)
 
-        return _session_response(login_response.session, include_token=False)
+        return _session_response(login_response.session)
 
     @get("/session")
     async def session(self, request: Request) -> dict:

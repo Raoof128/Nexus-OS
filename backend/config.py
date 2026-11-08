@@ -88,6 +88,21 @@ class BackendSettings:
     tasks_rate_limit_window_seconds: int = 60
     notes_rate_limit_requests: int = 120
     notes_rate_limit_window_seconds: int = 60
+    # Budgets below are code defaults only (not read from env, so they need no
+    # entry in .env.example). Change them here to tune.
+    # Login attempts for one account, counted across every source IP.
+    auth_account_rate_limit_requests: int = 20
+    auth_account_rate_limit_window_seconds: int = 900
+    # /auth/refresh per refresh session (keyed by a digest of the refresh cookie).
+    refresh_session_rate_limit_requests: int = 30
+    refresh_session_rate_limit_window_seconds: int = 60
+    # /auth/refresh per source IP. A ceiling on every request, cookie or not, so
+    # rotating junk cookie values cannot buy a fresh session budget each time.
+    refresh_ip_rate_limit_requests: int = 60
+    refresh_ip_rate_limit_window_seconds: int = 60
+    # Outbound mail (send, reply, forward) per user.
+    email_send_rate_limit_requests: int = 50
+    email_send_rate_limit_window_seconds: int = 3600
     password_reset_redirect_url: str | None = None
     # Often embeds a password (redis://:secret@host), so it is redacted too.
     redis_url: str | None = field(default=None, repr=False)

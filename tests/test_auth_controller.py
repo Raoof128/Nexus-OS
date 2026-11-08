@@ -6,6 +6,7 @@ Each test runs with fresh rate-limiter state.
 
 from __future__ import annotations
 
+import itertools
 from types import SimpleNamespace
 from typing import Any
 
@@ -196,7 +197,7 @@ def test_client_ip_refuses_malformed_forwarded_entry(
 # ── Login ─────────────────────────────────────────────────────────────────
 
 
-def test_login_success_sets_httponly_cookies_and_returns_body_token(
+def test_login_success_sets_httponly_cookies_without_body_token(
     client: TestClient, fake_auth: FakeAuth
 ) -> None:
     response = client.post(
@@ -206,7 +207,8 @@ def test_login_success_sets_httponly_cookies_and_returns_body_token(
     assert response.status_code == 201
     body = response.json()
     assert body["user"] == {"id": "user-1", "email": EMAIL}
-    assert body["access_token"] == "access-1"
+    # The token lives only in the HttpOnly cookie. Page JavaScript never gets it.
+    assert body["access_token"] is None
     assert body["expires_at"] == 1_900_000_000
 
     cookie_headers = _set_cookie_headers(response)
@@ -305,6 +307,76 @@ def test_account_digest_is_case_insensitive_and_keyed() -> None:
     assert len(digest) == 64
 
 
+def _rotate_client_ips(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Give every request a new source IP, as a rotating attacker would."""
+
+    counter = itertools.count(1)
+
+    def _next_ip(request: Any) -> str:
+        n = next(counter)
+        return f"198.18.{n // 256}.{n % 256}"
+
+    monkeypatch.setattr(auth_controller, "_client_ip", _next_ip)
+
+
+def test_login_account_budget_blocks_guessing_across_rotating_ips(
+    client: TestClient, fake_auth: FakeAuth, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Per-IP limits alone allow unlimited guesses at one account."""
+
+    _rotate_client_ips(monkeypatch)
+    fake_auth.sign_in_error = AuthApiError("Invalid login", 400, None)
+    budget = get_settings().auth_account_rate_limit_requests
+
+    for _ in range(budget):
+        response = client.post(
+            "/auth/login", json={"email": EMAIL, "password": "guess"}
+        )
+        assert response.status_code == 401
+
+    response = client.post("/auth/login", json={"email": EMAIL, "password": "guess"})
+
+    assert response.status_code == 429
+    assert int(response.headers["Retry-After"]) >= 1
+    # The blocked attempt never reached Supabase.
+    assert len(fake_auth.calls) == budget
+
+
+def test_login_account_budget_blocks_correct_password_too(
+    client: TestClient, fake_auth: FakeAuth, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Every attempt counts, so a spent budget also stops the real owner."""
+
+    _rotate_client_ips(monkeypatch)
+    fake_auth.sign_in_error = AuthApiError("Invalid login", 400, None)
+    for _ in range(get_settings().auth_account_rate_limit_requests):
+        client.post("/auth/login", json={"email": EMAIL, "password": "guess"})
+
+    fake_auth.sign_in_error = None
+    response = client.post(
+        "/auth/login", json={"email": EMAIL, "password": "correct-horse"}
+    )
+
+    assert response.status_code == 429
+
+
+def test_login_account_budget_is_per_account(
+    client: TestClient, fake_auth: FakeAuth, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exhausting one account's budget leaves other accounts usable."""
+
+    _rotate_client_ips(monkeypatch)
+    fake_auth.sign_in_error = AuthApiError("Invalid login", 400, None)
+    for _ in range(get_settings().auth_account_rate_limit_requests):
+        client.post("/auth/login", json={"email": EMAIL, "password": "guess"})
+
+    response = client.post(
+        "/auth/login", json={"email": "other@example.com", "password": "guess"}
+    )
+
+    assert response.status_code == 401
+
+
 # ── Refresh ───────────────────────────────────────────────────────────────
 
 
@@ -346,6 +418,51 @@ def test_refresh_rejected_token_maps_to_401(
     response = client.post("/auth/refresh")
 
     assert response.status_code == 401
+
+
+def test_refresh_budget_is_per_session_so_nat_users_are_not_throttled(
+    client: TestClient, fake_auth: FakeAuth
+) -> None:
+    """Users behind one NAT address do not share a refresh budget.
+
+    A session that exhausts its own budget is limited, and the next user on the
+    same address still gets through.
+    """
+
+    settings = get_settings()
+    per_session = settings.refresh_session_rate_limit_requests
+    fake_auth.refresh_error = AuthApiError("refresh_token_not_found", 400, None)
+
+    client.cookies.set(settings.refresh_cookie_name, "session-a")
+    for _ in range(per_session):
+        assert client.post("/auth/refresh").status_code == 401
+    assert client.post("/auth/refresh").status_code == 429
+
+    client.cookies.set(settings.refresh_cookie_name, "session-b")
+    assert client.post("/auth/refresh").status_code == 401
+
+
+def test_refresh_ip_ceiling_caps_rotating_cookie_values(
+    client: TestClient, fake_auth: FakeAuth
+) -> None:
+    """Fresh cookie values must not buy a fresh budget on every request.
+
+    Without a per-IP ceiling, an attacker could send a new junk refresh cookie
+    each time and force an upstream Supabase call for every request.
+    """
+
+    settings = get_settings()
+    fake_auth.refresh_error = AuthApiError("refresh_token_not_found", 400, None)
+
+    for index in range(settings.refresh_ip_rate_limit_requests):
+        client.cookies.set(settings.refresh_cookie_name, f"junk-{index}")
+        assert client.post("/auth/refresh").status_code == 401
+
+    client.cookies.set(settings.refresh_cookie_name, "junk-final")
+    response = client.post("/auth/refresh")
+
+    assert response.status_code == 429
+    assert int(response.headers["Retry-After"]) >= 1
 
 
 def test_refresh_outage_maps_to_503_so_session_is_kept(
@@ -437,6 +554,18 @@ def test_register_without_session_asks_user_to_confirm_email(
 
     assert response.status_code == 200
     assert response.json() == {"ok": True, "message": "Check your email to confirm"}
+
+
+def test_register_with_session_sets_cookies_without_body_token(
+    client: TestClient, fake_auth: FakeAuth
+) -> None:
+    response = client.post(
+        "/auth/register", json={"email": EMAIL, "password": "long-enough-pass"}
+    )
+
+    assert response.status_code == 201
+    assert response.json()["access_token"] is None
+    assert get_settings().access_cookie_name in _cookie_names(response)
 
 
 def test_register_weak_password_maps_to_400(
