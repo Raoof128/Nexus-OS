@@ -1,8 +1,11 @@
 import { create } from 'zustand'
 import { nanoid } from 'nanoid'
 import { APP_REGISTRY } from './appRegistry'
+import { TASKBAR_HEIGHT, readTaskbarHeight } from './taskbarHeight'
 
-export const TASKBAR_HEIGHT = 40 // keep in sync with --w7-taskbar-h (index.css)
+// Live taskbar height is --w7-taskbar-h (48px on pointer:coarse); Desktop calls
+// setTaskbarHeight(readTaskbarHeight()). Re-exported for callers and tests.
+export { TASKBAR_HEIGHT, readTaskbarHeight }
 
 const STORAGE_KEY = 'nexus-os:window-layout'
 const SCHEMA_VERSION = 1
@@ -18,17 +21,17 @@ function boundedSize(defaultSize, minSize) {
   }
 }
 
-function cascadePosition(zStack, _size) {
+function cascadePosition(zStack, _size, taskbarH) {
   // Simple cascading: each new window is offset by 30px
   const offset = (zStack.length % 10) * 30
   return {
     // Start right of the desktop icon column (DesktopIcons cell is 78px).
     x: Math.min(offset + 96, window.innerWidth - 100),
-    y: Math.min(offset + 40, window.innerHeight - TASKBAR_HEIGHT - 100),
+    y: Math.min(offset + 40, window.innerHeight - taskbarH - 100),
   }
 }
 
-function clampPosition(pos, size) {
+function clampPosition(pos, size, taskbarH) {
   // Keep at least MIN_ACCESSIBLE pixels of the window's horizontal extent on
   // screen so the titlebar controls remain reachable. The close/min/max buttons
   // occupy roughly the rightmost 80px, so 80px is the minimum useful threshold.
@@ -41,7 +44,7 @@ function clampPosition(pos, size) {
       -(size.width - MIN_ACCESSIBLE),
       Math.min(pos.x, window.innerWidth - MIN_ACCESSIBLE),
     ),
-    y: Math.max(0, Math.min(pos.y, window.innerHeight - TASKBAR_HEIGHT - TITLEBAR_H)),
+    y: Math.max(0, Math.min(pos.y, window.innerHeight - taskbarH - TITLEBAR_H)),
   }
 }
 
@@ -64,12 +67,14 @@ export const useWindowStore = create((set, get) => ({
   desktopShown: null,
   // Windows whose taskbar button flashes for attention (Win7 FlashWindow).
   attentionIds: [],
+  // Live taskbar height in px (see readTaskbarHeight). Used for window clamping.
+  taskbarHeight: TASKBAR_HEIGHT,
 
   openApp: (appId) => {
     const manifest = APP_REGISTRY[appId]
     if (!manifest) return
 
-    const { windows, zStack } = get()
+    const { windows, zStack, taskbarHeight } = get()
 
     // Singleton check
     if (manifest.singleton) {
@@ -83,7 +88,7 @@ export const useWindowStore = create((set, get) => ({
     const windowId = manifest.singleton ? appId : `${appId}-${nanoid(6)}`
     const minSize = manifest.minSize ?? { width: 0, height: 0 }
     const size = boundedSize(manifest.defaultSize, minSize)
-    const position = cascadePosition(zStack, size)
+    const position = cascadePosition(zStack, size, taskbarHeight)
 
     set((state) => ({
       windows: {
@@ -260,7 +265,10 @@ export const useWindowStore = create((set, get) => ({
       return {
         windows: {
           ...state.windows,
-          [windowId]: { ...win, position: clampPosition(pos, win.size) },
+          [windowId]: {
+            ...win,
+            position: clampPosition(pos, win.size, state.taskbarHeight),
+          },
         },
       }
     })
@@ -282,7 +290,7 @@ export const useWindowStore = create((set, get) => ({
           [windowId]: {
             ...win,
             size: newSize,
-            position: clampPosition(position, newSize),
+            position: clampPosition(position, newSize, state.taskbarHeight),
           },
         },
       }
@@ -309,6 +317,13 @@ export const useWindowStore = create((set, get) => ({
   },
 
   setMobile: (isMobile) => set({ isMobile }),
+
+  // Called by Desktop on mount and on every (pointer: coarse) change.
+  setTaskbarHeight: (height) => {
+    const next = Number(height)
+    if (!Number.isFinite(next) || next <= 0) return
+    set((state) => (state.taskbarHeight === next ? state : { taskbarHeight: next }))
+  },
 
   toggleLauncher: () => set((state) => ({ launcherOpen: !state.launcherOpen })),
 
@@ -346,6 +361,7 @@ export const useWindowStore = create((set, get) => ({
       const restoredWindows = {}
       const newZStack = []
       const idMap = {}
+      const { taskbarHeight } = get()
 
       for (const [oldId, win] of Object.entries(saved.windows)) {
         const manifest = APP_REGISTRY[win.appId]
@@ -358,7 +374,7 @@ export const useWindowStore = create((set, get) => ({
         const x = Math.max(0, Math.min(win.position?.x ?? 0, window.innerWidth - 100))
         const y = Math.max(
           0,
-          Math.min(win.position?.y ?? 0, window.innerHeight - TASKBAR_HEIGHT - 40),
+          Math.min(win.position?.y ?? 0, window.innerHeight - taskbarHeight - 40),
         )
         const width = Math.max(
           minSize.width,
@@ -366,7 +382,7 @@ export const useWindowStore = create((set, get) => ({
         )
         const height = Math.max(
           minSize.height,
-          Math.min(win.size?.height ?? 400, (window.innerHeight - TASKBAR_HEIGHT) * 0.95),
+          Math.min(win.size?.height ?? 400, (window.innerHeight - taskbarHeight) * 0.95),
         )
 
         const state = win.state === 'minimized' ? 'normal' : win.state || 'normal'

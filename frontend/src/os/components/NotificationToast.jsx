@@ -83,7 +83,7 @@ export default function NotificationToast() {
       role="region"
       aria-label="Notifications"
       aria-live="polite"
-      className="pointer-events-none fixed bottom-12 right-3 z-[1500] flex flex-col"
+      className="pointer-events-none fixed bottom-[calc(var(--w7-taskbar-h)_+_8px)] right-3 z-[1500] flex flex-col"
     >
       <AnimatePresence mode="sync" initial={false}>
         {visible.map((n) => (

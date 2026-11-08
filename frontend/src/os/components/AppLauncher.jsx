@@ -450,7 +450,7 @@ function AppLauncher({ onLock }) {
                 aria-controls={menuOpen ? menuId : undefined}
                 onClick={() => setMenuOpen((open) => !open)}
                 onKeyDown={handleArrowKeyDown}
-                className="nx-startmenu__power rounded-l-none px-[6px] pointer-coarse:min-h-11 focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-white focus-visible:outline-offset-[-3px]"
+                className="nx-startmenu__power rounded-l-none px-[6px] pointer-coarse:min-h-11 pointer-coarse:min-w-11 focus-visible:outline-1 focus-visible:outline-dotted focus-visible:outline-white focus-visible:outline-offset-[-3px]"
               >
                 <ChevronRight size={12} aria-hidden="true" />
               </button>

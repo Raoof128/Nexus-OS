@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { useWindowStore } from '../stores/windowStore'
+import { TASKBAR_HEIGHT } from '../stores/taskbarHeight'
 import { APP_REGISTRY, APP_ORDER } from '../stores/appRegistry'
 import AppIcon from './AppIcon'
 import {
@@ -17,20 +18,19 @@ const CELL_H = 88
 const START_X = 6
 const START_Y = 6
 const DRAG_THRESHOLD = 4
-const TASKBAR_H = 40
 
 function rowsFor(height) {
   return Math.max(1, Math.floor((height - START_Y) / CELL_H))
 }
 
-function useGridRows(gridRef, revision) {
+function useGridRows(gridRef, revision, taskbarH) {
   const [rows, setRows] = useState(() =>
-    rowsFor(typeof window === 'undefined' ? 800 : window.innerHeight - TASKBAR_H),
+    rowsFor(typeof window === 'undefined' ? 800 : window.innerHeight - taskbarH),
   )
   useEffect(() => {
     const el = gridRef.current
     if (!el) return undefined
-    const measure = () => setRows(rowsFor(el.clientHeight || window.innerHeight - TASKBAR_H))
+    const measure = () => setRows(rowsFor(el.clientHeight || window.innerHeight - taskbarH))
     measure()
     if (typeof ResizeObserver !== 'undefined') {
       const observer = new ResizeObserver(measure)
@@ -39,7 +39,7 @@ function useGridRows(gridRef, revision) {
     }
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
-  }, [gridRef, revision])
+  }, [gridRef, revision, taskbarH])
   return rows
 }
 
@@ -49,9 +49,11 @@ const stop = (e) => e.stopPropagation()
 function DesktopIcons({ onIconContextMenu }) {
   const openApp = useWindowStore((s) => s.openApp)
   const isMobile = useWindowStore((s) => s.isMobile)
+  // Live taskbar height (48px touch, 40px fine pointer).
+  const taskbarH = useWindowStore((s) => s.taskbarHeight) ?? TASKBAR_HEIGHT
   const prefs = useDesktopIconPrefs()
   const gridRef = useRef(null)
-  const rows = useGridRows(gridRef, prefs.revision)
+  const rows = useGridRows(gridRef, prefs.revision, taskbarH)
   const itemRefs = useRef(new Map())
   const dragRef = useRef(null)
   const renameRef = useRef(null)

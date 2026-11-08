@@ -137,7 +137,7 @@ export default function NotificationCenter() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
             transition={SPRING.smooth}
-            className="nx-flyout absolute bottom-12 right-3 flex max-h-[min(560px,calc(100dvh-4rem))] w-[360px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden"
+            className="nx-flyout absolute bottom-[calc(var(--w7-taskbar-h)_+_8px)] right-3 flex max-h-[min(560px,calc(100dvh-4rem))] w-[360px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden"
             onMouseDown={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

@@ -26,7 +26,14 @@ export default defineConfig({
     },
     {
       name: 'mobile',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, hasTouch: true },
+      // isMobile + hasTouch makes (pointer: coarse) match, so the touch CSS
+      // (48px taskbar, 44px tray buttons) is exercised, not just the phone frame.
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+      },
       grep: /@mobile/,
     },
   ],

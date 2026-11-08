@@ -53,25 +53,25 @@ theme → base → win7 → win7-reset → nexus → components → utilities
 
 Light content, glass shell. Defined on `:root` in `index.css`; exposed as Tailwind colours.
 
-| Purpose                    | Utility / variable                        | Value                       |
-| -------------------------- | ----------------------------------------- | --------------------------- |
-| Window client background   | `bg-background` / `bg-white`              | `#fff`                      |
-| Dialog/panel surface       | `bg-muted` / `bg-w7-surface`              | `#f0f0f0`                   |
-| Primary text               | `text-foreground`                         | `#1e1e1e`                   |
-| Secondary text             | `text-muted-foreground`                   | `#5c5c5c` (≥ 4.5:1 on #fff) |
-| Heading (main instruction) | `text-w7-title` / `.w7-heading`           | `#003399`                   |
-| Link / command blue        | `text-primary`, `text-w7-link`            | `#1773c4` / `#0066cc`       |
-| Hover tint                 | `bg-accent` / `bg-w7-hover`               | `#e5f3ff`                   |
-| Selection                  | `bg-w7-select`, `border-w7-select-border` | `#cce8ff` / `#99d1ff`       |
-| Navigation pane            | `bg-w7-pane` / `.w7-navpane`              | `#f1f5fb`                   |
-| Borders                    | `border-border`                           | `#c5cad3`                   |
-| Error                      | `text-destructive`, `.w7-error`           | `#c42b1c`                   |
-| Success / warning          | `text-success`, `text-warning`            | `#2e7d32` / `#9d5d00`       |
-| Window frame colour        | `--w7-w-bg` (on `<body>`)                 | Settings → Window colour    |
-| Taskbar height             | `--w7-taskbar-h`                          | `40px`                      |
-| Title bar height           | `--w7-titlebar-h`                         | `30px`                      |
-| Glass blur                 | `--w7-glass-blur`                         | `6px`                       |
-| Motion                     | `--w7-motion-fast` / `--w7-motion`        | `120ms` / `200ms`           |
+| Purpose                    | Utility / variable                        | Value                                                            |
+| -------------------------- | ----------------------------------------- | ---------------------------------------------------------------- |
+| Window client background   | `bg-background` / `bg-white`              | `#fff`                                                           |
+| Dialog/panel surface       | `bg-muted` / `bg-w7-surface`              | `#f0f0f0`                                                        |
+| Primary text               | `text-foreground`                         | `#1e1e1e`                                                        |
+| Secondary text             | `text-muted-foreground`                   | `#5c5c5c` (≥ 4.5:1 on #fff)                                      |
+| Heading (main instruction) | `text-w7-title` / `.w7-heading`           | `#003399`                                                        |
+| Link / command blue        | `text-primary`, `text-w7-link`            | `#1773c4` / `#0066cc`                                            |
+| Hover tint                 | `bg-accent` / `bg-w7-hover`               | `#e5f3ff`                                                        |
+| Selection                  | `bg-w7-select`, `border-w7-select-border` | `#cce8ff` / `#99d1ff`                                            |
+| Navigation pane            | `bg-w7-pane` / `.w7-navpane`              | `#f1f5fb`                                                        |
+| Borders                    | `border-border`                           | `#c5cad3`                                                        |
+| Error                      | `text-destructive`, `.w7-error`           | `#c42b1c`                                                        |
+| Success / warning          | `text-success`, `text-warning`            | `#2e7d32` / `#9d5d00`                                            |
+| Window frame colour        | `--w7-w-bg` (on `<body>`)                 | Settings → Window colour                                         |
+| Taskbar height             | `--w7-taskbar-h`                          | `40px`; `48px` on `(pointer: coarse)` (touch: 44px task buttons) |
+| Title bar height           | `--w7-titlebar-h`                         | `30px`                                                           |
+| Glass blur                 | `--w7-glass-blur`                         | `6px`                                                            |
+| Motion                     | `--w7-motion-fast` / `--w7-motion`        | `120ms` / `200ms`                                                |
 
 **Typography**: Segoe UI 9pt (12px) for all UI (`font: var(--w7-font)` / inherited from
 `<body>`). Use `text-[12px]` for body UI text, `text-[13px]`–`text-[15px]` only for reading

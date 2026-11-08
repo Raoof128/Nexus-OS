@@ -23,6 +23,13 @@ async function launchFromStart(page, query, appName) {
 }
 
 test.describe('desktop shell', () => {
+  test('fine-pointer taskbar stays 40px (48px is touch-only)', async ({ page }) => {
+    await openDesktop(page)
+    expect(await page.evaluate(() => matchMedia('(pointer: fine)').matches)).toBe(true)
+    const bar = await page.locator('.nx-taskbar').boundingBox()
+    expect(Math.round(bar.height)).toBe(40)
+  })
+
   test('first boot opens Media Vault inside Win7 chrome', async ({ page }) => {
     await openDesktop(page)
     const w = win(page, 'Media Vault')
@@ -301,6 +308,26 @@ test.describe('mobile @mobile', () => {
     await page.getByTestId('app-launcher').getByRole('option', { name: /Notes/ }).click()
     // Newest window stacks on top of the full-screen Media Vault.
     await expect(page.getByRole('region', { name: 'Notes', exact: true })).toBeVisible()
+  })
+
+  test('touch taskbar is 48px with 44px task and tray targets', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByTestId('mobile-window')).toBeVisible()
+    // (pointer: coarse) must match under isMobile, or this test proves nothing.
+    expect(await page.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true)
+
+    const bar = page.locator('.nx-taskbar')
+    expect((await bar.boundingBox()).height).toBe(48)
+
+    const taskButton = page.getByTestId('taskbar').locator('.nx-taskbtn').first()
+    await expect(taskButton).toBeVisible()
+    expect((await taskButton.boundingBox()).height).toBeGreaterThanOrEqual(44)
+
+    const hidden = page.getByRole('button', { name: 'Show hidden icons' })
+    expect((await hidden.boundingBox()).height).toBeGreaterThanOrEqual(44)
+
+    const actionCenter = page.locator('.nx-tray-btn[aria-label^="Action Center"]')
+    expect((await actionCenter.boundingBox()).height).toBeGreaterThanOrEqual(44)
   })
 })
 

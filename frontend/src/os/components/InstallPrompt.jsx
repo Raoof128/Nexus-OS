@@ -57,7 +57,7 @@ export default function InstallPrompt() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 12 }}
         transition={{ duration: 0.2 }}
-        className="nx-flyout fixed bottom-12 right-3 z-[1400] w-[min(300px,calc(100vw-1.5rem))] px-3 py-2"
+        className="nx-flyout fixed bottom-[calc(var(--w7-taskbar-h)_+_8px)] right-3 z-[1400] w-[min(300px,calc(100vw-1.5rem))] px-3 py-2"
         role="dialog"
         aria-label="Install Nexus OS"
       >

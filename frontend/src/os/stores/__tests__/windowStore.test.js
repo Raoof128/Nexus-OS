@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { useWindowStore, TASKBAR_HEIGHT } from '../windowStore'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { useWindowStore, TASKBAR_HEIGHT, readTaskbarHeight } from '../windowStore'
 
 describe('windowStore', () => {
   beforeEach(() => {
@@ -140,5 +140,78 @@ describe('windowStore', () => {
     const win = Object.values(useWindowStore.getState().windows)[0]
     expect(win.size.width).toBe(600)
     expect(win.size.height).toBeGreaterThanOrEqual(400)
+  })
+})
+
+describe('taskbar height', () => {
+  beforeEach(() => {
+    useWindowStore.setState({
+      windows: {},
+      zStack: [],
+      activeWindowId: null,
+      taskbarHeight: TASKBAR_HEIGHT,
+    })
+    vi.stubGlobal('innerWidth', 1200)
+    vi.stubGlobal('innerHeight', 800)
+  })
+
+  afterEach(() => {
+    document.documentElement.style.removeProperty('--w7-taskbar-h')
+    useWindowStore.setState({ taskbarHeight: TASKBAR_HEIGHT })
+    localStorage.clear()
+  })
+
+  it('readTaskbarHeight falls back to 40 when the token is empty', () => {
+    document.documentElement.style.removeProperty('--w7-taskbar-h')
+    expect(readTaskbarHeight()).toBe(40)
+    expect(TASKBAR_HEIGHT).toBe(40)
+  })
+
+  it('readTaskbarHeight reads the live --w7-taskbar-h value', () => {
+    document.documentElement.style.setProperty('--w7-taskbar-h', '48px')
+    expect(readTaskbarHeight()).toBe(48)
+  })
+
+  it('setTaskbarHeight changes the bottom clamp used by moveWindow', () => {
+    const { openApp, moveWindow, setTaskbarHeight } = useWindowStore.getState()
+    openApp('terminal')
+    const winId = Object.keys(useWindowStore.getState().windows)[0]
+
+    setTaskbarHeight(48)
+    expect(useWindowStore.getState().taskbarHeight).toBe(48)
+    moveWindow(winId, { x: 100, y: 1000 })
+    expect(useWindowStore.getState().windows[winId].position.y).toBe(800 - 48 - 30)
+  })
+
+  it('ignores non-positive and non-numeric taskbar heights', () => {
+    const { setTaskbarHeight } = useWindowStore.getState()
+    setTaskbarHeight(0)
+    setTaskbarHeight(-4)
+    setTaskbarHeight('tall')
+    expect(useWindowStore.getState().taskbarHeight).toBe(TASKBAR_HEIGHT)
+  })
+
+  it('clamps a restored persisted window above the live taskbar height', () => {
+    useWindowStore.setState({ taskbarHeight: 48 })
+    localStorage.setItem(
+      'nexus-os:window-layout',
+      JSON.stringify({
+        schemaVersion: 1,
+        windows: {
+          'terminal-abc123': {
+            appId: 'terminal',
+            position: { x: 100, y: 1000 },
+            size: { width: 600, height: 400 },
+            state: 'normal',
+          },
+        },
+        zStack: ['terminal-abc123'],
+        activeWindowId: 'terminal-abc123',
+      }),
+    )
+    useWindowStore.getState().hydrateFromStorage()
+    const win = useWindowStore.getState().windows['terminal-abc123']
+    // Hydration keeps its own 40px inset below the bar, measured from the live height.
+    expect(win.position.y).toBe(800 - 48 - 40)
   })
 })

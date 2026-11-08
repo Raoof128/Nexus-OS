@@ -2,6 +2,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { AnimatePresence } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useWindowStore } from './stores/windowStore'
+import { readTaskbarHeight } from './stores/taskbarHeight'
 import {
   useSettingsStore,
   WALLPAPER_PRESETS,
@@ -141,6 +142,18 @@ export default function Desktop() {
     mql.addEventListener('change', handler)
     return () => mql.removeEventListener('change', handler)
   }, [setMobile])
+
+  // The taskbar is 48px on touch (pointer:coarse) and 40px otherwise; the CSS
+  // token is the source of truth. Sync the store before hydrate/clamp effects
+  // below run, and again whenever the pointer type changes.
+  const setTaskbarHeight = useWindowStore((s) => s.setTaskbarHeight)
+  useEffect(() => {
+    const sync = () => setTaskbarHeight?.(readTaskbarHeight())
+    sync()
+    const coarse = window.matchMedia?.('(pointer: coarse)')
+    coarse?.addEventListener?.('change', sync)
+    return () => coarse?.removeEventListener?.('change', sync)
+  }, [setTaskbarHeight])
 
   const wallpaperKey = useSettingsStore((s) => s.wallpaper)
   const wallpaperPosition = useSettingsStore((s) => s.wallpaperPosition)

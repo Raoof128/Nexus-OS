@@ -1,10 +1,10 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { useWindowStore } from '../stores/windowStore'
+import { TASKBAR_HEIGHT } from '../stores/taskbarHeight'
 import AppIcon from './AppIcon'
 import SystemMenu from './SystemMenu'
 
-const TASKBAR_HEIGHT = 40 // keep in sync with --w7-taskbar-h in index.css
 const TITLEBAR_HEIGHT = 30 // keep in sync with --w7-titlebar-h in index.css
 const RESIZE_EDGE_SIZE = 6
 const RESIZE_CORNER_SIZE = 14
@@ -38,7 +38,7 @@ function snapZoneAt(x, y) {
 }
 
 // Keeps a keyboard move/size preview inside the same bounds the store enforces.
-function clampKeyRect(rect, kind, minSize) {
+function clampKeyRect(rect, kind, minSize, taskbarH) {
   if (kind === 'size') {
     return {
       ...rect,
@@ -52,7 +52,7 @@ function clampKeyRect(rect, kind, minSize) {
       -(rect.width - MIN_ACCESSIBLE_PX),
       Math.min(rect.x, window.innerWidth - MIN_ACCESSIBLE_PX),
     ),
-    y: Math.max(0, Math.min(rect.y, window.innerHeight - TASKBAR_HEIGHT - TITLEBAR_HEIGHT)),
+    y: Math.max(0, Math.min(rect.y, window.innerHeight - taskbarH - TITLEBAR_HEIGHT)),
   }
 }
 
@@ -210,6 +210,8 @@ function Window({
   const moveWindow = useWindowStore((s) => s.moveWindow)
   const updateWindowRect = useWindowStore((s) => s.updateWindowRect)
   const snapWindow = useWindowStore((s) => s.snapWindow)
+  // Live taskbar height (48px touch, 40px fine pointer).
+  const taskbarHeight = useWindowStore((s) => s.taskbarHeight) ?? TASKBAR_HEIGHT
 
   const isMaximized = windowState === 'maximized'
   const isSnapped = windowState === 'snapped-left' || windowState === 'snapped-right'
@@ -358,14 +360,14 @@ function Window({
       }
       e.preventDefault()
       e.stopPropagation()
-      const clamped = clampKeyRect(next, keyMode, minSize)
+      const clamped = clampKeyRect(next, keyMode, minSize, taskbarHeight)
       keyRectRef.current = clamped
       setKeyRect(clamped)
     }
 
     window.addEventListener('keydown', handleKeyDown, true)
     return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [keyMode, windowId, minSize, moveWindow, updateWindowRect])
+  }, [keyMode, windowId, minSize, moveWindow, updateWindowRect, taskbarHeight])
 
   const handleTitleBarPointerDown = useCallback(
     (e) => {
@@ -512,7 +514,7 @@ function Window({
         aria-roledescription="window"
         aria-label={title}
         style={{
-          bottom: `calc(${TASKBAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+          bottom: 'calc(var(--w7-taskbar-h) + env(safe-area-inset-bottom, 0px))',
           paddingTop: 'env(safe-area-inset-top, 0px)',
         }}
       >

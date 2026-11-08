@@ -857,12 +857,17 @@
     outline-offset: -2px;
   }
 
-  /* Touch: the 7.css-style 44px minimum where the 40px bar allows it. The
-     task buttons stay 36px tall, so their height is a known shortfall. */
+  /* Touch: the taskbar grows to 48px so task buttons (calc(var(--w7-taskbar-h)
+     - 4px)) and tray buttons reach the 44px touch minimum. Fine pointers keep
+     the 40px bar. windowStore reads this token via readTaskbarHeight(), so
+     JS-side clamping follows the same value. */
   @media (pointer: coarse) {
+    :root {
+      --w7-taskbar-h: 48px;
+    }
     .nx-tray-btn {
       min-width: 40px;
-      height: 36px;
+      height: 44px;
     }
     .nx-show-desktop {
       width: 44px;
