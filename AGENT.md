@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-11-08 (Australia/Sydney) — Windows 7 parity audit (Haiku workflow) and fixes
+
+**Raouf:**
+
+- **Scope:** Full parity audit of the Windows 7 redesign against the 7.css source and the Windows 7 UX guidelines, then fixes for the confirmed defects that were verified in code.
+- **Summary:** Workflow run `wf_ca36f0e1-7e8`, all agents on Haiku 5.5. 16 auditors produced 210 findings (189 after dedup). Three skeptics per finding tried to refute each from a different angle; 164 survived (3 high, 52 medium, 109 low) and 25 were refuted. The orchestrator re-read the cited code and fixed 26: dialog initial focus (first field, else the `.default` button; caption buttons left out of the Tab cycle); disabled default buttons drawn grey without the pulse (a 7.css cascade bug); search-box focus border; keyboard-openable Media Vault rows; Explorer click/double-click model in File Manager; minimise restoring maximised or snapped state; Show desktop undoing the desktop menu's "Show the desktop"; Escape closing only the nested confirm; macOS Option+key shortcuts (`e.code`); a `cmd.exe` prompt in Terminal; heading colour `#039`; contrast, copy and spinner fixes. Lock screen password gating is left for an owner decision. 133 items stay as a documented backlog, mostly missing Windows 7 features.
+- **Files Changed:** `frontend/src/hooks/useFocusTrap.js` (+ test), `frontend/src/index.css`, `frontend/src/os/stores/windowStore.js`, `frontend/src/os/components/{Taskbar,CommandPalette,InstallPrompt,DesktopIcons}.jsx`, `frontend/src/os/hooks/useGlobalShortcuts.js`, `frontend/src/os/Desktop.jsx`, `frontend/src/os/apps/{FileManagerApp,TerminalApp}.jsx`, `frontend/src/os/apps/Library/{MediaVault,MediaDetailModal}.jsx`, `frontend/src/os/apps/Email/ComposeModal.jsx`, `frontend/src/os/apps/Tasks/components/{RecurrencePicker,TaskRow}.jsx`, `frontend/src/components/ui/CyberCard.jsx`, tests, `frontend/e2e/journeys.spec.js`, `docs/win7-parity-audit.md` (new), `docs/win7-design-system.md`, `docs/design-guidelines.md`, `docs/win7-parity-report.md`, `docs/win7-screenshots/*`.
+- **Verification:** lint ✓; prettier ✓; Vitest **276/276** ✓ (6 new); `check.sh` all passed; Playwright **22/22** ✓ (2 new journeys); 7.css pixel parity 58/64 identical, unchanged from baseline; build ✓.
+- **Follow-ups:** Lock screen password gating (needs a re-authentication endpoint); the 133-item backlog in `docs/win7-parity-audit.md`; the pre-existing `npm audit` advisories. Not deployed.
+
 ### 2026-11-08 (Australia/Sydney) — Windows 7 Aero redesign (7.css)
 
 **Raouf:**

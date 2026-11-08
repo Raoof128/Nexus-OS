@@ -140,26 +140,26 @@ progress bar, button).
 Captured with `frontend/e2e/shots.spec.js` (1440×900 and 390×844, mocked API/Supabase fixtures,
 test data only). Files in `docs/win7-screenshots/`.
 
-| Surface                            | Screenshot                                                  | Observations                                                                                    | Status                                                       |
-| ---------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Desktop, icons, wallpaper, taskbar | desktop-media.png                                           | Aero glass frame/superbar, Start orb, glossy original icons, two-line clock, Show desktop strip | Pass                                                         |
-| Start menu                         | start-menu.png, mobile-start.png                            | Two columns, programs list, search, places, Lock / Log off                                      | Pass                                                         |
-| Context menu                       | context-menu.png                                            | Win7 menu with icon gutter and separators                                                       | Pass                                                         |
-| Notification area flyout           | notification-center.png                                     | Light flyout above tray, empty state                                                            | Pass                                                         |
-| Inactive vs active frames          | multi-window.png                                            | Inactive frame desaturated, active caption buttons glossy                                       | Pass                                                         |
-| Media Vault                        | app-media.png, dialog-add-book.png, dialog-book-details.png | 7.css tabs, command bar, cards, group boxes, Win7 dialogs                                       | Pass (after dnd-kit fix)                                     |
-| Email                              | app-email.png, dialog-compose.png                           | Three-pane Live Mail layout, unread/starred states, compose window                              | Pass; compose footer shows a doubled inner border (cosmetic) |
-| AI Chat                            | app-chat.png                                                | Nav pane, empty states                                                                          | Pass; populated conversation not captured                    |
-| Tasks                              | app-tasks.png                                               | Nav pane, Win7 checkboxes, badges, completed section                                            | Pass (after `.group` fix)                                    |
-| File Manager                       | app-files.png                                               | Explorer address bar, command bar, details view, details pane                                   | Pass (after `.group` fix)                                    |
-| Settings                           | app-settings.png                                            | Control Panel nav, window colours, backgrounds, display size                                    | Pass (after tile-width fix)                                  |
-| System Monitor                     | app-sysmon.png                                              | Task Manager tabs, progress bar, group boxes, status bar                                        | Pass                                                         |
-| Notes                              | app-notes.png                                               | Notepad-style editor and status bar                                                             | Pass                                                         |
-| Terminal                           | app-terminal.png                                            | Command Prompt console                                                                          | Pass (after `pre` margin fix)                                |
-| Aion                               | app-aion.png                                                | Command bar, cards, prompt chips                                                                | Pass; reader/chat views not captured                         |
-| Logon                              | logon.png                                                   | Win7-style logon with user tile and arrow button                                                | Pass                                                         |
-| Lock screen                        | lock-screen.png                                             | User tile, "Locked"                                                                             | Pass (after listener fix)                                    |
-| Mobile                             | mobile-media.png, mobile-start.png                          | Full-screen maximised window, superbar, Start menu                                              | Pass                                                         |
+| Surface                            | Screenshot                                                  | Observations                                                                                    | Status                                                 |
+| ---------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Desktop, icons, wallpaper, taskbar | desktop-media.png                                           | Aero glass frame/superbar, Start orb, glossy original icons, two-line clock, Show desktop strip | Pass                                                   |
+| Start menu                         | start-menu.png, mobile-start.png                            | Two columns, programs list, search, places, Lock / Log off                                      | Pass                                                   |
+| Context menu                       | context-menu.png                                            | Win7 menu with icon gutter and separators                                                       | Pass                                                   |
+| Notification area flyout           | notification-center.png                                     | Light flyout above tray, empty state                                                            | Pass                                                   |
+| Inactive vs active frames          | multi-window.png                                            | Inactive frame desaturated, active caption buttons glossy                                       | Pass                                                   |
+| Media Vault                        | app-media.png, dialog-add-book.png, dialog-book-details.png | 7.css tabs, command bar, cards, group boxes, Win7 dialogs                                       | Pass (after dnd-kit fix)                               |
+| Email                              | app-email.png, dialog-compose.png                           | Three-pane Live Mail layout, unread/starred states, compose window                              | Pass (compose footer border fixed in the parity audit) |
+| AI Chat                            | app-chat.png                                                | Nav pane, empty states                                                                          | Pass; populated conversation not captured              |
+| Tasks                              | app-tasks.png                                               | Nav pane, Win7 checkboxes, badges, completed section                                            | Pass (after `.group` fix)                              |
+| File Manager                       | app-files.png                                               | Explorer address bar, command bar, details view, details pane                                   | Pass (after `.group` fix)                              |
+| Settings                           | app-settings.png                                            | Control Panel nav, window colours, backgrounds, display size                                    | Pass (after tile-width fix)                            |
+| System Monitor                     | app-sysmon.png                                              | Task Manager tabs, progress bar, group boxes, status bar                                        | Pass                                                   |
+| Notes                              | app-notes.png                                               | Notepad-style editor and status bar                                                             | Pass                                                   |
+| Terminal                           | app-terminal.png                                            | Command Prompt console                                                                          | Pass (after `pre` margin fix)                          |
+| Aion                               | app-aion.png                                                | Command bar, cards, prompt chips                                                                | Pass; reader/chat views not captured                   |
+| Logon                              | logon.png                                                   | Win7-style logon with user tile and arrow button                                                | Pass                                                   |
+| Lock screen                        | lock-screen.png                                             | User tile, "Locked"                                                                             | Pass (after listener fix)                              |
+| Mobile                             | mobile-media.png, mobile-start.png                          | Full-screen maximised window, superbar, Start menu                                              | Pass                                                   |
 
 ## 3. Unverified areas
 
@@ -170,3 +170,9 @@ test data only). Files in `docs/win7-screenshots/`.
   file viewer, boot sequence: implemented and covered by unit tests where they exist, but not
   screenshot-reviewed.
 - Touch drag/resize on tablets (pointer-event code unchanged from before the redesign).
+
+## 4. Follow-up audit
+
+A full Haiku-only parity audit with 3-vote adversarial verification ran after this report. It
+confirmed 164 findings and 26 were fixed straight away. The rest, and the decisions still needed,
+are in [`win7-parity-audit.md`](win7-parity-audit.md).

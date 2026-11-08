@@ -15,7 +15,7 @@ is the short version.
   Start orb, Explorer-style hover/selection gradients. The frame colour follows the user's
   _Window colour_ setting (`--w7-w-bg`).
 - **Content:** light. Window bodies are white (`#fff`) or the dialog surface (`#f0f0f0`); text is
-  near-black; headings ("main instructions") are `#1e3287`; links `#0066cc`.
+  near-black; headings ("main instructions") are `#003399`; links `#0066cc`.
 - **Typography:** Segoe UI 9pt (falls back to Noto Sans / system UI). Sentence case. Monospace only
   for code, the terminal and file sizes.
 - **Controls:** use 7.css markup — bare `<button>` or `.w7-btn`, plain inputs/selects/textareas,
