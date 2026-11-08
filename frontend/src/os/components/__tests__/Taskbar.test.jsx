@@ -147,6 +147,30 @@ describe('Taskbar', () => {
       expect(document.activeElement).toBe(group)
     })
 
+    it('forgets the group menu when the group shrinks, so it does not reopen later', () => {
+      const { rerender } = render(<Taskbar />)
+      fireEvent.click(screen.getByRole('button', { name: 'Media Vault, 2 windows' }))
+      expect(screen.getByRole('menu')).toBeDefined()
+      const second = mockWindows.media2
+      mockWindows = { media: mockWindows.media, chat: mockWindows.chat }
+      rerender(<Taskbar flashingWindowIds={[]} />)
+      expect(screen.queryByRole('menu')).toBeNull()
+      mockWindows = { ...mockWindows, media2: second }
+      rerender(<Taskbar flashingWindowIds={['x']} />)
+      expect(screen.queryByRole('menu')).toBeNull()
+    })
+
+    it('moves through the window list menu with Home and End', () => {
+      render(<Taskbar />)
+      fireEvent.click(screen.getByRole('button', { name: 'Media Vault, 2 windows' }))
+      const items = screen.getAllByRole('menuitem').map((li) => li.querySelector('button'))
+      expect(document.activeElement).toBe(items[0])
+      fireEvent.keyDown(document.activeElement, { key: 'End' })
+      expect(document.activeElement).toBe(items[items.length - 1])
+      fireEvent.keyDown(document.activeElement, { key: 'Home' })
+      expect(document.activeElement).toBe(items[0])
+    })
+
     it('still focuses a single-window app directly', () => {
       render(<Taskbar />)
       fireEvent.click(screen.getByText('AI Chat'))

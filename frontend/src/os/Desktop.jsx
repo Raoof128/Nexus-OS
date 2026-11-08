@@ -49,6 +49,24 @@ const Z_INDEX_BASE = 100
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes, only when the idle lock is switched on
 const BOOT_SESSION_KEY = 'nexus_booted'
 
+// sessionStorage can throw (storage disabled, some sandboxed frames). Then the
+// boot flag simply does not persist and the boot animation may replay.
+function readBootFlag() {
+  try {
+    return sessionStorage.getItem(BOOT_SESSION_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeBootFlag() {
+  try {
+    sessionStorage.setItem(BOOT_SESSION_KEY, '1')
+  } catch {
+    // Storage unavailable: nothing to remember.
+  }
+}
+
 export default function Desktop() {
   const desktopRef = useRef(null)
   const [snapPreview, setSnapPreview] = useState(null) // null | 'left' | 'right' | 'top'
@@ -58,10 +76,10 @@ export default function Desktop() {
 
   // ── Boot state ────────────────────────────────────────────
   // Skip boot animation if already shown this browser session
-  const [booted, setBooted] = useState(() => sessionStorage.getItem(BOOT_SESSION_KEY) === '1')
+  const [booted, setBooted] = useState(readBootFlag)
 
   const handleBootComplete = useCallback(() => {
-    sessionStorage.setItem(BOOT_SESSION_KEY, '1')
+    writeBootFlag()
     setBooted(true)
   }, [])
 
@@ -213,7 +231,7 @@ export default function Desktop() {
       window.history.replaceState({}, '', url)
     }
     // Welcome notification only on a genuine first boot this session
-    if (firstBoot && sessionStorage.getItem(BOOT_SESSION_KEY) !== '1') {
+    if (firstBoot && !readBootFlag()) {
       useNotificationStore.getState().addNotification({
         title: 'System Ready',
         message: `Welcome to Nexus OS. ${APP_ORDER.length} programs are ready to use.`,

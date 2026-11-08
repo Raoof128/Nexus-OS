@@ -208,6 +208,11 @@ function AppLauncher({ onLock }) {
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setSelectedIndex((safeIndex - 1 + rows.length) % rows.length)
+    } else if ((e.key === 'Home' || e.key === 'End') && !query) {
+      // Home/End jump to the first/last program. With text in the search box they
+      // keep their normal job of moving the caret.
+      e.preventDefault()
+      setSelectedIndex(e.key === 'Home' ? 0 : rows.length - 1)
     }
   }
 

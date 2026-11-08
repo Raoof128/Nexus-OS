@@ -41,6 +41,7 @@ vi.mock('../../stores/windowStore', () => ({
 
 vi.mock('../../stores/appRegistry', () => ({
   APP_ORDER: ['media', 'email', 'chat', 'terminal', 'files', 'settings', 'sysmon', 'notes'],
+  APP_REGISTRY: {},
 }))
 
 import useGlobalShortcuts from '../useGlobalShortcuts'
@@ -212,6 +213,30 @@ describe('useGlobalShortcuts', () => {
     renderHook(() => useGlobalShortcuts())
     fireKey({ key: '2', code: 'Digit2', metaKey: true })
     expect(mockFocusWindow).toHaveBeenCalledWith('other')
+  })
+
+  it('Win+N numbers taskbar buttons, so grouped windows count once', () => {
+    mockZStack = ['a1', 'a2', 'b']
+    mockWindows = {
+      a1: { windowId: 'a1', appId: 'notes', state: 'normal' },
+      a2: { windowId: 'a2', appId: 'notes', state: 'normal' },
+      b: { windowId: 'b', appId: 'terminal', state: 'normal' },
+    }
+    renderHook(() => useGlobalShortcuts())
+    fireKey({ key: '2', code: 'Digit2', metaKey: true })
+    expect(mockFocusWindow).toHaveBeenCalledWith('b')
+  })
+
+  it('Win+N on a grouped button acts on the most recently used window of that program', () => {
+    mockZStack = ['a2', 'b', 'a1']
+    mockWindows = {
+      a1: { windowId: 'a1', appId: 'notes', state: 'normal' },
+      a2: { windowId: 'a2', appId: 'notes', state: 'normal' },
+      b: { windowId: 'b', appId: 'terminal', state: 'normal' },
+    }
+    renderHook(() => useGlobalShortcuts())
+    fireKey({ key: '1', code: 'Digit1', metaKey: true })
+    expect(mockFocusWindow).toHaveBeenCalledWith('a1')
   })
 
   it('Win+L and Ctrl+Alt+L request a lock', () => {

@@ -174,6 +174,29 @@ describe('AppLauncher', () => {
     expect(mockOpenApp).toHaveBeenCalledWith('files')
   })
 
+  it('jumps to the first and last program with Home and End while the search box is empty', () => {
+    renderLauncher()
+    const input = screen.getByRole('searchbox', { name: 'Search programs' })
+    fireEvent.keyDown(input, { key: 'End' })
+    const options = screen.getAllByRole('option')
+    expect(options[options.length - 1].getAttribute('aria-selected')).toBe('true')
+    fireEvent.keyDown(input, { key: 'Home' })
+    expect(options[0].getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('leaves Home and End to the caret once the search box has text', () => {
+    renderLauncher()
+    const input = screen.getByRole('searchbox', { name: 'Search programs' })
+    fireEvent.change(input, { target: { value: 'f' } })
+    const before = screen.getAllByRole('option').map((o) => o.getAttribute('aria-selected'))
+    const event = new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true })
+    input.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(false)
+    expect(screen.getAllByRole('option').map((o) => o.getAttribute('aria-selected'))).toEqual(
+      before,
+    )
+  })
+
   it('offers no session actions when the desktop provides neither handler', () => {
     renderLauncher()
     expect(screen.queryByRole('button', { name: 'Shut down options' })).toBeNull()

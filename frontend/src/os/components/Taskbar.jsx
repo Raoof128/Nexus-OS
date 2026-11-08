@@ -3,9 +3,9 @@ import { createPortal } from 'react-dom'
 import { ChevronUp, Flag, X } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
 import { useNotificationStore } from '../stores/notificationStore'
-import { APP_REGISTRY } from '../stores/appRegistry'
 import AppIcon from './AppIcon'
 import StartOrb from './StartOrb'
+import { groupWindowsByApp } from './taskbarGroups'
 
 /** Full-width task button and its gap, used to decide when labels collapse. */
 const TASK_BUTTON_PX = 168
@@ -97,11 +97,15 @@ function FloatingMenu({ anchor, label, align = 'start', onClose, children }) {
         onClose()
         return
       }
-      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+      if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return
       if (!menuRef.current?.contains(document.activeElement)) return
       e.preventDefault()
       const list = items()
       if (list.length === 0) return
+      if (e.key === 'Home' || e.key === 'End') {
+        list[e.key === 'Home' ? 0 : list.length - 1].focus()
+        return
+      }
       const index = list.indexOf(document.activeElement)
       const step = e.key === 'ArrowDown' ? 1 : -1
       list[(index + step + list.length) % list.length].focus()
@@ -269,24 +273,7 @@ function Taskbar({ flashingWindowIds = NO_IDS }) {
   // Taskbar order is launch order: Win7 does not reorder buttons on focus.
   // Object.values keeps insertion order, which is exactly that.
   // Windows of one program share one button (Win7 "Always combine").
-  const groups = useMemo(() => {
-    const byApp = new Map()
-    for (const win of Object.values(windows)) {
-      const key = win.appId ?? win.windowId
-      let group = byApp.get(key)
-      if (!group) {
-        group = {
-          key,
-          appId: win.appId,
-          title: APP_REGISTRY[win.appId]?.title || win.title || key,
-          windows: [],
-        }
-        byApp.set(key, group)
-      }
-      group.windows.push(win)
-    }
-    return Array.from(byApp.values())
-  }, [windows])
+  const groups = useMemo(() => groupWindowsByApp(windows), [windows])
 
   // Collapse labels to icons once the bar cannot hold a full button per group.
   useLayoutEffect(() => {
@@ -321,6 +308,13 @@ function Taskbar({ flashingWindowIds = NO_IDS }) {
   )
 
   const openGroup = groups.find((g) => g.key === groupMenu?.key && g.windows.length > 1) ?? null
+
+  // The menu belongs to one open group. When that group closes or shrinks to a
+  // single window, forget the menu, so it does not pop open again when the
+  // program is later reopened (SHELL-06).
+  // Adjusted during render (React's "storing information from previous renders"
+  // pattern), so the stale menu is gone before the next commit.
+  if (groupMenu && !openGroup) setGroupMenu(null)
 
   const closeGroupMenu = useCallback(() => setGroupMenu(null), [])
 

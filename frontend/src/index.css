@@ -624,6 +624,13 @@
     outline: 1px dotted #000;
     outline-offset: -3px;
   }
+  /* Touch: caption buttons are 44px wide (height stays 24px inside the 30px bar,
+     so the window chrome does not grow). Fine pointers keep the 7.css 29px. */
+  @media (pointer: coarse) {
+    .win7 .nx-window .title-bar-controls button {
+      min-width: 44px;
+    }
+  }
 
   /* ── Desktop ──────────────────────────────────────────────────────────── */
   .nx-wallpaper-aero {
@@ -1050,7 +1057,8 @@
     align-items: center;
     gap: 6px;
     width: 100%;
-    min-height: 22px;
+    /* 7.css menu.css: 27px rows (border-box, so the border is inside). */
+    min-height: 27px;
     /* 7.css menu.css: label starts 32px in (4px pad + 22px icon + 6px gap). */
     padding: 4px 10px 4px 4px;
     border: 1px solid transparent;
@@ -1070,6 +1078,28 @@
     display: inline-flex;
     justify-content: center;
     color: #3d5a80;
+  }
+  /* 7.css ul[role=menu]:before: the etched gutter line at 28px that separates
+     icons from labels. Menus only (not the Action Centre panel). */
+  .nx-flyout[role='menu'] {
+    position: relative;
+  }
+  .nx-flyout[role='menu']::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 28px;
+    width: 2px;
+    box-shadow:
+      inset 1px 0 #00000026,
+      inset -1px 0 #fff;
+    pointer-events: none;
+  }
+  /* 7.css [aria-disabled] menu items: greyed by opacity and not interactive. */
+  .nx-flyout [role='menuitem'][aria-disabled='true'] {
+    opacity: 0.5;
+    pointer-events: none;
   }
   /* 7.css has-divider: a 2px etched line, starting at the label gutter. */
   .nx-menu-separator {

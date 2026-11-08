@@ -21,6 +21,25 @@ function boundedSize(defaultSize, minSize) {
   }
 }
 
+// The area windows live in: the full viewport minus the taskbar strip at the bottom.
+function workArea(taskbarH) {
+  return { width: window.innerWidth, height: window.innerHeight - taskbarH }
+}
+
+// Fit a rect inside the work area on open, restore and cascade (whole frame, not
+// just the left edge). Size is capped at the work area but never below the app's
+// minimum. Horizontally the frame stays on screen when it can; when it is wider
+// than the screen the right edge wins so the caption buttons stay reachable. The
+// titlebar stays at or below the top edge, so it is never pushed off screen.
+function fitRect(rect, minSize, taskbarH) {
+  const wa = workArea(taskbarH)
+  const width = Math.max(minSize.width, Math.min(rect.width, wa.width))
+  const height = Math.max(minSize.height, Math.min(rect.height, wa.height))
+  const x = width <= wa.width ? Math.max(0, Math.min(rect.x, wa.width - width)) : wa.width - width
+  const y = Math.max(0, Math.min(rect.y, wa.height - height))
+  return { x, y, width, height }
+}
+
 function cascadePosition(zStack, _size, taskbarH) {
   // Simple cascading: each new window is offset by 30px
   const offset = (zStack.length % 10) * 30
@@ -87,8 +106,14 @@ export const useWindowStore = create((set, get) => ({
 
     const windowId = manifest.singleton ? appId : `${appId}-${nanoid(6)}`
     const minSize = manifest.minSize ?? { width: 0, height: 0 }
-    const size = boundedSize(manifest.defaultSize, minSize)
-    const position = cascadePosition(zStack, size, taskbarHeight)
+    const bounded = boundedSize(manifest.defaultSize, minSize)
+    const fitted = fitRect(
+      { ...cascadePosition(zStack, bounded, taskbarHeight), ...bounded },
+      minSize,
+      taskbarHeight,
+    )
+    const position = { x: fitted.x, y: fitted.y }
+    const size = { width: fitted.width, height: fitted.height }
 
     set((state) => ({
       windows: {
@@ -244,14 +269,17 @@ export const useWindowStore = create((set, get) => ({
       const win = state.windows[windowId]
       if (!win) return state
 
+      // The saved rect may come from a bigger screen: fit it to the current work area.
+      const rect = win.restoredRect ?? { ...win.position, ...win.size }
+      const fitted = fitRect(rect, win.minSize, state.taskbarHeight)
       return {
         windows: {
           ...state.windows,
           [windowId]: {
             ...win,
             state: 'normal',
-            position: { x: win.restoredRect.x, y: win.restoredRect.y },
-            size: { width: win.restoredRect.width, height: win.restoredRect.height },
+            position: { x: fitted.x, y: fitted.y },
+            size: { width: fitted.width, height: fitted.height },
           },
         },
       }
@@ -279,10 +307,14 @@ export const useWindowStore = create((set, get) => ({
       const win = state.windows[windowId]
       if (!win) return state
 
-      const newSize = {
-        width: Math.max(size.width, win.minSize.width),
-        height: Math.max(size.height, win.minSize.height),
-      }
+      const wa = workArea(state.taskbarHeight)
+      // Stop the bottom and right edges at the work area (taskbar, screen edge).
+      // The app minimum still wins; only then is the top edge moved up to fit it.
+      const pos = clampPosition(position, size, state.taskbarHeight)
+      const height = Math.max(win.minSize.height, Math.min(size.height, wa.height - pos.y))
+      pos.y = Math.max(0, Math.min(pos.y, wa.height - height))
+      const width = Math.max(win.minSize.width, Math.min(size.width, wa.width - Math.max(0, pos.x)))
+      const newSize = { width, height }
 
       return {
         windows: {
@@ -290,7 +322,7 @@ export const useWindowStore = create((set, get) => ({
           [windowId]: {
             ...win,
             size: newSize,
-            position: clampPosition(position, newSize, state.taskbarHeight),
+            position: pos,
           },
         },
       }
@@ -384,19 +416,18 @@ export const useWindowStore = create((set, get) => ({
         idMap[oldId] = newId
 
         const minSize = manifest.minSize ?? { width: 0, height: 0 }
-        const x = Math.max(0, Math.min(win.position?.x ?? 0, window.innerWidth - 100))
-        const y = Math.max(
-          0,
-          Math.min(win.position?.y ?? 0, window.innerHeight - taskbarHeight - 40),
+        // Saved layouts may come from a bigger screen or another taskbar height.
+        const fitted = fitRect(
+          {
+            x: win.position?.x ?? 0,
+            y: win.position?.y ?? 0,
+            width: win.size?.width ?? 600,
+            height: win.size?.height ?? 400,
+          },
+          minSize,
+          taskbarHeight,
         )
-        const width = Math.max(
-          minSize.width,
-          Math.min(win.size?.width ?? 600, window.innerWidth * 0.95),
-        )
-        const height = Math.max(
-          minSize.height,
-          Math.min(win.size?.height ?? 400, (window.innerHeight - taskbarHeight) * 0.95),
-        )
+        const { x, y, width, height } = fitted
 
         const state = win.state === 'minimized' ? 'normal' : win.state || 'normal'
 
@@ -459,11 +490,19 @@ export const useWindowStore = create((set, get) => ({
       const newWindows = { ...state.windows }
       let offset = 0
       for (const id of state.zStack) {
-        if (newWindows[id] && newWindows[id].state !== 'minimized') {
+        const win = newWindows[id]
+        if (win && win.state !== 'minimized') {
+          // Keep every cascaded frame inside the work area (SHELL-09).
+          const fitted = fitRect(
+            { x: 60 + offset, y: 40 + offset, width: win.size.width, height: win.size.height },
+            win.minSize,
+            state.taskbarHeight,
+          )
           newWindows[id] = {
-            ...newWindows[id],
+            ...win,
             state: 'normal',
-            position: { x: 60 + offset, y: 40 + offset },
+            position: { x: fitted.x, y: fitted.y },
+            size: { width: fitted.width, height: fitted.height },
           }
           offset += 30
         }
@@ -503,34 +542,62 @@ export const useWindowStore = create((set, get) => ({
   },
 
   closeAll: () => {
-    set({ windows: {}, zStack: [], activeWindowId: null })
+    set({
+      windows: {},
+      zStack: [],
+      activeWindowId: null,
+      attentionIds: [],
+      desktopShown: null,
+    })
   },
 }))
 
-// Debounced persistence subscriber
+// Debounced persistence subscriber. The latest state is kept until it is written,
+// so a pagehide (tab close, reload, navigation) can flush it instead of losing the
+// last layout change made within the debounce window.
 let saveTimeout = null
+let pendingSave = null
+
+function writeLayout(state) {
+  try {
+    const { windows, zStack, activeWindowId } = state
+    // Convert minimized windows to normal before saving — hydration ignores minimized state anyway
+    const windowsToSave = {}
+    for (const [id, win] of Object.entries(windows)) {
+      windowsToSave[id] =
+        win.state === 'minimized' ? { ...win, state: win.preMinimizeState || 'normal' } : win
+    }
+    const snapshot = {
+      schemaVersion: SCHEMA_VERSION,
+      windows: windowsToSave,
+      zStack,
+      activeWindowId,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
+  } catch {
+    // Storage full or unavailable
+  }
+}
+
+// Writes the pending layout now. Exported for tests and the pagehide handler.
+export function flushWindowLayout() {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout)
+    saveTimeout = null
+  }
+  const state = pendingSave
+  pendingSave = null
+  if (state) writeLayout(state)
+}
+
 useWindowStore.subscribe((state) => {
   if (state.isMobile) return
 
+  pendingSave = state
   if (saveTimeout) clearTimeout(saveTimeout)
-  saveTimeout = setTimeout(() => {
-    try {
-      const { windows, zStack, activeWindowId } = state
-      // Convert minimized windows to normal before saving — hydration ignores minimized state anyway
-      const windowsToSave = {}
-      for (const [id, win] of Object.entries(windows)) {
-        windowsToSave[id] =
-          win.state === 'minimized' ? { ...win, state: win.preMinimizeState || 'normal' } : win
-      }
-      const snapshot = {
-        schemaVersion: SCHEMA_VERSION,
-        windows: windowsToSave,
-        zStack,
-        activeWindowId,
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
-    } catch {
-      // Storage full or unavailable
-    }
-  }, SAVE_DEBOUNCE_MS)
+  saveTimeout = setTimeout(flushWindowLayout, SAVE_DEBOUNCE_MS)
 })
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flushWindowLayout)
+}

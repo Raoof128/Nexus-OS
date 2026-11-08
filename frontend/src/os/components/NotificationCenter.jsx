@@ -80,7 +80,7 @@ function NotificationRow({ n, onRead, onRemove }) {
         onClick={() => onRemove(n.id)}
         aria-label="Remove notification"
         title="Remove"
-        className="w7-toolbtn shrink-0 p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+        className="w7-toolbtn shrink-0 p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 [@media(pointer:coarse)]:opacity-100"
       >
         <X size={12} aria-hidden />
       </button>

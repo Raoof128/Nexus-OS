@@ -315,6 +315,39 @@ describe('Window', () => {
     expect(mockSnapWindow).toHaveBeenCalledWith('test-win', 'left')
   })
 
+  it('ends a drag on pointercancel at the last pointer position', () => {
+    render(<Window {...defaultProps} />)
+    firePointer(screen.getByTestId('titlebar'), 'pointerdown', {
+      clientX: 300,
+      clientY: 10,
+      button: 0,
+    })
+    firePointer(window, 'pointermove', { clientX: 0, clientY: 300 })
+    firePointer(window, 'pointercancel', { clientX: 0, clientY: 0 })
+    expect(mockSnapWindow).toHaveBeenCalledWith('test-win', 'left')
+    // The gesture is over: later moves and releases do nothing.
+    firePointer(window, 'pointermove', { clientX: 500, clientY: 300 })
+    firePointer(window, 'pointerup', { clientX: 500, clientY: 300 })
+    expect(mockSnapWindow).toHaveBeenCalledTimes(1)
+    expect(mockMoveWindow).not.toHaveBeenCalled()
+  })
+
+  it('drops an in-progress drag on unmount and resets the body cursor', () => {
+    const { unmount } = render(<Window {...defaultProps} />)
+    firePointer(screen.getByTestId('titlebar'), 'pointerdown', {
+      clientX: 300,
+      clientY: 10,
+      button: 0,
+    })
+    firePointer(window, 'pointermove', { clientX: 330, clientY: 40 })
+    expect(document.body.style.cursor).toBe('grabbing')
+    unmount()
+    expect(document.body.style.cursor).toBe('')
+    firePointer(window, 'pointerup', { clientX: 330, clientY: 40 })
+    expect(mockMoveWindow).not.toHaveBeenCalled()
+    expect(mockSnapWindow).not.toHaveBeenCalled()
+  })
+
   it('does not snap when only the window edge, not the pointer, reaches the screen edge', () => {
     render(<Window {...defaultProps} position={{ x: 0, y: 50 }} />)
     firePointer(screen.getByTestId('titlebar'), 'pointerdown', {

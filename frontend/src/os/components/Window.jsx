@@ -40,10 +40,15 @@ function snapZoneAt(x, y) {
 // Keeps a keyboard move/size preview inside the same bounds the store enforces.
 function clampKeyRect(rect, kind, minSize, taskbarH) {
   if (kind === 'size') {
+    // Same work-area rule as windowStore.updateWindowRect: the right and bottom
+    // edges stop at the screen edge and the taskbar.
     return {
       ...rect,
-      width: Math.max(minSize.width, rect.width),
-      height: Math.max(minSize.height, rect.height),
+      width: Math.max(minSize.width, Math.min(rect.width, window.innerWidth - Math.max(0, rect.x))),
+      height: Math.max(
+        minSize.height,
+        Math.min(rect.height, window.innerHeight - taskbarH - rect.y),
+      ),
     }
   }
   return {
@@ -60,6 +65,16 @@ function ResizeHandle({ direction, windowId, position, size, minSize }) {
   const updateWindowRect = useWindowStore((s) => s.updateWindowRect)
   const isResizingRef = useRef(false)
   const startRef = useRef(null)
+  // Ends the active resize (listeners, cursor). Called on pointerup, pointercancel
+  // and unmount, so an interrupted gesture never leaves listeners or the cursor behind.
+  const stopResizeRef = useRef(null)
+
+  useEffect(
+    () => () => {
+      stopResizeRef.current?.()
+    },
+    [],
+  )
 
   const positionStyles = {
     n: {
@@ -155,17 +170,21 @@ function ResizeHandle({ direction, windowId, position, size, minSize }) {
         })
       }
 
-      const onPointerUp = () => {
+      const stop = () => {
         isResizingRef.current = false
         startRef.current = null
+        stopResizeRef.current = null
         document.body.style.cursor = ''
         document.body.style.userSelect = ''
         window.removeEventListener('pointermove', onPointerMove)
-        window.removeEventListener('pointerup', onPointerUp)
+        window.removeEventListener('pointerup', stop)
+        window.removeEventListener('pointercancel', stop)
       }
+      stopResizeRef.current = stop
 
       window.addEventListener('pointermove', onPointerMove)
-      window.addEventListener('pointerup', onPointerUp)
+      window.addEventListener('pointerup', stop)
+      window.addEventListener('pointercancel', stop)
     },
     [direction, windowId, position, size, minSize, updateWindowRect],
   )
@@ -238,6 +257,15 @@ function Window({
   const dragStartRef = useRef(null)
   const rafRef = useRef(null)
   const latestPointerRef = useRef(null)
+  // Ends an in-progress title-bar drag (listeners, pending frame, cursor).
+  // Run on unmount, so a window closed mid-drag leaves nothing behind.
+  const dragCleanupRef = useRef(null)
+  useEffect(
+    () => () => {
+      dragCleanupRef.current?.()
+    },
+    [],
+  )
 
   const toggleMaximize = useCallback(() => {
     if (isMaximized) restoreWindow(windowId)
@@ -413,8 +441,11 @@ function Window({
         document.body.style.userSelect = ''
         window.removeEventListener('pointermove', onMove)
         window.removeEventListener('pointerup', onUp)
+        window.removeEventListener('pointercancel', onUp)
         document.removeEventListener('keydown', onKeyDown)
+        dragCleanupRef.current = null
       }
+      dragCleanupRef.current = cleanup
 
       const onMove = (moveEvent) => {
         if (!started) {
@@ -447,17 +478,24 @@ function Window({
         })
       }
 
+      // Shared by pointerup and pointercancel. A cancel (the browser took the
+      // pointer, for example for a touch gesture) has no reliable coordinates, so it
+      // ends the drag at the last pointer position seen.
       const onUp = (upEvent) => {
         // A click on a maximised or snapped window never started a drag.
         if (!started || !dragStartRef.current) {
           cleanup()
           return
         }
-        const dx = upEvent.clientX - dragStartRef.current.mouseX
-        const dy = upEvent.clientY - dragStartRef.current.mouseY
+        const point =
+          upEvent.type === 'pointercancel' && latestPointerRef.current
+            ? latestPointerRef.current
+            : upEvent
+        const dx = point.clientX - dragStartRef.current.mouseX
+        const dy = point.clientY - dragStartRef.current.mouseY
         const finalX = dragStartRef.current.winX + dx
         const finalY = dragStartRef.current.winY + dy
-        const zone = snapZoneAt(upEvent.clientX, upEvent.clientY)
+        const zone = snapZoneAt(point.clientX, point.clientY)
 
         // Batch: reset delta + commit position → single React flush, no flash.
         setDragDelta(null)
@@ -484,6 +522,7 @@ function Window({
 
       window.addEventListener('pointermove', onMove)
       window.addEventListener('pointerup', onUp)
+      window.addEventListener('pointercancel', onUp)
       document.addEventListener('keydown', onKeyDown)
     },
     [
@@ -544,8 +583,14 @@ function Window({
   // During drag: position.x/y + delta gives the live dragged position.
   // On release: setDragDelta(null) + moveWindow batch in the same React flush,
   // so the render sees delta=null and the new store position simultaneously.
-  const effectiveX = dragDelta !== null ? position.x + dragDelta.x : position.x
-  const effectiveY = dragDelta !== null ? position.y + dragDelta.y : position.y
+  // While a title-bar drag is in progress the frame keeps its store left/top and
+  // only the CSS `translate` offset changes. Moving with `translate` (compositor
+  // only) avoids a layout of the frame and its backdrop-blurred glass on every
+  // pointer frame. `translate` is an individual transform property, so framer's
+  // entrance `transform` (scale) on this element is left alone. On release the
+  // offset returns to 0 while left/top jump to the store value, and the transition
+  // below animates both, so the frame lands and snaps from the drop point.
+  const dragOffset = dragDelta !== null ? `${dragDelta.x}px ${dragDelta.y}px 0px` : undefined
 
   const displayStyle = keyRect
     ? {
@@ -569,8 +614,8 @@ function Window({
         ? { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', zIndex }
         : {
             position: 'absolute',
-            left: effectiveX,
-            top: effectiveY,
+            left: position.x,
+            top: position.y,
             width: size.width,
             height: size.height,
             zIndex,
@@ -581,10 +626,11 @@ function Window({
   // adjusts the position), the transition produces a short ease into the final rect.
   // Snap/maximize/restore changes animate automatically because dragDelta is
   // null for those (they're triggered by buttons or keyboard, not pointer drag).
+  // `translate` is included so the drop offset eases back into place with the rect.
   const positionTransition =
     dragDelta !== null || keyRect !== null
       ? undefined
-      : 'left 240ms cubic-bezier(0.16,1,0.3,1), top 240ms cubic-bezier(0.16,1,0.3,1), width 240ms cubic-bezier(0.16,1,0.3,1), height 240ms cubic-bezier(0.16,1,0.3,1)'
+      : 'left 240ms cubic-bezier(0.16,1,0.3,1), top 240ms cubic-bezier(0.16,1,0.3,1), width 240ms cubic-bezier(0.16,1,0.3,1), height 240ms cubic-bezier(0.16,1,0.3,1), translate 240ms cubic-bezier(0.16,1,0.3,1)'
 
   // Win7 system menu entries. Move and Size are unavailable while the window is
   // maximised or snapped, as on Windows 7.
@@ -630,7 +676,12 @@ function Window({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12 } }}
       transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-      style={{ ...displayStyle, transition: positionTransition }}
+      style={{
+        ...displayStyle,
+        translate: dragOffset,
+        willChange: dragOffset ? 'translate' : undefined,
+        transition: positionTransition,
+      }}
       onPointerDownCapture={() => focusWindow(windowId)}
       onBlur={handleFrameBlur}
       onContextMenu={(e) => e.stopPropagation()}

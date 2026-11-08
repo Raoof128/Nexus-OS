@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useWindowStore } from '../stores/windowStore'
 import { APP_ORDER } from '../stores/appRegistry'
+import { groupWindowsByApp } from '../components/taskbarGroups'
 
 const CODE_KEYS = { BracketLeft: '[', BracketRight: ']' }
 
@@ -133,9 +134,15 @@ export default function useGlobalShortcuts({ disabled = false } = {}) {
           default:
             if (k >= '1' && k <= '8') {
               const idx = parseInt(k, 10) - 1
-              const entry = Object.values(windows)[idx]
+              // Number the taskbar buttons (one per program), not raw windows, so
+              // Win+N matches the button the user sees at that position.
+              const group = groupWindowsByApp(windows)[idx]
               // Same as the taskbar: activate that window, or launch the app.
-              if (entry) {
+              if (group) {
+                // A grouped button acts on the program's most recently used window.
+                const entry = group.windows.reduce((top, win) =>
+                  zStack.indexOf(win.windowId) > zStack.indexOf(top.windowId) ? win : top,
+                )
                 if (entry.windowId === activeWindowId && entry.state !== 'minimized') {
                   minimizeWindow(entry.windowId)
                 } else {
