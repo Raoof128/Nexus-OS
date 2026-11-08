@@ -5,6 +5,26 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-11-08 (Australia/Sydney) — Windows 7 parity: fix all audit findings (pass 2) and polish
+
+**Raouf:**
+
+- **Scope:** Fix every remaining confirmed finding from the Haiku parity audit (`docs/win7-parity-audit.md`) and polish the result.
+- **Summary:** Workflow run `wf_cdfae0bd-b71`: 11 Haiku implementers, each owning a separate set of files, and an independent Haiku reviewer per area (22 agents). The orchestrator then did the cross-area integration and reviewed every screen in a browser. Highlights:
+  - **File Manager (Explorer):** navigation tree, back/forward, search, sortable columns, Organize menu, context menus, keyboard model, preview pane.
+  - **Task Manager:** Win7 tabs, End Task / Switch To / New Task…, menu bar, honest status bar.
+  - **Windows:** system menu (Alt+Space), keyboard Move/Size, drag-to-unsnap, pointer-based Aero Snap, window focus, Alt+F4 and Win-key shortcuts.
+  - **Desktop:** Win7 desktop, icon and taskbar menus; marquee selection, F2 rename, hide/restore icons.
+  - **Superbar:** grouping, Aero Peek, attention flash, tray chevron and Action Center flag, balloon notifications.
+  - **Start menu:** pinned/recent lists, All Programs, Shut down split button with Lock and Log off.
+  - **Accessories:** Notepad menu bar; cmd wording, `cls`/`ver`/`hostname` and Tab completion in Terminal; Control Panel with Save/Cancel, picture position, transparency and color intensity.
+  - **Lock screen:** requires the account password (`AuthContext.verifyPassword`; global shortcuts are off while locked), with an opt-in idle lock.
+  - **Apps:** Tasks menus and 7.css checkboxes; Media Vault table semantics; email listbox roving focus; compose discard confirmation with Cancel as the default.
+  - **Polish:** access-key underlines shown only after keyboard use; native right-click menu inside windows; Start menu search button fixed.
+- **Files Changed:** `frontend/src/**` (shell, stores, hooks and every app; new `os/apps/FileManager/`, `os/apps/SystemMonitor/`, `os/apps/Notes/`, `os/components/DesktopMenus/`, `os/components/SystemMenu.jsx`), `frontend/src/context/AuthContext.jsx`, `frontend/src/components/ui/ConfirmDialog.jsx` (`cancelLabel`, `defaultAction`), `frontend/src/index.css`, `frontend/e2e/{journeys,shots}.spec.js`, docs (`win7-parity-audit.md`, `win7-design-system.md`, `win7-parity-report.md`, screenshots).
+- **Verification:** lint ✓; prettier ✓; Vitest **633/633** ✓ (70 files); `check.sh` all passed; build ✓; Playwright 21 journeys + 7.css parity ✓; parity 58/64 identical, unchanged from baseline; screenshots re-captured and reviewed.
+- **Follow-ups:** 11 partly fixed items, each with its reason, in `docs/win7-parity-audit.md` (e.g. byte-level import progress, physical memory not exposed by browsers, 44px task buttons on touch). Lock-screen unlock tested against the mocked `/auth/login` only. Pre-existing `npm audit` advisories. Not deployed.
+
 ### 2026-11-08 (Australia/Sydney) — Windows 7 parity audit (Haiku workflow) and fixes
 
 **Raouf:**

@@ -173,6 +173,7 @@ test data only). Files in `docs/win7-screenshots/`.
 
 ## 4. Follow-up audit
 
-A full Haiku-only parity audit with 3-vote adversarial verification ran after this report. It
-confirmed 164 findings and 26 were fixed straight away. The rest, and the decisions still needed,
-are in [`win7-parity-audit.md`](win7-parity-audit.md).
+After this report, an all-Haiku parity audit ran with 3-vote adversarial verification. It confirmed
+164 findings. Two fix passes followed. Now 149 are fixed, 11 are partly fixed, and 4 are deliberately
+kept, each with its reason. Every status is in [`win7-parity-audit.md`](win7-parity-audit.md).
+Screenshots in `docs/win7-screenshots/` were re-captured after the fixes.

@@ -34,7 +34,8 @@ theme → base → win7 → win7-reset → nexus → components → utilities
 | `<button className="w7-btn …">`                               | Same push button, plus any layout utilities you add. Add `default` for the default (pulsing) button.                      |
 | `<button className="…anything else…">`                        | **Reset to bare** by `win7-reset`, so your Tailwind / `.w7-toolbtn` / `.w7-item` styling applies.                         |
 | `input[type=text\|password\|email\|number\|url]`, `textarea`  | Win7 sunken field (23px high). Don't add bg/border/text-colour utilities; layout utilities (`w-full`, `flex-1`) are fine. |
-| `input[type=search\|date\|time\|datetime-local\|tel]`         | Same field look (added by the adapter).                                                                                   |
+| `input[type=search]`                                          | 7.css search box (24px, italic placeholder, magnifier icon while empty); the adapter adds the blue focus border.          |
+| `input[type=date\|time\|datetime-local\|tel]`                 | Sunken field look added by the adapter (7.css has none), with a greyed `:disabled` state.                                 |
 | `select` (single)                                             | Win7 dropdown.                                                                                                            |
 | `input[type=checkbox\|radio]` **followed by `<label>`**       | 7.css drawn checkbox/radio. The input needs an `id` and the label `htmlFor`.                                              |
 | checkbox/radio **without** an adjacent label                  | Native control tinted Win7 blue (adapter restores it; 7.css alone would hide it).                                         |
@@ -164,6 +165,22 @@ and what to do. If a unit test asserts on copy you change, update the test in th
 | Snap preview  | `os/components/SnapPreview.jsx`  | Aero Snap glass outline.                                                                                                                                                                     |
 | Wallpaper     | `public/wallpapers/aero.svg`     | Original artwork. W1–W8 user wallpapers remain selectable.                                                                                                                                   |
 | Window colour | `os/stores/settingsStore.js`     | `ACCENT_PRESETS` = Win7 window colours → `--w7-w-bg` on `<body>`. Old values migrate to `sky`.                                                                                               |
+
+## 6a. Accepted differences from Windows 7
+
+- **Password reveal** on the logon and lock password boxes is kept for accessibility, as a small
+  `.w7-toolbtn` inside the field. Windows 7 has no reveal control.
+- **Focused push buttons pulse**, exactly as 7.css does (`button:focus` shares the `.default` rule).
+- **Windows keep `role="region"`** with `aria-roledescription="window"`, so assistive tech announces
+  "window" and tests can still find a window by its name. Never put `role="dialog"` on a `.window`.
+- **Lock screen** checks the account password against `/auth/login` (`AuthContext.verifyPassword`).
+  Global shortcuts are off while it is shown.
+- **Menu access keys** (`&Open` in menu models) are underlined only after keyboard use, as Windows 7
+  does by default. The underline is the `.nx-accel` class, revealed by `body.nx-kbd-cues`.
+- **Message boxes that lose work** (discard a message, close all windows) make Cancel the default
+  button: `ConfirmDialog defaultAction="cancel"`.
+- **Task Manager memory** shows what browsers expose (JS heap, approximate `deviceMemory`). Physical
+  memory in use is labelled as not reported, not invented.
 
 ## 7. Licensing
 
