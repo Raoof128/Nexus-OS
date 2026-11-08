@@ -29,6 +29,11 @@
           display: revert;
         }
       }
+      /* Same as the reference stage in e2e/parity.spec.js: drop the docs.css
+         photo behind glass examples so its load timing cannot flake the diff. */
+      .background {
+        background-image: none !important;
+      }
     </style>
   </head>
   <body class="win7" style="margin: 0; background: #f0f0f0">

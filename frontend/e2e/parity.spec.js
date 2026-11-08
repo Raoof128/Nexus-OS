@@ -54,6 +54,13 @@ test('7.css components render identically inside the Nexus CSS stack', async ({ 
     `<!doctype html><html><head>
       <link rel="stylesheet" href="${REF_URL}7.css">
       <link rel="stylesheet" href="${REF_URL}docs.css">
+      <style>
+        /* docs.css puts a photo behind the glass-frame examples (.background).
+           Whether it has decoded by screenshot time is a network race, which
+           made those examples flaky. Both stages drop it (see
+           win7-parity.html) and compare the frame over a plain backdrop. */
+        .background { background-image: none !important; }
+      </style>
     </head><body style="margin:0"><div id="stage"></div></body></html>`,
     { waitUntil: 'networkidle' },
   )
