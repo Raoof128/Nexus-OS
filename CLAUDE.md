@@ -114,7 +114,9 @@ supabase/
 
 ### Auth: Zero-trust cookie model
 
-Backend manages HttpOnly cookies. Frontend never touches tokens directly. `apiClient.js` handles 401 → silent refresh → retry automatically. Supabase JS SDK is only used for Realtime subscriptions (separate client in `realtimeClient.js`), NOT for auth.
+Backend manages HttpOnly cookies. Frontend never touches tokens directly. `apiClient.js` handles 401 → silent refresh → retry automatically. Supabase JS SDK is only used for Realtime subscriptions (separate client in `realtimeClient.js`), NOT for Nexus auth.
+
+**One deliberate exception:** the Aion companion app (`os/apps/Aion/lib/aionSupabase.js`) talks to a _separate_ Supabase project (`VITE_AION_SUPABASE_*`) with an **anonymous** sign-in, persisted in localStorage under `aion.supabase.auth`. That session carries no Nexus identity or Nexus data, and persisting it keeps one anonymous Aion user per browser instead of minting a new one on every load. Never reuse that client, or that pattern, for the Nexus account.
 
 ### Data flow: Optimistic + Realtime
 

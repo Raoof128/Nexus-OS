@@ -259,6 +259,10 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onPick, onNavigateCha
             >
               {level.label}
             </span>
+            {/* The visible S/M/L code is terse; announce the size by name on change. */}
+            <span className="sr-only" role="status" aria-live="polite">
+              {`Text size: ${level.name}`}
+            </span>
             <button
               type="button"
               onClick={increase}

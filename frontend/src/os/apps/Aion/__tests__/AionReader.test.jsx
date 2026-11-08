@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 const { mockUseAionReader } = vi.hoisted(() => ({
   mockUseAionReader: vi.fn(),
@@ -70,5 +70,13 @@ describe('AionReader chapter view', () => {
     const group = screen.getByRole('group', { name: 'Text size' })
     expect(group.contains(screen.getByRole('button', { name: 'Decrease text size' }))).toBe(true)
     expect(group.contains(screen.getByRole('button', { name: 'Increase text size' }))).toBe(true)
+  })
+
+  it('announces the text size by name when it changes', () => {
+    renderChapter()
+    const status = screen.getByRole('status')
+    expect(status.textContent).toBe('Text size: Medium')
+    fireEvent.click(screen.getByRole('button', { name: 'Increase text size' }))
+    expect(status.textContent).toBe('Text size: Large')
   })
 })

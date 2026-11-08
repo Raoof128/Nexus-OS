@@ -3,11 +3,11 @@ import { useState, useEffect, useCallback } from 'react'
 // Reader text-size levels (like other Bible apps). `size` is the verse body font
 // size in px; `lineHeight` is unitless. Index 1 ("M") is the original default.
 export const FONT_SCALE_LEVELS = [
-  { label: 'S', size: 15, lineHeight: 1.7 },
-  { label: 'M', size: 17, lineHeight: 1.8 },
-  { label: 'L', size: 20, lineHeight: 1.8 },
-  { label: 'XL', size: 24, lineHeight: 1.7 },
-  { label: 'XXL', size: 29, lineHeight: 1.65 },
+  { label: 'S', name: 'Small', size: 15, lineHeight: 1.7 },
+  { label: 'M', name: 'Medium', size: 17, lineHeight: 1.8 },
+  { label: 'L', name: 'Large', size: 20, lineHeight: 1.8 },
+  { label: 'XL', name: 'Extra large', size: 24, lineHeight: 1.7 },
+  { label: 'XXL', name: 'Largest', size: 29, lineHeight: 1.65 },
 ]
 
 const STORAGE_KEY = 'aion.reader.fontScale'
