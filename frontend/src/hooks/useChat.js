@@ -34,6 +34,10 @@ export function useChatSessions(userId) {
   return {
     sessions: sessionsQuery.data ?? [],
     loading: sessionsQuery.isPending,
+    // Load failure for the session list. Callers must show an error, not an
+    // empty state, when this is set.
+    loadError: sessionsQuery.error ?? null,
+    refetch: sessionsQuery.refetch,
     createSession: createSession.mutateAsync,
     deleteSession: deleteSession.mutateAsync,
     isCreating: createSession.isPending,
@@ -59,12 +63,12 @@ export function useChatMessages(userId, sessionId) {
       }),
     onMutate: async (content) => {
       await queryClient.cancelQueries({ queryKey })
-      const previous = queryClient.getQueryData(queryKey) ?? []
-      queryClient.setQueryData(queryKey, [
-        ...previous,
-        { id: `opt-${Date.now()}`, role: 'user', content, created_at: new Date().toISOString() },
+      const optimisticId = `opt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      queryClient.setQueryData(queryKey, (current = []) => [
+        ...current,
+        { id: optimisticId, role: 'user', content, created_at: new Date().toISOString() },
       ])
-      return { previous }
+      return { optimisticId }
     },
     onSuccess: () => {
       // Trust the invalidate + refetch to bring in the server's canonical user
@@ -74,7 +78,12 @@ export function useChatMessages(userId, sessionId) {
       queryClient.invalidateQueries({ queryKey })
     },
     onError: (_err, _vars, context) => {
-      queryClient.setQueryData(queryKey, context?.previous ?? [])
+      // Remove only this send's optimistic row. Restoring a whole snapshot
+      // would also discard messages that other updates added meanwhile.
+      if (!context?.optimisticId) return
+      queryClient.setQueryData(queryKey, (current = []) =>
+        current.filter((message) => message.id !== context.optimisticId),
+      )
     },
   })
   const resetSendMessage = sendMessage.reset
@@ -86,6 +95,10 @@ export function useChatMessages(userId, sessionId) {
   return {
     messages: messagesQuery.data ?? [],
     loading: messagesQuery.isPending,
+    // Load failure for this conversation's history (distinct from `error`,
+    // which is the send failure).
+    loadError: messagesQuery.error ?? null,
+    refetch: messagesQuery.refetch,
     sending: sendMessage.isPending,
     sendMessage: sendMessage.mutateAsync,
     error: sendMessage.error?.message ?? null,

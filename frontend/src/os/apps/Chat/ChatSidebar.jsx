@@ -20,11 +20,14 @@ export default function ChatSidebar({
   onCreate,
   onDelete,
   isCreating,
+  loadError,
+  onRetry,
 }) {
   const [newTitle, setNewTitle] = useState('')
   const [newCategory, setNewCategory] = useState('general')
   const [showCreate, setShowCreate] = useState(false)
   const [deleteSessionId, setDeleteSessionId] = useState(null)
+  const [actionError, setActionError] = useState(null)
 
   const grouped = useMemo(() => {
     const groups = {}
@@ -36,10 +39,28 @@ export default function ChatSidebar({
 
   const handleCreate = async (e) => {
     e.preventDefault()
-    if (!newTitle.trim()) return
-    await onCreate({ title: newTitle.trim(), category: newCategory })
-    setNewTitle('')
-    setShowCreate(false)
+    const title = newTitle.trim()
+    if (!title) return
+    setActionError(null)
+    try {
+      await onCreate({ title, category: newCategory })
+      setNewTitle('')
+      setShowCreate(false)
+    } catch {
+      // Keep the typed title and the form open so the user can retry.
+      setActionError("Couldn't create the conversation. Your title is still here, so try again.")
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    const sessionId = deleteSessionId
+    setDeleteSessionId(null)
+    setActionError(null)
+    try {
+      await onDelete(sessionId)
+    } catch {
+      setActionError("Couldn't delete the conversation. It is still in your list. Try again.")
+    }
   }
 
   return (
@@ -90,8 +111,25 @@ export default function ChatSidebar({
         </form>
       )}
 
+      {actionError && (
+        <p role="alert" className="w7-error mx-2 mt-2 text-[12px]">
+          {actionError}
+        </p>
+      )}
+
       {/* Session list */}
       <div className="flex-1 space-y-3 overflow-y-auto p-2">
+        {loadError && (
+          <div role="alert" className="flex flex-col items-center gap-3 px-3 py-6 text-center">
+            <p className="w7-error text-[12px]">
+              Couldn&apos;t load your conversations. Check your connection and try again.
+            </p>
+            <button type="button" onClick={onRetry} className="w7-btn">
+              Retry
+            </button>
+          </div>
+        )}
+
         {CATEGORIES.map((cat) => {
           const items = grouped[cat]
           if (!items || items.length === 0) return null
@@ -132,7 +170,7 @@ export default function ChatSidebar({
           )
         })}
 
-        {sessions.length === 0 && (
+        {!loadError && sessions.length === 0 && (
           <div className="flex flex-col items-center gap-3 px-3 py-10 text-center">
             <MessageCircle size={24} className="text-[#3d5a80]" aria-hidden="true" />
             <p className="text-[12px] text-muted-foreground">
@@ -149,10 +187,7 @@ export default function ChatSidebar({
         open={deleteSessionId !== null}
         title="Delete conversation"
         message="This will permanently delete this conversation."
-        onConfirm={() => {
-          onDelete(deleteSessionId)
-          setDeleteSessionId(null)
-        }}
+        onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteSessionId(null)}
       />
     </div>

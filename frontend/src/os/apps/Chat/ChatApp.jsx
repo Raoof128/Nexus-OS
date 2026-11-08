@@ -5,6 +5,11 @@ import { useChatSessions } from '../../../hooks/useChat'
 import ChatSidebar from './ChatSidebar'
 import ChatWindow from './ChatWindow'
 
+// One tree for every window width. The window body is a size container, so
+// the layout switches with @md container queries instead of mounting a second
+// copy of the sidebar and thread (which duplicated ids, state and live regions).
+// Narrow: the list fills the window until a conversation is open, then the
+// thread replaces it. Wide: list and thread sit side by side.
 export default function ChatApp() {
   const { session } = useAuth()
   const userId = session?.user?.id ?? null
@@ -14,6 +19,8 @@ export default function ChatApp() {
     deleteSession,
     isCreating,
     loading: isLoading,
+    loadError,
+    refetch,
   } = useChatSessions(userId)
   const [activeSessionId, setActiveSessionId] = useState(null)
 
@@ -42,8 +49,10 @@ export default function ChatApp() {
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-background">
-      {/* Desktop sidebar */}
-      <div className="hidden w-[240px] shrink-0 @md:block @lg:w-[280px]">
+      {/* List: full width when narrow and no conversation is open; fixed column when wide */}
+      <div
+        className={`${activeSessionId ? 'hidden' : 'flex'} h-full w-full shrink-0 @md:flex @md:w-[240px] @lg:w-[280px]`}
+      >
         <ChatSidebar
           sessions={sessions}
           activeSessionId={activeSessionId}
@@ -51,23 +60,16 @@ export default function ChatApp() {
           onCreate={handleCreate}
           onDelete={handleDelete}
           isCreating={isCreating}
+          loadError={loadError}
+          onRetry={() => refetch()}
         />
       </div>
 
-      {/* Mobile: toggle sidebar/chat */}
-      <div className="flex flex-1 flex-col @md:hidden">
-        {!activeSessionId ? (
-          <ChatSidebar
-            sessions={sessions}
-            activeSessionId={activeSessionId}
-            onSelect={setActiveSessionId}
-            onCreate={handleCreate}
-            onDelete={handleDelete}
-            isCreating={isCreating}
-          />
-        ) : (
-          <div className="flex h-full flex-col">
-            <div className="w7-commandbar">
+      {/* Thread: when narrow it appears only after a conversation is chosen */}
+      <div className={`${activeSessionId ? 'flex' : 'hidden'} min-w-0 flex-1 flex-col @md:flex`}>
+        {activeSessionId ? (
+          <>
+            <div className="w7-commandbar @md:hidden">
               <button
                 type="button"
                 onClick={() => setActiveSessionId(null)}
@@ -77,17 +79,10 @@ export default function ChatApp() {
                 Conversations
               </button>
             </div>
-            <div className="flex-1">
+            <div className="flex min-h-0 flex-1 flex-col">
               <ChatWindow sessionId={activeSessionId} userId={userId} />
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Desktop chat window */}
-      <div className="hidden flex-1 @md:block">
-        {activeSessionId ? (
-          <ChatWindow sessionId={activeSessionId} userId={userId} />
+          </>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 bg-background p-8">
             <MessageSquare size={32} className="text-[#3d5a80]" aria-hidden="true" />

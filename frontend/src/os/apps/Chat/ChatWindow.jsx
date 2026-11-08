@@ -8,9 +8,13 @@ function isNearBottom(element, threshold = 150) {
 }
 
 export default function ChatWindow({ sessionId, userId }) {
-  const { messages, loading, sending, sendMessage, error } = useChatMessages(userId, sessionId)
+  const { messages, loading, loadError, refetch, sending, sendMessage, error } = useChatMessages(
+    userId,
+    sessionId,
+  )
   const [input, setInput] = useState('')
   const scrollRef = useRef(null)
+  const formRef = useRef(null)
   const textareaRef = useRef(null)
   const wasNearBottom = useRef(true)
 
@@ -36,6 +40,11 @@ export default function ChatWindow({ sessionId, userId }) {
     e.preventDefault()
     if (!input.trim() || sending) return
     const content = input.trim()
+    // Clicking Send moves focus to the button, which is disabled while the
+    // reply is pending. Move focus to the composer first so it isn't lost.
+    if (formRef.current?.contains(document.activeElement)) {
+      textareaRef.current?.focus()
+    }
     setInput('')
     wasNearBottom.current = true
     try {
@@ -48,6 +57,9 @@ export default function ChatWindow({ sessionId, userId }) {
   }
 
   const handleKeyDown = (e) => {
+    // Enter confirms an IME composition (e.g. Japanese or Chinese input); it
+    // must not send the half-typed message.
+    if (e.nativeEvent?.isComposing || e.keyCode === 229) return
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       if (!sending && input.trim()) {
@@ -90,7 +102,18 @@ export default function ChatWindow({ sessionId, userId }) {
           </div>
         )}
 
-        {!loading && messages.length === 0 && (
+        {!loading && loadError && messages.length === 0 && (
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <p role="alert" className="w7-error text-[12px]">
+              Couldn&apos;t load this conversation. Check your connection and try again.
+            </p>
+            <button type="button" onClick={() => refetch()} className="w7-btn">
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !loadError && messages.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16">
             <MessageCircle size={32} className="text-[#3d5a80]" aria-hidden="true" />
             <p className="text-[12px] text-muted-foreground">Start the conversation</p>
@@ -143,7 +166,22 @@ export default function ChatWindow({ sessionId, userId }) {
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="border-t border-border bg-w7-surface p-2">
+      {loadError && messages.length > 0 && (
+        <div className="mx-3 mb-2 flex flex-wrap items-center gap-2">
+          <p role="alert" className="w7-error text-[12px]">
+            Couldn&apos;t refresh this conversation.
+          </p>
+          <button type="button" onClick={() => refetch()} className="w7-btn">
+            Retry
+          </button>
+        </div>
+      )}
+
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        className="border-t border-border bg-w7-surface p-2"
+      >
         <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}
@@ -151,7 +189,10 @@ export default function ChatWindow({ sessionId, userId }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type a message"
-            disabled={sending}
+            // Stays focusable while the reply is pending (disabling it dropped
+            // focus to the page body); readOnly blocks edits meanwhile.
+            readOnly={sending}
+            aria-busy={sending}
             aria-label="Chat message"
             rows={1}
             className="min-w-0 flex-1 resize-none px-2 py-1.5 text-[13px]"
