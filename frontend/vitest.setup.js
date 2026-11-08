@@ -31,12 +31,14 @@ Object.defineProperty(window, 'scrollTo', {
   value: vi.fn(),
 })
 
-// Mock ResizeObserver which is missing in jsdom
-globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}))
+// ResizeObserver is missing in jsdom. A real class (not vi.fn with an arrow
+// implementation): Vitest 4 refuses `new` on arrow-implemented mocks, and a
+// class keeps its methods when a test calls vi.restoreAllMocks().
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
