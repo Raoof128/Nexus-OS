@@ -34,6 +34,7 @@ from backend.email_controller import (
     _single_line,
 )
 from backend.email_schemas import ComposeEmailRequest
+from backend.idempotency import reset_idempotency_store
 from backend.rate_limit import reset_rate_limiters
 
 
@@ -59,8 +60,10 @@ def _reset_rate_limiter_state():
     """Give every test a fresh AI rate-limit budget (the limiter is a singleton)."""
 
     reset_rate_limiters()
+    reset_idempotency_store()
     yield
     reset_rate_limiters()
+    reset_idempotency_store()
 
 
 @pytest.fixture()
@@ -878,3 +881,267 @@ def test_forward_counts_against_the_same_send_budget(
 
     assert response.status_code == 429
     assert provider.send_message.call_count == budget
+
+
+# ---------------------------------------------------------------------------
+# Idempotency-Key on send, reply and forward
+# ---------------------------------------------------------------------------
+
+IDEMPOTENCY_HEADER = "Idempotency-Key"
+IDEMPOTENCY_KEY = "0f8fad5b-d9cb-469f-a165-70867728950e"
+SEND_PATHS = ("/api/email/send", "/api/email/e1/reply", "/api/email/e1/forward")
+
+
+def _keyed_tables() -> dict[str, object]:
+    return {
+        "nexus_emails": GMAIL_EMAIL_ROW,
+        "email_accounts": GMAIL_ACCOUNT_ROW,
+    }
+
+
+@pytest.mark.usefixtures("_inject_auth")
+@patch(
+    "backend.email_controller._fetch_gmail_message_id", new=AsyncMock(return_value=None)
+)
+@patch("backend.email_controller.decrypt_oauth_token", return_value="plain")
+@patch("backend.email_controller.get_provider")
+@patch("backend.email_controller.create_supabase_user_client")
+@pytest.mark.parametrize("path", SEND_PATHS)
+def test_retry_with_same_key_replays_without_second_provider_call(
+    mock_db_fn, mock_get_provider, _mock_decrypt, client, _inject_auth, path
+):
+    client.cookies.set(_inject_auth.access_cookie_name, "fake-token")
+    mock_db_fn.return_value = _db_for_tables(_keyed_tables())
+    provider = _fake_provider("google")
+    mock_get_provider.return_value = provider
+    headers = {IDEMPOTENCY_HEADER: IDEMPOTENCY_KEY}
+
+    first = client.post(path, json=COMPOSE_BODY, headers=headers)
+    second = client.post(path, json=COMPOSE_BODY, headers=headers)
+
+    assert first.status_code == HTTP_201_CREATED, first.text
+    assert "Idempotent-Replayed" not in first.headers
+    assert second.status_code == HTTP_201_CREATED
+    assert second.headers["Idempotent-Replayed"] == "true"
+    assert second.content == first.content
+    assert provider.send_message.call_count == 1
+
+
+@pytest.mark.usefixtures("_inject_auth")
+@patch("backend.email_controller.decrypt_oauth_token", return_value="plain")
+@patch("backend.email_controller.get_provider")
+@patch("backend.email_controller.create_supabase_user_client")
+def test_replays_do_not_consume_the_send_budget(
+    mock_db_fn, mock_get_provider, _mock_decrypt, client, _inject_auth
+):
+    client.cookies.set(_inject_auth.access_cookie_name, "fake-token")
+    mock_db_fn.return_value = _db_for_tables(_keyed_tables())
+    provider = _fake_provider()
+    mock_get_provider.return_value = provider
+    budget = get_settings().email_send_rate_limit_requests
+    headers = {IDEMPOTENCY_HEADER: IDEMPOTENCY_KEY}
+
+    assert client.post("/api/email/send", json=COMPOSE_BODY, headers=headers)
+    for _ in range(budget + 5):
+        replay = client.post("/api/email/send", json=COMPOSE_BODY, headers=headers)
+        assert replay.status_code == HTTP_201_CREATED
+        assert replay.headers["Idempotent-Replayed"] == "true"
+
+    # One real send used one slot, so budget - 1 fresh sends must still succeed.
+    for _ in range(budget - 1):
+        assert client.post("/api/email/send", json=COMPOSE_BODY).status_code == (
+            HTTP_201_CREATED
+        )
+    assert client.post("/api/email/send", json=COMPOSE_BODY).status_code == 429
+    assert provider.send_message.call_count == budget
+
+
+@pytest.mark.usefixtures("_inject_auth")
+@patch("backend.email_controller.decrypt_oauth_token", return_value="plain")
+@patch("backend.email_controller.get_provider")
+@patch("backend.email_controller.create_supabase_user_client")
+def test_same_key_with_a_different_body_is_422(
+    mock_db_fn, mock_get_provider, _mock_decrypt, client, _inject_auth
+):
+    client.cookies.set(_inject_auth.access_cookie_name, "fake-token")
+    mock_db_fn.return_value = _db_for_tables(_keyed_tables())
+    provider = _fake_provider()
+    mock_get_provider.return_value = provider
+    headers = {IDEMPOTENCY_HEADER: IDEMPOTENCY_KEY}
+
+    assert client.post(
+        "/api/email/send", json=COMPOSE_BODY, headers=headers
+    ).status_code == (HTTP_201_CREATED)
+    changed = {**COMPOSE_BODY, "to": ["mallory@example.com"]}
+    response = client.post("/api/email/send", json=changed, headers=headers)
+
+    assert response.status_code == HTTP_422_UNPROCESSABLE_ENTITY
+    assert provider.send_message.call_count == 1
+
+
+@pytest.mark.usefixtures("_inject_auth")
+@patch("backend.email_controller.decrypt_oauth_token", return_value="plain")
+@patch("backend.email_controller.get_provider")
+@patch("backend.email_controller.create_supabase_user_client")
+def test_requests_without_the_header_are_not_deduplicated(
+    mock_db_fn, mock_get_provider, _mock_decrypt, client, _inject_auth
+):
+    client.cookies.set(_inject_auth.access_cookie_name, "fake-token")
+    mock_db_fn.return_value = _db_for_tables(_keyed_tables())
+    provider = _fake_provider()
+    mock_get_provider.return_value = provider
+
+    first = client.post("/api/email/send", json=COMPOSE_BODY)
+    second = client.post("/api/email/send", json=COMPOSE_BODY)
+
+    assert first.status_code == second.status_code == HTTP_201_CREATED
+    assert "Idempotent-Replayed" not in second.headers
+    assert provider.send_message.call_count == 2
+
+
+@pytest.mark.usefixtures("_inject_auth")
+@patch("backend.email_controller.decrypt_oauth_token", return_value="plain")
+@patch("backend.email_controller.get_provider")
+@patch("backend.email_controller.create_supabase_user_client")
+@pytest.mark.parametrize(
+    "value",
+    ["short", "x" * 129, "has space here", "bad$key!!", ""],
+)
+def test_malformed_key_is_rejected_before_any_send(
+    mock_db_fn, mock_get_provider, _mock_decrypt, client, _inject_auth, value
+):
+    client.cookies.set(_inject_auth.access_cookie_name, "fake-token")
+    mock_db_fn.return_value = _db_for_tables(_keyed_tables())
+    provider = _fake_provider()
+    mock_get_provider.return_value = provider
+
+    response = client.post(
+        "/api/email/send", json=COMPOSE_BODY, headers={IDEMPOTENCY_HEADER: value}
+    )
+
+    assert response.status_code == HTTP_400_BAD_REQUEST
+    provider.send_message.assert_not_called()
+
+
+@pytest.mark.usefixtures("_inject_auth")
+@patch("backend.email_controller.decrypt_oauth_token", return_value="plain")
+@patch("backend.email_controller.get_provider")
+@patch("backend.email_controller.create_supabase_user_client")
+def test_provider_failure_releases_the_key_so_the_retry_sends(
+    mock_db_fn, mock_get_provider, _mock_decrypt, client, _inject_auth
+):
+    client.cookies.set(_inject_auth.access_cookie_name, "fake-token")
+    mock_db_fn.return_value = _db_for_tables(_keyed_tables())
+    provider = _fake_provider()
+    provider.send_message.side_effect = [
+        RuntimeError("upstream 503"),
+        {"ok": True, "id": "sent-2"},
+    ]
+    mock_get_provider.return_value = provider
+    headers = {IDEMPOTENCY_HEADER: IDEMPOTENCY_KEY}
+
+    failed = client.post("/api/email/send", json=COMPOSE_BODY, headers=headers)
+    retried = client.post("/api/email/send", json=COMPOSE_BODY, headers=headers)
+
+    assert failed.status_code == HTTP_502_BAD_GATEWAY
+    assert retried.status_code == HTTP_201_CREATED
+    assert "Idempotent-Replayed" not in retried.headers
+    assert provider.send_message.call_count == 2
+
+
+@pytest.mark.usefixtures("_inject_auth")
+@patch("backend.email_controller.decrypt_oauth_token", return_value="plain")
+@patch("backend.email_controller.get_provider")
+@patch("backend.email_controller.create_supabase_user_client")
+def test_budget_rejection_releases_the_key(
+    mock_db_fn, mock_get_provider, _mock_decrypt, client, _inject_auth
+):
+    client.cookies.set(_inject_auth.access_cookie_name, "fake-token")
+    mock_db_fn.return_value = _db_for_tables(_keyed_tables())
+    provider = _fake_provider()
+    mock_get_provider.return_value = provider
+    budget = get_settings().email_send_rate_limit_requests
+    for _ in range(budget):
+        assert client.post("/api/email/send", json=COMPOSE_BODY).status_code == (
+            HTTP_201_CREATED
+        )
+    headers = {IDEMPOTENCY_HEADER: IDEMPOTENCY_KEY}
+
+    rejected = client.post("/api/email/send", json=COMPOSE_BODY, headers=headers)
+    again = client.post("/api/email/send", json=COMPOSE_BODY, headers=headers)
+
+    # Still 429 on the second try, not 409: the first rejection freed the key.
+    assert rejected.status_code == 429
+    assert again.status_code == 429
+    assert provider.send_message.call_count == budget
+
+
+@pytest.mark.usefixtures("_inject_auth")
+@patch("backend.email_controller.decrypt_oauth_token", return_value="plain")
+@patch("backend.email_controller.get_provider")
+@patch("backend.email_controller.create_supabase_user_client")
+def test_invalid_compose_with_key_does_not_poison_the_key(
+    mock_db_fn, mock_get_provider, _mock_decrypt, client, _inject_auth
+):
+    client.cookies.set(_inject_auth.access_cookie_name, "fake-token")
+    mock_db_fn.return_value = _db_for_tables(_keyed_tables())
+    provider = _fake_provider()
+    mock_get_provider.return_value = provider
+    headers = {IDEMPOTENCY_HEADER: IDEMPOTENCY_KEY}
+    bad = {**COMPOSE_BODY, "subject": "Hello\r\nBcc: victim@example.com"}
+
+    rejected = client.post("/api/email/send", json=bad, headers=headers)
+    sent = client.post("/api/email/send", json=COMPOSE_BODY, headers=headers)
+
+    assert rejected.status_code == HTTP_400_BAD_REQUEST
+    assert sent.status_code == HTTP_201_CREATED
+    assert provider.send_message.call_count == 1
+
+
+@pytest.mark.usefixtures("_inject_auth")
+async def test_retry_while_first_send_is_in_flight_gets_409(monkeypatch, _inject_auth):
+    import asyncio
+
+    started = asyncio.Event()
+    gate = asyncio.Event()
+    provider = _fake_provider()
+
+    async def slow_send(_token, _message):
+        started.set()
+        await gate.wait()
+        return {"ok": True, "id": "sent-1"}
+
+    provider.send_message = AsyncMock(side_effect=slow_send)
+    headers = {IDEMPOTENCY_HEADER: IDEMPOTENCY_KEY}
+
+    with (
+        patch(
+            "backend.email_controller.create_supabase_user_client",
+            return_value=_db_for_tables(_keyed_tables()),
+        ),
+        patch("backend.email_controller.get_provider", return_value=provider),
+        patch("backend.email_controller.decrypt_oauth_token", return_value="plain"),
+    ):
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://testserver.local"
+        ) as http:
+            http.cookies.set(_inject_auth.access_cookie_name, "fake-token")
+            first = asyncio.create_task(
+                http.post("/api/email/send", json=COMPOSE_BODY, headers=headers)
+            )
+            await asyncio.wait_for(started.wait(), timeout=5)
+
+            try:
+                second = await asyncio.wait_for(
+                    http.post("/api/email/send", json=COMPOSE_BODY, headers=headers),
+                    timeout=5,
+                )
+            finally:
+                gate.set()
+            first_response = await asyncio.wait_for(first, timeout=5)
+
+    assert second.status_code == 409
+    assert int(second.headers["Retry-After"]) >= 1
+    assert first_response.status_code == HTTP_201_CREATED
+    assert provider.send_message.call_count == 1

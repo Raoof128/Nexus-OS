@@ -8,15 +8,18 @@ from __future__ import annotations
 
 import base64
 import binascii
+import json
 import logging
 import re
+from collections.abc import Awaitable, Callable
+from typing import Any
 from urllib.parse import quote
 
 import httpx
 from litestar import Controller, Request, Response, delete, get, patch, post
 from litestar.exceptions import HTTPException
 from litestar.params import FromPath, JSONBody
-from litestar.status_codes import HTTP_200_OK
+from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 
 if __package__:
     from .config import get_settings
@@ -34,6 +37,15 @@ if __package__:
         ToggleStarRequest,
     )
     from .email_service import decrypt_oauth_token, get_provider
+    from .idempotency import (
+        IDEMPOTENCY_HEADER,
+        REPLAYED_HEADER,
+        Replay,
+        Reservation,
+        get_idempotency_guard,
+        parse_idempotency_key,
+        request_fingerprint,
+    )
     from .rate_limit import enforce_ai_rate_limit, enforce_email_send_rate_limit_async
     from .services import (
         create_supabase_user_client,
@@ -57,6 +69,15 @@ else:  # pragma: no cover - backend-cwd execution (``python email_controller.py`
         ToggleStarRequest,
     )
     from email_service import decrypt_oauth_token, get_provider
+    from idempotency import (
+        IDEMPOTENCY_HEADER,
+        REPLAYED_HEADER,
+        Replay,
+        Reservation,
+        get_idempotency_guard,
+        parse_idempotency_key,
+        request_fingerprint,
+    )
     from rate_limit import enforce_ai_rate_limit, enforce_email_send_rate_limit_async
     from services import (
         create_supabase_user_client,
@@ -188,6 +209,75 @@ def _reject_header_breaks(subject: str) -> None:
             status_code=422,
             detail="Subject must not contain line breaks or NUL characters",
         )
+
+
+def _json_bytes(payload: Any) -> bytes:
+    """Encode a response payload the way Litestar's JSON encoder does (compact)."""
+
+    return json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
+
+
+def _json_response(
+    body: bytes, status_code: int, *, replayed: bool = False
+) -> Response:
+    return Response(
+        content=body,
+        status_code=status_code,
+        media_type="application/json",
+        headers={REPLAYED_HEADER: "true"} if replayed else None,
+    )
+
+
+async def _run_outbound(
+    request: Request,
+    user_id: str,
+    data: ComposeEmailRequest,
+    perform: Callable[[], Awaitable[dict]],
+    *,
+    check_subject: bool,
+) -> Response:
+    """Run one send, reply or forward with validation, idempotency and budget.
+
+    Order: ``Idempotency-Key`` syntax, compose validation, idempotency lookup
+    (a replay returns here, before the budget is touched), send budget, then the
+    provider call in ``perform``. A reservation is released on any failure
+    before the provider accepted the message, so the client can retry the same
+    key. A cancelled request keeps its reservation: the provider may already
+    have accepted the message.
+    """
+
+    key = parse_idempotency_key(request.headers.get(IDEMPOTENCY_HEADER))
+    _enforce_compose_limits(data)
+    if check_subject:
+        _reject_header_breaks(data.subject)
+
+    guard = get_idempotency_guard()
+    reservation: Reservation | None = None
+    if key is not None:
+        fingerprint = request_fingerprint(
+            "POST", request.url.path, data.model_dump(mode="json")
+        )
+        outcome = await guard.begin(user_id, key, fingerprint)
+        if isinstance(outcome, Replay):
+            return _json_response(
+                outcome.body.encode("utf-8"), outcome.status_code, replayed=True
+            )
+        reservation = outcome
+
+    try:
+        await enforce_email_send_rate_limit_async(user_id)
+        result = await perform()
+    except Exception:
+        if reservation is not None:
+            await guard.release(reservation)
+        raise
+
+    body = _json_bytes(result or {"ok": True})
+    if reservation is not None:
+        await guard.complete(reservation, HTTP_201_CREATED, body.decode("utf-8"))
+    return _json_response(body, HTTP_201_CREATED)
 
 
 async def _fetch_gmail_message_id(token: str, provider_id: str) -> str | None:
@@ -356,36 +446,38 @@ class EmailController(Controller):
     @post("/send")
     async def send_email(
         self, data: JSONBody[ComposeEmailRequest], request: Request
-    ) -> dict:
-        """Send an email via the connected provider."""
+    ) -> Response:
+        """Send an email via the connected provider.
+
+        Honours ``Idempotency-Key``: a retry with the same key replays the stored
+        response and does not send again.
+        """
 
         user_id, access_token = _require_auth(request)
-        await enforce_email_send_rate_limit_async(user_id)
-        _enforce_compose_limits(data)
-        _reject_header_breaks(data.subject)
 
-        db = _db(access_token)
-        account = await _get_account(db, data.account_id, user_id)
-        provider = get_provider(account["provider"])
-        token = decrypt_oauth_token(account["access_token_enc"])
+        async def perform() -> dict:
+            db = _db(access_token)
+            account = await _get_account(db, data.account_id, user_id)
+            provider = get_provider(account["provider"])
+            token = decrypt_oauth_token(account["access_token_enc"])
+            try:
+                return await provider.send_message(
+                    token,
+                    {
+                        "to": data.to,
+                        "cc": data.cc,
+                        "bcc": data.bcc,
+                        "subject": data.subject,
+                        "body_html": data.body_html,
+                        "in_reply_to": _clean_message_id(data.in_reply_to),
+                        "thread_id": data.thread_id,
+                    },
+                )
+            except Exception as exc:  # pragma: no cover
+                logger.exception("Send failed for account %s", data.account_id)
+                raise HTTPException(status_code=502, detail="Send failed") from exc
 
-        try:
-            result = await provider.send_message(
-                token,
-                {
-                    "to": data.to,
-                    "cc": data.cc,
-                    "bcc": data.bcc,
-                    "subject": data.subject,
-                    "body_html": data.body_html,
-                    "in_reply_to": _clean_message_id(data.in_reply_to),
-                    "thread_id": data.thread_id,
-                },
-            )
-        except Exception as exc:  # pragma: no cover
-            logger.exception("Send failed for account %s", data.account_id)
-            raise HTTPException(status_code=502, detail="Send failed") from exc
-        return result or {"ok": True}
+        return await _run_outbound(request, user_id, data, perform, check_subject=True)
 
     @post("/{email_id:str}/reply")
     async def reply_email(
@@ -393,47 +485,49 @@ class EmailController(Controller):
         email_id: FromPath[str],
         data: JSONBody[ComposeEmailRequest],
         request: Request,
-    ) -> dict:
+    ) -> Response:
         """Reply to an existing email via the provider.
 
         Threading: Gmail gets the original's RFC ``Message-ID`` as
         ``In-Reply-To``/``References`` plus ``threadId``. Graph gets no
         ``in_reply_to`` at all, because the provider would map it to ``replyTo``.
+        Honours ``Idempotency-Key`` like ``send``.
         """
 
         user_id, access_token = _require_auth(request)
-        await enforce_email_send_rate_limit_async(user_id)
-        _enforce_compose_limits(data)
-        _reject_header_breaks(data.subject)
 
-        db = _db(access_token)
-        email_row = await _get_email(db, email_id, user_id)
-        account = await _get_account(db, email_row["account_id"], user_id)
-        provider_name = account["provider"]
-        provider = get_provider(provider_name)
-        token = decrypt_oauth_token(account["access_token_enc"])
+        async def perform() -> dict:
+            db = _db(access_token)
+            email_row = await _get_email(db, email_id, user_id)
+            account = await _get_account(db, email_row["account_id"], user_id)
+            provider_name = account["provider"]
+            provider = get_provider(provider_name)
+            token = decrypt_oauth_token(account["access_token_enc"])
 
-        in_reply_to: str | None = None
-        if provider_name == "google":
-            in_reply_to = await _fetch_gmail_message_id(token, email_row["provider_id"])
+            in_reply_to: str | None = None
+            if provider_name == "google":
+                in_reply_to = await _fetch_gmail_message_id(
+                    token, email_row["provider_id"]
+                )
 
-        try:
-            result = await provider.send_message(
-                token,
-                {
-                    "to": data.to,
-                    "cc": data.cc,
-                    "bcc": data.bcc,
-                    "subject": data.subject,
-                    "body_html": data.body_html,
-                    "in_reply_to": in_reply_to,
-                    "thread_id": email_row.get("thread_id"),
-                },
-            )
-        except Exception as exc:  # pragma: no cover
-            logger.exception("Reply failed for email %s", email_id)
-            raise HTTPException(status_code=502, detail="Reply failed") from exc
-        return result or {"ok": True}
+            try:
+                return await provider.send_message(
+                    token,
+                    {
+                        "to": data.to,
+                        "cc": data.cc,
+                        "bcc": data.bcc,
+                        "subject": data.subject,
+                        "body_html": data.body_html,
+                        "in_reply_to": in_reply_to,
+                        "thread_id": email_row.get("thread_id"),
+                    },
+                )
+            except Exception as exc:  # pragma: no cover
+                logger.exception("Reply failed for email %s", email_id)
+                raise HTTPException(status_code=502, detail="Reply failed") from exc
+
+        return await _run_outbound(request, user_id, data, perform, check_subject=True)
 
     @post("/{email_id:str}/forward")
     async def forward_email(
@@ -441,40 +535,41 @@ class EmailController(Controller):
         email_id: FromPath[str],
         data: JSONBody[ComposeEmailRequest],
         request: Request,
-    ) -> dict:
+    ) -> Response:
         """Forward an email via the provider.
 
         The subject is built from the stored inbound subject, normalised to a
         single line so older subjects containing CR/LF cannot break the header.
+        Honours ``Idempotency-Key`` like ``send``.
         """
 
         user_id, access_token = _require_auth(request)
-        await enforce_email_send_rate_limit_async(user_id)
-        _enforce_compose_limits(data)
 
-        db = _db(access_token)
-        email_row = await _get_email(db, email_id, user_id)
-        account = await _get_account(db, email_row["account_id"], user_id)
-        provider = get_provider(account["provider"])
-        token = decrypt_oauth_token(account["access_token_enc"])
+        async def perform() -> dict:
+            db = _db(access_token)
+            email_row = await _get_email(db, email_id, user_id)
+            account = await _get_account(db, email_row["account_id"], user_id)
+            provider = get_provider(account["provider"])
+            token = decrypt_oauth_token(account["access_token_enc"])
 
-        original_subject = _single_line(str(email_row.get("subject") or ""))
-        try:
-            result = await provider.send_message(
-                token,
-                {
-                    "to": data.to,
-                    "cc": data.cc,
-                    "bcc": data.bcc,
-                    "subject": f"Fwd: {original_subject}",
-                    "body_html": data.body_html,
-                    "thread_id": email_row.get("thread_id"),
-                },
-            )
-        except Exception as exc:  # pragma: no cover
-            logger.exception("Forward failed for email %s", email_id)
-            raise HTTPException(status_code=502, detail="Forward failed") from exc
-        return result or {"ok": True}
+            original_subject = _single_line(str(email_row.get("subject") or ""))
+            try:
+                return await provider.send_message(
+                    token,
+                    {
+                        "to": data.to,
+                        "cc": data.cc,
+                        "bcc": data.bcc,
+                        "subject": f"Fwd: {original_subject}",
+                        "body_html": data.body_html,
+                        "thread_id": email_row.get("thread_id"),
+                    },
+                )
+            except Exception as exc:  # pragma: no cover
+                logger.exception("Forward failed for email %s", email_id)
+                raise HTTPException(status_code=502, detail="Forward failed") from exc
+
+        return await _run_outbound(request, user_id, data, perform, check_subject=False)
 
     @post("/draft")
     async def save_draft(
