@@ -398,8 +398,8 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
    - **Backend:** Python + LiteStar. Do not dump code in `main.py` or `app.py`. Split into controllers, schemas, and auth middlewares.
    - **Database/Auth:** Supabase for PostgreSQL and Auth (JWT). Utilize backend Service Role Key sparingly and Anon Key appropriately.
 2. **Design Philosophy:**
-   - Visual excellence is mandatory. Use Cyberpunk aesthetic, neon effects, dark modes, gradients, dynamic hover states.
-   - No generic minimal designs. Must feel premium.
+   - Visual excellence is mandatory. The design is **Windows 7 Aero via 7.css** — follow `docs/win7-design-system.md` (light window bodies, Segoe UI 9pt, sentence case, 7.css controls).
+   - The old cyberpunk direction (neon, glow, scanlines, Orbitron/Oxanium, uppercase labels) is retired; entries below that mention it are history, not rules.
 3. **Security Constraints:**
    - Validate and verify Supabase JWTs stringently in backend APIs.
    - Use Row Level Security (RLS) to restrict User access.

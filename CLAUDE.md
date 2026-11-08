@@ -8,7 +8,7 @@ A Windows 7 Aero-style **browser "OS"**: a windowing desktop shell (draggable/re
 
 - **Frontend:** React 19 + Vite + Tailwind CSS v4 + React Query + Framer Motion
 - **Backend:** Python 3.12 + Litestar + Pydantic v2
-- **Database/Auth:** Supabase (Postgres + Auth + Realtime)
+- **Database/Auth:** Supabase (Postgres + Auth; Realtime is enabled on the DB but the app opens no channels)
 - **AI:** Google Gemini (recommendations + chat)
 - **Deploy:** Cloudflare Pages (frontend), DigitalOcean droplet (backend API)
 
@@ -31,8 +31,8 @@ python3 -m ruff format --check backend tests   # Format check
 
 # Both (from root)
 make lint        # Lint frontend + backend
-make test        # Backend tests only
-make security    # Bandit + pip-audit + npm audit
+make test        # Backend pytest + frontend Vitest
+make security    # Bandit + pip-audit + npm audit (Gitleaks runs in CI only)
 
 # Supabase local
 supabase start                  # Start local Supabase (needs Docker)
@@ -66,7 +66,7 @@ frontend/src/
   main.jsx                         # React root + QueryClient provider + Sentry init
   index.css                        # Tailwind v4 + 7.css (layered) + Win7 adapter (see docs/win7-design-system.md)
   context/AuthContext.jsx          # Session state from backend cookie auth
-  hooks/useMedia.js                # React Query + Realtime subscription + optimistic updates
+  hooks/useMedia.js                # React Query (60s bounded polling) + optimistic updates
   hooks/useChat.js                 # Chat messages query + mutation
   hooks/useEmails.js               # Email list/search/pagination query
   hooks/useEmailActions.js         # Email mutations (star/read/move/send/AI draft)
@@ -74,8 +74,9 @@ frontend/src/
   hooks/useFocusTrap.js            # Reusable modal focus trap
   lib/mediaConfig.js               # Media types, statuses, TYPE_ICONS (single source of truth)
   lib/apiClient.js                 # Fetch wrapper with cookie auth + silent refresh
-  lib/realtimeClient.js            # Supabase Realtime client (separate from API)
-  lib/queryClient.js               # React Query client (staleTime: 5min, gcTime: 10min)
+  lib/realtimeClient.js            # Supabase JS client — no Realtime channels; used for the password-recovery OTP exchange
+  lib/queryClient.js               # React Query client (defaults staleTime 5min, gcTime 10min; hooks override, e.g. media 60s, email 30s)
+  lib/privateState.js              # Owner of browser-local data; wipes files/notes/layout when another account signs in
   lib/motion.js                    # Shared Framer Motion SPRING/DURATION/EASE tokens
   os/Desktop.jsx                   # OS shell: wallpaper, windows, taskbar, boot, lock, idle-lock
   os/stores/windowStore.js         # Window open/close/focus/move/resize/snap/minimize (zustand)
@@ -107,22 +108,22 @@ frontend/src/
 supabase/
   config.toml          # Local Supabase config (auth redirect URLs)
   seed.sql             # Dev user: raoof.r12@gmail.com / Dev@Nexus2026
-  migrations/          # 4 migrations: books → unified media → chat → realtime
+  migrations/          # 14 migrations (media, chat, email inbox, tasks, notes, RLS hardening, …) — the schema source of truth
 ```
 
 ## Key Patterns
 
 ### Auth: Zero-trust cookie model
 
-Backend manages HttpOnly cookies. Frontend never touches tokens directly. `apiClient.js` handles 401 → silent refresh → retry automatically. Supabase JS SDK is only used for Realtime subscriptions (separate client in `realtimeClient.js`), NOT for Nexus auth.
+Backend manages HttpOnly cookies. Frontend never touches tokens directly. `apiClient.js` handles 401 → silent refresh → retry automatically. The Supabase JS SDK is NOT used for Nexus auth; the only client (`realtimeClient.js`) exchanges password-recovery OTPs and opens no Realtime channels.
 
 **One deliberate exception:** the Aion companion app (`os/apps/Aion/lib/aionSupabase.js`) talks to a _separate_ Supabase project (`VITE_AION_SUPABASE_*`) with an **anonymous** sign-in, persisted in localStorage under `aion.supabase.auth`. That session carries no Nexus identity or Nexus data, and persisting it keeps one anonymous Aion user per browser instead of minting a new one on every load. Never reuse that client, or that pattern, for the Nexus account.
 
-### Data flow: Optimistic + Realtime
+### Data flow: Optimistic updates + bounded polling
 
 1. Mutation fires → `onMutate` applies optimistic update to React Query cache
-2. Server responds → `onSuccess` replaces optimistic item with server record (NO `invalidateQueries` for updates — this was a deliberate fix to prevent a race condition with Realtime)
-3. Supabase Realtime fires → `handleRealtimeEvent` deduplicates by comparing ALL user-visible fields (status, title, creator, genre, rating, takeaway, sub_info)
+2. Server responds → `onSuccess` replaces optimistic item with server record (NO `invalidateQueries` for updates — a refetch that lands before the write commits reverts the optimistic change)
+3. Freshness comes from bounded polling (`refetchInterval`, paused in background tabs), not Realtime. There is no Realtime subscription or `handleRealtimeEvent` — don't document or rely on one.
 
 ### Media types: Single source of truth
 
@@ -159,9 +160,9 @@ Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`, `VITE_AION_SUPABA
 
 ## Gotchas
 
-- **Never use `invalidateQueries` in `updateMediaMutation.onSettled`** — causes a GET refetch that races with Realtime, reverting optimistic status changes. Use `onSuccess` with the server response instead.
+- **Never use `invalidateQueries` in `updateMediaMutation.onSettled`** — the GET refetch races the write and reverts optimistic status changes. Use `onSuccess` with the server response instead, and roll back only the affected item on error.
 - **`sanitize()` is not needed in JSX** — React already escapes text interpolation. A prior `sanitize()` function was double-encoding HTML entities (`<3` → `&lt;3`). It was removed; don't re-add it.
-- **Supabase Realtime dedup must compare ALL editable fields** — status-only comparison misses edits to title/creator/etc. and causes Framer Motion layout re-triggers.
+- **Browser-local data is per account** — File Manager tree, OPFS blobs, notes and window layout are wiped by `claimLocalState` when a different account signs in. New private localStorage keys must use the `nexus-os:filesystem` / `nexus-os:window-layout` keys or the `nexus-os:note-` / `nexus-os:notes:` prefixes (see `lib/privateState.js`), or they will leak across accounts.
 - **`backend/.env.local`** overrides `backend/.env` for local Supabase credentials. Regenerate after `supabase stop && supabase start` if JWT keys rotate.
 - **Seed SQL is local-only** — `supabase/seed.sql` creates a dev user. Never run against production. Production accounts go through Supabase Auth dashboard.
 - **Frontend env vars must start with `VITE_`** — Vite only exposes prefixed vars to client code. Both `realtimeClient.js` and `apiClient.js` validate their required vars at import time.
@@ -200,4 +201,4 @@ Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`, `VITE_AION_SUPABA
   ```
 
 - **Deploy order (since the 2026-11 backend audit):** deploy the Worker (`worker/`, `wrangler deploy`) **before** the backend. The backend now rejects cookie-authenticated POST/PUT/PATCH/DELETE without `X-Requested-With: XMLHttpRequest`, and only the updated Worker forwards that header. The backend also refuses to boot on invalid production env (see `docs/backend-audit.md` → Deploy checklist).
-- **Security headers** defined in `vercel.json` (CSP, X-Frame-Options, etc.) — NOTE: this is a legacy file from Vercel. Cloudflare Pages does NOT read `vercel.json`. These headers need to be migrated to `frontend/public/_headers` to take effect.
+- **Security headers** (CSP, X-Frame-Options, etc.) live in `frontend/public/_headers`, which Cloudflare Pages applies. The old `vercel.json` is gone.
