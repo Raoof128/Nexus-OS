@@ -80,9 +80,10 @@ dialog title, `.w7-subheading` (10pt) for group titles. Monospace (`font-mono` =
 for code, terminal output and file sizes. Sentence case everywhere. **No** `uppercase`,
 `tracking-*`, Orbitron/Oxanium/JetBrains Mono, letter-spaced labels or `//` prefixes.
 
-The legacy names `font-display`, `font-ui`, `heading-display`, `heading-ui`, `glass-panel`,
-`text-neon-yellow` still resolve (to Segoe UI / white panels / Win7 blue) so stale code cannot
-reintroduce neon — but remove them when you touch a file.
+The legacy tokens `font-display`, `font-ui` and `text-neon-yellow` still resolve (to Segoe UI /
+Win7 blue) so stale code cannot reintroduce neon — but never use them in new code. The legacy
+classes `glass-panel`, `heading-display`, `heading-ui` and `custom-scrollbar` had no remaining
+users and were deleted; use the `.w7-*` helpers instead.
 
 ## 3. Component recipes
 

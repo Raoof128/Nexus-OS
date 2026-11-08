@@ -1088,27 +1088,6 @@
   }
 }
 
-/* ── Legacy class names → Win7 equivalents ───────────────────────────────────
-   These names are still referenced by a few components. They now render in
-   the Win7 language so stale markup can't reintroduce neon. Prefer the
-   `.w7-*` classes in new code. */
-@layer components {
-  .glass-panel {
-    background: #fff;
-    border: 1px solid hsl(var(--border));
-  }
-  .heading-display {
-    color: #003399;
-    font-weight: 400;
-  }
-  .heading-ui {
-    font-family: var(--font-ui);
-  }
-  .custom-scrollbar {
-    scrollbar-gutter: auto;
-  }
-}
-
 /* Window Controls Overlay titlebar — only mounted by <TitlebarOverlay/> when
    the PWA runs in WCO mode. Positioned into the browser-reported titlebar area
    via the titlebar-area-* env() vars; the whole strip is a drag region so the

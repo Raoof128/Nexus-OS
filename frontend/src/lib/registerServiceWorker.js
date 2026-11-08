@@ -64,7 +64,7 @@ export function registerServiceWorker() {
   if (typeof window === 'undefined') return
 
   window.addEventListener('beforeinstallprompt', (event) => {
-    // Stop Chrome's mini-infobar; we surface our own cyberpunk prompt instead.
+    // Stop Chrome's mini-infobar; we surface our own install prompt instead.
     event.preventDefault()
     deferredPrompt = event
     emit()

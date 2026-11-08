@@ -93,7 +93,7 @@ export default function AionChat({ view, onNavigate, session }) {
                 {/* Streaming cursor */}
                 {isStreaming && msg === messages[messages.length - 1] && (
                   <span
-                    className="ml-0.5 inline-block h-3 w-0.5 animate-pulse bg-primary align-middle"
+                    className="ml-0.5 inline-block h-3 w-0.5 bg-primary align-middle"
                     aria-hidden="true"
                   />
                 )}
