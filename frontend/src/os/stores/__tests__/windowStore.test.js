@@ -183,6 +183,27 @@ describe('taskbar height', () => {
     expect(useWindowStore.getState().windows[winId].position.y).toBe(800 - 48 - 30)
   })
 
+  it('re-clamps open windows when the taskbar grows', () => {
+    const { openApp, moveWindow, setTaskbarHeight } = useWindowStore.getState()
+    openApp('terminal')
+    const winId = Object.keys(useWindowStore.getState().windows)[0]
+    moveWindow(winId, { x: 100, y: 1000 })
+    expect(useWindowStore.getState().windows[winId].position.y).toBe(800 - 40 - 30)
+
+    setTaskbarHeight(48)
+    expect(useWindowStore.getState().windows[winId].position.y).toBe(800 - 48 - 30)
+  })
+
+  it('leaves window objects untouched when re-clamping changes nothing', () => {
+    const { openApp, setTaskbarHeight } = useWindowStore.getState()
+    openApp('terminal')
+    const winId = Object.keys(useWindowStore.getState().windows)[0]
+    const before = useWindowStore.getState().windows[winId]
+
+    setTaskbarHeight(48)
+    expect(useWindowStore.getState().windows[winId]).toBe(before)
+  })
+
   it('ignores non-positive and non-numeric taskbar heights', () => {
     const { setTaskbarHeight } = useWindowStore.getState()
     setTaskbarHeight(0)

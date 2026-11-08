@@ -158,7 +158,8 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onPick, onNavigateCha
 
   const handleCopy = (verse) => {
     const text = `${book.name} ${chapterNum}:${verse.verse} — "${verse.content}"`
-    navigator.clipboard.writeText(text).catch(() => {})
+    // navigator.clipboard is undefined on non-secure origins; don't throw from a click.
+    navigator.clipboard?.writeText(text).catch(() => {})
   }
 
   return (

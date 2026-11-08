@@ -322,7 +322,20 @@ export const useWindowStore = create((set, get) => ({
   setTaskbarHeight: (height) => {
     const next = Number(height)
     if (!Number.isFinite(next) || next <= 0) return
-    set((state) => (state.taskbarHeight === next ? state : { taskbarHeight: next }))
+    set((state) => {
+      if (state.taskbarHeight === next) return state
+      // Re-clamp open windows so a taller bar (fine → coarse pointer on a
+      // hybrid device) can't cover their bottom edge until they're moved.
+      const windows = {}
+      for (const [id, win] of Object.entries(state.windows)) {
+        const position = clampPosition(win.position, win.size, next)
+        windows[id] =
+          position.x === win.position.x && position.y === win.position.y
+            ? win
+            : { ...win, position }
+      }
+      return { taskbarHeight: next, windows }
+    })
   },
 
   toggleLauncher: () => set((state) => ({ launcherOpen: !state.launcherOpen })),
