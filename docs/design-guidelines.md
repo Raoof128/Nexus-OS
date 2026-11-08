@@ -1,40 +1,37 @@
 # Design Guidelines
 
-Nexus OS follows a strict **Cyberpunk-First** design language. All new features and UI components must adhere to these principles to maintain the project's premium feel.
+Nexus OS follows a **Windows 7 Aero** design language, built on [7.css](https://khang-nd.github.io/7.css/).
+The full contract — layer order, what 7.css styles automatically, helper classes, tokens and the
+dark-to-light conversion table — is in [`win7-design-system.md`](./win7-design-system.md). This page
+is the short version.
 
-## Core Aesthetic
+> The cyberpunk guidelines that used to live here (neon accents, scanlines, glitch effects,
+> Orbitron/Oxanium, uppercase letter-spaced labels) were retired on 2026-11-08 and must not be
+> reintroduced.
 
-### 1. Color Palette
+## Core aesthetic
 
-- **Primary Background**: High-depth darks (e.g., `hsl(240, 10%, 4%)`).
-- **Surface Layer**: Semi-transparent glass (`hsl(240, 10%, 7%, 0.7)`) with `backdrop-blur-xl`.
-- **Accent - Cyan**: `hsl(180, 100%, 50%)` - Used for primary actions and "active" states.
-- **Accent - Magenta**: `hsl(300, 100%, 50%)` - Used for secondary highlights and warnings.
-- **Accent - Amber**: `hsl(45, 100%, 50%)` - Used for special categories (e.g., Job Tracking).
+- **Shell:** Aero glass — translucent tinted window frames and taskbar, glossy caption buttons, the
+  Start orb, Explorer-style hover/selection gradients. The frame colour follows the user's
+  _Window colour_ setting (`--w7-w-bg`).
+- **Content:** light. Window bodies are white (`#fff`) or the dialog surface (`#f0f0f0`); text is
+  near-black; headings ("main instructions") are `#1e3287`; links `#0066cc`.
+- **Typography:** Segoe UI 9pt (falls back to Noto Sans / system UI). Sentence case. Monospace only
+  for code, the terminal and file sizes.
+- **Controls:** use 7.css markup — bare `<button>` or `.w7-btn`, plain inputs/selects/textareas,
+  `<fieldset><legend>` group boxes, `<menu role="tablist">` tabs, `role="progressbar"`, tree views,
+  `<table>` list views.
 
-### 2. Typography
+## Motion
 
-- **Primary Font**: `Inter` or `Outfit` for high readability.
-- **Monospace**: `JetBrains Mono` or `Fira Code` for terminal-style UI elements.
-- **Styling**: Use `uppercase` and `letter-spacing: 0.1em` for headers to create a sleek, futuristic look.
+- Short and functional: 120–200ms fades/translations for windows, menus and flyouts.
+- No idle animation (no pulsing glows, floating orbs or glitch). Honour `prefers-reduced-motion`.
 
-### 3. Visual Effects
+## Component checklist
 
-- **Neon Glow**: Use `box-shadow: 0 0 10px var(--accent-color)` sparingly to avoid visual noise.
-- **Scanlines**: A subtle overlay on the desktop background to mimic CRT monitors.
-- **Glitch**: Use sparingly for "Loading" states or error transitions.
-
-## Animation Principles
-
-- **Choreography**: Do not animate everything at once. Use staggered delays for list items.
-- **Spring Physics**: Prefer "snappy" springs for window opening and "soft" springs for hover transitions.
-- **View Transitions**: Always wrap layout changes in `document.startViewTransition` where supported to ensure smooth cross-component morphing.
-
-## Component Checklist
-
-When building a new component, ensure it has:
-
-- [ ] Appropriate `aria-label` for accessibility.
-- [ ] `focus-visible` ring that matches the accent color.
-- [ ] Responsive behavior (mobile-first).
-- [ ] Cyberpunk border or corner detail (e.g., `clip-path` for angled corners).
+- [ ] Uses 7.css markup or a `.w7-*` helper, not hand-rolled colours.
+- [ ] Icon-only buttons have `aria-label` (and `title` for the tooltip).
+- [ ] Visible keyboard focus (Win7 dotted rectangle or 7.css control focus).
+- [ ] Works at 375px wide without horizontal scrolling; touch targets ≥ 44px on mobile.
+- [ ] Copy in plain Windows sentence case; errors say what happened and what to do.
+- [ ] No Microsoft logos, wallpapers, icons or bundled fonts — artwork is original.

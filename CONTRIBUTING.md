@@ -4,11 +4,11 @@ Thank you for contributing to Nexus OS! This project maintains a high standard f
 
 ## Development Principles
 
-### 1. Visual Excellence (Cyberpunk Aesthetic)
+### 1. Visual Excellence (Windows 7 Aero)
 
-- **Neon-Glow**: Use HSL-based variables for neon effects. Avoid generic hex colors.
-- **Motion**: Every interaction should feel "alive". Use `framer-motion` for choreographed entrances and `View Transitions API` for state changes.
-- **Glassmorphism**: Use `backdrop-blur` and subtle borders to create depth.
+- **7.css first**: Build UI from 7.css markup and the `.w7-*` / `.nx-*` helpers described in [`docs/win7-design-system.md`](docs/win7-design-system.md). Window bodies are light; the shell is Aero glass.
+- **Motion**: Short and functional (120–200ms). No idle glows or pulsing; honour `prefers-reduced-motion`.
+- **Verify visually**: run `npm run test:e2e` and the 7.css parity harness (`npx playwright test e2e/parity.spec.js`) after UI changes.
 
 ### 2. Raouf Protocol (Mandatory)
 

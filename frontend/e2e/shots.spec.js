@@ -78,3 +78,30 @@ test('mobile @mobile', async ({ page }) => {
   await page.waitForTimeout(300)
   await page.screenshot({ path: `${DIR}/mobile-start.png` })
 })
+
+test('dialogs: add book, book details', async ({ page }) => {
+  await page.goto('/')
+  const media = page.getByRole('region', { name: 'Media Vault', exact: true })
+  await media.waitFor()
+  await media.getByRole('button', { name: /Add Book/ }).click()
+  await page.waitForTimeout(500)
+  await page.screenshot({ path: `${DIR}/dialog-add-book.png` })
+  await page.keyboard.press('Escape')
+  await page.waitForTimeout(300)
+  await media
+    .getByRole('button', { name: /delete/i })
+    .first()
+    .click()
+  await page.waitForTimeout(400)
+  await page.screenshot({ path: `${DIR}/dialog-book-details.png` })
+  await page.keyboard.press('Escape')
+})
+
+test('dialog: compose', async ({ page }) => {
+  await page.goto('/?app=email')
+  const email = page.getByRole('region', { name: 'Email', exact: true })
+  await email.waitFor()
+  await email.getByRole('button', { name: /Compose/ }).click()
+  await page.waitForTimeout(500)
+  await page.screenshot({ path: `${DIR}/dialog-compose.png` })
+})
