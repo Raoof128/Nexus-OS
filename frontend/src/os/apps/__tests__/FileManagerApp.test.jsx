@@ -41,6 +41,14 @@ function listRows() {
   return within(screen.getByRole('table')).getAllByRole('row').slice(1)
 }
 
+// Folders are always listed first, so file order is checked on the file rows only.
+function fileRowNames() {
+  return listRows()
+    .map((r) => r.textContent)
+    .filter((t) => /\.(txt|pdf)/.test(t))
+    .map((t) => t.match(/notes\.txt|report\.pdf/)[0])
+}
+
 function rowFor(name) {
   return screen.getByRole('button', { name: new RegExp(`^${name}, `) }).closest('tr')
 }
@@ -230,6 +238,90 @@ describe('FileManagerApp', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /Select all/ }))
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'documents, folder' }))
     expect(listRows().every((r) => r.getAttribute('aria-selected') === 'true')).toBe(true)
+  })
+
+  it('sorts by Date modified from Organize > Sort by, and the header stays in sync', () => {
+    render(<FileManagerApp windowId="files-1" />)
+    fireEvent.click(screen.getByRole('button', { name: /Organize/ }))
+    const group = within(screen.getByRole('menu', { name: 'Organize' })).getByRole('group', {
+      name: 'Sort by',
+    })
+    expect(
+      within(group).getByRole('menuitemradio', { name: 'Name' }).getAttribute('aria-checked'),
+    ).toBe('true')
+    fireEvent.click(within(group).getByRole('menuitemradio', { name: 'Date modified' }))
+    expect(screen.queryByRole('menu')).toBeNull()
+
+    // Ascending by date: notes.txt (updated 2) before report.pdf (updated 3).
+    expect(fileRowNames()).toEqual(['notes.txt', 'report.pdf'])
+    expect(
+      screen.getByRole('columnheader', { name: 'Date modified' }).getAttribute('aria-sort'),
+    ).toBe('ascending')
+    expect(screen.getByRole('columnheader', { name: 'Name' }).getAttribute('aria-sort')).toBe(
+      'none',
+    )
+
+    // Descending flips the order and keeps the same key.
+    fireEvent.click(screen.getByRole('button', { name: /Organize/ }))
+    fireEvent.click(
+      within(screen.getByRole('menu', { name: 'Organize' })).getByRole('menuitemradio', {
+        name: 'Descending',
+      }),
+    )
+    expect(fileRowNames()).toEqual(['report.pdf', 'notes.txt'])
+    expect(
+      screen.getByRole('columnheader', { name: 'Date modified' }).getAttribute('aria-sort'),
+    ).toBe('descending')
+    expect(screen.getByText('Sorted by Date modified, descending')).toBeTruthy()
+  })
+
+  it('keeps sort key and sort direction in separate radio groups', () => {
+    render(<FileManagerApp windowId="files-1" />)
+    fireEvent.click(screen.getByRole('button', { name: /Organize/ }))
+    const menu = screen.getByRole('menu', { name: 'Organize' })
+    const keys = within(menu).getByRole('group', { name: 'Sort by' })
+    const order = within(menu).getByRole('group', { name: 'Order' })
+    // Exactly one checked radio per group, so assistive tech hears two radio sets.
+    for (const group of [keys, order]) {
+      const checked = within(group)
+        .getAllByRole('menuitemradio')
+        .filter((r) => r.getAttribute('aria-checked') === 'true')
+      expect(checked).toHaveLength(1)
+    }
+    expect(within(keys).queryByRole('menuitemradio', { name: 'Ascending' })).toBeNull()
+    expect(within(order).getAllByRole('menuitemradio')).toHaveLength(2)
+  })
+
+  it('keeps the menu sort and the column header sort on one state', () => {
+    render(<FileManagerApp windowId="files-1" />)
+    fireEvent.click(screen.getByRole('button', { name: /Organize/ }))
+    fireEvent.click(
+      within(screen.getByRole('menu', { name: 'Organize' })).getByRole('menuitemradio', {
+        name: 'Size',
+      }),
+    )
+    // Clicking the Size header now toggles the direction the menu set.
+    const sizeHeader = screen.getByRole('columnheader', { name: 'Size' })
+    expect(sizeHeader.getAttribute('aria-sort')).toBe('ascending')
+    fireEvent.click(within(sizeHeader).getByRole('button'))
+    expect(sizeHeader.getAttribute('aria-sort')).toBe('descending')
+    expect(screen.queryByText(/Sorted by/)).toBeTruthy()
+  })
+
+  it('shows no sort status for the default Name ascending order', () => {
+    render(<FileManagerApp windowId="files-1" />)
+    expect(screen.queryByText(/Sorted by/)).toBeNull()
+  })
+
+  it('keeps focus in the list after choosing a sort from the menu', () => {
+    render(<FileManagerApp windowId="files-1" />)
+    fireEvent.click(screen.getByRole('button', { name: /Organize/ }))
+    fireEvent.click(
+      within(screen.getByRole('menu', { name: 'Organize' })).getByRole('menuitemradio', {
+        name: 'Type',
+      }),
+    )
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'documents, folder' }))
   })
 
   it('marks the dialog wrapper, not the .window frame, as the alert dialog', () => {

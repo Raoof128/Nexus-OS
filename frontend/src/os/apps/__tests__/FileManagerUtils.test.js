@@ -9,6 +9,7 @@ import {
   pathChain,
   rangeNames,
   sortRows,
+  sortStatusLabel,
   stepHistory,
   typeLabel,
   validateEntryName,
@@ -142,5 +143,17 @@ describe('paths and history', () => {
     const nav = { entries: ['/', '/gone', '/b'], index: 2 }
     expect(stepHistory(nav, files, -1)).toBe(0)
     expect(stepHistory({ entries: ['/', '/b'], index: 1 }, files, 1)).toBeNull()
+  })
+})
+
+describe('sortStatusLabel', () => {
+  it('is quiet for the default Name ascending order', () => {
+    expect(sortStatusLabel({ key: 'name', dir: 'asc' })).toBeNull()
+  })
+
+  it('names the key and the direction when the order is not the default', () => {
+    expect(sortStatusLabel({ key: 'name', dir: 'desc' })).toBe('Sorted by Name, descending')
+    expect(sortStatusLabel({ key: 'modified', dir: 'asc' })).toBe('Sorted by Date modified')
+    expect(sortStatusLabel({ key: 'type', dir: 'desc' })).toBe('Sorted by Type, descending')
   })
 })

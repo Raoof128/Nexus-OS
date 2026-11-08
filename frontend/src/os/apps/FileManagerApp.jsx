@@ -25,7 +25,9 @@ import {
   pathChain,
   pathSegments,
   rangeNames,
+  SORT_KEYS,
   sortRows,
+  sortStatusLabel,
   stepHistory,
   validateEntryName,
 } from './FileManager/fileManagerUtils'
@@ -243,10 +245,53 @@ export default function FileManagerApp({ windowId }) {
     selectAll()
   }
 
+  // Column headers toggle a key's direction. The Organize > Sort by menu sets the same
+  // state directly, so the headers and the menu always agree.
   const handleSort = (key) =>
     setSort((s) =>
       s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' },
     )
+
+  const sortMenuItems = () => [
+    {
+      group: 'Sort by',
+      items: [
+        ...SORT_KEYS.map(({ key, label }) => ({
+          id: `sort-${key}`,
+          label,
+          checked: sort.key === key,
+          onSelect: () => {
+            focusAfterRef.current = cursorName ?? visibleNames[0] ?? null
+            setSort((s) => ({ key, dir: s.dir }))
+          },
+        })),
+      ],
+    },
+    // Direction is its own radio set: one group per choice, as in Explorer.
+    { separator: true },
+    {
+      group: 'Order',
+      items: [
+        {
+          id: 'sort-asc',
+          label: 'Ascending',
+          checked: sort.dir === 'asc',
+          onSelect: () => setSortDir('asc'),
+        },
+        {
+          id: 'sort-desc',
+          label: 'Descending',
+          checked: sort.dir === 'desc',
+          onSelect: () => setSortDir('desc'),
+        },
+      ],
+    },
+  ]
+
+  const setSortDir = (dir) => {
+    focusAfterRef.current = cursorName ?? visibleNames[0] ?? null
+    setSort((s) => ({ key: s.key, dir }))
+  }
 
   // ── Opening ─────────────────────────────────────────────────────────────────
 
@@ -478,6 +523,8 @@ export default function FileManagerApp({ windowId }) {
             },
           ]
         : []),
+      { separator: true },
+      ...sortMenuItems(),
     ]
   }
 
@@ -629,6 +676,7 @@ export default function FileManagerApp({ windowId }) {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
+  const statusSort = sortStatusLabel(sort)
   const selectedSize = selectedRows.reduce((sum, r) => sum + (r.size ?? 0), 0)
   const single = selectedRows.length === 1 ? selectedRows[0] : null
   const singleLabel = single
@@ -745,6 +793,7 @@ export default function FileManagerApp({ windowId }) {
         selected={selectedRows}
         selectedSize={selectedSize}
         singleLabel={singleLabel}
+        sortLabel={statusSort}
         importProgress={importProgress}
       />
 

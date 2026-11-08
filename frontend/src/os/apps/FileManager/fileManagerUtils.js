@@ -140,6 +140,23 @@ export function buildRows(files, folderPath) {
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
 
+// Sort keys in the order the Organize > Sort by menu lists them. Labels match the
+// column headers so the same words appear wherever the sort is shown.
+export const SORT_KEYS = [
+  { key: 'name', label: 'Name' },
+  { key: 'modified', label: 'Date modified' },
+  { key: 'type', label: 'Type' },
+  { key: 'size', label: 'Size' },
+]
+
+// Text for the status strip, e.g. "Sorted by Date modified, descending". Null for the
+// default (Name, ascending) so the strip stays quiet until the user changes the order.
+export function sortStatusLabel(sort) {
+  if (sort.key === 'name' && sort.dir === 'asc') return null
+  const label = SORT_KEYS.find((k) => k.key === sort.key)?.label ?? 'Name'
+  return `Sorted by ${label}${sort.dir === 'desc' ? ', descending' : ''}`
+}
+
 // Folders are always grouped first, as in Explorer. `sort.dir` only flips the order
 // inside each group.
 export function sortRows(rows, sort) {
