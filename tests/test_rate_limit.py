@@ -418,3 +418,124 @@ def test_real_redis_counts_same_timestamp_requests(
     assert exc_info.value.status_code == 429
     assert client.zcard(f"rate-limit:{key}") == 2
     client.delete(f"rate-limit:{key}")
+
+
+# ── Non-recording check and recording record ──────────────────────────────
+
+
+def test_in_memory_check_never_records_but_rejects_a_full_window() -> None:
+    """Checks alone do not use up budget; the window fills only via record."""
+
+    limiter = SlidingWindowRateLimiter(max_requests=2, window_seconds=60)
+    for _ in range(10):
+        limiter.check("auth-account:digest")
+
+    limiter.record("auth-account:digest")
+    limiter.record("auth-account:digest")
+
+    with pytest.raises(HTTPException) as exc_info:
+        limiter.check("auth-account:digest")
+    assert exc_info.value.status_code == 429
+    assert int(exc_info.value.headers["Retry-After"]) >= 1
+
+
+def test_in_memory_record_counts_toward_enforce() -> None:
+    """A recorded hit uses the same window as an enforced one."""
+
+    limiter = SlidingWindowRateLimiter(max_requests=2, window_seconds=60)
+    limiter.record("auth-account:digest")
+    limiter.record("auth-account:digest")
+
+    with pytest.raises(HTTPException) as exc_info:
+        limiter.enforce("auth-account:digest")
+    assert exc_info.value.status_code == 429
+
+
+def test_in_memory_check_does_not_consume_a_slot_for_enforce() -> None:
+    """Checks before an enforce leave the full budget for enforce."""
+
+    limiter = SlidingWindowRateLimiter(max_requests=2, window_seconds=60)
+    limiter.check("k")
+    limiter.check("k")
+    limiter.enforce("k")
+    limiter.enforce("k")
+
+    with pytest.raises(HTTPException):
+        limiter.enforce("k")
+
+
+def test_redis_check_sends_check_mode_and_reports_full_window() -> None:
+    """check runs the script in check mode and raises with its Retry-After."""
+
+    limiter, script = _redis_limiter([0, 37])
+    limiter.check("auth-account:digest")
+
+    with pytest.raises(HTTPException) as exc_info:
+        limiter.check("auth-account:digest")
+
+    assert exc_info.value.status_code == 429
+    assert exc_info.value.headers == {"Retry-After": "37"}
+    assert [call["args"][5] for call in script.calls] == ["check", "check"]
+    assert script.calls[0]["keys"] == ["rate-limit:auth-account:digest"]
+
+
+def test_redis_record_sends_record_mode_and_never_raises() -> None:
+    """record adds a hit under the same key prefix, even over a full window."""
+
+    limiter, script = _redis_limiter([37])
+    limiter.record("auth-account:digest")
+
+    assert script.calls[0]["keys"] == ["rate-limit:auth-account:digest"]
+    assert script.calls[0]["args"][5] == "record"
+
+
+def test_redis_enforce_still_uses_enforce_mode() -> None:
+    """Other callers keep the atomic check-and-record behaviour."""
+
+    limiter, script = _redis_limiter([0])
+    limiter.enforce("ai:user-1")
+
+    assert script.calls[0]["args"][5] == "enforce"
+
+
+def test_redis_record_and_check_fall_back_to_in_memory_when_redis_is_down() -> None:
+    """During an outage, recorded hits still count in the in-memory fallback."""
+
+    limiter, _ = _redis_limiter([RedisConnectionError("down")] * 3, max_requests=2)
+    limiter.record("auth-account:digest")
+    limiter.record("auth-account:digest")
+
+    with pytest.raises(HTTPException) as exc_info:
+        limiter.check("auth-account:digest")
+    assert exc_info.value.status_code == 429
+
+
+@pytest.mark.skipif(not TEST_REDIS_URL, reason="TEST_REDIS_URL not set")
+def test_real_redis_check_and_record_match_in_memory_semantics() -> None:
+    """Against the real Lua script, check never counts and record always does."""
+
+    from redis import Redis
+    from redis.backoff import NoBackoff
+    from redis.retry import Retry
+
+    client = Redis.from_url(
+        TEST_REDIS_URL,
+        decode_responses=True,
+        retry=Retry(NoBackoff(), retries=0),
+    )
+    key = "test-check-record"
+    client.delete(f"rate-limit:{key}")
+    limiter = RedisSlidingWindowRateLimiter(client, max_requests=2, window_seconds=60)
+
+    for _ in range(5):
+        limiter.check(key)
+    assert client.zcard(f"rate-limit:{key}") == 0
+
+    limiter.record(key)
+    limiter.record(key)
+    with pytest.raises(HTTPException) as exc_info:
+        limiter.check(key)
+
+    assert exc_info.value.status_code == 429
+    assert client.zcard(f"rate-limit:{key}") == 2
+    client.delete(f"rate-limit:{key}")

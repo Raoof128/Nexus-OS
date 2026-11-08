@@ -40,10 +40,11 @@ try:
     from .auth import decode_supabase_token
     from .config import get_settings
     from .rate_limit import (
-        enforce_auth_account_rate_limit_async,
+        check_auth_account_rate_limit_async,
         enforce_auth_rate_limit_async,
         enforce_refresh_ip_rate_limit_async,
         enforce_refresh_session_rate_limit_async,
+        record_auth_account_failure_async,
     )
     from .schemas import (
         AuthSessionResponse,
@@ -58,10 +59,11 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
     from auth import decode_supabase_token
     from config import get_settings
     from rate_limit import (
-        enforce_auth_account_rate_limit_async,
+        check_auth_account_rate_limit_async,
         enforce_auth_rate_limit_async,
         enforce_refresh_ip_rate_limit_async,
         enforce_refresh_session_rate_limit_async,
+        record_auth_account_failure_async,
     )
     from schemas import (
         AuthSessionResponse,
@@ -139,14 +141,20 @@ def _client_ip(request: Request) -> str:
     """Return the client IP used as the auth rate-limit identity.
 
     ``X-Forwarded-For`` is only honoured when the direct peer is a trusted
-    proxy. The leftmost entry is used: in production the Cloudflare Worker
-    overwrites the header with ``CF-Connecting-IP`` before any later hop
-    appends, so the leftmost entry is the real client. A malformed entry falls
-    back to the direct peer, so arbitrary text never becomes a rate-limit key.
+    proxy. How it is read depends on ``CLIENT_IP_STRATEGY``:
 
-    Deliberately not the rightmost-untrusted hop: that needs every Cloudflare
-    and nginx hop listed in ``TRUSTED_PROXY_IPS``, otherwise all users share
-    one bucket. See docs/backend-audit.md (deferred items).
+    * ``leftmost`` (default): the first hop. Correct when the edge overwrites
+      the header with the real client address, as the Cloudflare Worker does
+      with ``CF-Connecting-IP``. A request that reaches an appending proxy
+      without passing the Worker can choose this value.
+    * ``rightmost``: hops are read right to left, trusted proxy hops are
+      skipped, and the first untrusted hop is the client, so an appended
+      client-supplied value is never used. Every proxy hop (Cloudflare edge
+      ranges, nginx) must be in ``TRUSTED_PROXY_IPS``, or users share the
+      bucket of the first unlisted hop.
+
+    Arbitrary text never becomes a rate-limit key: an unparseable hop where
+    the client would be means the direct peer is used. See docs/operations.md.
     """
 
     direct_client_ip = request.client.host if request.client else "unknown"
@@ -158,6 +166,16 @@ def _client_ip(request: Request) -> str:
     hops = [part.strip() for part in forwarded_for.split(",") if part.strip()]
     if not hops:
         return direct_client_ip
+
+    if get_settings().client_ip_strategy == "rightmost":
+        for hop in reversed(hops):
+            try:
+                address = str(ipaddress.ip_address(hop))
+            except ValueError:
+                return direct_client_ip
+            if not _is_trusted_peer(address):
+                return address
+
     try:
         return str(ipaddress.ip_address(hops[0]))
     except ValueError:
@@ -334,12 +352,15 @@ class AuthController(Controller):
 
         _enforce_request_origin(request)
         account = _account_digest(data.email)
-        # Two budgets. The IP+account key stops one client from hammering one
-        # account. The account-only budget stops a rotating-IP attacker from
-        # making unlimited guesses at one account. See
-        # enforce_auth_account_rate_limit_async for the lockout trade-off.
+        # Two budgets. The IP+account key counts every attempt from one client.
+        # The account-only budget stops a rotating-IP attacker from making
+        # unlimited guesses at one account. It counts only failed credentials,
+        # so successful sign-ins (including lock-screen unlocks) never use it.
+        # See check_auth_account_rate_limit_async for the lockout trade-off.
         await _enforce_limit(f"login:{_client_ip(request)}:{account}")
-        await enforce_auth_account_rate_limit_async(account)
+        # Checked before Supabase so a spent budget refuses even a correct
+        # password. Nothing is recorded here: only a rejection is counted below.
+        await check_auth_account_rate_limit_async(account)
         # Built outside the upstream try so a configuration error surfaces as a
         # server error instead of a credential rejection.
         client = create_supabase_auth_client()
@@ -351,6 +372,7 @@ class AuthController(Controller):
         except Exception as exc:
             if _is_rejection(exc):
                 logger.info("Sign-in rejected by Supabase")
+                await record_auth_account_failure_async(account)
                 raise HTTPException(
                     status_code=401, detail=_INVALID_CREDENTIALS_DETAIL
                 ) from exc
@@ -358,6 +380,7 @@ class AuthController(Controller):
             raise _unavailable() from exc
 
         if not auth_response.session:
+            await record_auth_account_failure_async(account)
             raise HTTPException(status_code=401, detail=_INVALID_CREDENTIALS_DETAIL)
 
         return _session_response(auth_response.session)

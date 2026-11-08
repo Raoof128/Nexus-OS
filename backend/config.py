@@ -90,7 +90,8 @@ class BackendSettings:
     notes_rate_limit_window_seconds: int = 60
     # Budgets below are code defaults only (not read from env, so they need no
     # entry in .env.example). Change them here to tune.
-    # Login attempts for one account, counted across every source IP.
+    # Failed login attempts for one account, counted across every source IP.
+    # Successful sign-ins (including lock-screen unlocks) are not counted.
     auth_account_rate_limit_requests: int = 20
     auth_account_rate_limit_window_seconds: int = 900
     # /auth/refresh per refresh session (keyed by a digest of the refresh cookie).
@@ -107,6 +108,11 @@ class BackendSettings:
     # Often embeds a password (redis://:secret@host), so it is redacted too.
     redis_url: str | None = field(default=None, repr=False)
     trusted_proxy_ips: tuple[str, ...] = ()
+    # How the auth rate-limit client IP is read from X-Forwarded-For when the
+    # peer is a trusted proxy: 'leftmost' (default; correct when the edge
+    # overwrites the header, as the Worker does) or 'rightmost' (first
+    # untrusted hop from the right; needs every proxy hop in TRUSTED_PROXY_IPS).
+    client_ip_strategy: str = "leftmost"
     allowed_origins: tuple[str, ...] = ()
     allowed_hosts: tuple[str, ...] = ()
     # Conditionally required: needed when Google or Microsoft OAuth is enabled.
@@ -250,6 +256,44 @@ def _parse_trusted_proxy_env() -> tuple[str, ...]:
                 f"{entry!r}."
             ) from exc
     return entries
+
+
+_CLIENT_IP_STRATEGIES = frozenset({"leftmost", "rightmost"})
+
+
+def _parse_client_ip_strategy() -> str:
+    """Parse CLIENT_IP_STRATEGY, failing at boot on an unknown value."""
+
+    value = (_get_env("CLIENT_IP_STRATEGY") or "leftmost").strip().lower()
+    if value not in _CLIENT_IP_STRATEGIES:
+        raise ImproperlyConfiguredException(
+            f"CLIENT_IP_STRATEGY must be 'leftmost' or 'rightmost', got {value!r}."
+        )
+    return value
+
+
+def _warn_client_ip_strategy(settings: BackendSettings) -> None:
+    """Warn when 'rightmost' would collapse users into the proxies' buckets.
+
+    Right-to-left resolution stops at the first untrusted hop. If only
+    loopback or private proxies are trusted, a public edge hop (for example a
+    Cloudflare address) becomes every user's identity and they share one
+    rate-limit bucket.
+    """
+
+    if settings.client_ip_strategy != "rightmost":
+        return
+    public = [
+        entry
+        for entry in settings.trusted_proxy_ips
+        if not ipaddress.ip_network(entry, strict=False).is_private
+    ]
+    if not public:
+        logger.warning(
+            "CLIENT_IP_STRATEGY=rightmost but TRUSTED_PROXY_IPS lists no public "
+            "proxy ranges; if a public edge (e.g. Cloudflare) is in the chain, "
+            "all users will share its rate-limit bucket."
+        )
 
 
 # ── Origin and host helpers ───────────────────────────────────────────────────
@@ -583,6 +627,7 @@ def get_settings() -> BackendSettings:
         password_reset_redirect_url=_get_env("PASSWORD_RESET_REDIRECT_URL"),
         redis_url=_get_env("REDIS_URL"),
         trusted_proxy_ips=_parse_trusted_proxy_env(),
+        client_ip_strategy=_parse_client_ip_strategy(),
         allowed_origins=allowed_origins,
         allowed_hosts=_derive_allowed_hosts(
             allowed_origins,
@@ -600,4 +645,5 @@ def get_settings() -> BackendSettings:
     )
 
     _validate_settings(settings)
+    _warn_client_ip_strategy(settings)
     return settings

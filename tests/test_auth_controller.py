@@ -13,7 +13,11 @@ from typing import Any
 import jwt
 import pytest
 from litestar import Litestar
-from litestar.exceptions import HTTPException, ServiceUnavailableException
+from litestar.exceptions import (
+    HTTPException,
+    ImproperlyConfiguredException,
+    ServiceUnavailableException,
+)
 from litestar.testing import TestClient
 from supabase_auth.errors import (
     AuthApiError,
@@ -170,17 +174,158 @@ def test_client_ip_uses_forwarded_header_from_trusted_proxy(
     assert _client_ip(request) == "203.0.113.99"
 
 
-def test_client_ip_uses_leftmost_forwarded_entry(
+def test_client_ip_default_strategy_is_leftmost(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The Worker overwrites the header, so the leftmost entry is the client."""
+    """Production behaviour is unchanged unless rightmost is opted into.
+
+    The Worker overwrites X-Forwarded-For with CF-Connecting-IP, so leftmost is
+    the real client there; rightmost needs every edge hop listed first.
+    """
 
     monkeypatch.setenv("TRUSTED_PROXY_IPS", "10.0.0.5")
+    monkeypatch.delenv("CLIENT_IP_STRATEGY", raising=False)
     request = _request(
         {"x-forwarded-for": "203.0.113.99, 198.51.100.7, 10.0.0.5"}, host="10.0.0.5"
     )
 
     assert _client_ip(request) == "203.0.113.99"
+
+
+def test_client_ip_strategy_rejects_unknown_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CLIENT_IP_STRATEGY", "middle")
+    get_settings.cache_clear()
+
+    with pytest.raises(ImproperlyConfiguredException, match="CLIENT_IP_STRATEGY"):
+        get_settings()
+
+
+def test_rightmost_without_public_proxy_ranges_warns(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setenv("CLIENT_IP_STRATEGY", "rightmost")
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "127.0.0.1")
+    get_settings.cache_clear()
+
+    with caplog.at_level("WARNING"):
+        get_settings()
+
+    assert "share its rate-limit bucket" in caplog.text
+
+
+def test_client_ip_ignores_client_supplied_leftmost_entry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A proxy that appends to a client header must not let the client pick its IP.
+
+    The leftmost hop is attacker-chosen when a proxy appends. The rightmost
+    untrusted hop is the address the trusted proxy actually saw.
+    """
+
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "10.0.0.5")
+    monkeypatch.setenv("CLIENT_IP_STRATEGY", "rightmost")
+    request = _request(
+        {"x-forwarded-for": "203.0.113.99, 198.51.100.7, 10.0.0.5"}, host="10.0.0.5"
+    )
+
+    assert _client_ip(request) == "198.51.100.7"
+
+
+def test_client_ip_appended_spoof_yields_appended_address(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The client sends ``spoof``; the trusted proxy appends the real peer."""
+
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "10.0.0.5")
+    monkeypatch.setenv("CLIENT_IP_STRATEGY", "rightmost")
+    request = _request(
+        {"x-forwarded-for": "198.51.100.66, 203.0.113.99"}, host="10.0.0.5"
+    )
+
+    assert _client_ip(request) == "203.0.113.99"
+
+
+def test_client_ip_skips_trusted_hops_right_to_left(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Trusted proxies in the chain are skipped; the first untrusted hop wins."""
+
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "10.0.0.5, 172.16.0.0/12")
+    monkeypatch.setenv("CLIENT_IP_STRATEGY", "rightmost")
+    request = _request(
+        {"x-forwarded-for": "198.51.100.66, 203.0.113.99, 10.0.0.5, 172.16.4.9"},
+        host="172.16.4.9",
+    )
+
+    assert _client_ip(request) == "203.0.113.99"
+
+
+def test_client_ip_trusted_cidr_hops_are_skipped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A CIDR entry covers every proxy hop inside it, not only the peer."""
+
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "10.0.0.0/24")
+    monkeypatch.setenv("CLIENT_IP_STRATEGY", "rightmost")
+    request = _request({"x-forwarded-for": "203.0.113.99, 10.0.0.77"}, host="10.0.0.9")
+
+    assert _client_ip(request) == "203.0.113.99"
+
+
+def test_client_ip_all_trusted_hops_falls_back_to_leftmost(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With no untrusted hop anywhere, the leftmost entry is the best identity."""
+
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "10.0.0.0/24")
+    monkeypatch.setenv("CLIENT_IP_STRATEGY", "rightmost")
+    request = _request({"x-forwarded-for": "10.0.0.6, 10.0.0.7"}, host="10.0.0.5")
+
+    assert _client_ip(request) == "10.0.0.6"
+
+
+def test_client_ip_unparseable_hop_where_client_would_be_uses_peer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A garbage hop that would be returned means the chain cannot be trusted."""
+
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "10.0.0.5")
+    monkeypatch.setenv("CLIENT_IP_STRATEGY", "rightmost")
+    request = _request(
+        {"x-forwarded-for": "203.0.113.99, not-an-ip, 10.0.0.5"}, host="10.0.0.5"
+    )
+
+    assert _client_ip(request) == "10.0.0.5"
+
+
+def test_client_ip_garbage_hop_left_of_client_is_not_reached(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Entries left of the first untrusted hop never decide the identity."""
+
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "10.0.0.5")
+    monkeypatch.setenv("CLIENT_IP_STRATEGY", "rightmost")
+    request = _request(
+        {"x-forwarded-for": "not-an-ip, 203.0.113.99, 10.0.0.5"}, host="10.0.0.5"
+    )
+
+    assert _client_ip(request) == "203.0.113.99"
+
+
+def test_client_ip_unparseable_rightmost_hop_uses_peer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unparseable hop appended by the trusted peer falls back to the peer."""
+
+    monkeypatch.setenv("TRUSTED_PROXY_IPS", "10.0.0.5")
+    monkeypatch.setenv("CLIENT_IP_STRATEGY", "rightmost")
+    request = _request(
+        {"x-forwarded-for": "203.0.113.99, 198.51.100.7:443"}, host="10.0.0.5"
+    )
+
+    assert _client_ip(request) == "10.0.0.5"
 
 
 def test_client_ip_refuses_malformed_forwarded_entry(
@@ -352,14 +497,15 @@ def test_login_account_budget_blocks_guessing_across_rotating_ips(
     assert len(fake_auth.calls) == budget
 
 
-def test_login_account_budget_blocks_correct_password_too(
+def test_login_account_budget_blocks_correct_password_before_upstream(
     client: TestClient, fake_auth: FakeAuth, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Every attempt counts, so a spent budget also stops the real owner."""
+    """A spent budget stops a correct guess too, and never reaches Supabase."""
 
     _rotate_client_ips(monkeypatch)
     fake_auth.sign_in_error = AuthApiError("Invalid login", 400, None)
-    for _ in range(get_settings().auth_account_rate_limit_requests):
+    budget = get_settings().auth_account_rate_limit_requests
+    for _ in range(budget):
         client.post("/auth/login", json={"email": EMAIL, "password": "guess"})
 
     fake_auth.sign_in_error = None
@@ -368,6 +514,75 @@ def test_login_account_budget_blocks_correct_password_too(
     )
 
     assert response.status_code == 429
+    assert int(response.headers["Retry-After"]) >= 1
+    # Only the failed attempts reached Supabase. The blocked one did not.
+    assert len(fake_auth.calls) == budget
+
+
+def test_successful_sign_ins_never_consume_account_budget(
+    client: TestClient, fake_auth: FakeAuth, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Lock-screen unlocks call /auth/login, so successes must stay free."""
+
+    _rotate_client_ips(monkeypatch)
+    for _ in range(25):
+        response = client.post(
+            "/auth/login", json={"email": EMAIL, "password": "correct-horse"}
+        )
+        assert response.status_code == 201
+
+    assert len(fake_auth.calls) == 25
+
+
+def test_only_failed_sign_ins_count_toward_account_budget(
+    client: TestClient, fake_auth: FakeAuth, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Successes interleaved with failures do not shorten the failure budget."""
+
+    _rotate_client_ips(monkeypatch)
+    budget = get_settings().auth_account_rate_limit_requests
+    fake_auth.sign_in_error = AuthApiError("Invalid login", 400, None)
+    for _ in range(budget - 1):
+        client.post("/auth/login", json={"email": EMAIL, "password": "guess"})
+
+    fake_auth.sign_in_error = None
+    for _ in range(25):
+        response = client.post(
+            "/auth/login", json={"email": EMAIL, "password": "correct-horse"}
+        )
+        assert response.status_code == 201
+
+    fake_auth.sign_in_error = AuthApiError("Invalid login", 400, None)
+    response = client.post("/auth/login", json={"email": EMAIL, "password": "guess"})
+    assert response.status_code == 401
+
+    fake_auth.sign_in_error = None
+    response = client.post(
+        "/auth/login", json={"email": EMAIL, "password": "correct-horse"}
+    )
+    assert response.status_code == 429
+
+
+def test_rejected_sign_in_without_session_counts_toward_account_budget(
+    client: TestClient, fake_auth: FakeAuth, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A reply with no session is a failed credential check, so it is budgeted."""
+
+    _rotate_client_ips(monkeypatch)
+    budget = get_settings().auth_account_rate_limit_requests
+    fake_auth.sign_in_result = SimpleNamespace(session=None)
+    for _ in range(budget):
+        assert (
+            client.post(
+                "/auth/login", json={"email": EMAIL, "password": "guess"}
+            ).status_code
+            == 401
+        )
+
+    response = client.post("/auth/login", json={"email": EMAIL, "password": "guess"})
+
+    assert response.status_code == 429
+    assert len(fake_auth.calls) == budget
 
 
 def test_login_account_budget_is_per_account(

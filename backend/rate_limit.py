@@ -1,6 +1,13 @@
 """Sliding-window rate limiting for sensitive endpoints.
 
-Two backends share one ``enforce(key)`` interface:
+Two backends share one interface:
+
+* ``enforce(key)`` checks and records in one step. Every other caller uses it.
+* ``check(key)`` raises 429 when the window is full and records nothing.
+* ``record(key)`` adds a hit and never raises. Use it after a failure is known,
+  so only that failure uses budget.
+
+Two backends implement the interface:
 
 * ``RedisSlidingWindowRateLimiter`` when ``REDIS_URL`` is set. The check and the
   record happen in one Lua script, so limits hold across app instances.
@@ -69,6 +76,15 @@ class RateLimiter(Protocol):
 
     def enforce(self, key: str) -> None: ...
 
+    def check(self, key: str) -> None: ...
+
+    def record(self, key: str) -> None: ...
+
+
+def _prune(entries: deque[float], window_start: float) -> None:
+    while entries and entries[0] < window_start:
+        entries.popleft()
+
 
 class SlidingWindowRateLimiter:
     """Track requests in process memory over a sliding time window."""
@@ -104,8 +120,8 @@ class SlidingWindowRateLimiter:
         for key in stale:
             del self._entries[key]
 
-    def enforce(self, key: str) -> None:
-        """Raise HTTP 429 when ``key`` has used its budget for the window."""
+    def _admit(self, key: str, *, record: bool) -> None:
+        """Raise 429 when the window is full; append a hit only when ``record``."""
 
         now = monotonic()
         window_start = now - self.window_seconds
@@ -113,22 +129,46 @@ class SlidingWindowRateLimiter:
         with self._lock:
             self._sweep_stale_keys(now)
             entries = self._entries[key]
-            while entries and entries[0] < window_start:
-                entries.popleft()
+            _prune(entries, window_start)
 
             if len(entries) >= self.max_requests:
                 oldest = entries[0] if entries else now
                 raise _rate_limited(oldest + self.window_seconds - now)
 
+            if record:
+                entries.append(now)
+
+    def enforce(self, key: str) -> None:
+        """Raise HTTP 429 when ``key`` has used its budget for the window."""
+
+        self._admit(key, record=True)
+
+    def check(self, key: str) -> None:
+        """Raise HTTP 429 when the window is full. Never records a hit."""
+
+        self._admit(key, record=False)
+
+    def record(self, key: str) -> None:
+        """Add a hit for ``key`` without checking the budget."""
+
+        now = monotonic()
+        window_start = now - self.window_seconds
+        with self._lock:
+            self._sweep_stale_keys(now)
+            entries = self._entries[key]
+            _prune(entries, window_start)
             entries.append(now)
 
 
-# Atomic check-then-record so rejected requests never consume a slot.
-# ARGV[5] is a unique member per accepted request. Using tostring(now) would
+# One script serves all three modes so the check and the record for one key use
+# the same window arithmetic and the same key layout as the in-memory limiter.
+# ARGV[5] is a unique member per recorded hit. Using tostring(now) would
 # collapse two requests whose timestamps round to the same value in Lua's
 # number formatting, so the ZSET would undercount.
-# Returns 0 when the request is accepted. Returns the whole number of seconds
-# until the oldest request in the window expires when it is rejected.
+# ARGV[6] is the mode: "enforce" checks then records, "check" only checks,
+# "record" only records and never rejects.
+# Returns 0 when accepted or recorded. Returns the whole number of seconds
+# until the oldest request in the window expires when a check is rejected.
 _LUA_SLIDING_WINDOW = """
 local key = KEYS[1]
 local now = tonumber(ARGV[1])
@@ -136,24 +176,33 @@ local window_start = tonumber(ARGV[2])
 local max_requests = tonumber(ARGV[3])
 local window_seconds = tonumber(ARGV[4])
 local member = ARGV[5]
+local mode = ARGV[6]
 
 redis.call('ZREMRANGEBYSCORE', key, 0, window_start)
-local current = redis.call('ZCARD', key)
-if current >= max_requests then
-    local retry_after = window_seconds
-    local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
-    if oldest[2] then
-        retry_after = math.ceil(tonumber(oldest[2]) + window_seconds - now)
+if mode ~= 'record' then
+    local current = redis.call('ZCARD', key)
+    if current >= max_requests then
+        local retry_after = window_seconds
+        local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+        if oldest[2] then
+            retry_after = math.ceil(tonumber(oldest[2]) + window_seconds - now)
+        end
+        if retry_after < 1 then
+            retry_after = 1
+        end
+        return retry_after
     end
-    if retry_after < 1 then
-        retry_after = 1
-    end
-    return retry_after
 end
-redis.call('ZADD', key, now, member)
-redis.call('EXPIRE', key, window_seconds)
+if mode ~= 'check' then
+    redis.call('ZADD', key, now, member)
+    redis.call('EXPIRE', key, window_seconds)
+end
 return 0
 """
+
+_MODE_ENFORCE: Final[str] = "enforce"
+_MODE_CHECK: Final[str] = "check"
+_MODE_RECORD: Final[str] = "record"
 
 
 class RedisSlidingWindowRateLimiter:
@@ -179,8 +228,13 @@ class RedisSlidingWindowRateLimiter:
         # one extra line, and the limit decision never reads this flag.
         self._degraded = False
 
-    def enforce(self, key: str) -> None:
-        """Atomically check and record a request, rejecting over-limit traffic."""
+    def _run(
+        self,
+        key: str,
+        mode: str,
+        fallback: Callable[[str], None],
+    ) -> None:
+        """Run the script in ``mode``, or the matching in-memory call on outage."""
 
         now = time()
         window_start = now - self.window_seconds
@@ -195,16 +249,32 @@ class RedisSlidingWindowRateLimiter:
                     self.max_requests,
                     self.window_seconds,
                     member,
+                    mode,
                 ],
             )
         except RedisError as exc:
             self._log_degraded(exc)
-            self._fallback.enforce(key)
+            fallback(key)
             return
 
         self._log_recovered()
-        if retry_after:
+        if retry_after and mode != _MODE_RECORD:
             raise _rate_limited(int(retry_after))
+
+    def enforce(self, key: str) -> None:
+        """Atomically check and record a request, rejecting over-limit traffic."""
+
+        self._run(key, _MODE_ENFORCE, self._fallback.enforce)
+
+    def check(self, key: str) -> None:
+        """Raise 429 when the window is full. Never records a hit."""
+
+        self._run(key, _MODE_CHECK, self._fallback.check)
+
+    def record(self, key: str) -> None:
+        """Add a hit for ``key``. Never raises for a full window."""
+
+        self._run(key, _MODE_RECORD, self._fallback.record)
 
     def _log_degraded(self, exc: RedisError) -> None:
         """Log the first outage with a traceback, then only type and message."""
@@ -428,27 +498,43 @@ async def enforce_tasks_rate_limit_async(user_id: str) -> None:
     await _run_enforce(limiter, lambda: limiter.enforce(f"tasks:{user_id}"))
 
 
-async def enforce_auth_account_rate_limit_async(account_digest: str) -> None:
-    """Budget login attempts for one account, whatever the source IP.
-
-    Keyed by the account digest only, never the IP, so rotating addresses
-    cannot multiply the guesses allowed against one account. The cost is that
-    anyone can lock out a known account for the window by sending failed
-    attempts, including one IP at the per-IP limit (about two minutes to reach
-    this budget). The locked-out owner waits out the window. Every attempt
-    counts, including successful sign-ins, because the limiter records before
-    the upstream call.
-    """
-
-    limiter = _budget_limiter(
+def _auth_account_limiter() -> RateLimiter:
+    return _budget_limiter(
         "auth-account",
         lambda s: (
             s.auth_account_rate_limit_requests,
             s.auth_account_rate_limit_window_seconds,
         ),
     )
+
+
+async def check_auth_account_rate_limit_async(account_digest: str) -> None:
+    """Refuse a login for one account once its failure budget is spent.
+
+    Runs before the upstream call and records nothing, so successful sign-ins
+    (including lock-screen unlocks) never use the budget. The login handler
+    calls ``record_auth_account_failure_async`` only after the credentials are
+    rejected.
+
+    Keyed by the account digest only, never the IP, so rotating addresses
+    cannot multiply the guesses allowed against one account. Failures from any
+    address count toward the same budget. The cost is that anyone who knows an
+    address can send wrong passwords to lock the owner out for the window. The
+    owner's correct password is refused too until the window clears. Concurrent
+    failures can overshoot the budget by the number of in-flight requests,
+    because the check and the record are separate calls.
+    """
+
+    limiter = _auth_account_limiter()
+    await _run_enforce(limiter, lambda: limiter.check(f"auth-account:{account_digest}"))
+
+
+async def record_auth_account_failure_async(account_digest: str) -> None:
+    """Count one failed credential attempt against the account budget."""
+
+    limiter = _auth_account_limiter()
     await _run_enforce(
-        limiter, lambda: limiter.enforce(f"auth-account:{account_digest}")
+        limiter, lambda: limiter.record(f"auth-account:{account_digest}")
     )
 
 
@@ -519,8 +605,8 @@ __all__ = [
     "SlidingWindowRateLimiter",
     "enforce_ai_rate_limit",
     "enforce_ai_rate_limit_async",
+    "check_auth_account_rate_limit_async",
     "enforce_auth_rate_limit",
-    "enforce_auth_account_rate_limit_async",
     "enforce_auth_rate_limit_async",
     "enforce_email_send_rate_limit_async",
     "enforce_notes_rate_limit",
@@ -528,5 +614,6 @@ __all__ = [
     "enforce_refresh_session_rate_limit_async",
     "enforce_tasks_rate_limit",
     "enforce_tasks_rate_limit_async",
+    "record_auth_account_failure_async",
     "reset_rate_limiters",
 ]
