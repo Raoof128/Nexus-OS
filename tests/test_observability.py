@@ -97,6 +97,37 @@ class TestScrubRequest:
 
         assert scrubbed["request"]["cookies"] == "[Filtered]"
 
+    def test_recovery_headers_are_redacted_case_insensitively(self):
+        # Regression: the password-reset flow sends its recovery session in
+        # X-Recovery-* headers; a failed reset used to ship them to Sentry.
+        event = _request_event(
+            headers={
+                "X-Recovery-Access-Token": "live-access",
+                "x-recovery-refresh-token": "live-refresh",
+                "Authorization": "Bearer abc",
+                "Content-Type": "application/json",
+            }
+        )
+
+        headers = _scrub_event(event, {})["request"]["headers"]
+
+        assert headers["X-Recovery-Access-Token"] == "[Filtered]"
+        assert headers["x-recovery-refresh-token"] == "[Filtered]"
+        assert headers["Authorization"] == "[Filtered]"
+        assert headers["Content-Type"] == "application/json"
+
+    def test_header_pairs_are_redacted(self):
+        event = _request_event(
+            headers=[["X-Recovery-Refresh-Token", "live"], ["Accept", "*/*"]]
+        )
+
+        headers = _scrub_event(event, {})["request"]["headers"]
+
+        assert headers == [
+            ["X-Recovery-Refresh-Token", "[Filtered]"],
+            ["Accept", "*/*"],
+        ]
+
     def test_plain_text_body_without_credentials_is_untouched(self):
         event = _request_event(data="just some words")
 

@@ -60,6 +60,21 @@ _SCRUB_KEYS: frozenset[str] = frozenset(
     }
 )
 
+# Request headers that carry credentials. The SDK's own header filter only drops
+# ``authorization`` and ``cookie``; the password-reset flow sends its recovery
+# session in ``X-Recovery-*`` headers, which would otherwise reach Sentry verbatim.
+_SCRUB_HEADERS: frozenset[str] = frozenset(
+    {
+        "authorization",
+        "cookie",
+        "set-cookie",
+        "proxy-authorization",
+        "x-api-key",
+        "x-recovery-access-token",
+        "x-recovery-refresh-token",
+    }
+)
+
 _KEY_ALTERNATION = "|".join(
     re.escape(key) for key in sorted(_SCRUB_KEYS, key=len, reverse=True)
 )
@@ -141,6 +156,27 @@ def _redact_url_fields(data: dict[str, Any]) -> None:
                 _redact_in_place(value)
 
 
+def _is_secret_header(name: Any) -> bool:
+    if not isinstance(name, str):
+        return False
+    lowered = name.lower()
+    return lowered in _SCRUB_HEADERS or lowered in _SCRUB_KEYS
+
+
+def _scrub_headers(headers: Any) -> Any:
+    """Redact credential headers given as a mapping or as [name, value] pairs."""
+
+    if isinstance(headers, dict):
+        for name in headers:
+            if _is_secret_header(name):
+                headers[name] = _FILTERED
+    elif isinstance(headers, list):
+        for pair in headers:
+            if isinstance(pair, list) and len(pair) == 2 and _is_secret_header(pair[0]):
+                pair[1] = _FILTERED
+    return headers
+
+
 def _iter_spans(event: dict[str, Any]) -> Iterator[dict[str, Any]]:
     """Yield every span dict on a transaction event."""
 
@@ -181,6 +217,8 @@ def _scrub_event(event: dict[str, Any], _hint: dict[str, Any]) -> dict[str, Any]
     if isinstance(request, dict):
         if request.get("cookies"):
             request["cookies"] = _FILTERED
+        if request.get("headers"):
+            request["headers"] = _scrub_headers(request["headers"])
         if "data" in request:
             request["data"] = _scrub_body(request["data"])
         if request.get("query_string"):
