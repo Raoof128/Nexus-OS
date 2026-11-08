@@ -10,12 +10,12 @@ export const EMAIL_FOLDERS = [
 ]
 
 export const PROVIDER_CONFIG = {
-  google: { label: 'Gmail', color: '#ea4335', bgColor: 'bg-red-500/20', textColor: 'text-red-400' },
+  google: { label: 'Gmail', color: '#ea4335', bgColor: 'bg-red-50', textColor: 'text-red-700' },
   microsoft: {
     label: 'Outlook',
     color: '#0078d4',
-    bgColor: 'bg-blue-500/20',
-    textColor: 'text-blue-400',
+    bgColor: 'bg-blue-50',
+    textColor: 'text-blue-700',
   },
 }
 

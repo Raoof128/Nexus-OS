@@ -10,8 +10,8 @@ import {
 const DISMISS_KEY = 'nexus-os:install-dismissed'
 
 /**
- * Cyberpunk "install Nexus OS" toast. Appears bottom-right when the browser
- * fires `beforeinstallprompt` and the user hasn't already installed or
+ * "Install Nexus OS" balloon. Appears bottom-right, above the taskbar, when the
+ * browser fires `beforeinstallprompt` and the user hasn't already installed or
  * dismissed it. Replaces Chrome's default mini-infobar.
  */
 export default function InstallPrompt() {
@@ -47,11 +47,11 @@ export default function InstallPrompt() {
   return (
     <AnimatePresence>
       <Motion.div
-        initial={{ opacity: 0, y: 24, scale: 0.96 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 24, scale: 0.96 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-        className="fixed bottom-16 right-4 z-[9000] w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-cyan-400/40 bg-[#070b1a]/95 p-4 shadow-[0_0_30px_rgba(0,245,255,0.25)] backdrop-blur-md"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 12 }}
+        transition={{ duration: 0.2 }}
+        className="nx-flyout fixed bottom-12 right-3 z-[9000] w-[min(300px,calc(100vw-1.5rem))] px-3 py-2"
         role="dialog"
         aria-label="Install Nexus OS"
       >
@@ -59,28 +59,26 @@ export default function InstallPrompt() {
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss install prompt"
-          className="absolute right-2 top-2 rounded-md p-1 text-cyan-200/60 transition hover:bg-cyan-400/10 hover:text-cyan-100"
+          title="Close"
+          className="w7-toolbtn absolute right-1 top-1 p-0.5"
         >
-          <X size={16} />
+          <X size={12} aria-hidden />
         </button>
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-cyan-400/40 bg-cyan-400/10 text-cyan-300">
-            <Download size={18} />
-          </span>
+        <div className="flex items-start gap-2 pr-5">
+          <Download size={16} className="mt-px shrink-0 text-[#1773c4]" aria-hidden />
           <div className="min-w-0">
-            <p className="font-[Orbitron] text-sm font-bold tracking-wide text-cyan-100">
-              Install Nexus OS
-            </p>
-            <p className="mt-1 text-xs leading-relaxed text-cyan-200/70">
+            <p className="text-[12px] font-bold leading-snug text-foreground">Install Nexus OS</p>
+            <p className="mt-0.5 text-[12px] leading-snug text-foreground">
               Launch it like a native app — full-screen, offline-ready, from your dock.
             </p>
-            <button
-              type="button"
-              onClick={handleInstall}
-              className="mt-3 w-full rounded-lg border border-cyan-400/50 bg-cyan-400/15 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-cyan-100 transition hover:bg-cyan-400/25"
-            >
-              Install
-            </button>
+            <div className="mt-2 flex justify-end gap-2">
+              <button type="button" onClick={handleInstall} className="w7-btn default min-w-[75px]">
+                Install
+              </button>
+              <button type="button" onClick={handleDismiss} className="w7-btn min-w-[75px]">
+                Not now
+              </button>
+            </div>
           </div>
         </div>
       </Motion.div>

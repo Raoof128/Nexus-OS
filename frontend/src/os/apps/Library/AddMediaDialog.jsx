@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
-import { Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { MEDIA_CONFIG } from '../../../lib/mediaConfig'
 import { SPRING } from '../../../lib/motion'
 import { lockScroll } from '../../../lib/scrollLock'
@@ -77,12 +77,8 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={handleOpen}
-        className="neon-pulse absolute bottom-4 right-4 flex items-center gap-2 rounded-full bg-primary px-4 py-3 heading-ui text-[11px] font-bold text-primary-foreground shadow-[0_0_20px_hsl(var(--neon-yellow)/0.4)] transition-all hover:shadow-[0_0_30px_hsl(var(--neon-yellow)/0.6)] hover:scale-105 active:scale-95 sm:px-5 sm:py-3 sm:text-xs"
-      >
-        <Plus size={14} />
+      <button type="button" onClick={handleOpen} className="w7-toolbtn">
+        <Plus size={14} aria-hidden="true" />
         Add {config.singular}
       </button>
 
@@ -90,51 +86,55 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
         <AnimatePresence>
           {open && (
             <Motion.div
-              ref={trapRef}
-              className="fixed inset-0 z-[1001] flex items-center justify-center bg-black/60 backdrop-blur-md p-4"
+              key="add-media-backdrop"
+              className="fixed inset-0 z-[1001] flex items-center justify-center bg-black/20 p-4"
               onClick={handleClose}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="add-media-title"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
+              {/* role="dialog" sits on a wrapper: 7.css hides .window[role=dialog] */}
               <Motion.div
+                ref={trapRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="add-media-title"
                 onClick={(e) => e.stopPropagation()}
-                className="neon-border relative w-full max-w-lg max-h-[90dvh] overflow-y-auto custom-scrollbar rounded-2xl glass-panel p-6 shadow-2xl"
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="flex max-h-[90dvh] w-full max-w-[460px] flex-col"
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
                 transition={SPRING.snappy}
               >
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="absolute right-4 top-4 text-muted-foreground transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-md"
-                  aria-label="Close dialog"
-                >
-                  <X size={18} />
-                </button>
+                <div className="window glass active is-bright flex min-h-0 flex-1 flex-col">
+                  <div className="title-bar">
+                    <div id="add-media-title" className="title-bar-text">
+                      Add {config.singular}
+                    </div>
+                    <div className="title-bar-controls">
+                      <button
+                        type="button"
+                        className="is-close"
+                        aria-label="Close"
+                        onClick={handleClose}
+                      />
+                    </div>
+                  </div>
 
-                <h2
-                  id="add-media-title"
-                  className="heading-display mb-6 text-lg font-bold text-primary sm:text-xl"
-                >
-                  <span aria-hidden="true">// </span>Register New {config.singular}
-                </h2>
-
-                <MediaForm
-                  key={formKey}
-                  config={config}
-                  defaultValues={{ status: initialStatus || config.defaultStatus }}
-                  onSubmit={handleSubmit}
-                  submitting={submitting}
-                  error={error}
-                  submitLabel="Commit to Archive"
-                  idPrefix="add"
-                  placeholders={placeholders}
-                />
+                  <div className="window-body has-space min-h-0 flex-1 overflow-y-auto">
+                    <MediaForm
+                      key={formKey}
+                      config={config}
+                      defaultValues={{ status: initialStatus || config.defaultStatus }}
+                      onSubmit={handleSubmit}
+                      submitting={submitting}
+                      error={error}
+                      submitLabel={`Add ${config.singular}`}
+                      idPrefix="add"
+                      placeholders={placeholders}
+                    />
+                  </div>
+                </div>
               </Motion.div>
             </Motion.div>
           )}

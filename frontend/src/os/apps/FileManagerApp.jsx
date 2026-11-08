@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ArrowLeft,
+  Check,
+  ChevronRight,
   Download,
   File,
   FilePlus,
@@ -24,12 +26,23 @@ import {
   formatBytes,
 } from '../../lib/opfsDrive'
 
+// Explorer icon colours: folders are manila-yellow, files are slate blue.
+const FOLDER_ICON_CLASS = 'shrink-0 text-[#e0a526]'
+const FOLDER_ICON_FILL = '#ffd96b'
+const FILE_ICON_CLASS = 'shrink-0 text-[#3d5a80]'
+
+function typeLabel(name, isFolder) {
+  if (isFolder) return 'File folder'
+  const dot = name.lastIndexOf('.')
+  return dot > 0 ? `${name.slice(dot + 1).toUpperCase()} file` : 'File'
+}
+
 function NewEntryDialog({ type, onSubmit, onCancel }) {
   const [name, setName] = useState('')
   const label = type === 'file' ? 'File name' : 'Folder name'
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5">
+    <div className="flex items-center gap-2 border border-[#99d1ff] bg-w7-select px-2 py-1">
       <input
         type="text"
         value={name}
@@ -39,26 +52,27 @@ function NewEntryDialog({ type, onSubmit, onCancel }) {
           if (e.key === 'Escape') onCancel()
         }}
         placeholder={label}
+        aria-label={label}
         autoFocus
-        className="flex-1 bg-transparent font-mono text-[11px] text-white/80 placeholder-muted-foreground/30 focus:outline-none"
+        className="min-w-0 flex-1"
       />
       <button
         type="button"
         onClick={() => name.trim() && onSubmit(name.trim())}
         aria-label={type === 'file' ? 'Create file' : 'Create folder'}
         title="Create"
-        className="rounded p-0.5 text-primary hover:text-white"
+        className="w7-toolbtn"
       >
-        <FilePlus size={12} />
+        <Check size={14} />
       </button>
       <button
         type="button"
         onClick={onCancel}
         aria-label="Cancel"
         title="Cancel"
-        className="rounded p-0.5 text-muted-foreground hover:text-white"
+        className="w7-toolbtn"
       >
-        <X size={12} />
+        <X size={14} />
       </button>
     </div>
   )
@@ -121,29 +135,28 @@ function FileViewer({ file, onClose }) {
   const isImage = (file.mime || '').startsWith('image/')
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-white/[0.04] bg-black/20 px-3 py-1.5">
+    <div className="flex h-full flex-col bg-white text-[12px] text-foreground">
+      <div className="w7-commandbar justify-between">
         <div className="flex min-w-0 items-center gap-2">
-          <File size={12} className="shrink-0 text-primary" />
-          <span className="heading-ui truncate text-[10px] font-semibold text-white/80">
-            {file.name}
-          </span>
+          <File size={16} className={FILE_ICON_CLASS} />
+          <span className="truncate font-semibold">{file.name}</span>
           {file.size != null && (
-            <span className="shrink-0 font-mono text-[9px] text-muted-foreground/40">
+            <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
               {formatBytes(file.size)}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           {isBlob && (
             <button
               type="button"
               onClick={download}
-              className="rounded p-1 text-muted-foreground hover:bg-primary/15 hover:text-primary"
+              className="w7-toolbtn"
               aria-label="Download file"
               title="Download"
             >
-              <Download size={12} />
+              <Download size={14} />
+              <span>Download</span>
             </button>
           )}
           <button
@@ -151,9 +164,9 @@ function FileViewer({ file, onClose }) {
             onClick={onClose}
             aria-label="Close file viewer"
             title="Close"
-            className="rounded p-1 text-muted-foreground hover:bg-white/[0.06] hover:text-white"
+            className="w7-toolbtn"
           >
-            <X size={12} />
+            <X size={14} />
           </button>
         </div>
       </div>
@@ -166,37 +179,31 @@ function FileViewer({ file, onClose }) {
 
       {state.status === 'missing' && (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center">
-          <File size={24} className="text-muted-foreground/30" />
-          <p className="font-mono text-[10px] text-red-400/70">BLOB_NOT_FOUND</p>
-          <p className="font-mono text-[9px] text-muted-foreground/40">
-            The stored data for this file is missing or storage was cleared.
+          <File size={32} className={FILE_ICON_CLASS} />
+          <p className="w7-error">This file can't be opened.</p>
+          <p className="text-muted-foreground">
+            Its stored data is missing, or the browser's storage was cleared.
           </p>
         </div>
       )}
 
       {state.status === 'text' && (
-        <pre className="flex-1 overflow-auto custom-scrollbar p-4 font-mono text-xs leading-relaxed text-white/70 whitespace-pre-wrap">
+        <pre className="w7-sunken m-2 flex-1 overflow-auto p-2 font-mono text-[12px] leading-relaxed whitespace-pre-wrap text-foreground">
           {state.text || '(empty file)'}
         </pre>
       )}
 
       {state.status === 'binary' &&
         (isImage ? (
-          <div className="flex flex-1 items-center justify-center overflow-auto bg-black/40 p-4">
+          <div className="flex flex-1 items-center justify-center overflow-auto bg-muted p-4">
             <img src={state.url} alt={file.name} className="max-h-full max-w-full object-contain" />
           </div>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
-            <File size={28} className="text-primary/50" />
-            <p className="font-mono text-[10px] text-muted-foreground/60">
-              No inline preview for this file type.
-            </p>
-            <button
-              type="button"
-              onClick={download}
-              className="flex items-center gap-1.5 rounded-md bg-primary/15 px-3 py-1.5 font-mono text-[10px] text-primary ring-1 ring-primary/20 transition-colors hover:bg-primary/25"
-            >
-              <Download size={12} /> Download {file.name}
+            <File size={32} className={FILE_ICON_CLASS} />
+            <p className="text-muted-foreground">No preview is available for this file type.</p>
+            <button type="button" onClick={download} className="w7-btn">
+              <Download size={14} /> Download {file.name}
             </button>
           </div>
         ))}
@@ -227,13 +234,11 @@ function StorageMeter() {
       className="flex items-center gap-2"
       title={`${formatBytes(info.usage)} of ${formatBytes(info.quota)} used`}
     >
-      <HardDrive size={9} className="text-muted-foreground/50" />
-      <div className="h-1 w-16 overflow-hidden rounded-full bg-white/[0.06]">
-        <div className="h-full rounded-full bg-primary/60" style={{ width: `${pct}%` }} />
+      <HardDrive size={14} className="text-muted-foreground" />
+      <div role="progressbar" aria-label="Storage used" aria-valuenow={pct} className="w-24">
+        <div style={{ width: `${pct}%` }} />
       </div>
-      <span className="font-mono text-[9px] text-muted-foreground/50">
-        {formatBytes(info.usage)}
-      </span>
+      <span className="font-mono text-[11px] text-muted-foreground">{formatBytes(info.usage)}</span>
     </div>
   )
 }
@@ -251,6 +256,7 @@ export default function FileManagerApp() {
 
   const [creating, setCreating] = useState(null) // 'file' | 'folder' | null
   const [viewingFile, setViewingFile] = useState(null)
+  const [selectedName, setSelectedName] = useState(null)
   const [renamingEntry, setRenamingEntry] = useState(null)
   const [renameValue, setRenameValue] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null) // { name, isFolder } | null
@@ -269,6 +275,18 @@ export default function FileManagerApp() {
 
   const parentPath =
     currentPath === '/' ? null : currentPath.split('/').slice(0, -1).join('/') || '/'
+
+  // Breadcrumb segments: '/documents/sub' -> ['documents', 'sub'].
+  const crumbs = currentPath === '/' ? [] : currentPath.split('/').filter(Boolean)
+
+  // Any navigation clears the row selection, since the list changes under it.
+  const goTo = useCallback(
+    (path) => {
+      setSelectedName(null)
+      navigateTo(path)
+    },
+    [navigateTo],
+  )
 
   const handleCreate = useCallback(
     (name) => {
@@ -344,77 +362,117 @@ export default function FileManagerApp() {
     )
   }
 
+  const selectedEntry = selectedName ? files[buildEntryPath(selectedName)] : null
+
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-white/[0.04] bg-black/20 px-3 py-1.5">
-        <div className="flex items-center gap-1">
-          {parentPath !== null && (
-            <button
-              type="button"
-              onClick={() => navigateTo(parentPath)}
-              className="rounded-md p-1 text-muted-foreground hover:bg-white/[0.03] hover:text-white"
-              aria-label="Go up"
-            >
-              <ArrowLeft size={12} />
-            </button>
-          )}
+    <div className="flex h-full w-full flex-col overflow-hidden bg-white text-[12px] text-foreground">
+      {/* Address strip: back / home and a breadcrumb path */}
+      <div className="flex shrink-0 items-center gap-1 border-b border-[#a0afc3] bg-w7-pane px-1.5 py-1">
+        {parentPath !== null && (
           <button
             type="button"
-            onClick={() => navigateTo('/')}
-            className="rounded-md p-1 text-muted-foreground hover:bg-white/[0.03] hover:text-white"
-            aria-label="Go home"
+            onClick={() => goTo(parentPath)}
+            className="w7-toolbtn"
+            aria-label="Go up"
+            title="Up"
           >
-            <Home size={12} />
+            <ArrowLeft size={16} />
           </button>
-          <span className="ml-2 font-mono text-[10px] text-primary/60">{currentPath}</span>
-        </div>
-        <div className="flex items-center gap-1">
+        )}
+        <button
+          type="button"
+          onClick={() => goTo('/')}
+          className="w7-toolbtn"
+          aria-label="Go home"
+          title="Nexus Drive"
+        >
+          <Home size={16} />
+        </button>
+        <nav
+          aria-label="Current folder"
+          className="w7-sunken flex min-h-[23px] min-w-0 flex-1 items-center gap-0.5 overflow-x-auto px-1 py-px"
+        >
           <button
             type="button"
-            onClick={() => setCreating('folder')}
-            className="rounded-md p-1 text-muted-foreground hover:bg-primary/15 hover:text-primary"
-            aria-label="New folder"
-            title="New folder"
+            onClick={() => goTo('/')}
+            aria-current={currentPath === '/' ? 'page' : undefined}
+            className="shrink-0 rounded-[2px] px-1 text-foreground hover:bg-w7-hover"
           >
-            <FolderPlus size={12} />
+            Nexus Drive
           </button>
-          <button
-            type="button"
-            onClick={() => setCreating('file')}
-            className="rounded-md p-1 text-muted-foreground hover:bg-primary/15 hover:text-primary"
-            aria-label="New file"
-            title="New file"
-          >
-            <FilePlus size={12} />
-          </button>
-          {opfsAvailable && (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={importing}
-              className="rounded-md p-1 text-muted-foreground hover:bg-primary/15 hover:text-primary disabled:opacity-40"
-              aria-label="Import files from disk"
-              title="Import from disk"
-            >
-              {importing ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-            </button>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            onChange={handleImport}
-            className="hidden"
-            aria-hidden="true"
-          />
-        </div>
+          {crumbs.map((segment, i) => {
+            const path = `/${crumbs.slice(0, i + 1).join('/')}`
+            const isLast = i === crumbs.length - 1
+            return (
+              <span key={path} className="flex shrink-0 items-center gap-0.5">
+                <ChevronRight size={12} className="text-muted-foreground" aria-hidden="true" />
+                <button
+                  type="button"
+                  onClick={() => goTo(path)}
+                  aria-current={isLast ? 'page' : undefined}
+                  className="rounded-[2px] px-1 text-foreground hover:bg-w7-hover"
+                >
+                  {segment}
+                </button>
+              </span>
+            )
+          })}
+        </nav>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+      {/* Command bar */}
+      <div className="w7-commandbar shrink-0">
+        <button
+          type="button"
+          onClick={() => setCreating('folder')}
+          className="w7-toolbtn"
+          aria-label="New folder"
+          title="New folder"
+        >
+          <FolderPlus size={16} className="text-[#e0a526]" fill={FOLDER_ICON_FILL} />
+          <span>New folder</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setCreating('file')}
+          className="w7-toolbtn"
+          aria-label="New file"
+          title="New file"
+        >
+          <FilePlus size={16} className={FILE_ICON_CLASS} />
+          <span>New file</span>
+        </button>
+        {opfsAvailable && (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+            className="w7-toolbtn"
+            aria-label="Import files from disk"
+            title="Import from disk"
+          >
+            {importing ? (
+              <Loader2 size={16} className="animate-spin text-primary" />
+            ) : (
+              <Upload size={16} className="text-primary" />
+            )}
+            <span>Import</span>
+          </button>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleImport}
+          className="hidden"
+          aria-hidden="true"
+        />
+      </div>
+
+      {/* Main list */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         {creating && (
-          <div className="mb-2">
+          <div className="shrink-0 p-2 pb-0">
             <NewEntryDialog
               type={creating}
               onSubmit={handleCreate}
@@ -424,112 +482,164 @@ export default function FileManagerApp() {
         )}
 
         {importError && (
-          <div className="mb-2 flex items-center justify-between gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-1.5">
-            <span className="font-mono text-[10px] text-red-400/80">{importError}</span>
+          <div className="w7-infobar m-2 mb-0 justify-between" role="alert">
+            <span className="w7-error">{importError}</span>
             <button
               type="button"
               onClick={() => setImportError(null)}
-              className="text-red-400/60 hover:text-red-300"
+              className="w7-toolbtn"
               aria-label="Dismiss error"
             >
-              <X size={11} />
+              <X size={14} />
             </button>
           </div>
         )}
 
-        {children.length === 0 && !creating && (
-          <div className="flex h-32 items-center justify-center">
-            <p className="font-mono text-[10px] text-muted-foreground/50">EMPTY_DIRECTORY</p>
+        {children.length === 0 && !creating ? (
+          <div className="flex flex-1 items-center justify-center p-4">
+            <p className="text-muted-foreground">This folder is empty.</p>
           </div>
-        )}
+        ) : (
+          children.length > 0 && (
+            <div className="w7-sunken m-2 mb-0 min-h-0 flex-1 overflow-auto">
+              <table className="w-full border-collapse text-[12px]">
+                <thead className="sticky top-0">
+                  <tr>
+                    <th scope="col" className="text-left font-normal">
+                      Name
+                    </th>
+                    <th scope="col" className="hidden text-left font-normal @md:table-cell">
+                      Date modified
+                    </th>
+                    <th scope="col" className="hidden text-left font-normal @md:table-cell">
+                      Type
+                    </th>
+                    <th scope="col" className="hidden text-right font-normal @md:table-cell">
+                      Size
+                    </th>
+                    <th scope="col" className="w-[60px]">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {children.map((name) => {
+                    const entryPath = buildEntryPath(name)
+                    const entry = files[entryPath]
+                    if (!entry) return null
 
-        {children.map((name) => {
-          const entryPath = buildEntryPath(name)
-          const entry = files[entryPath]
-          if (!entry) return null
+                    const isFolder = entry.type === 'folder'
+                    const Icon = isFolder ? Folder : File
+                    const isSelected = selectedName === name
 
-          const isFolder = entry.type === 'folder'
-          const Icon = isFolder ? Folder : File
-
-          return (
-            <div
-              key={name}
-              className="group flex items-center justify-between rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.03]"
-            >
-              {renamingEntry === name ? (
-                <div className="flex flex-1 items-center gap-2">
-                  <Icon
-                    size={14}
-                    className={isFolder ? 'text-primary/60' : 'text-muted-foreground'}
-                  />
-                  <input
-                    type="text"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleRenameSubmit()
-                      if (e.key === 'Escape') setRenamingEntry(null)
-                    }}
-                    onBlur={handleRenameSubmit}
-                    autoFocus
-                    className="flex-1 bg-transparent font-mono text-[11px] text-white/80 focus:outline-none"
-                  />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isFolder) navigateTo(entryPath)
-                    else setViewingFile(entryPath)
-                  }}
-                  className="flex flex-1 items-center gap-2 text-left"
-                >
-                  <Icon
-                    size={14}
-                    className={isFolder ? 'text-primary/60' : 'text-muted-foreground'}
-                  />
-                  <span className="font-mono text-[11px] text-white/80">{name}</span>
-                  {!isFolder && entry.updatedAt && (
-                    <span className="ml-auto font-mono text-[9px] text-muted-foreground/40">
-                      {new Date(entry.updatedAt).toLocaleDateString()}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {/* Hover reveals actions on fine pointers; touch devices have no
-                  hover, so keep them visible there (pointer-coarse) — otherwise
-                  rename/delete would be unreachable on mobile. */}
-              <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100">
-                <button
-                  type="button"
-                  onClick={() => handleRenameStart(name)}
-                  className="rounded p-1 text-muted-foreground hover:bg-primary/15 hover:text-primary"
-                  aria-label={`Rename ${name}`}
-                  title="Rename"
-                >
-                  <Pencil size={10} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteTarget({ name, isFolder })}
-                  className="rounded p-1 text-muted-foreground hover:bg-red-500/15 hover:text-red-400"
-                  aria-label={`Delete ${name}`}
-                  title="Delete"
-                >
-                  <Trash2 size={10} />
-                </button>
-              </div>
+                    return (
+                      <tr
+                        key={name}
+                        className={`group ${isSelected ? 'highlighted' : ''}`}
+                        aria-selected={isSelected}
+                      >
+                        <td className="min-w-0">
+                          {renamingEntry === name ? (
+                            <div className="flex items-center gap-2">
+                              <Icon
+                                size={16}
+                                className={isFolder ? FOLDER_ICON_CLASS : FILE_ICON_CLASS}
+                                fill={isFolder ? FOLDER_ICON_FILL : 'none'}
+                              />
+                              <input
+                                type="text"
+                                value={renameValue}
+                                onChange={(e) => setRenameValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleRenameSubmit()
+                                  if (e.key === 'Escape') setRenamingEntry(null)
+                                }}
+                                onBlur={handleRenameSubmit}
+                                aria-label={`Rename ${name}`}
+                                autoFocus
+                                className="min-w-0 flex-1"
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (isFolder) goTo(entryPath)
+                                else {
+                                  setSelectedName(name)
+                                  setViewingFile(entryPath)
+                                }
+                              }}
+                              className="flex w-full min-w-0 items-center gap-2 text-left"
+                            >
+                              <Icon
+                                size={16}
+                                className={isFolder ? FOLDER_ICON_CLASS : FILE_ICON_CLASS}
+                                fill={isFolder ? FOLDER_ICON_FILL : 'none'}
+                              />
+                              <span className="truncate">{name}</span>
+                            </button>
+                          )}
+                        </td>
+                        <td className="hidden whitespace-nowrap text-muted-foreground @md:table-cell">
+                          {!isFolder && entry.updatedAt
+                            ? new Date(entry.updatedAt).toLocaleDateString()
+                            : '—'}
+                        </td>
+                        <td className="hidden whitespace-nowrap text-muted-foreground @md:table-cell">
+                          {typeLabel(name, isFolder)}
+                        </td>
+                        <td className="hidden text-right font-mono text-[11px] whitespace-nowrap text-muted-foreground @md:table-cell">
+                          {!isFolder && entry.size != null ? formatBytes(entry.size) : '—'}
+                        </td>
+                        <td>
+                          {/* Hover reveals actions on fine pointers; touch devices have no
+                              hover, so keep them visible there (pointer-coarse) — otherwise
+                              rename/delete would be unreachable on mobile. */}
+                          <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100">
+                            <button
+                              type="button"
+                              onClick={() => handleRenameStart(name)}
+                              className="w7-toolbtn min-h-[24px] px-1"
+                              aria-label={`Rename ${name}`}
+                              title="Rename"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget({ name, isFolder })}
+                              className="w7-toolbtn w7-toolbtn--danger min-h-[24px] px-1"
+                              aria-label={`Delete ${name}`}
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           )
-        })}
+        )}
       </div>
 
-      {/* Status bar */}
-      <div className="flex shrink-0 items-center justify-between border-t border-white/[0.04] bg-black/20 px-3 py-1">
-        <span className="font-mono text-[9px] text-muted-foreground/50">
+      {/* Details pane */}
+      <div className="w7-detailspane flex shrink-0 items-center justify-between gap-3 px-3 py-1 text-[12px]">
+        <span className="shrink-0">
           {children.length} item{children.length !== 1 ? 's' : ''}
         </span>
+        {selectedEntry && (
+          <span className="min-w-0 truncate text-muted-foreground">
+            {selectedName} · {typeLabel(selectedName, selectedEntry.type === 'folder')}
+            {selectedEntry.type !== 'folder' && selectedEntry.size != null
+              ? ` · ${formatBytes(selectedEntry.size)}`
+              : ''}
+          </span>
+        )}
         <StorageMeter />
       </div>
 

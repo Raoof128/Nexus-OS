@@ -31,19 +31,17 @@ export default function ChatApp() {
 
   if (isLoading && sessions.length === 0) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-black/20" role="status">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-          <p className="font-mono text-[10px] tracking-widest text-primary/40 uppercase">
-            Initialising_Secure_Channel...
-          </p>
+      <div className="flex h-full w-full items-center justify-center bg-background" role="status">
+        <div className="flex w-48 flex-col gap-2">
+          <div role="progressbar" aria-label="Loading conversations" className="marquee" />
+          <p className="text-[12px] text-muted-foreground">Loading conversations…</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
+    <div className="flex h-full w-full overflow-hidden bg-background">
       {/* Desktop sidebar */}
       <div className="hidden w-[240px] shrink-0 @md:block @lg:w-[280px]">
         <ChatSidebar
@@ -69,14 +67,16 @@ export default function ChatApp() {
           />
         ) : (
           <div className="flex h-full flex-col">
-            <button
-              type="button"
-              onClick={() => setActiveSessionId(null)}
-              className="flex min-h-[44px] items-center gap-1.5 border-b border-white/[0.04] bg-white/[0.01] px-4 heading-ui text-xs text-muted-foreground transition-colors hover:text-white"
-            >
-              <ArrowLeft size={12} />
-              Sessions
-            </button>
+            <div className="w7-commandbar">
+              <button
+                type="button"
+                onClick={() => setActiveSessionId(null)}
+                className="w7-toolbtn min-h-[44px] px-3 text-[12px]"
+              >
+                <ArrowLeft size={14} aria-hidden="true" />
+                Conversations
+              </button>
+            </div>
             <div className="flex-1">
               <ChatWindow sessionId={activeSessionId} userId={userId} />
             </div>
@@ -89,9 +89,9 @@ export default function ChatApp() {
         {activeSessionId ? (
           <ChatWindow sessionId={activeSessionId} userId={userId} />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-3 p-8">
-            <MessageSquare size={32} className="text-primary/20" />
-            <p className="heading-ui text-xs text-muted-foreground/50">Select a conversation</p>
+          <div className="flex h-full flex-col items-center justify-center gap-3 bg-background p-8">
+            <MessageSquare size={32} className="text-[#3d5a80]" aria-hidden="true" />
+            <p className="text-[12px] text-muted-foreground">Select a conversation</p>
           </div>
         )}
       </div>

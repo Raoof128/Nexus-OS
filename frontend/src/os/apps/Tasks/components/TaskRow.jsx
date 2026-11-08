@@ -21,8 +21,7 @@ function formatDue(task) {
   if (diffDays === 0) label = 'Today'
   else if (diffDays === 1) label = 'Tomorrow'
   else if (diffDays === -1) label = 'Yesterday'
-  else
-    label = when.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  else label = when.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 
   if (task.due_at && !task.all_day) {
     label += ` · ${when.toLocaleTimeString(undefined, {
@@ -55,9 +54,7 @@ function TaskRow({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -8 }}
       transition={{ duration: DURATION.fast }}
-      className={`group flex items-center gap-3 rounded-lg border border-transparent px-2 py-2 transition-colors hover:border-white/[0.08] hover:bg-white/[0.03] ${
-        isSub ? 'ml-7' : ''
-      }`}
+      className={`w7-item group flex items-center gap-2 px-2 py-1 ${isSub ? 'ml-7' : ''}`}
     >
       <button
         type="button"
@@ -65,41 +62,34 @@ function TaskRow({
         aria-checked={completed}
         aria-label={completed ? `Mark "${task.title}" incomplete` : `Complete "${task.title}"`}
         onClick={() => onToggle(task)}
-        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 ${
-          completed
-            ? 'border-primary bg-primary text-black shadow-[0_0_10px_color-mix(in_srgb,var(--color-primary)_55%,transparent)]'
-            : 'border-white/30 text-transparent hover:border-primary/80'
-        }`}
+        className="flex h-[13px] w-[13px] shrink-0 items-center justify-center rounded-[2px] border border-[#8e8f8f] bg-white hover:border-[#3c7fb1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
       >
-        <Check size={12} strokeWidth={3} />
+        {completed && <Check size={11} strokeWidth={3} className="text-[#1e3287]" />}
       </button>
 
       <button
         type="button"
         onClick={() => onEdit(task)}
-        className="flex min-w-0 flex-1 flex-col items-start text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+        className="flex min-w-0 flex-1 flex-col items-start rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
       >
         <span
-          className={`truncate text-sm transition-colors ${
-            completed ? 'text-muted-foreground line-through' : 'text-white/90'
+          className={`max-w-full truncate text-[12px] ${
+            completed ? 'text-muted-foreground line-through' : 'text-foreground'
           }`}
         >
           {task.title}
         </span>
         {(due || task.recurrence) && (
-          <span className="mt-0.5 flex items-center gap-2 text-[11px]">
+          <span className="mt-0.5 flex flex-wrap items-center gap-1">
             {due && (
-              <span
-                className={
-                  due.overdue && !completed ? 'text-red-400' : 'text-muted-foreground'
-                }
-              >
+              <span className={`w7-badge ${due.overdue && !completed ? 'text-destructive' : ''}`}>
                 {due.label}
               </span>
             )}
             {task.recurrence && (
-              <span className="flex items-center gap-1 text-primary/70">
-                <Repeat2 size={11} /> {labelForRRule(task.recurrence)}
+              <span className="w7-badge">
+                <Repeat2 size={11} aria-hidden="true" />
+                {labelForRRule(task.recurrence)}
               </span>
             )}
           </span>
@@ -111,10 +101,10 @@ function TaskRow({
         aria-label={task.starred ? `Unstar "${task.title}"` : `Star "${task.title}"`}
         aria-pressed={task.starred}
         onClick={() => onStar(task)}
-        className={`shrink-0 rounded p-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
+        className={`w7-toolbtn h-6 w-6 px-0 focus-visible:opacity-100 ${
           task.starred
-            ? 'text-primary'
-            : 'text-white/25 opacity-0 hover:text-primary/80 group-hover:opacity-100'
+            ? 'text-amber-500'
+            : 'text-muted-foreground opacity-0 group-hover:opacity-100'
         }`}
       >
         <Star size={15} fill={task.starred ? 'currentColor' : 'none'} />
@@ -124,7 +114,7 @@ function TaskRow({
         type="button"
         aria-label={`Edit "${task.title}"`}
         onClick={() => onEdit(task)}
-        className="shrink-0 rounded p-1 text-white/25 opacity-0 transition-colors hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 group-hover:opacity-100"
+        className="w7-toolbtn h-6 w-6 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
       >
         <Pencil size={14} />
       </button>
@@ -137,7 +127,7 @@ function TaskRow({
         type="button"
         aria-label={`Delete "${task.title}"`}
         onClick={() => onDelete(task)}
-        className="shrink-0 rounded p-1 text-white/25 opacity-0 transition-colors hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60 group-hover:opacity-100"
+        className="w7-toolbtn w7-toolbtn--danger h-6 w-6 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
       >
         <Trash2 size={14} />
       </button>

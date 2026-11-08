@@ -17,11 +17,12 @@ import { SPRING } from '../../lib/motion'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useNotificationStore } from '../stores/notificationStore'
 
+// Win7 balloon-tip palette, readable on the light flyout surface.
 const TYPE_META = {
-  info: { icon: Info, color: '#06b6d4' },
-  success: { icon: CheckCircle, color: '#22c55e' },
-  warning: { icon: AlertTriangle, color: '#f59e0b' },
-  error: { icon: AlertCircle, color: '#ef4444' },
+  info: { icon: Info, color: '#1773c4' },
+  success: { icon: CheckCircle, color: '#2e7d32' },
+  warning: { icon: AlertTriangle, color: '#9d5d00' },
+  error: { icon: AlertCircle, color: '#c42b1c' },
 }
 
 function relativeTime(ts) {
@@ -41,8 +42,8 @@ function NotificationRow({ n, onRead, onRemove }) {
   const Icon = meta.icon
   return (
     <li
-      className={`group relative flex items-start gap-3 border-b border-white/5 px-4 py-3 transition-colors ${
-        n.read ? 'opacity-60' : 'bg-cyan-400/[0.04]'
+      className={`w7-item group relative flex items-start gap-2 border-b border-[#e5e5e5] px-3 py-2 ${
+        n.read ? '' : 'font-semibold'
       }`}
     >
       {/* Unread indicator */}
@@ -50,13 +51,13 @@ function NotificationRow({ n, onRead, onRemove }) {
         {!n.read && (
           <span
             className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: meta.color, boxShadow: `0 0 6px ${meta.color}` }}
+            style={{ backgroundColor: meta.color }}
             aria-label="Unread"
           />
         )}
       </span>
 
-      <Icon size={15} className="mt-0.5 shrink-0" style={{ color: meta.color }} />
+      <Icon size={16} className="mt-0.5 shrink-0" style={{ color: meta.color }} aria-hidden />
 
       <button
         type="button"
@@ -65,15 +66,13 @@ function NotificationRow({ n, onRead, onRemove }) {
         className="min-w-0 flex-1 text-left disabled:cursor-default"
         title={n.read ? undefined : 'Mark as read'}
       >
-        <p className="heading-ui truncate text-[12px] font-semibold leading-tight text-white">
-          {n.title}
-        </p>
+        <p className="truncate text-[12px] leading-snug text-foreground">{n.title}</p>
         {n.message && (
-          <p className="mt-0.5 line-clamp-3 font-mono text-[10px] leading-relaxed text-white/55">
+          <p className="mt-0.5 line-clamp-3 text-[12px] font-normal leading-snug text-foreground">
             {n.message}
           </p>
         )}
-        <p className="mt-1 font-mono text-[9px] uppercase tracking-wider text-white/30">
+        <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">
           {relativeTime(n.timestamp)}
         </p>
       </button>
@@ -82,9 +81,10 @@ function NotificationRow({ n, onRead, onRemove }) {
         type="button"
         onClick={() => onRemove(n.id)}
         aria-label="Remove notification"
-        className="shrink-0 rounded p-1 text-white/25 opacity-0 transition-all hover:text-white/70 focus-visible:opacity-100 group-hover:opacity-100"
+        title="Remove"
+        className="w7-toolbtn shrink-0 p-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
       >
-        <X size={12} />
+        <X size={12} aria-hidden />
       </button>
     </li>
   )
@@ -135,82 +135,76 @@ export default function NotificationCenter() {
         >
           <Motion.aside
             ref={trapRef}
-            initial={{ x: '105%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '105%' }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
             transition={SPRING.smooth}
-            className="absolute bottom-14 right-2 top-2 flex w-[360px] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-2xl border border-cyan-400/30 bg-[#070b1a]/95 shadow-[0_0_50px_rgba(0,245,255,0.18)] backdrop-blur-xl"
+            className="nx-flyout absolute bottom-12 right-3 flex max-h-[min(560px,calc(100dvh-4rem))] w-[360px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden"
             onMouseDown={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Notification centre"
           >
             {/* Header */}
-            <div className="flex items-center gap-2 border-b border-cyan-400/20 px-4 py-3">
-              <Bell size={16} className="text-cyan-300" />
-              <h2 className="heading-ui flex-1 text-[13px] font-bold tracking-wide text-cyan-50">
+            <div className="flex items-center gap-1 border-b border-[#c5cad3] px-3 py-2">
+              <Bell size={16} className="shrink-0 text-[#3d5a80]" aria-hidden />
+              <h2 className="w7-subheading flex flex-1 items-center gap-2 text-[12px]">
                 Notifications
-                {unread > 0 && (
-                  <span className="ml-2 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-black">
-                    {unread}
-                  </span>
-                )}
+                {unread > 0 && <span className="w7-badge">{unread}</span>}
               </h2>
 
               <button
                 type="button"
                 onClick={toggleDoNotDisturb}
                 aria-pressed={doNotDisturb}
-                title={doNotDisturb ? 'Do Not Disturb: ON' : 'Do Not Disturb: OFF'}
-                className={`rounded-md p-1.5 transition-colors ${
-                  doNotDisturb
-                    ? 'bg-amber-500/15 text-amber-300'
-                    : 'text-cyan-200/60 hover:text-cyan-100'
-                }`}
+                aria-label="Do not disturb"
+                title={doNotDisturb ? 'Do not disturb: on' : 'Do not disturb: off'}
+                className="w7-toolbtn p-1"
               >
-                {doNotDisturb ? <BellOff size={14} /> : <BellRing size={14} />}
+                {doNotDisturb ? (
+                  <BellOff size={14} aria-hidden />
+                ) : (
+                  <BellRing size={14} aria-hidden />
+                )}
               </button>
 
               <button
                 type="button"
                 onClick={closePanel}
                 aria-label="Close notification centre"
-                className="rounded-md p-1.5 text-cyan-200/60 transition-colors hover:text-cyan-100"
+                title="Close"
+                className="w7-toolbtn p-1"
               >
-                <X size={14} />
+                <X size={14} aria-hidden />
               </button>
             </div>
 
             {/* Action bar */}
             {notifications.length > 0 && (
-              <div className="flex items-center gap-2 border-b border-white/5 px-3 py-2">
+              <div className="flex items-center gap-1 border-b border-[#c5cad3] px-2 py-1">
                 <button
                   type="button"
                   onClick={markAllRead}
                   disabled={unread === 0}
-                  className="flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[10px] text-cyan-200/70 transition-colors hover:bg-cyan-400/10 hover:text-cyan-100 disabled:opacity-30"
+                  className="w7-toolbtn flex items-center gap-1.5 px-2 py-0.5 text-[12px]"
                 >
-                  <CheckCheck size={12} /> Mark all read
+                  <CheckCheck size={14} aria-hidden /> Mark all as read
                 </button>
                 <button
                   type="button"
                   onClick={clearAll}
-                  className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[10px] text-red-300/70 transition-colors hover:bg-red-500/10 hover:text-red-200"
+                  className="w7-toolbtn w7-toolbtn--danger ml-auto flex items-center gap-1.5 px-2 py-0.5 text-[12px]"
                 >
-                  <Trash2 size={12} /> Clear all
+                  <Trash2 size={14} aria-hidden /> Clear all
                 </button>
               </div>
             )}
 
             {/* List */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="w7-sunken min-h-0 flex-1 overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="flex h-full flex-col items-center justify-center gap-2 px-6 py-10 text-center">
-                  <BellOff size={28} className="text-cyan-200/20" />
-                  <p className="font-mono text-[11px] text-cyan-200/40">No notifications</p>
-                  <p className="font-mono text-[9px] text-cyan-200/25">
-                    System alerts will appear here.
-                  </p>
+                <div className="flex h-full min-h-[160px] items-center justify-center px-6 py-10 text-center">
+                  <p className="text-[12px] text-muted-foreground">No new notifications.</p>
                 </div>
               ) : (
                 <ul>

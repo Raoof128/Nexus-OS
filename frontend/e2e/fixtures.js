@@ -87,7 +87,7 @@ const TASK_ITEMS = [
     id: 't1',
     list_id: 'l1',
     title: 'Renew passport',
-    status: 'needs_action',
+    status: 'needsAction',
     starred: true,
     due: new Date(now + 864e5).toISOString().slice(0, 10),
     position: 0,
@@ -97,7 +97,7 @@ const TASK_ITEMS = [
     id: 't2',
     list_id: 'l1',
     title: 'Book dentist appointment',
-    status: 'needs_action',
+    status: 'needsAction',
     starred: false,
     position: 1,
     parent_id: null,
@@ -112,6 +112,66 @@ const TASK_ITEMS = [
     parent_id: null,
   },
 ]
+
+const EMAILS = [
+  {
+    id: 'e1',
+    user_id: USER.id,
+    account_id: 'a1',
+    folder: 'inbox',
+    from_name: 'Sydney Library',
+    from_address: 'notices@library.example',
+    subject: 'Your reservation is ready',
+    snippet: 'The book you reserved is waiting at the front desk.',
+    provider_date: new Date(now - 36e5).toISOString(),
+    is_read: false,
+    is_starred: true,
+  },
+  {
+    id: 'e2',
+    user_id: USER.id,
+    account_id: 'a1',
+    folder: 'inbox',
+    from_name: 'Example Pty Ltd',
+    from_address: 'careers@example.test',
+    subject: 'Interview availability',
+    snippet: 'Thanks for applying for the Frontend Engineer role…',
+    provider_date: new Date(now - 864e5).toISOString(),
+    is_read: true,
+    is_starred: false,
+  },
+]
+const VERSES = [1, 2, 3, 4, 5].map((v) => ({
+  id: `jhn-1-${v}`,
+  book_id: 'JHN',
+  book: 'John',
+  chapter: 1,
+  verse: v,
+  content: [
+    'In the beginning was the Word, and the Word was with God, and the Word was God.',
+    'He was with God in the beginning.',
+    'Through Him all things were made, and without Him nothing was made that has been made.',
+    'In Him was life, and that life was the light of men.',
+    'The Light shines in the darkness, and the darkness has not overcome it.',
+  ][v - 1],
+}))
+const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url')
+const FAKE_JWT = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: 'anon-e2e', role: 'authenticated', exp: Math.floor(now / 1000) + 3600 })}.e2e`
+const SUPABASE_SESSION = {
+  access_token: FAKE_JWT,
+  token_type: 'bearer',
+  expires_in: 3600,
+  expires_at: Math.floor(now / 1000) + 3600,
+  refresh_token: 'e2e-refresh',
+  user: {
+    id: 'anon-e2e',
+    aud: 'authenticated',
+    role: 'authenticated',
+    is_anonymous: true,
+    app_metadata: {},
+    user_metadata: {},
+  },
+}
 
 function json(route, body, status = 200) {
   return route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
@@ -146,8 +206,20 @@ export async function mockApi(page, { authenticated = true } = {}) {
     if (method === 'GET') return json(route, [])
     return json(route, {})
   })
-  // Supabase Realtime / Aion: refuse quietly.
-  await page.route('http://127.0.0.1:8798/**', (route) => route.abort())
+  // Supabase (PostgREST reads, anonymous Aion auth). Realtime sockets are
+  // refused; everything else gets canned rows.
+  await page.route('http://127.0.0.1:8798/**', (route) => {
+    const url = new URL(route.request().url())
+    const p = url.pathname
+    if (p === '/auth/v1/signup' || p === '/auth/v1/token') {
+      return json(route, SUPABASE_SESSION)
+    }
+    if (p === '/auth/v1/user') return json(route, SUPABASE_SESSION.user)
+    if (p === '/rest/v1/nexus_emails') return json(route, EMAILS)
+    if (p === '/rest/v1/bible_verses') return json(route, VERSES)
+    if (p.startsWith('/rest/v1/')) return json(route, [])
+    return route.abort()
+  })
   await page.route('ws://127.0.0.1:8798/**', (route) => route.abort())
 }
 

@@ -40,21 +40,18 @@ function ReorderableLists({ lists, activeListId, starredActive, onSelect, onDele
               type="button"
               data-list-btn
               onClick={() => onSelect(list.id)}
-              aria-current={active ? 'true' : undefined}
-              className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
-                active
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-white/70 hover:bg-white/[0.04]'
-              }`}
+              aria-current={active ? 'page' : undefined}
+              className="w7-item flex min-w-0 flex-1 items-center gap-2 px-2 py-1 text-left"
             >
-              <ListChecks size={15} className="shrink-0 opacity-70" />
+              <ListChecks size={16} className="shrink-0 text-[#3d5a80]" />
               <span className="truncate">{list.name}</span>
             </button>
             <button
               type="button"
               aria-label={`Delete list "${list.name}"`}
+              title={`Delete list "${list.name}"`}
               onClick={() => onDelete(list)}
-              className="shrink-0 rounded p-1 text-white/20 opacity-0 transition-colors hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/60 group-hover:opacity-100"
+              className="w7-toolbtn w7-toolbtn--danger ml-0.5 shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
             >
               <Trash2 size={13} />
             </button>
@@ -102,34 +99,40 @@ export default function ListSidebar({
   }
 
   return (
-    <aside className="flex w-52 shrink-0 flex-col border-r border-white/[0.06] bg-black/20">
-      <div className="flex items-center justify-between px-3 py-3">
-        <span className="heading-display text-sm text-primary">Tasks</span>
+    <aside className="w7-navpane flex w-52 shrink-0 flex-col">
+      <div className="flex items-center justify-between px-3 py-2">
+        <span className="w7-subheading">Task lists</span>
         <button
           type="button"
           aria-label="New list"
+          title="New list"
+          aria-expanded={creating}
           onClick={() => setCreating((v) => !v)}
-          className="rounded p-1 text-white/50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          className="w7-toolbtn"
         >
           <Plus size={16} />
+          <span>New list</span>
         </button>
       </div>
 
-      <button
-        type="button"
-        onClick={onToggleStarred}
-        aria-pressed={starredActive}
-        className={`mx-2 mb-1 flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
-          starredActive
-            ? 'bg-primary/15 text-primary'
-            : 'text-white/70 hover:bg-white/[0.04]'
-        }`}
-      >
-        <Star size={15} fill={starredActive ? 'currentColor' : 'none'} />
-        Starred
-      </button>
+      <div className="px-2 pb-1">
+        <button
+          type="button"
+          onClick={onToggleStarred}
+          aria-pressed={starredActive}
+          className="w7-item flex w-full items-center gap-2 px-2 py-1 text-left"
+          aria-current={starredActive ? 'page' : undefined}
+        >
+          <Star
+            size={16}
+            className="shrink-0 text-amber-500"
+            fill={starredActive ? 'currentColor' : 'none'}
+          />
+          Starred
+        </button>
+      </div>
 
-      <div className="mx-2 my-1 h-px bg-white/[0.06]" />
+      <div className="mx-3 my-1 h-px bg-[#d6e5f5]" />
 
       <nav
         ref={navRef}
@@ -157,20 +160,22 @@ export default function ListSidebar({
               onKeyDown={(e) => e.key === 'Escape' && setCreating(false)}
               placeholder="List name"
               aria-label="New list name"
-              className="min-w-0 flex-1 rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-sm text-white/90 placeholder:text-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+              className="min-w-0 flex-1"
             />
             <button
               type="submit"
               aria-label="Create list"
-              className="rounded p-1 text-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+              title="Create list"
+              className="w7-toolbtn h-6 w-6 px-0"
             >
               <Check size={15} />
             </button>
             <button
               type="button"
               aria-label="Cancel new list"
+              title="Cancel"
               onClick={() => setCreating(false)}
-              className="rounded p-1 text-white/40 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              className="w7-toolbtn h-6 w-6 px-0"
             >
               <X size={15} />
             </button>

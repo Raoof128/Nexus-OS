@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, Reorder } from 'framer-motion'
-import { ChevronDown, ChevronRight, ListChecks } from 'lucide-react'
+import { ChevronDown, ChevronRight, ListChecks, Loader2 } from 'lucide-react'
 import { useTaskItems, useTaskMutations } from '../hooks/useTasks'
 import { useTaskReminders } from '../hooks/useTaskReminders'
 import { between } from '../lib/position'
@@ -59,8 +59,10 @@ export default function TaskListView({
   rootRef,
 }) {
   const { data: items = [], isLoading } = useTaskItems(listId, true)
-  const { createTask, updateTask, moveTask, deleteTask, clearCompleted } =
-    useTaskMutations(listId, true)
+  const { createTask, updateTask, moveTask, deleteTask, clearCompleted } = useTaskMutations(
+    listId,
+    true,
+  )
   const [editing, setEditing] = useState(null) // null | 'new' | task
   const [showCompleted, setShowCompleted] = useState(true)
   const [focusedTaskId, setFocusedTaskId] = useState(null)
@@ -125,9 +127,7 @@ export default function TaskListView({
         e.preventDefault()
         const siblings = items
           .filter(
-            (t) =>
-              (t.parent_id || null) === (task.parent_id || null) &&
-              t.status === 'needsAction',
+            (t) => (t.parent_id || null) === (task.parent_id || null) && t.status === 'needsAction',
           )
           .sort((a, b) => (a.position || 0) - (b.position || 0))
         const i = siblings.findIndex((t) => t.id === task.id)
@@ -163,11 +163,9 @@ export default function TaskListView({
       id: task.id,
       patch: { status: task.status === 'completed' ? 'needsAction' : 'completed' },
     })
-  const handleStar = (task) =>
-    updateTask.mutate({ id: task.id, patch: { starred: !task.starred } })
+  const handleStar = (task) => updateTask.mutate({ id: task.id, patch: { starred: !task.starred } })
   const handleDelete = (task) => deleteTask.mutate(task.id)
-  const handleAdd = ({ title, due }) =>
-    createTask.mutate({ title, due, all_day: true })
+  const handleAdd = ({ title, due }) => createTask.mutate({ title, due, all_day: true })
   const handleSave = (payload) => {
     if (editing && editing !== 'new') {
       updateTask.mutate({ id: editing.id, patch: payload })
@@ -194,30 +192,25 @@ export default function TaskListView({
   )
 
   return (
-    <section className="flex min-w-0 flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
-        <h2 className="heading-display flex items-center gap-2 text-base text-white">
+    <section className="flex min-w-0 flex-1 flex-col bg-white">
+      <header className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
+        <h2 className="w7-heading min-w-0 truncate">
           {starredActive ? 'Starred' : listName || 'Tasks'}
         </h2>
-        <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
-          Sort
+        <label className="flex shrink-0 items-center gap-2 text-muted-foreground">
+          Sort by
           <select
             value={sortMode}
             onChange={(e) => onSortModeChange(e.target.value)}
             aria-label="Sort tasks"
-            className="rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1 text-xs text-white/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           >
-            <option value="myorder" className="bg-zinc-900">
-              My order
-            </option>
-            <option value="date" className="bg-zinc-900">
-              Date
-            </option>
+            <option value="myorder">My order</option>
+            <option value="date">Date</option>
           </select>
         </label>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3">
+      <div className="flex-1 overflow-y-auto px-3 pb-3">
         {!starredActive && (
           <div className="mb-3">
             <QuickAddBar onAdd={handleAdd} disabled={!listId} />
@@ -237,12 +230,15 @@ export default function TaskListView({
         </AnimatePresence>
 
         {isLoading ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">Loading…</p>
+          <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
+            <Loader2 size={16} className="animate-spin text-primary" aria-hidden="true" />
+            <span>Loading tasks…</span>
+          </div>
         ) : parents.length === 0 && completed.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
-            <ListChecks size={28} className="opacity-40" />
-            <p className="text-sm">
-              {starredActive ? 'No starred tasks in this list.' : 'No tasks yet.'}
+            <ListChecks size={28} className="text-[#3d5a80] opacity-60" aria-hidden="true" />
+            <p>
+              {starredActive ? 'No starred tasks in this list.' : 'No tasks yet. Add one above.'}
             </p>
           </div>
         ) : (
@@ -268,12 +264,12 @@ export default function TaskListView({
 
         {completed.length > 0 && (
           <div className="mt-4">
-            <div className="flex items-center">
+            <div className="flex items-center gap-2 border-b border-border pb-1">
               <button
                 type="button"
                 onClick={() => setShowCompleted((v) => !v)}
                 aria-expanded={showCompleted}
-                className="flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground hover:text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+                className="w7-toolbtn"
               >
                 {showCompleted ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 Completed ({completed.length})
@@ -281,7 +277,7 @@ export default function TaskListView({
               <button
                 type="button"
                 onClick={() => setConfirmClear(true)}
-                className="ml-3 rounded px-2 py-0.5 text-[11px] text-white/50 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50"
+                className="w7-toolbtn w7-toolbtn--danger"
               >
                 Clear completed
               </button>

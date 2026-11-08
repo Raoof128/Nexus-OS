@@ -4,30 +4,25 @@ import { OT_BOOKS, NT_BOOKS, getBookBackground, getOmittedVerses } from '../lib/
 import { useAionReader } from '../hooks/useAionReader'
 import { useReaderFontScale } from '../hooks/useReaderFontScale'
 
+// Verse text uses a readable serif stack; UI text stays Segoe UI (inherited).
+const READING_FONT = 'Cambria, Georgia, "Times New Roman", serif'
+
 // ── Sub-view: Book list ─────────────────────────────────────
 function BookList({ onSelectBook }) {
   const [testament, setTestament] = useState('OT')
   const books = testament === 'OT' ? OT_BOOKS : NT_BOOKS
 
   return (
-    <div className="flex h-full w-full flex-col bg-[#0a0a0c]">
-      <div className="border-b border-white/[0.06] px-4 py-2.5">
-        <span className="font-mono text-xs tracking-widest text-white/40 uppercase">
-          Aion · Bible
-        </span>
-      </div>
-
-      {/* OT / NT toggle */}
-      <div className="flex gap-2 border-b border-white/[0.06] px-4 py-3">
+    <div className="flex h-full w-full flex-col bg-white">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#d9d9d9] bg-w7-pane px-3 py-1.5">
+        <h1 className="w7-heading mr-2 text-[12px]">Bible</h1>
         {['OT', 'NT'].map((t) => (
           <button
             key={t}
+            type="button"
             onClick={() => setTestament(t)}
-            className={`rounded-lg px-3 py-1 font-mono text-xs transition-colors ${
-              testament === t
-                ? 'bg-amber-500/20 text-amber-400'
-                : 'text-white/30 hover:text-white/60'
-            }`}
+            aria-pressed={testament === t}
+            className="w7-toolbtn"
           >
             {t === 'OT'
               ? `Old Testament (${OT_BOOKS.length})`
@@ -37,21 +32,27 @@ function BookList({ onSelectBook }) {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="grid grid-cols-2 gap-1 p-3">
-          {books.map((book) => (
-            <button
-              key={book.id}
-              onClick={() => onSelectBook(book)}
-              aria-label={`${book.name}, ${book.chapters} chapters`}
-              className="rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2.5 text-left transition-colors hover:border-amber-500/20 hover:bg-amber-500/[0.04]"
-            >
-              <p className="mb-0.5 font-mono text-[9px] font-bold tracking-widest text-amber-500/80">
-                {book.id}
-              </p>
-              <p className="font-mono text-xs text-white/80">{book.name}</p>
-              <p className="font-mono text-[9px] text-white/25">{book.chapters} ch.</p>
-            </button>
-          ))}
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2.5 p-3">
+          {books.map((book) => {
+            const bg = getBookBackground(book.id)
+            return (
+              <button
+                key={book.id}
+                type="button"
+                onClick={() => onSelectBook(book)}
+                aria-label={`${book.name}, ${book.chapters} chapters`}
+                className="w7-card w7-item flex flex-col overflow-hidden text-left"
+              >
+                {bg && <img src={bg} alt="" loading="lazy" className="h-16 w-full object-cover" />}
+                <span className="flex flex-col gap-0.5 px-2 py-1.5">
+                  <span className="text-[12px] text-foreground">{book.name}</span>
+                  <span className="text-[12px] text-muted-foreground">
+                    {book.chapters} {book.chapters === 1 ? 'chapter' : 'chapters'}
+                  </span>
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>
@@ -61,26 +62,29 @@ function BookList({ onSelectBook }) {
 // ── Sub-view: Chapter list ──────────────────────────────────
 function ChapterList({ book, onSelectChapter, onBack }) {
   return (
-    <div className="flex h-full w-full flex-col bg-[#0a0a0c]">
-      <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-2.5">
+    <div className="flex h-full w-full flex-col bg-white">
+      <div className="flex items-center gap-2 border-b border-[#d9d9d9] bg-w7-pane px-3 py-1.5">
         <button
+          type="button"
           onClick={onBack}
           aria-label="Back to book list"
-          className="rounded p-1 text-amber-400/60 hover:bg-white/[0.05] hover:text-amber-400"
+          title="Back to book list"
+          className="w7-toolbtn h-6 w-6 px-0"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         </button>
-        <span className="font-mono text-xs text-white/70">{book.name}</span>
+        <h1 className="w7-heading text-[12px]">{book.name}</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="grid grid-cols-5 gap-1 p-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(64px,1fr))] gap-2 p-3">
           {Array.from({ length: book.chapters }, (_, i) => i + 1).map((ch) => (
             <button
               key={ch}
+              type="button"
               onClick={() => onSelectChapter(ch)}
               aria-label={`Chapter ${ch}`}
-              className="rounded-lg border border-white/[0.05] bg-white/[0.02] py-2 font-mono text-xs text-white/60 transition-colors hover:border-amber-500/20 hover:bg-amber-500/[0.04] hover:text-amber-300"
+              className="w7-card w7-item py-2 text-[12px] text-foreground"
             >
               {ch}
             </button>
@@ -97,10 +101,10 @@ function ChapterList({ book, onSelectChapter, onBack }) {
 function OmittedVerseNote({ bookName, chapterNum, verse }) {
   return (
     <div className="flex items-start gap-3 px-2 py-1">
-      <span className="w-7 shrink-0 pt-0.5 text-right font-mono text-[11px] leading-7 text-white/20">
+      <span className="w-7 shrink-0 pt-0.5 text-right text-[11px] leading-7 text-muted-foreground">
         {verse}
       </span>
-      <span className="flex-1 font-mono text-[11px] leading-7 text-white/30 italic">
+      <span className="flex-1 text-[13px] italic leading-7 text-muted-foreground">
         {bookName} {chapterNum}:{verse} is not found in the earliest manuscripts and is omitted in
         this translation.
       </span>
@@ -109,7 +113,7 @@ function OmittedVerseNote({ bookName, chapterNum, verse }) {
 }
 
 // ── Sub-view: Chapter viewer ────────────────────────────────
-function ChapterViewer({ book, chapter, onBack, onAskAion, onNavigateChapter }) {
+function ChapterViewer({ book, chapter, onBack, onAskAion, onPick, onNavigateChapter }) {
   const { verses, isLoading, error, refetch } = useAionReader(book.id, chapter)
   const [activeVerse, setActiveVerse] = useState(null)
   const [scrollPct, setScrollPct] = useState(0)
@@ -139,148 +143,141 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onNavigateChapter }) 
     navigator.clipboard.writeText(text).catch(() => {})
   }
 
-  const bgUrl = getBookBackground(book.id)
-
   return (
-    <div className="relative flex h-full w-full flex-col bg-[#0a0a0c]">
-      {/* Per-book background art — vivid, same as original (gradient handles readability) */}
-      {bgUrl && (
-        <div
-          className="pointer-events-none absolute inset-0 z-0"
-          style={{
-            backgroundImage: `url(${bgUrl})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center top',
-          }}
-        />
-      )}
-      {/* Original gradient: rgba(10,10,12,0.45) top → rgba(10,10,12,0.95) bottom */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{
-          background:
-            'linear-gradient(to bottom, rgba(10,10,12,0.45) 0%, rgba(10,10,12,0.95) 100%)',
-        }}
-      />
-
-      {/* Header */}
-      <div className="relative z-10 flex items-center gap-3 border-b border-white/[0.06] px-3 py-2.5">
+    <div className="flex h-full w-full flex-col bg-white">
+      {/* Toolbar: back, book/chapter pickers, prev/next, text size, progress */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#d9d9d9] bg-w7-pane px-3 py-1.5">
         <button
+          type="button"
           onClick={onBack}
           aria-label="Back to chapter list"
-          className="rounded p-1 text-amber-400/60 hover:bg-white/[0.05] hover:text-amber-400"
+          title="Back to chapter list"
+          className="w7-toolbtn h-6 w-6 px-0"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         </button>
 
-        {/* Prev / Next arrows in header */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => hasPrev && onNavigateChapter(chapterNum - 1)}
-            disabled={!hasPrev}
-            aria-label="Previous chapter"
-            className="rounded-full bg-white/[0.06] p-1 text-white/50 disabled:opacity-30 hover:bg-violet-500/20 hover:text-violet-300"
-          >
-            <ArrowLeft className="h-3 w-3" />
-          </button>
-          <span className="min-w-[5rem] text-center font-mono text-xs text-white/70">
-            {book.name} · {chapterNum}
-          </span>
-          <button
-            onClick={() => hasNext && onNavigateChapter(chapterNum + 1)}
-            disabled={!hasNext}
-            aria-label="Next chapter"
-            className="rounded-full bg-white/[0.06] p-1 text-white/50 disabled:opacity-30 hover:bg-violet-500/20 hover:text-violet-300"
-          >
-            <ArrowLeft className="h-3 w-3 rotate-180" />
-          </button>
-        </div>
+        <select
+          aria-label="Book"
+          value={book.id}
+          onChange={(e) => {
+            const next = [...OT_BOOKS, ...NT_BOOKS].find((b) => b.id === e.target.value)
+            if (next) onPick(next, 1)
+          }}
+          className="max-w-[12rem]"
+        >
+          <optgroup label="Old Testament">
+            {OT_BOOKS.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="New Testament">
+            {NT_BOOKS.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </optgroup>
+        </select>
+        <select
+          aria-label="Chapter"
+          value={chapterNum}
+          onChange={(e) => onNavigateChapter(Number(e.target.value))}
+        >
+          {Array.from({ length: book.chapters }, (_, i) => i + 1).map((ch) => (
+            <option key={ch} value={ch}>
+              {ch}
+            </option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          onClick={() => hasPrev && onNavigateChapter(chapterNum - 1)}
+          disabled={!hasPrev}
+          aria-label="Previous chapter"
+          title="Previous chapter"
+          className="w7-toolbtn"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" /> Previous
+        </button>
+        <button
+          type="button"
+          onClick={() => hasNext && onNavigateChapter(chapterNum + 1)}
+          disabled={!hasNext}
+          aria-label="Next chapter"
+          title="Next chapter"
+          className="w7-toolbtn"
+        >
+          Next <ArrowLeft className="h-3.5 w-3.5 rotate-180" aria-hidden="true" />
+        </button>
 
         {/* Right cluster: text-size control + reading progress */}
-        <div className="ml-auto flex items-center gap-2.5">
-          {/* Font size: A− / A+ (like other Bible apps) */}
-          <div className="flex items-center gap-0.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-0.5">
-            <button
-              onClick={decrease}
-              disabled={!canDecrease}
-              aria-label="Decrease text size"
-              title="Decrease text size"
-              className="rounded px-1.5 py-0.5 font-serif text-[11px] leading-none text-amber-400/70 transition-colors hover:bg-white/[0.06] hover:text-amber-300 disabled:opacity-25 disabled:hover:bg-transparent"
-            >
-              A−
-            </button>
-            <span
-              className="min-w-[1.6rem] text-center font-mono text-[9px] text-white/30 tabular-nums"
-              aria-hidden="true"
-            >
-              {level.label}
-            </span>
-            <button
-              onClick={increase}
-              disabled={!canIncrease}
-              aria-label="Increase text size"
-              title="Increase text size"
-              className="rounded px-1.5 py-0.5 font-serif text-[15px] leading-none text-amber-400/70 transition-colors hover:bg-white/[0.06] hover:text-amber-300 disabled:opacity-25 disabled:hover:bg-transparent"
-            >
-              A+
-            </button>
-          </div>
-
-          {/* Reading progress bar */}
-          <div className="h-0.5 w-16 overflow-hidden rounded-full bg-white/[0.08]">
-            <div
-              className="h-full rounded-full bg-violet-500/70 transition-all"
-              style={{ width: `${scrollPct}%` }}
-            />
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-[12px] text-muted-foreground">Text size</span>
+          <button
+            type="button"
+            onClick={decrease}
+            disabled={!canDecrease}
+            aria-label="Decrease text size"
+            title="Decrease text size"
+            className="w7-toolbtn"
+          >
+            A−
+          </button>
+          <span className="min-w-[2rem] text-center text-[12px] text-foreground" aria-hidden="true">
+            {level.label}
+          </span>
+          <button
+            type="button"
+            onClick={increase}
+            disabled={!canIncrease}
+            aria-label="Increase text size"
+            title="Increase text size"
+            className="w7-toolbtn"
+          >
+            A+
+          </button>
+          <div
+            role="progressbar"
+            aria-label="Reading progress"
+            aria-valuenow={scrollPct}
+            aria-valuemin="0"
+            aria-valuemax="100"
+            className="w-20"
+          >
+            <div style={{ width: `${scrollPct}%` }} />
           </div>
         </div>
       </div>
 
       {/* States */}
       {isLoading && (
-        <div
-          className="relative z-10 flex flex-1 flex-col gap-3 p-6"
-          role="status"
-          aria-label="Loading verses"
-        >
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-5 animate-pulse rounded bg-white/[0.04]"
-              style={{ width: `${85 - i * 8}%` }}
-            />
-          ))}
+        <div className="flex flex-1 flex-col gap-3 p-6" role="status" aria-label="Loading verses">
+          <div role="progressbar" className="marquee" aria-label="Loading verses" />
+          <p className="text-[12px] text-muted-foreground">Loading the chapter…</p>
         </div>
       )}
 
       {error && (
-        <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-3 p-6">
-          <p className="font-mono text-xs text-white/30">Couldn&apos;t load chapter</p>
-          <button
-            onClick={refetch}
-            className="flex items-center gap-2 rounded border border-violet-500/30 px-4 py-1.5 font-mono text-xs text-violet-400 hover:bg-violet-500/10"
-          >
-            <RefreshCw className="h-3 w-3" /> Tap to retry
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
+          <p role="alert" className="w7-error text-[12px]">
+            Couldn&apos;t load this chapter. Check your connection and try again.
+          </p>
+          <button type="button" onClick={refetch} className="w7-btn">
+            <RefreshCw className="h-3 w-3" aria-hidden="true" /> Try again
           </button>
         </div>
       )}
 
       {!isLoading && !error && (
-        <div className="relative z-10 flex-1 overflow-y-auto" onScroll={handleScroll}>
-          <div className="mx-auto w-full max-w-[680px] px-4 pb-20 pt-7">
-            {/* Chapter heading: ——— BOOK NAME ——— */}
-            <div className="mb-2 flex items-center gap-3">
-              <div className="h-px flex-1 bg-white/[0.08]" />
-              <span className="font-mono text-[10px] font-bold tracking-[0.25em] text-white/40 uppercase">
-                {book.name}
-              </span>
-              <div className="h-px flex-1 bg-white/[0.08]" />
-            </div>
-
-            {/* Large chapter number — purple glow, thin weight */}
-            <p className="mb-8 text-center font-mono text-5xl font-thin tracking-widest text-violet-400/80">
-              {chapterNum}
-            </p>
+        <div className="flex-1 overflow-y-auto" onScroll={handleScroll}>
+          <article className="mx-auto w-full max-w-[70ch] px-5 pb-16 pt-6">
+            <h2 className="w7-heading mb-5 text-[14px]">
+              {book.name} {chapterNum}
+            </h2>
 
             {/* Verses */}
             {verses.map((v, i) => {
@@ -318,69 +315,68 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onNavigateChapter }) 
                   ))}
                   <div className={isParagraphBreak ? 'mt-5' : ''}>
                     <button
+                      type="button"
                       onClick={() => setActiveVerse(activeVerse === v.verse ? null : v.verse)}
-                      className={`w-full rounded-lg px-2 py-1.5 text-left transition-colors ${
+                      className={`w-full rounded-[3px] border px-2 py-1 text-left ${
                         activeVerse === v.verse
-                          ? 'border border-amber-500/25 bg-amber-500/[0.05]'
-                          : 'border border-transparent hover:bg-white/[0.02]'
+                          ? 'border-w7-select-border bg-w7-select'
+                          : 'border-transparent hover:bg-w7-hover'
                       }`}
                       aria-label={`Verse ${v.verse}: ${v.content}`}
                     >
-                      <div className="flex items-start gap-3">
-                        {/* Verse number — purple, right-aligned in fixed column */}
-                        <span className="w-7 shrink-0 pt-0.5 text-right font-mono text-[11px] leading-7 text-violet-400/60">
+                      <span
+                        className="text-foreground"
+                        style={{
+                          fontFamily: READING_FONT,
+                          fontSize: `${level.size}px`,
+                          lineHeight: level.lineHeight,
+                        }}
+                      >
+                        {/* Verse number: small superscript in the title blue */}
+                        <sup className="mr-1 select-none font-sans text-[10px] font-bold text-w7-title">
                           {v.verse}
-                        </span>
-                        {/* Verse content — size driven by the reader font-scale control */}
-                        <span
-                          className="flex-1 text-white/90"
-                          style={{
-                            fontFamily: 'Georgia, "Times New Roman", serif',
-                            fontSize: `${level.size}px`,
-                            lineHeight: level.lineHeight,
-                          }}
-                        >
-                          {isFirst ? (
-                            <>
-                              <span
-                                className="float-left mr-1 font-bold leading-none text-amber-400"
-                                style={{
-                                  fontSize: `${level.size * 2.7}px`,
-                                  lineHeight: `${level.size * 2.7}px`,
-                                  fontFamily: 'Georgia, serif',
-                                }}
-                              >
-                                {dropCap}
-                              </span>
-                              {rest}
-                            </>
-                          ) : (
-                            v.content
-                          )}
-                        </span>
-                      </div>
+                        </sup>
+                        {isFirst ? (
+                          <>
+                            <span
+                              className="float-left mr-1 font-bold leading-none text-w7-title"
+                              style={{
+                                fontSize: `${level.size * 2.7}px`,
+                                lineHeight: `${level.size * 2.7}px`,
+                              }}
+                            >
+                              {dropCap}
+                            </span>
+                            {rest}
+                          </>
+                        ) : (
+                          v.content
+                        )}
+                      </span>
                     </button>
 
                     {/* Actions on tap */}
                     {activeVerse === v.verse && (
-                      <div className="mt-1 flex gap-2 pl-10">
+                      <div className="mt-1 flex gap-2 pl-2">
                         <button
+                          type="button"
                           onClick={() =>
                             onAskAion(
                               `What does ${book.name} ${chapterNum}:${v.verse} mean? "${v.content}"`,
                             )
                           }
-                          className="flex items-center gap-1.5 rounded border border-violet-500/20 bg-violet-500/[0.06] px-2.5 py-1 font-mono text-[10px] text-violet-300/80 hover:bg-violet-500/10"
+                          className="w7-btn"
                           aria-label={`Ask Aion about ${book.name} ${chapterNum}:${v.verse}`}
                         >
-                          <MessageSquare className="h-2.5 w-2.5" /> Ask Aion
+                          <MessageSquare className="h-3 w-3" aria-hidden="true" /> Ask Aion
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleCopy(v)}
-                          className="flex items-center gap-1.5 rounded border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 font-mono text-[10px] text-white/40 hover:bg-white/[0.05]"
+                          className="w7-btn"
                           aria-label={`Copy verse ${v.verse}`}
                         >
-                          <Copy className="h-2.5 w-2.5" /> Copy
+                          <Copy className="h-3 w-3" aria-hidden="true" /> Copy
                         </button>
                       </div>
                     )}
@@ -404,29 +400,31 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onNavigateChapter }) 
 
             {/* Bottom navigation — Previous / Next chapter */}
             {verses.length > 0 && (
-              <div className="mt-12 border-t border-white/[0.06] pt-6">
-                <p className="mb-4 text-center font-mono text-[11px] text-white/20">
+              <div className="mt-10 border-t border-[#d9d9d9] pt-5">
+                <p className="mb-3 text-center text-[12px] text-muted-foreground">
                   Chapter {chapterNum} of {book.chapters}
                 </p>
-                <div className="flex justify-center gap-4">
+                <div className="flex justify-center gap-3">
                   <button
+                    type="button"
                     onClick={() => hasPrev && onNavigateChapter(chapterNum - 1)}
                     disabled={!hasPrev}
-                    className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-5 py-2.5 font-mono text-xs text-white/60 transition-colors hover:border-violet-500/30 hover:bg-violet-500/[0.08] hover:text-violet-300 disabled:opacity-30"
+                    className="w7-btn"
                   >
-                    <ArrowLeft className="h-3 w-3" /> Previous
+                    <ArrowLeft className="h-3 w-3" aria-hidden="true" /> Previous
                   </button>
                   <button
+                    type="button"
                     onClick={() => hasNext && onNavigateChapter(chapterNum + 1)}
                     disabled={!hasNext}
-                    className="flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-5 py-2.5 font-mono text-xs text-white/60 transition-colors hover:border-violet-500/30 hover:bg-violet-500/[0.08] hover:text-violet-300 disabled:opacity-30"
+                    className="w7-btn"
                   >
-                    Next <ArrowLeft className="h-3 w-3 rotate-180" />
+                    Next <ArrowLeft className="h-3 w-3 rotate-180" aria-hidden="true" />
                   </button>
                 </div>
               </div>
             )}
-          </div>
+          </article>
         </div>
       )}
     </div>
@@ -456,6 +454,7 @@ export default function AionReader({ view, onNavigate }) {
         chapter={readerView.chapter}
         onBack={() => setReaderView({ type: 'chapters', book: readerView.book })}
         onAskAion={handleAskAion}
+        onPick={(book, ch) => setReaderView({ type: 'chapter', book, chapter: ch })}
         onNavigateChapter={(ch) =>
           setReaderView({ type: 'chapter', book: readerView.book, chapter: ch })
         }

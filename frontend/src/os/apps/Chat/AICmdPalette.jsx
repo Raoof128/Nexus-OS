@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Command } from 'cmdk'
-import { Bot, Check, Cpu, Plus, Sparkles, Terminal, Zap } from 'lucide-react'
+import { Check, Cpu, Plus, Sparkles, Zap } from 'lucide-react'
 import { useSuggest } from '../../../hooks/useSuggest'
 import { MEDIA_CONFIG } from '../../../lib/mediaConfig'
 
@@ -58,52 +58,46 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
       }}
       label="Global AI Command Menu"
       contentClassName="fixed inset-0 z-[1001] flex items-center justify-center p-3 sm:p-4"
-      className="neon-border flex w-full max-w-lg sm:max-w-xl md:max-w-2xl max-h-[85dvh] flex-col overflow-hidden rounded-2xl glass-panel p-0 shadow-[0_0_80px_hsl(var(--neon-yellow)/0.08)]"
-      overlayClassName="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-md"
+      className="window active flex w-full max-w-lg sm:max-w-xl md:max-w-2xl max-h-[85dvh] flex-col overflow-hidden"
+      overlayClassName="fixed inset-0 z-[1000] bg-black/20"
     >
       <span className="sr-only" role="heading" aria-level="2">
         AI Command Menu
       </span>
       <p className="sr-only">Search commands or request AI-powered media suggestions.</p>
 
-      {/* Header bar */}
-      <div className="flex items-center gap-3 border-b border-white/[0.06] bg-white/[0.02] px-5 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 ring-1 ring-primary/30">
-          <Terminal size={14} className="text-primary" />
-        </div>
-        <Command.Input
-          autoFocus
-          placeholder="nexus:// enter command..."
-          className="w-full bg-transparent heading-ui text-sm text-white outline-none placeholder:text-muted-foreground/50"
-        />
-        <kbd className="hidden rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[10px] text-muted-foreground sm:inline">
-          ESC
-        </kbd>
+      <div className="title-bar" aria-hidden="true">
+        <div className="title-bar-text">Ask AI</div>
       </div>
 
-      <Command.List className="flex-1 overflow-y-auto custom-scrollbar p-3">
+      {/* Search row */}
+      <div className="flex items-center gap-2 border-b border-border bg-w7-surface p-2">
+        <Command.Input
+          type="search"
+          autoFocus
+          placeholder="Type a command or ask for suggestions"
+          className="min-w-0 flex-1"
+        />
+        <kbd className="hidden text-[11px] text-muted-foreground sm:inline">Esc</kbd>
+      </div>
+
+      <Command.List className="flex-1 overflow-y-auto bg-background p-2">
         <Command.Empty className="py-10 text-center">
-          <Cpu size={24} className="mx-auto mb-3 text-muted-foreground/30" />
-          <p className="heading-ui text-xs text-muted-foreground/50">NO_COMMANDS_FOUND</p>
+          <Cpu size={24} className="mx-auto mb-3 text-muted-foreground" aria-hidden="true" />
+          <p className="text-[12px] text-muted-foreground">No commands match your search.</p>
         </Command.Empty>
 
         <Command.Group
-          heading={
-            <span className="heading-display text-[10px] tracking-[0.2em] text-primary/50">
-              Neural Operations
-            </span>
-          }
+          heading={<span className="w7-subheading block px-1 pb-1">Actions</span>}
           className="mb-2"
         >
           <Command.Item
             onSelect={handleSuggest}
-            className="group my-1 flex cursor-pointer items-center gap-3 rounded-xl px-4 py-3.5 transition-all hover:bg-primary/[0.06] aria-selected:bg-primary/10 aria-selected:ring-1 aria-selected:ring-primary/20"
+            className="w7-item my-0.5 flex cursor-pointer items-center gap-3 px-2 py-2"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20 transition-all group-hover:bg-primary/20 group-hover:shadow-[0_0_12px_hsl(var(--neon-yellow)/0.2)]">
-              <Zap size={16} className="text-primary" />
-            </div>
+            <Zap size={16} className="shrink-0 text-[#3d5a80]" aria-hidden="true" />
             <div>
-              <p className="heading-ui text-sm font-semibold text-white">
+              <p className="text-[12px] font-semibold text-foreground">
                 Suggest {config?.singular || 'Media'}
               </p>
               <p className="text-[11px] text-muted-foreground">
@@ -116,47 +110,30 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
         {/* Loading state */}
         {suggesting && (
           <div
-            className="my-4 flex flex-col items-center gap-3 py-6"
+            className="my-4 flex flex-col items-center gap-2 py-6"
             role="status"
             aria-label="Loading suggestions"
           >
-            <div className="relative">
-              <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-              <Bot
-                size={16}
-                className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-primary"
-              />
+            <div className="w-48">
+              <div role="progressbar" aria-label="Finding suggestions" className="marquee" />
             </div>
-            <p className="heading-display text-[10px] tracking-[0.3em] text-primary/70 animate-pulse">
-              Neural Link Active
-            </p>
+            <p className="text-[12px] text-muted-foreground">Finding suggestions…</p>
           </div>
         )}
 
         {/* Error */}
         {suggestError && (
-          <div className="neon-border mx-1 rounded-xl bg-destructive/[0.06] p-4">
-            <p className="heading-display text-[10px] tracking-wider text-destructive/70 mb-1">
-              SYS_ERROR
-            </p>
-            <p className="text-sm text-destructive">{suggestError}</p>
-          </div>
+          <p role="alert" className="w7-error mx-1 text-[12px]">
+            {suggestError}
+          </p>
         )}
 
         {/* Results */}
         {result && result.suggestions && (
           <div className="mt-2 space-y-2">
-            <div className="flex items-center justify-between px-2 py-1">
-              <p className="heading-display text-[10px] tracking-[0.2em] text-primary/50">
-                Recommendations
-              </p>
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-[9px] heading-ui font-semibold uppercase tracking-wider ${
-                  result.source === 'gemini'
-                    ? 'bg-primary/15 text-primary ring-1 ring-primary/20'
-                    : 'bg-accent/15 text-accent ring-1 ring-accent/20'
-                }`}
-              >
+            <div className="flex items-center justify-between px-1 py-1">
+              <p className="w7-subheading">Suggestions</p>
+              <span className="w7-badge">
                 {result.source === 'local' ? 'Fallback' : 'Gemini Live'}
               </span>
             </div>
@@ -164,15 +141,16 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
             {result.suggestions.map((s, i) => {
               const added = addedIndices.has(i)
               return (
-                <div
-                  key={`${s.title}-${i}`}
-                  className="neon-border glass-panel rounded-xl p-4 transition-all hover:bg-white/[0.02]"
-                >
+                <div key={`${s.title}-${i}`} className="w7-card p-3">
                   <div className="mb-2 flex items-start justify-between gap-3">
                     <div className="flex items-start gap-2.5">
-                      <Sparkles size={14} className="mt-0.5 shrink-0 text-accent" />
+                      <Sparkles
+                        size={14}
+                        className="mt-0.5 shrink-0 text-[#3d5a80]"
+                        aria-hidden="true"
+                      />
                       <div>
-                        <h4 className="heading-ui text-sm font-bold text-white">{s.title}</h4>
+                        <h4 className="text-[13px] font-semibold text-foreground">{s.title}</h4>
                         {(s.creator || s.year) && (
                           <p className="mt-0.5 text-[11px] text-muted-foreground">
                             {s.creator && (
@@ -186,40 +164,32 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
                         )}
                       </div>
                     </div>
-                    {s.genre && (
-                      <span className="shrink-0 rounded-md bg-white/[0.04] px-2 py-0.5 text-[10px] text-muted-foreground ring-1 ring-white/[0.06]">
-                        {s.genre}
-                      </span>
-                    )}
+                    {s.genre && <span className="w7-badge shrink-0">{s.genre}</span>}
                   </div>
                   {s.pitch && (
-                    <p className="ml-6 mb-3 text-[13px] leading-relaxed text-neutral-400">
+                    <p className="mb-3 ml-6 text-[12px] leading-relaxed text-foreground">
                       {s.pitch}
                     </p>
                   )}
 
                   {/* Quick-add to archive */}
                   {added ? (
-                    <div className="ml-6 flex items-center gap-2 text-green-400">
-                      <Check size={14} />
-                      <span className="heading-ui text-[11px] tracking-wider">
-                        Added to Archive
-                      </span>
+                    <div className="ml-6 flex items-center gap-2 text-success">
+                      <Check size={14} aria-hidden="true" />
+                      <span className="text-[12px]">Added to archive</span>
                     </div>
                   ) : (
                     onAdd && (
                       <div className="ml-6 flex flex-wrap items-center gap-1.5">
-                        <span className="mr-1 text-[10px] text-muted-foreground/60 heading-ui tracking-wider">
-                          Add as:
-                        </span>
+                        <span className="mr-1 text-[11px] text-muted-foreground">Add as:</span>
                         {config?.statuses.map((status) => (
                           <button
                             key={status}
                             type="button"
                             onClick={() => handleAddToArchive(s, status, i)}
-                            className="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-[10px] font-semibold heading-ui tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_8px_hsl(var(--neon-yellow)/0.15)]"
+                            className="w7-btn gap-1 px-2 text-[12px]"
                           >
-                            <Plus size={10} />
+                            <Plus size={10} aria-hidden="true" />
                             {status}
                           </button>
                         ))}

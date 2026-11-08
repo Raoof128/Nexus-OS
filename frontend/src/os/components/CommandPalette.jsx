@@ -10,7 +10,6 @@ import {
   Download,
   Palette,
   Image as ImageIcon,
-  Sparkles,
   RotateCw,
   Search,
   CornerDownLeft,
@@ -54,8 +53,6 @@ export default function CommandPalette() {
 
   const setWallpaper = useSettingsStore((s) => s.setWallpaper)
   const setAccentColor = useSettingsStore((s) => s.setAccentColor)
-  const toggleScanlines = useSettingsStore((s) => s.toggleScanlines)
-  const toggleOrbs = useSettingsStore((s) => s.toggleOrbs)
   const currentWallpaper = useSettingsStore((s) => s.wallpaper)
 
   useEffect(() => onInstallAvailabilityChange((p) => setInstallable(Boolean(p))), [])
@@ -201,25 +198,6 @@ export default function CommandPalette() {
     }
 
     // Appearance commands
-    items.push(
-      {
-        id: 'appearance:scanlines',
-        group: 'Appearance',
-        label: 'Toggle CRT scanlines',
-        keywords: 'scanlines crt effect appearance toggle',
-        icon: Sparkles,
-        action: () => toggleScanlines(),
-      },
-      {
-        id: 'appearance:orbs',
-        group: 'Appearance',
-        label: 'Toggle ambient orbs',
-        keywords: 'orbs ambient glow background appearance toggle',
-        icon: Sparkles,
-        action: () => toggleOrbs(),
-      },
-    )
-
     for (const wp of Object.values(WALLPAPER_PRESETS || {})) {
       if (wp.id === currentWallpaper) continue
       items.push({
@@ -236,8 +214,8 @@ export default function CommandPalette() {
       items.push({
         id: `accent:${key}`,
         group: 'Appearance',
-        label: `Accent: ${preset.label}`,
-        keywords: `accent color theme ${preset.label} ${key}`,
+        label: `Window colour: ${preset.label}`,
+        keywords: `window colour color accent theme ${preset.label} ${key}`,
         icon: Palette,
         action: () => setAccentColor(key),
       })
@@ -250,8 +228,6 @@ export default function CommandPalette() {
     minimizeAll,
     cascadeWindows,
     closeAll,
-    toggleScanlines,
-    toggleOrbs,
     setWallpaper,
     setAccentColor,
     currentWallpaper,
@@ -314,42 +290,43 @@ export default function CommandPalette() {
           onMouseDown={close}
           role="presentation"
         >
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/20" />
           <Motion.div
-            initial={{ opacity: 0, y: -12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.98 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-            className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-cyan-400/40 bg-[#070b1a]/95 shadow-[0_0_50px_rgba(0,245,255,0.25)]"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.12 }}
+            className="nx-flyout relative w-full max-w-[560px] overflow-hidden"
             onMouseDown={(e) => e.stopPropagation()}
             role="dialog"
             aria-label="Command palette"
             aria-modal="true"
           >
-            <div className="flex items-center gap-3 border-b border-cyan-400/20 px-4 py-3">
-              <Search size={18} className="shrink-0 text-cyan-300/70" />
+            <div className="flex items-center gap-2 border-b border-[#c5cad3] bg-background px-3 py-2">
+              <Search size={16} className="shrink-0 text-[#3d5a80]" aria-hidden />
               <input
                 ref={inputRef}
+                type="search"
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value)
                   setActiveIdx(0)
                 }}
                 onKeyDown={onInputKeyDown}
-                placeholder="Search apps and commands…"
-                className="w-full bg-transparent font-[Oxanium] text-sm text-cyan-50 placeholder:text-cyan-200/40 focus:outline-none"
+                placeholder="Search apps and commands"
+                className="min-w-0 flex-1"
                 aria-label="Search apps and commands"
                 autoComplete="off"
                 spellCheck={false}
               />
-              <kbd className="hidden shrink-0 items-center gap-1 rounded border border-cyan-400/30 px-1.5 py-0.5 text-[10px] text-cyan-200/60 sm:flex">
-                <Command size={10} /> K
+              <kbd className="hidden shrink-0 items-center gap-1 border border-[#c5cad3] bg-white px-1.5 py-px text-[11px] text-muted-foreground sm:flex">
+                <Command size={10} aria-hidden /> K
               </kbd>
             </div>
 
-            <div ref={listRef} className="max-h-[50vh] overflow-y-auto py-2">
+            <div ref={listRef} className="max-h-[50vh] overflow-y-auto bg-background py-1">
               {filtered.length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-cyan-200/50">
+                <p className="px-4 py-6 text-center text-[12px] text-muted-foreground">
                   No matching commands.
                 </p>
               ) : (
@@ -361,29 +338,29 @@ export default function CommandPalette() {
                   return (
                     <div key={item.id}>
                       {showHeader && (
-                        <p className="px-4 pb-1 pt-3 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-300/50">
-                          {item.group}
-                        </p>
+                        <p className="px-3 pb-0.5 pt-2 text-[11px] text-w7-title">{item.group}</p>
                       )}
                       <button
                         type="button"
                         data-idx={idx}
                         onMouseMove={() => setActiveIdx(idx)}
                         onClick={() => run(item.action)}
-                        className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition ${
-                          active
-                            ? 'bg-cyan-400/15 text-cyan-50'
-                            : 'text-cyan-100/80 hover:bg-cyan-400/10'
+                        className={`w7-item mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 px-2 py-1 text-left text-[12px] ${
+                          active ? 'is-selected' : ''
                         }`}
                       >
                         {Icon ? (
-                          <Icon size={16} className="shrink-0 text-cyan-300/80" />
+                          <Icon size={16} className="shrink-0 text-[#3d5a80]" aria-hidden />
                         ) : (
                           <span className="w-4 shrink-0" />
                         )}
                         <span className="truncate">{item.label}</span>
                         {active && (
-                          <CornerDownLeft size={14} className="ml-auto shrink-0 text-cyan-300/60" />
+                          <CornerDownLeft
+                            size={14}
+                            className="ml-auto shrink-0 text-muted-foreground"
+                            aria-hidden
+                          />
                         )}
                       </button>
                     </div>

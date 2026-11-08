@@ -137,9 +137,11 @@
      classes, so a *classed* button is reset to bare and keeps its Tailwind
      styling. Get the Win7 push button by using a bare <button> or adding
      `.w7-btn`. 7.css's own composite controls and its state classes
-     (.default / .focused / .active) are excluded from the reset. */
+     (.default / .focused / .active) are excluded from the reset. Drag-and-drop
+     wrappers (dnd-kit sets role=button + aria-roledescription on a bare div)
+     are reset too. */
   .win7
-    :is(button, [role='button'])[class]:not(
+    :is(button[class], [role='button'][class], [role='button'][aria-roledescription]):not(
       .w7-btn,
       .default,
       .focused,
@@ -164,7 +166,7 @@
     z-index: auto;
   }
   .win7
-    :is(button, [role='button'])[class]:not(
+    :is(button[class], [role='button'][class], [role='button'][aria-roledescription]):not(
       .w7-btn,
       .default,
       .focused,
@@ -176,7 +178,7 @@
       [role='menuitem'] > *
     )::before,
   .win7
-    :is(button, [role='button'])[class]:not(
+    :is(button[class], [role='button'][class], [role='button'][aria-roledescription]):not(
       .w7-btn,
       .default,
       .focused,
@@ -238,6 +240,25 @@
   /* Preflight zeroes the 2px UA margin 7.css's slider layout relies on. */
   .win7 input[type='range'] {
     margin: 2px;
+  }
+
+  /* 7.css's `.group` helper (flex column, 6px gap, stacked margins) collides
+     with Tailwind's `group` marker class used for group-hover: it turned
+     table rows and list rows into flex columns. Tailwind's marker always
+     sits beside other classes, so only a lone class="group" keeps 7.css's
+     helper (as in the 7.css docs); Tailwind layout utilities still win. */
+  .win7 .group:not(fieldset, [class='group']) {
+    display: revert;
+    flex-direction: revert;
+    gap: normal;
+  }
+  .win7 .group:not([class='group']) + .group:not([class='group']) {
+    margin-top: 0;
+  }
+  /* 7.css pulls <pre> inside a .window-body out by -6px (for its demo
+     layout); inside Nexus app windows that overlapped terminal lines. */
+  .win7 .nx-window > .window-body pre {
+    margin: 0;
   }
 
   /* 7.css hides the real checkbox/radio and draws one on `+ label`. Inputs

@@ -19,7 +19,8 @@ function cascadePosition(zStack, _size) {
   // Simple cascading: each new window is offset by 30px
   const offset = (zStack.length % 10) * 30
   return {
-    x: Math.min(offset + 60, window.innerWidth - 100),
+    // Start right of the desktop icon column (DesktopIcons cell is 78px).
+    x: Math.min(offset + 96, window.innerWidth - 100),
     y: Math.min(offset + 40, window.innerHeight - TASKBAR_HEIGHT - 100),
   }
 }

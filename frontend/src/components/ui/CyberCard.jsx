@@ -60,83 +60,65 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
       onClick={handleCardClick}
       layout="position"
       transition={SPRING.soft}
-      className="neon-border group relative cursor-pointer overflow-hidden rounded-xl glass-panel p-4 hover:brightness-110 hover:shadow-[0_0_20px_hsl(var(--neon-yellow)/0.15)] sm:p-6 transition-all duration-200"
+      className="w7-card w7-item group relative cursor-pointer p-3 @sm:p-4"
     >
-      {/* Neon glowing artifact behind */}
-      <div className="absolute -inset-1 z-0 bg-gradient-to-r from-primary/20 via-transparent to-primary/5 opacity-0 blur-xl transition-opacity duration-500 group-hover:opacity-100" />
-
-      <div className="relative z-10 flex flex-col h-full">
-        <div className="flex justify-between items-start mb-3">
-          <Icon
-            className="h-5 w-5 text-primary drop-shadow-[0_0_8px_hsl(var(--neon-yellow)/0.8)] sm:h-6 sm:w-6"
-            aria-hidden="true"
-          />
-          <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-mono font-medium text-primary sm:text-xs">
-            {item.status}
-          </span>
+      <div className="relative flex h-full flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <Icon className="h-4 w-4 shrink-0 text-[#3d5a80]" aria-hidden="true" />
+          <span className="w7-badge">{item.status}</span>
         </div>
 
-        <h3 className="heading-ui mb-1 text-base font-bold tracking-tight text-white transition-colors group-hover:text-primary line-clamp-2 sm:text-lg">
-          {item.title}
-        </h3>
+        <h3 className="line-clamp-2 text-[13px] font-semibold text-foreground">{item.title}</h3>
         {item.creator && item.creator !== '—' && (
-          <p className="font-mono text-xs text-muted-foreground mb-3 sm:text-sm">
-            // {item.creator}
-          </p>
+          <p className="text-[12px] text-muted-foreground">{item.creator}</p>
         )}
 
-        <div className="mt-auto pt-3 border-t border-white/5 flex flex-wrap items-center gap-1.5 sm:gap-2">
-          {mediaType !== 'job' && item.genre && (
-            <span className="inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground ring-1 ring-inset ring-white/10 sm:px-2 sm:py-1 sm:text-xs">
-              {item.genre}
-            </span>
-          )}
+        <div className="mt-auto flex flex-wrap items-center gap-1 border-t border-border pt-2">
+          {mediaType !== 'job' && item.genre && <span className="w7-badge">{item.genre}</span>}
           {mediaType !== 'job' && item.rating != null && item.rating > 0 && (
-            <span className="inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-yellow-500 ring-1 ring-inset ring-white/10 sm:px-2 sm:py-1 sm:text-xs">
-              ★ {item.rating}/5
-            </span>
+            <span className="text-[12px] text-amber-500">★ {item.rating}/5</span>
           )}
 
-          <div className="ml-auto flex gap-0.5 sm:gap-1 sm:opacity-60 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+          <div className="ml-auto flex gap-0.5">
             {prev && (
               <button
                 type="button"
                 onClick={handleRevert}
-                className="rounded-md bg-white/5 p-2 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
+                className="w7-toolbtn px-1"
                 title={`Back to ${prev}`}
                 aria-label={`Back to ${prev}`}
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={14} aria-hidden="true" />
               </button>
             )}
             {next && (
               <button
                 type="button"
                 onClick={handleAdvance}
-                className="rounded-md bg-white/5 p-2 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
+                className="w7-toolbtn px-1"
                 title={`Move to ${next}`}
                 aria-label={`Move to ${next}`}
               >
-                <ChevronRight size={14} />
+                <ChevronRight size={14} aria-hidden="true" />
               </button>
             )}
             <button
               type="button"
               onClick={handleEdit}
-              className="rounded-md bg-white/5 p-2 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
+              className="w7-toolbtn px-1"
               title="Edit"
               aria-label="Edit"
             >
-              <Pencil size={14} />
+              <Pencil size={14} aria-hidden="true" />
             </button>
             <button
               type="button"
               onClick={handleDeleteClick}
-              className="rounded-md bg-white/5 p-2 text-muted-foreground transition-colors hover:bg-destructive/20 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black sm:p-1.5"
+              className="w7-toolbtn w7-toolbtn--danger px-1"
               title="Delete"
               aria-label="Delete"
             >
-              <Trash2 size={14} />
+              <Trash2 size={14} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -145,7 +127,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
       <ConfirmDialog
         open={confirmDelete}
         id={item.id}
-        title="Delete Entry"
+        title="Delete entry"
         message="This action cannot be undone. Are you sure you want to delete this entry?"
         onConfirm={handleDeleteConfirm}
         onCancel={() => setConfirmDelete(false)}

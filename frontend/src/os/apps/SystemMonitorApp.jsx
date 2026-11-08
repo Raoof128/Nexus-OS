@@ -1,49 +1,59 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Activity, Globe, MonitorCog, Wifi } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useWindowStore } from '../stores/windowStore'
 
 const API_URL = import.meta.env.VITE_API_URL
 
+const TABS = [
+  { id: 'performance', label: 'Performance' },
+  { id: 'services', label: 'Services' },
+  { id: 'applications', label: 'Applications' },
+]
+
+const STATUS_LABELS = {
+  online: 'Online',
+  offline: 'Offline',
+  checking: 'Checking…',
+}
+
 function StatusDot({ status }) {
   const colors = {
-    online: 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.6)]',
-    offline: 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]',
-    checking: 'bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.6)] animate-pulse',
+    online: 'bg-[#2e7d32]',
+    offline: 'bg-destructive',
+    checking: 'bg-warning',
   }
-  return <div className={`h-2 w-2 rounded-full ${colors[status] || colors.checking}`} />
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-block h-2 w-2 rounded-full ${colors[status] || colors.checking}`}
+    />
+  )
 }
 
-function Panel({ icon: Icon, title, children }) {
+function DataRow({ label, value }) {
   return (
-    <div className="glass-panel relative rounded-xl p-3 @sm:p-4">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-      <div className="mb-3 flex items-center gap-2">
-        <Icon size={12} className="text-primary" />
-        <h3 className="heading-ui text-[10px] font-semibold uppercase tracking-wider text-white/60">
-          {title}
-        </h3>
-      </div>
-      {children}
+    <div className="flex items-center justify-between gap-4 py-0.5">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right text-foreground">{value}</span>
     </div>
   )
 }
 
-function DataRow({ label, value, mono = true }) {
-  return (
-    <div className="flex items-center justify-between py-0.5">
-      <span className="font-mono text-[10px] text-muted-foreground">{label}</span>
-      <span className={`text-[10px] text-white/80 ${mono ? 'font-mono' : 'heading-ui'}`}>
-        {value}
-      </span>
-    </div>
-  )
+function formatTime() {
+  return new Date().toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  })
 }
 
 export default function SystemMonitorApp() {
   const { session } = useAuth()
   const windows = useWindowStore((s) => s.windows)
   const zStack = useWindowStore((s) => s.zStack)
+
+  const [activeTab, setActiveTab] = useState('performance')
 
   // API healthcheck
   const [apiStatus, setApiStatus] = useState('checking')
@@ -58,25 +68,11 @@ export default function SystemMonitorApp() {
       const latency = Math.round(performance.now() - start)
       setApiLatency(latency)
       setApiStatus(res.ok ? 'online' : 'offline')
-      setLastCheck(
-        new Date().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        }),
-      )
+      setLastCheck(formatTime())
     } catch {
       setApiLatency(null)
       setApiStatus('offline')
-      setLastCheck(
-        new Date().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        }),
-      )
+      setLastCheck(formatTime())
     }
   }, [])
 
@@ -90,6 +86,9 @@ export default function SystemMonitorApp() {
   const perfMemory = performance.memory
   const heapUsed = perfMemory ? `${Math.round(perfMemory.usedJSHeapSize / 1048576)}MB` : '—'
   const heapLimit = perfMemory ? `${Math.round(perfMemory.jsHeapSizeLimit / 1048576)}MB` : '—'
+  const heapPercent = perfMemory
+    ? Math.min(100, Math.round((perfMemory.usedJSHeapSize / perfMemory.jsHeapSizeLimit) * 100))
+    : 0
 
   const connection = navigator.connection
   const networkType = connection?.effectiveType || '—'
@@ -98,70 +97,146 @@ export default function SystemMonitorApp() {
   // Window stats
   const windowCount = Object.keys(windows).length
   const visibleCount = zStack.filter((id) => windows[id]?.state !== 'minimized').length
-  const appCounts = Object.values(windows).reduce((acc, w) => {
-    acc[w.appId] = (acc[w.appId] || 0) + 1
-    return acc
-  }, {})
+  const windowList = zStack.map((id) => windows[id]).filter(Boolean)
 
   const user = session?.user
 
   return (
-    <div className="h-full w-full overflow-y-auto custom-scrollbar p-3 @sm:p-4">
-      <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2 @sm:gap-4">
-        {/* API Health */}
-        <Panel icon={Globe} title="API Health">
-          <div className="space-y-1">
-            <div className="mb-2 flex items-center gap-2">
-              <StatusDot status={apiStatus} />
-              <span className="heading-display text-sm font-bold text-white">
-                {apiStatus === 'online'
-                  ? 'ONLINE'
-                  : apiStatus === 'offline'
-                    ? 'OFFLINE'
-                    : 'CHECKING'}
+    <div className="flex h-full w-full flex-col bg-background text-[12px]">
+      <menu role="tablist" aria-label="Task Manager sections" className="shrink-0">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            id={`sysmon-tab-${tab.id}`}
+            aria-controls={`sysmon-panel-${tab.id}`}
+            aria-selected={activeTab === tab.id}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </menu>
+
+      {activeTab === 'performance' && (
+        <article
+          role="tabpanel"
+          id="sysmon-panel-performance"
+          aria-labelledby="sysmon-tab-performance"
+          className="flex-1 space-y-3 overflow-y-auto p-3"
+        >
+          <fieldset>
+            <legend>Memory</legend>
+            {perfMemory ? (
+              <div
+                role="progressbar"
+                aria-label="JS heap usage"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={heapPercent}
+                className="mb-2"
+              >
+                <div style={{ width: `${heapPercent}%` }} />
+              </div>
+            ) : null}
+            <DataRow label="JS heap used" value={heapUsed} />
+            <DataRow label="Heap limit" value={heapLimit} />
+          </fieldset>
+
+          <fieldset>
+            <legend>Network</legend>
+            <DataRow label="Connection" value={networkType} />
+            <DataRow label="Downlink" value={downlink} />
+          </fieldset>
+        </article>
+      )}
+
+      {activeTab === 'services' && (
+        <article
+          role="tabpanel"
+          id="sysmon-panel-services"
+          aria-labelledby="sysmon-tab-services"
+          className="flex-1 space-y-3 overflow-y-auto p-3"
+        >
+          <fieldset>
+            <legend>API</legend>
+            <div className="flex items-center justify-between gap-4 py-0.5">
+              <span className="text-muted-foreground">Status</span>
+              <span className="flex items-center gap-2 text-foreground">
+                <StatusDot status={apiStatus} />
+                {STATUS_LABELS[apiStatus] || STATUS_LABELS.checking}
               </span>
             </div>
             <DataRow label="Latency" value={apiLatency != null ? `${apiLatency}ms` : '—'} />
             <DataRow label="Endpoint" value="/healthz" />
             <DataRow label="Last check" value={lastCheck || '—'} />
-          </div>
-        </Panel>
+          </fieldset>
 
-        {/* Realtime */}
-        <Panel icon={Wifi} title="Realtime">
-          <div className="space-y-1">
-            <div className="mb-2 flex items-center gap-2">
-              {/* NOTE: Supabase Realtime does not expose channel connection state easily;
-                  showing ACTIVE (subscription registered) rather than CONNECTED. */}
-              <StatusDot status="online" />
-              <span className="heading-display text-sm font-bold text-white">ACTIVE</span>
+          <fieldset>
+            <legend>Realtime</legend>
+            {/* NOTE: Supabase Realtime does not expose channel connection state easily;
+                showing Subscribed (subscription registered) rather than Connected. */}
+            <div className="flex items-center justify-between gap-4 py-0.5">
+              <span className="text-muted-foreground">Status</span>
+              <span className="flex items-center gap-2 text-foreground">
+                <StatusDot status="online" />
+                Subscribed
+              </span>
             </div>
             <DataRow label="Protocol" value="WebSocket" />
             <DataRow label="Provider" value="Supabase" />
-          </div>
-        </Panel>
+          </fieldset>
 
-        {/* Session */}
-        <Panel icon={MonitorCog} title="Session">
-          <div className="space-y-1">
+          <fieldset>
+            <legend>Session</legend>
             <DataRow label="User" value={user?.email || '—'} />
             <DataRow label="Provider" value={user?.app_metadata?.provider || 'email'} />
             <DataRow label="Windows" value={`${visibleCount} visible / ${windowCount} total`} />
-            {Object.entries(appCounts).map(([appId, count]) => (
-              <DataRow key={appId} label={`  ${appId}`} value={`×${count}`} />
-            ))}
-          </div>
-        </Panel>
+          </fieldset>
+        </article>
+      )}
 
-        {/* Performance */}
-        <Panel icon={Activity} title="Performance">
-          <div className="space-y-1">
-            <DataRow label="JS Heap" value={heapUsed} />
-            <DataRow label="Heap Limit" value={heapLimit} />
-            <DataRow label="Network" value={networkType} />
-            <DataRow label="Downlink" value={downlink} />
-          </div>
-        </Panel>
+      {activeTab === 'applications' && (
+        <article
+          role="tabpanel"
+          id="sysmon-panel-applications"
+          aria-labelledby="sysmon-tab-applications"
+          className="flex-1 overflow-y-auto p-3"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Status</th>
+                <th>Program</th>
+              </tr>
+            </thead>
+            <tbody>
+              {windowList.length > 0 ? (
+                windowList.map((w) => (
+                  <tr key={w.windowId}>
+                    <td>{w.title}</td>
+                    <td>{w.state === 'minimized' ? 'Minimized' : 'Running'}</td>
+                    <td>{w.appId}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={3}>No windows open</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </article>
+      )}
+
+      <div className="status-bar shrink-0">
+        <p className="status-bar-field">Windows: {windowCount}</p>
+        <p className="status-bar-field">Visible: {visibleCount}</p>
+        <p className="status-bar-field">
+          API: {STATUS_LABELS[apiStatus] || STATUS_LABELS.checking}
+        </p>
       </div>
     </div>
   )

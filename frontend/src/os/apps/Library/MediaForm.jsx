@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 
-const inputClass =
-  'w-full rounded-md border border-white/10 bg-black/50 px-4 py-2 font-mono text-sm text-white transition-all placeholder:text-white/40 focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary'
+const inputClass = 'w-full'
 
-const labelClass = 'mb-1 block text-xs font-semibold uppercase text-muted-foreground'
+const labelClass = 'mb-1 block text-[12px] text-foreground'
 
 export default function MediaForm({
   config,
@@ -13,7 +12,7 @@ export default function MediaForm({
   submitting,
   error,
   submitLabel,
-  submittingLabel = 'Saving...',
+  submittingLabel = 'Saving…',
   idPrefix = 'media',
   placeholders = {},
 }) {
@@ -43,16 +42,14 @@ export default function MediaForm({
   return (
     <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
       {error && (
-        <div
-          id={`${idPrefix}-form-error`}
-          role="alert"
-          className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm font-bold uppercase tracking-wider text-destructive"
-        >
+        <p id={`${idPrefix}-form-error`} role="alert" className="w7-error mb-3">
           {error}
-        </div>
+        </p>
       )}
 
-      <div className="space-y-4">
+      <fieldset className="space-y-3">
+        <legend>Details</legend>
+
         <div>
           <label htmlFor={`${idPrefix}-title`} className={labelClass}>
             Title
@@ -100,14 +97,14 @@ export default function MediaForm({
               className={inputClass}
             >
               {config.statuses.map((s) => (
-                <option key={s} value={s} className="bg-gray-900 text-white">
+                <option key={s} value={s}>
                   {s}
                 </option>
               ))}
             </select>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 min-[400px]:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
             <div>
               <label htmlFor={`${idPrefix}-genre`} className={labelClass}>
                 Genre
@@ -118,7 +115,7 @@ export default function MediaForm({
                 value={genre}
                 onChange={(e) => setGenre(e.target.value)}
                 className={inputClass}
-                placeholder="Cyberpunk"
+                placeholder="For example, Drama"
                 maxLength={80}
               />
             </div>
@@ -133,7 +130,7 @@ export default function MediaForm({
                 className={inputClass}
               >
                 {config.statuses.map((s) => (
-                  <option key={s} value={s} className="bg-gray-900 text-white">
+                  <option key={s} value={s}>
                     {s}
                   </option>
                 ))}
@@ -142,7 +139,7 @@ export default function MediaForm({
           </div>
         )}
 
-        <div className={isJob ? '' : 'grid grid-cols-1 gap-4 min-[400px]:grid-cols-2'}>
+        <div className={isJob ? '' : 'grid grid-cols-1 gap-3 min-[400px]:grid-cols-2'}>
           {!isJob && (
             <div>
               <label htmlFor={`${idPrefix}-rating`} className={labelClass}>
@@ -181,30 +178,29 @@ export default function MediaForm({
             />
           </div>
         </div>
+      </fieldset>
 
-        <div>
-          <label htmlFor={`${idPrefix}-takeaway`} className={labelClass}>
-            Takeaway
-          </label>
-          <textarea
-            id={`${idPrefix}-takeaway`}
-            value={takeaway}
-            onChange={(e) => setTakeaway(e.target.value)}
-            className={`${inputClass} resize-none`}
-            placeholder="Personal notes..."
-            rows={3}
-            maxLength={2000}
-          />
-        </div>
+      <fieldset className="mt-3">
+        <legend>Notes</legend>
+        <label htmlFor={`${idPrefix}-takeaway`} className="sr-only">
+          Takeaway
+        </label>
+        <textarea
+          id={`${idPrefix}-takeaway`}
+          value={takeaway}
+          onChange={(e) => setTakeaway(e.target.value)}
+          className={`${inputClass} resize-none`}
+          placeholder="Your notes…"
+          rows={3}
+          maxLength={2000}
+        />
+      </fieldset>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="heading-ui mt-2 w-full rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground neon-pulse transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-50 disabled:animate-none"
-        >
+      <div className="mt-4 flex justify-end">
+        <button type="submit" disabled={submitting} className="w7-btn default">
           {submitting ? (
             <span className="flex items-center justify-center gap-2">
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={14} className="animate-spin" aria-hidden="true" />
               {submittingLabel}
             </span>
           ) : (

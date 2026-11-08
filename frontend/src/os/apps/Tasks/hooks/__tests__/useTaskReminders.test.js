@@ -17,9 +17,7 @@ describe('dueTasksToNotify', () => {
   })
 
   it('skips tasks already notified', () => {
-    const tasks = [
-      { id: 'a', title: 'Overdue', due: '2026-06-14', status: 'needsAction' },
-    ]
+    const tasks = [{ id: 'a', title: 'Overdue', due: '2026-06-14', status: 'needsAction' }]
     const result = dueTasksToNotify(tasks, now, { a: now.getTime() })
     expect(result).toEqual([])
   })

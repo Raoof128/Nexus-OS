@@ -67,19 +67,13 @@ export default function LibraryApp() {
   }, [])
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden">
-      {/* Media type tabs — inside the window */}
-      <nav className="shrink-0 border-b border-white/[0.04] bg-black/20">
-        <div
+    <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
+      {/* Media type tabs (Windows 7 tab control) */}
+      <div className="shrink-0 px-2 pt-2">
+        <menu
           role="tablist"
           aria-label="Media types"
-          className="flex items-center gap-1 overflow-x-auto px-3 py-1.5"
-          style={{
-            maskImage:
-              'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
-            WebkitMaskImage:
-              'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
-          }}
+          className="flex items-end gap-0.5 overflow-x-auto"
         >
           {MEDIA_TYPES.map((type) => {
             const Icon = TYPE_ICONS[type]
@@ -87,47 +81,50 @@ export default function LibraryApp() {
             return (
               <button
                 key={type}
+                id={`library-tab-${type}`}
                 role="tab"
                 aria-selected={isActive}
+                aria-controls="library-tabpanel"
                 type="button"
                 onClick={() => {
                   setActiveType(type)
                   setVaultState(null)
                 }}
-                className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 heading-ui text-[11px] font-semibold uppercase tracking-wider transition-all ${
-                  isActive
-                    ? 'bg-primary/20 text-primary'
-                    : 'text-muted-foreground hover:bg-white/5 hover:text-white'
-                }`}
+                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap"
               >
-                <Icon size={12} />
+                <Icon size={14} aria-hidden="true" />
                 {MEDIA_CONFIG[type].label}
               </button>
             )
           })}
-        </div>
-      </nav>
+        </menu>
+      </div>
+
+      {/* Command bar */}
+      <div className="w7-commandbar shrink-0">
+        <AddMediaDialog mediaType={activeType} onAdd={addMedia} />
+      </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <article
+        id="library-tabpanel"
+        role="tabpanel"
+        aria-labelledby={`library-tab-${activeType}`}
+        className="min-h-0 flex-1 overflow-y-auto bg-background"
+      >
         {dataLoading && items.length === 0 ? (
           <div
-            className="flex h-full items-center justify-center"
+            className="flex h-full flex-col items-center justify-center gap-2 p-6 text-muted-foreground"
             role="status"
             aria-label="Loading media"
           >
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p>Loading…</p>
           </div>
         ) : error ? (
           <div role="alert" className="flex flex-col items-center gap-3 p-6 text-center">
-            <p className="font-bold uppercase tracking-widest text-destructive">
-              API Error: {error}
-            </p>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 font-mono text-xs text-destructive transition-colors hover:bg-destructive/20"
-            >
+            <p className="w7-error">Your media couldn&rsquo;t be loaded. {error}</p>
+            <button type="button" onClick={() => window.location.reload()} className="w7-btn">
               Retry
             </button>
           </div>
@@ -176,7 +173,7 @@ export default function LibraryApp() {
             )}
           </AnimatePresence>
         )}
-      </div>
+      </article>
 
       <Suspense fallback={null}>
         <MediaDetailModal
@@ -190,7 +187,6 @@ export default function LibraryApp() {
       <Suspense fallback={null}>
         <EditMediaDialog item={editItem} onUpdate={updateMedia} onClose={handleCloseEdit} />
       </Suspense>
-      <AddMediaDialog mediaType={activeType} onAdd={addMedia} />
       <LazyAICmdPalette mediaType={activeType} onAdd={addMedia} />
     </div>
   )

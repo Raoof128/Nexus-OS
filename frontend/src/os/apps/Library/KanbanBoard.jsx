@@ -130,7 +130,7 @@ function KanbanBoard({
       onDragCancel={handleDragCancel}
     >
       <div
-        className={`grid h-full auto-rows-min grid-cols-1 gap-4 @sm:grid-cols-2 @sm:gap-6 ${gridColsClass}`}
+        className={`grid h-full auto-rows-min grid-cols-1 gap-3 @sm:grid-cols-2 @sm:gap-4 ${gridColsClass}`}
       >
         {grouped.map(({ status, items: columnItems, total, hasMore }) => (
           <DroppableColumn
@@ -178,6 +178,7 @@ function DroppableColumn({
 }) {
   const config = MEDIA_CONFIG[mediaType]
   const singular = config?.singular || 'entry'
+  const plural = (config?.label || 'entries').toLowerCase()
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${status}`,
     data: { columnStatus: status },
@@ -188,27 +189,22 @@ function DroppableColumn({
       ref={setNodeRef}
       role="region"
       aria-label={`${status} column, ${total} items`}
-      className={`neon-border flex flex-col gap-3 rounded-xl glass-panel p-3 relative max-h-[50dvh] @sm:gap-4 @sm:p-4 transition-colors ${isOver ? 'ring-2 ring-primary/40 bg-primary/5' : ''}`}
+      className={`relative flex max-h-[50dvh] flex-col gap-2 rounded-[3px] border p-2 transition-colors @sm:gap-3 @sm:p-3 ${
+        isOver ? 'border-w7-select-border bg-w7-select' : 'border-border bg-w7-pane'
+      }`}
     >
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent shadow-[0_0_10px_var(--color-primary)]"></div>
-
       <button
         type="button"
         onClick={() => onHeaderClick?.(status, mediaType)}
         aria-label={`${status} — open vault`}
-        className="flex items-center justify-between px-2 pt-2 text-left transition-colors hover:opacity-80"
+        className="flex items-center justify-between gap-2 px-1 text-left hover:opacity-80"
       >
-        <h2 className="heading-display text-xs font-bold text-white @sm:text-sm">
-          <span aria-hidden="true">// </span>
-          {status}
-        </h2>
-        <span className="flex h-5 w-5 items-center justify-center rounded-sm bg-white/10 text-[10px] font-bold font-mono @sm:h-6 @sm:w-6 @sm:text-xs">
-          {total}
-        </span>
+        <h2 className="w7-subheading truncate">{status}</h2>
+        <span className="w7-badge tabular-nums">{total}</span>
       </button>
 
       <SortableContext items={columnItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar @sm:space-y-4 @sm:pr-2">
+        <div className="flex-1 space-y-2 overflow-y-auto pr-1 @sm:space-y-3">
           {columnItems.map((item) => (
             <SortableCard
               key={item.id}
@@ -220,18 +216,12 @@ function DroppableColumn({
             />
           ))}
           {columnItems.length === 0 && (
-            <div className="border border-dashed border-white/10 rounded-xl p-6 text-center flex flex-col items-center justify-center gap-3 h-28 @sm:p-8 @sm:h-40">
-              <p className="font-mono text-[11px] tracking-wide text-muted-foreground/60 @sm:text-xs">
-                Empty — no {singular.toLowerCase()}s here yet.
-              </p>
+            <div className="flex h-28 flex-col items-center justify-center gap-2 rounded-[3px] border border-dashed border-[#c5cad3] bg-white p-4 text-center @sm:h-40 @sm:p-6">
+              <p className="text-[12px] text-muted-foreground">No {plural} here yet.</p>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {onAddRequest && (
-                  <button
-                    type="button"
-                    onClick={() => onAddRequest(status)}
-                    className="flex items-center gap-1.5 rounded-lg bg-primary/15 px-3 py-1.5 font-mono text-[11px] font-semibold text-primary ring-1 ring-primary/30 transition-all hover:bg-primary/25 hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.2)] @sm:text-xs"
-                  >
-                    <Plus size={12} />
+                  <button type="button" onClick={() => onAddRequest(status)} className="w7-btn">
+                    <Plus size={12} aria-hidden="true" />
                     Add {singular}
                   </button>
                 )}
@@ -239,9 +229,9 @@ function DroppableColumn({
                   <button
                     type="button"
                     onClick={() => onAiSuggest(status, mediaType)}
-                    className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 font-mono text-[11px] text-primary/70 transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary @sm:text-xs"
+                    className="w7-btn"
                   >
-                    <Sparkles size={12} />
+                    <Sparkles size={12} aria-hidden="true" />
                     Ask AI
                   </button>
                 )}
@@ -252,14 +242,13 @@ function DroppableColumn({
             <button
               type="button"
               onClick={() => onHeaderClick?.(status, mediaType)}
-              className="w-full rounded-lg border border-dashed border-primary/20 py-3 font-mono text-xs text-primary/60 transition-colors hover:border-primary/40 hover:text-primary"
+              className="w7-btn w-full"
             >
-              + {total - MAX_PREVIEW} more — Open Vault
+              Show {total - MAX_PREVIEW} more
             </button>
           )}
         </div>
       </SortableContext>
-      <div className="pointer-events-none absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-[rgba(20,20,20,0.85)] to-transparent" />
     </div>
   )
 }

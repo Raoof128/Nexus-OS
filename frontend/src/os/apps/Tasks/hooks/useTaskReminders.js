@@ -28,11 +28,7 @@ export function dueTasksToNotify(tasks, now, fired) {
   return (tasks || []).filter((t) => {
     if (t.status !== 'needsAction') return false
     if (fired[t.id]) return false
-    const when = t.due_at
-      ? new Date(t.due_at)
-      : t.due
-        ? new Date(`${t.due}T00:00:00`)
-        : null
+    const when = t.due_at ? new Date(t.due_at) : t.due ? new Date(`${t.due}T00:00:00`) : null
     if (!when) return false
     return when.getTime() <= now.getTime()
   })

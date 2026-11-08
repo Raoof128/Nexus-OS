@@ -25,34 +25,28 @@ function renderMarkdown(text) {
     // Code blocks (must come before inline code)
     .replace(
       /```([\s\S]*?)```/g,
-      '<pre class="my-2 rounded-lg bg-white/[0.03] p-3 font-mono text-[11px] text-white/70 overflow-x-auto border border-white/[0.06]"><code>$1</code></pre>',
+      '<pre class="my-2 border border-border bg-muted p-2 font-mono text-[12px] text-foreground overflow-x-auto"><code>$1</code></pre>',
     )
     // Inline code
     .replace(
       /`([^`]+)`/g,
-      '<code class="rounded bg-white/[0.06] px-1 py-0.5 font-mono text-[11px] text-primary/80">$1</code>',
+      '<code class="bg-muted px-1 font-mono text-[12px] text-foreground">$1</code>',
     )
     // Headers
     .replace(
       /^### (.+)$/gm,
-      '<h3 class="heading-ui mt-3 mb-1 text-sm font-semibold text-white">$1</h3>',
+      '<h3 class="mt-3 mb-1 text-[13px] font-semibold text-w7-title">$1</h3>',
     )
-    .replace(
-      /^## (.+)$/gm,
-      '<h2 class="heading-display mt-4 mb-1 text-base font-bold text-primary">$1</h2>',
-    )
-    .replace(
-      /^# (.+)$/gm,
-      '<h1 class="heading-display mt-4 mb-2 text-lg font-bold text-primary">$1</h1>',
-    )
+    .replace(/^## (.+)$/gm, '<h2 class="mt-4 mb-1 text-[15px] font-semibold text-w7-title">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 class="mt-4 mb-2 text-[17px] font-semibold text-w7-title">$1</h1>')
     // Bold + Italic
     .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em class="text-white/80">$1</em>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
     // Unordered lists
-    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-muted-foreground">$1</li>')
+    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-foreground">$1</li>')
     // Horizontal rule
-    .replace(/^---$/gm, '<hr class="my-3 border-white/[0.06]" />')
+    .replace(/^---$/gm, '<hr class="my-3 border-border" />')
     // Line breaks
     .replace(/\n/g, '<br />')
   // Sanitize with DOMPurify — strips any executable elements that may have
@@ -117,49 +111,40 @@ export default function NotesApp({ windowId }) {
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-white/[0.04] bg-black/20 px-3 py-1.5">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setPreview(false)}
-            aria-pressed={!preview}
-            className={`flex items-center gap-1 rounded-md px-2 py-1 font-mono text-[10px] transition-all ${
-              !preview ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-white'
-            }`}
-          >
-            <Pencil size={10} />
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => setPreview(true)}
-            aria-pressed={preview}
-            className={`flex items-center gap-1 rounded-md px-2 py-1 font-mono text-[10px] transition-all ${
-              preview ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-white'
-            }`}
-          >
-            <Eye size={10} />
-            Preview
-          </button>
-        </div>
-        <span className="font-mono text-[9px] text-muted-foreground/50">
-          {wordCount}w · {charCount}c
-        </span>
+      {/* Command bar */}
+      <div className="w7-commandbar shrink-0">
+        <button
+          type="button"
+          className="w7-toolbtn"
+          onClick={() => setPreview(false)}
+          aria-pressed={!preview}
+        >
+          <Pencil size={14} aria-hidden="true" />
+          Edit
+        </button>
+        <button
+          type="button"
+          className="w7-toolbtn"
+          onClick={() => setPreview(true)}
+          aria-pressed={preview}
+        >
+          <Eye size={14} aria-hidden="true" />
+          Preview
+        </button>
       </div>
 
       {/* Content */}
       {preview ? (
         content.trim() ? (
           <div
-            className="flex-1 overflow-y-auto custom-scrollbar p-4 text-xs leading-relaxed text-muted-foreground"
+            className="flex-1 overflow-y-auto bg-white p-3 text-[13px] leading-relaxed text-foreground"
             dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
           />
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center">
-            <Eye size={24} className="text-muted-foreground/30" />
-            <p className="font-mono text-[10px] text-muted-foreground/50">
-              Nothing to preview yet — switch to Edit and start writing.
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 bg-white p-4 text-center">
+            <Eye size={24} className="text-muted-foreground" aria-hidden="true" />
+            <p className="text-[12px] text-muted-foreground">
+              Nothing to preview yet. Switch to Edit and start writing.
             </p>
           </div>
         )
@@ -167,12 +152,20 @@ export default function NotesApp({ windowId }) {
         <textarea
           value={content}
           onChange={handleChange}
-          placeholder="// start typing..."
+          placeholder="Start typing…"
           aria-label="Note editor"
-          className="flex-1 resize-none bg-transparent p-4 font-mono text-xs leading-relaxed text-white/80 placeholder-muted-foreground/30 focus:outline-none custom-scrollbar"
+          className="flex-1 resize-none p-1 font-mono text-[13px] leading-relaxed"
           spellCheck={false}
         />
       )}
+
+      {/* Status bar */}
+      <div className="status-bar shrink-0">
+        <p className="status-bar-field">
+          {wordCount} {wordCount === 1 ? 'word' : 'words'} · {charCount}{' '}
+          {charCount === 1 ? 'character' : 'characters'}
+        </p>
+      </div>
     </div>
   )
 }

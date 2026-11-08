@@ -197,27 +197,27 @@ export default function TerminalApp({ windowId: _windowId }) {
   )
 
   const lineColors = {
-    command: 'text-primary',
-    info: 'text-white/70',
-    success: 'text-green-400',
-    error: 'text-red-400',
-    system: 'text-cyan-400/60',
+    command: 'text-white',
+    info: 'text-[#c0c0c0]',
+    success: 'text-[#13a10e]',
+    error: 'text-[#ff6b6b]',
+    system: 'text-[#8ab4f8]',
   }
 
   return (
     <div
-      className="flex h-full w-full flex-col bg-[#0a0a0a] font-mono text-xs"
+      className="flex h-full w-full flex-col bg-black font-mono text-[14px] text-[#c0c0c0] selection:bg-white selection:text-black"
       onClick={handleContainerClick}
     >
       {/* Output */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-0.5">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-2">
         {lines.map((line, i) => (
           <div key={i} className="flex">
             {line.type === 'command' && (
-              <span className="mr-2 text-primary/60 select-none">{formatTimestamp()} $</span>
+              <span className="mr-2 text-[#c0c0c0] select-none">{formatTimestamp()} $</span>
             )}
             <pre
-              className={`whitespace-pre-wrap break-all ${lineColors[line.type] || 'text-white/70'}`}
+              className={`whitespace-pre-wrap break-all font-mono ${lineColors[line.type] || 'text-[#c0c0c0]'}`}
             >
               {line.text}
             </pre>
@@ -226,8 +226,8 @@ export default function TerminalApp({ windowId: _windowId }) {
       </div>
 
       {/* Input */}
-      <div className="flex shrink-0 items-center gap-2 border-t border-white/[0.04] bg-black/40 px-3 py-2">
-        <span className="text-primary/60 select-none">$</span>
+      <div className="flex shrink-0 items-center gap-2 bg-black px-2 py-1">
+        <span className="text-[#c0c0c0] select-none">$</span>
         <input
           ref={inputRef}
           type="text"
@@ -237,7 +237,7 @@ export default function TerminalApp({ windowId: _windowId }) {
           placeholder="type a command..."
           aria-label="Terminal command input"
           autoFocus
-          className="flex-1 bg-transparent text-white/80 placeholder-muted-foreground/30 focus:outline-none caret-primary"
+          className="h-auto flex-1 rounded-none border-0 bg-transparent p-0 font-mono text-[14px] text-[#c0c0c0] placeholder:text-[#6b6b6b] caret-[#c0c0c0] focus:outline-none"
           spellCheck={false}
         />
       </div>
