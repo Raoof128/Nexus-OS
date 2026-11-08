@@ -68,6 +68,17 @@ describe('TaskRow', () => {
     expect(inner.querySelector('li > li')).toBeNull()
   })
 
+  it('describes the title button as the editor opener without renaming it', () => {
+    const { onEdit, task } = setup()
+    const titleBtn = screen.getByRole('button', { name: 'Water plants' })
+    expect(titleBtn.getAttribute('aria-description')).toBe('Opens the task editor')
+    expect(titleBtn.getAttribute('title')).toBe('Edit task')
+    expect(titleBtn.hasAttribute('aria-label')).toBe(false)
+
+    fireEvent.click(titleBtn)
+    expect(onEdit).toHaveBeenCalledWith(task)
+  })
+
   it('keeps touch-sized, always-visible row actions on coarse pointers', () => {
     setup()
     const star = screen.getByRole('button', { name: 'Star "Water plants"' })

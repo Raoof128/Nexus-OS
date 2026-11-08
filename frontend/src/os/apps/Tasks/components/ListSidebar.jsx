@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Reorder } from 'framer-motion'
 import { Check, ListChecks, Plus, Star, Trash2, X } from 'lucide-react'
 import { between } from '../lib/position'
@@ -73,10 +73,27 @@ export default function ListSidebar({
   onCreate,
   onDelete,
   onReorder,
+  onClose,
 }) {
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const navRef = useRef(null)
+  const newListBtnRef = useRef(null)
+  // The create form unmounts when closed, which drops focus to <body>. Hand focus
+  // back to the "New list" toggle once it has re-rendered (the toggle is always mounted).
+  const restoreNewListFocusRef = useRef(false)
+
+  useEffect(() => {
+    if (!creating && restoreNewListFocusRef.current) {
+      restoreNewListFocusRef.current = false
+      newListBtnRef.current?.focus()
+    }
+  }, [creating])
+
+  const closeCreate = () => {
+    restoreNewListFocusRef.current = true
+    setCreating(false)
+  }
 
   const submitCreate = (e) => {
     e.preventDefault()
@@ -84,7 +101,7 @@ export default function ListSidebar({
     if (!trimmed) return
     onCreate(trimmed)
     setName('')
-    setCreating(false)
+    closeCreate()
   }
 
   // Roving arrow-key navigation between list buttons.
@@ -102,17 +119,31 @@ export default function ListSidebar({
     <aside className="w7-navpane flex w-52 shrink-0 flex-col">
       <div className="flex items-center justify-between px-3 py-2">
         <span className="w7-subheading">Task lists</span>
-        <button
-          type="button"
-          aria-label="New list"
-          title="New list"
-          aria-expanded={creating}
-          onClick={() => setCreating((v) => !v)}
-          className="w7-toolbtn"
-        >
-          <Plus size={16} />
-          <span>New list</span>
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            ref={newListBtnRef}
+            type="button"
+            aria-label="New list"
+            title="New list"
+            aria-expanded={creating}
+            onClick={() => setCreating((v) => !v)}
+            className="w7-toolbtn"
+          >
+            <Plus size={16} />
+            <span>New list</span>
+          </button>
+          {onClose && (
+            <button
+              type="button"
+              aria-label="Close task lists"
+              title="Close task lists"
+              onClick={onClose}
+              className="w7-toolbtn h-6 w-6 px-0 @md:hidden"
+            >
+              <X size={15} aria-hidden="true" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="px-2 pb-1">
@@ -157,7 +188,12 @@ export default function ListSidebar({
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Escape' && setCreating(false)}
+              onKeyDown={(e) => {
+                if (e.key !== 'Escape') return
+                // Consume Escape here: it cancels the form, not the Lists overlay.
+                e.stopPropagation()
+                closeCreate()
+              }}
               placeholder="List name"
               aria-label="New list name"
               className="min-w-0 flex-1"
@@ -174,7 +210,7 @@ export default function ListSidebar({
               type="button"
               aria-label="Cancel new list"
               title="Cancel"
-              onClick={() => setCreating(false)}
+              onClick={closeCreate}
               className="w7-toolbtn h-6 w-6 px-0"
             >
               <X size={15} />

@@ -78,9 +78,13 @@ function TaskRow({
         <label htmlFor={checkId} className="pointer-events-none before:m-0" />
       </span>
 
+      {/* Below @md this title button is the only edit path (the pencil is hidden),
+          so it describes the action without changing its name (the task title). */}
       <button
         type="button"
         onClick={() => onEdit(task)}
+        title="Edit task"
+        aria-description="Opens the task editor"
         className="flex min-w-0 flex-1 flex-col items-start overflow-hidden rounded text-left"
       >
         <span

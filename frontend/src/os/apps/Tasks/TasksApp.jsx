@@ -3,17 +3,21 @@ import { ListChecks } from 'lucide-react'
 import { useTaskLists, useTaskMutations } from './hooks/useTasks'
 import ListSidebar from './components/ListSidebar'
 import TaskListView from './views/TaskListView'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
 
 export default function TasksApp() {
   const { data: lists = [] } = useTaskLists()
   const [selectedListId, setSelectedListId] = useState(null)
   const [starredActive, setStarredActive] = useState(false)
   const [sortMode, setSortMode] = useState('myorder')
-  // Below the window's @md container breakpoint the list rail becomes an overlay
-  // opened from the header "Lists" button (desktop widths keep the rail inline).
+  // Below the window's @md container breakpoint the list rail becomes a modal
+  // overlay opened from the header "Lists" button (desktop widths keep the rail
+  // inline). The trap is only active while the overlay is open.
   const [navOpen, setNavOpen] = useState(false)
   const navId = useId()
-  const navRef = useRef(null)
+  // The overlay wrapper doubles as the focus-trap container (declared before the
+  // focus effects below so the overlay's own initial focus wins over the trap's).
+  const navRef = useFocusTrap(navOpen)
   const navToggleRef = useRef(null)
   const restoreFocusRef = useRef(false)
   const rootRef = useRef(null)
@@ -36,7 +40,7 @@ export default function TasksApp() {
     if (navOpen) {
       navRef.current?.querySelector('[aria-current="page"], [data-list-btn]')?.focus()
     }
-  }, [navOpen])
+  }, [navOpen, navRef])
 
   // Closing returns focus to the Lists toggle. Picking a list also re-keys the
   // list view (which owns the toggle), so the focus restore waits for that commit.
@@ -46,6 +50,21 @@ export default function TasksApp() {
       navToggleRef.current?.focus()
     }
   }, [navOpen, activeListId, starredActive])
+
+  // Widening the window past the breakpoint turns the rail static; an open modal
+  // overlay must not outlive that (its trap and dialog role would linger on
+  // desktop). Focus is left where it is, since the rail stays visible.
+  useEffect(() => {
+    if (!navOpen || typeof ResizeObserver === 'undefined') return undefined
+    const el = rootRef.current
+    if (!el) return undefined
+    const ro = new ResizeObserver(() => {
+      const rail = navRef.current
+      if (rail && window.getComputedStyle(rail).position !== 'absolute') setNavOpen(false)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [navOpen, navRef])
 
   const closeNav = () => {
     restoreFocusRef.current = true
@@ -89,6 +108,9 @@ export default function TasksApp() {
       <div
         id={navId}
         ref={navRef}
+        role={navOpen ? 'dialog' : undefined}
+        aria-modal={navOpen ? 'true' : undefined}
+        aria-label={navOpen ? 'Task lists' : undefined}
         className={
           navOpen
             ? 'absolute inset-y-0 left-0 z-10 flex shadow-md @md:static @md:shadow-none'
@@ -96,6 +118,7 @@ export default function TasksApp() {
         }
       >
         <ListSidebar
+          onClose={closeNav}
           lists={lists}
           activeListId={activeListId}
           starredActive={starredActive}
