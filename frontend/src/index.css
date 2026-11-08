@@ -63,6 +63,14 @@
 }
 
 @layer base {
+  /* Preflight zeroes the 2px UA margin 7.css's slider layout relies on. In
+     base (not win7-reset) so 7.css's own .is-vertical margin still wins; 7.css
+     sizes ranges content-box (parity 43-slider). */
+  .win7 input[type='range'] {
+    margin: 2px;
+    box-sizing: content-box;
+  }
+
   :root {
     /* Window content is light, like every Windows 7 application. */
     --background: 0 0% 100%;
@@ -234,12 +242,19 @@
   }
   /* Preflight makes form controls inherit text colour; Win7 control text is
      black (7.css assumes the UA default). Tailwind text-* still overrides. */
-  .win7 :is(input, textarea) {
+  .win7 :is(input, textarea, select[multiple]) {
     color: #000;
   }
-  /* Preflight zeroes the 2px UA margin 7.css's slider layout relies on. */
-  .win7 input[type='range'] {
-    margin: 2px;
+  /* Preflight's universal padding reset drops the UA legend inset that 7.css's
+     group box relies on (parity examples 20-groupbox, 58-window-body). */
+  .win7 fieldset > legend {
+    padding-inline: 2px;
+  }
+  /* Preflight's border-box on pseudo-elements distorts 7.css's dotted tree
+     connectors (parity 52-tree-view). Scoped to tree views only. */
+  .win7 .tree-view ::before,
+  .win7 .tree-view ::after {
+    box-sizing: content-box;
   }
 
   /* 7.css's `.group` helper (flex column, 6px gap, stacked margins) collides
@@ -556,9 +571,6 @@
   .win7 .window.nx-window:not(.active):before {
     opacity: 0.45;
     filter: saturate(0.4);
-  }
-  .win7 .window.nx-window:not(.active) .title-bar-text {
-    color: #383838;
   }
   .win7 .window.nx-window.is-maximized {
     border-radius: 0;
