@@ -26,6 +26,7 @@ import hashlib
 import hmac
 import ipaddress
 import logging
+import unicodedata
 from typing import Any, Union
 
 import jwt
@@ -175,10 +176,23 @@ def _keyed_digest(value: str) -> str:
     return hmac.new(key, value.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
+def _normalise_account(email: str) -> str:
+    """Fold an email the way an identity provider is likely to match it.
+
+    ``str.lower`` is not enough for rate-limit keys: ``"İnfo"`` lowers to
+    ``"i̇nfo"`` (two code points) while the provider may fold it to ``"info"``,
+    which would give one account several budgets. Casefold, decompose, and drop
+    combining marks so visual variants of one address share one key.
+    """
+
+    folded = unicodedata.normalize("NFKD", email.strip().casefold())
+    return "".join(ch for ch in folded if not unicodedata.combining(ch))
+
+
 def _account_digest(email: str) -> str:
     """Return the keyed digest of an account email, normalised for matching."""
 
-    return _keyed_digest(email.strip().lower())
+    return _keyed_digest(_normalise_account(email))
 
 
 async def _enforce_limit(key: str) -> None:

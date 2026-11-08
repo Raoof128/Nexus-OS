@@ -299,6 +299,16 @@ def test_login_rate_limit_key_does_not_contain_raw_email(
     assert "@" not in keys[0]
 
 
+def test_account_digest_folds_unicode_variants_to_one_budget() -> None:
+    # Regression (review M2): str.lower() turned "İ" into "i" + U+0307, so a
+    # dotted capital I gave the same account a second rate-limit budget.
+    plain = auth_controller._account_digest("info@example.com")
+
+    assert auth_controller._account_digest("İnfo@example.com") == plain
+    assert auth_controller._account_digest("ＩＮＦＯ@example.com") == plain
+    assert auth_controller._account_digest("other@example.com") != plain
+
+
 def test_account_digest_is_case_insensitive_and_keyed() -> None:
     digest = auth_controller._account_digest("Person@Example.com ")
 

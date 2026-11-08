@@ -116,6 +116,15 @@ class TestScrubRequest:
         assert headers["Authorization"] == "[Filtered]"
         assert headers["Content-Type"] == "application/json"
 
+    def test_bare_token_query_parameter_is_redacted(self):
+        # Review L2: token_hash was scrubbed but a plain ?token= was not.
+        event = _request_event(query_string="token=SECRET-QTOK&page=2")
+
+        query = _scrub_event(event, {})["request"]["query_string"]
+
+        assert "SECRET-QTOK" not in str(query)
+        assert "page=2" in str(query)
+
     def test_header_pairs_are_redacted(self):
         event = _request_event(
             headers=[["X-Recovery-Refresh-Token", "live"], ["Accept", "*/*"]]

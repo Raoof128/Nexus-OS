@@ -52,7 +52,7 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
 #
 # --no-access-log: uvicorn's access log writes the full request target, so the
 # OAuth callback's code and state query parameters would land in container logs.
-# The app logs no request paths (see logging_config.log_unhandled_exception), and
-# uvicorn still logs startup, shutdown and errors. Re-enable only with a filter
+# The app logs request paths at most (never query strings), and uvicorn still
+# logs startup, shutdown and errors. Re-enable only with a filter
 # that redacts code and state.
 CMD ["sh", "-c", "if [ \"${WEB_CONCURRENCY:-1}\" != \"1\" ]; then echo 'WEB_CONCURRENCY must be 1: the email poller and in-memory rate limiter are per process' >&2; exit 1; fi; exec uvicorn backend.app:app --host 0.0.0.0 --port \"${PORT:-8000}\" --workers 1 --timeout-keep-alive 30 --timeout-graceful-shutdown 8 --no-access-log"]

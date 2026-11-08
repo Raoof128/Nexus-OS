@@ -56,6 +56,7 @@ _SCRUB_KEYS: frozenset[str] = frozenset(
         "provider_token",
         "refresh_token",
         "state",
+        "token",
         "token_hash",
     }
 )
