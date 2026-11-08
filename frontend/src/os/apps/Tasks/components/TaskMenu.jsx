@@ -3,11 +3,11 @@ import { List, MoreVertical } from 'lucide-react'
 
 const ENABLED_ITEM = '[role="menuitem"]:not([aria-disabled="true"])'
 
-// Row actions menu with a "Move to list" section. Recurring tasks can't change
-// list. Follows the Win32 menu model: focus moves to the first item on open,
+// Row actions menu with a "Move to list" section. Recurring tasks, subtasks and
+// tasks that have subtasks can't change list (the API answers 409). Follows the Win32 menu model: focus moves to the first item on open,
 // Up/Down/Home/End move between items, Escape or Tab dismiss, and focus returns
 // to the trigger.
-export default function TaskMenu({ task, lists, onMoveToList }) {
+export default function TaskMenu({ task, lists, onMoveToList, hasSubtasks = false }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
   const triggerRef = useRef(null)
@@ -61,7 +61,13 @@ export default function TaskMenu({ task, lists, onMoveToList }) {
   }
 
   const others = lists.filter((l) => l.id !== task.list_id)
-  const recurring = Boolean(task.recurrence)
+  const blockedReason = task.recurrence
+    ? 'Recurring tasks stay in their list'
+    : task.parent_id
+      ? "Subtasks stay in their parent's list"
+      : hasSubtasks
+        ? 'Tasks with subtasks stay in their list'
+        : null
 
   return (
     <div ref={rootRef} className="relative shrink-0">
@@ -90,9 +96,9 @@ export default function TaskMenu({ task, lists, onMoveToList }) {
             <p id={headingId} className="px-2 pt-1 pb-1 text-[12px] text-muted-foreground">
               Move to list
             </p>
-            {recurring && <MenuNotice>Recurring tasks stay in their list</MenuNotice>}
-            {!recurring && others.length === 0 && <MenuNotice>No other lists</MenuNotice>}
-            {!recurring &&
+            {blockedReason && <MenuNotice>{blockedReason}</MenuNotice>}
+            {!blockedReason && others.length === 0 && <MenuNotice>No other lists</MenuNotice>}
+            {!blockedReason &&
               others.map((l) => (
                 <button
                   key={l.id}

@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import ChatWindow from './ChatWindow'
+
+const sendMessage = vi.fn()
 
 vi.mock('../../../hooks/useChat', () => ({
   useChatMessages: () => ({
@@ -10,7 +12,7 @@ vi.mock('../../../hooks/useChat', () => ({
     ],
     loading: false,
     sending: false,
-    sendMessage: vi.fn(),
+    sendMessage,
     error: null,
   }),
 }))
@@ -27,5 +29,15 @@ describe('ChatWindow bubbles', () => {
   it('draws assistant bubbles as Win7 cards', () => {
     render(<ChatWindow sessionId="s1" userId="u1" />)
     expect(screen.getByText('Hi').className).toContain('w7-card')
+  })
+
+  it('gives the typed text back when sending fails (the API stores nothing)', async () => {
+    sendMessage.mockRejectedValueOnce(new Error('The AI assistant is unavailable'))
+    render(<ChatWindow sessionId="s1" userId="u1" />)
+    const box = screen.getByLabelText('Chat message')
+    fireEvent.change(box, { target: { value: 'What next?' } })
+    fireEvent.click(screen.getByLabelText('Send message'))
+    await waitFor(() => expect(box.value).toBe('What next?'))
+    expect(sendMessage).toHaveBeenCalledWith('What next?')
   })
 })

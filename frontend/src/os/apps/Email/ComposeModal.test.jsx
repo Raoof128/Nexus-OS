@@ -108,3 +108,19 @@ describe('ComposeModal discard', () => {
     expect(screen.getByLabelText('Subject').value).toBe('Loading draft')
   })
 })
+
+describe('ComposeModal AI draft', () => {
+  it('sends only the backend contract: email_id and instruction', async () => {
+    const onAiDraft = vi.fn().mockResolvedValue({ draft: 'Thanks, will do.' })
+    renderCompose({
+      onAiDraft,
+      replyTo: {
+        type: 'reply',
+        email: { id: 'm1', from_address: 'boss@example.com', subject: 'Budget' },
+      },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'AI draft' }))
+    expect(onAiDraft).toHaveBeenCalledWith({ email_id: 'm1', instruction: '' })
+    expect(await screen.findByDisplayValue('Thanks, will do.')).toBeTruthy()
+  })
+})

@@ -37,6 +37,7 @@ function TaskRow({
   depth = 0,
   lists = [],
   onMoveToList,
+  hasSubtasks = false,
   onToggle,
   onStar,
   onEdit,
@@ -128,7 +129,7 @@ function TaskRow({
       </button>
 
       {onMoveToList && lists.length > 0 && (
-        <TaskMenu task={task} lists={lists} onMoveToList={onMoveToList} />
+        <TaskMenu task={task} lists={lists} onMoveToList={onMoveToList} hasSubtasks={hasSubtasks} />
       )}
 
       <button

@@ -38,7 +38,13 @@ export default function ChatWindow({ sessionId, userId }) {
     const content = input.trim()
     setInput('')
     wasNearBottom.current = true
-    await sendMessage(content)
+    try {
+      await sendMessage(content)
+    } catch {
+      // The API persists nothing on failure (e.g. 503 when the AI is
+      // unavailable), so give the text back; the error shows below.
+      setInput((current) => current || content)
+    }
   }
 
   const handleKeyDown = (e) => {

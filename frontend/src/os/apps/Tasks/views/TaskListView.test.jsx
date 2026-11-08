@@ -103,4 +103,16 @@ describe('TaskListView', () => {
     fireEvent.keyDown(item, { key: ' ' })
     expect(m.update.mutate).not.toHaveBeenCalled()
   })
+
+  it('says why a save failed instead of rolling back silently', () => {
+    m.move = {
+      mutate: vi.fn(),
+      isError: true,
+      error: new Error('Subtasks must stay in their parent list'),
+    }
+    render(<Harness />)
+    expect(screen.getByRole('alert').textContent).toBe(
+      "Couldn't save the change. Subtasks must stay in their parent list",
+    )
+  })
 })

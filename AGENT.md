@@ -5,6 +5,23 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-11-08 (Australia/Sydney) — Backend: line-by-line audit against 2026 docs, fixes and hardening
+
+**Raouf:**
+
+- **Scope:** Audit every backend file line by line against the installed library source and current (2026) docs, verify each finding, then fix, polish and enhance.
+- **Summary:** Workflow run `wf_a3426eb1-d2f`, all Haiku 5.5 (948 agents): 19 units with separate file ownership; per unit an auditor, three skeptics per finding, an implementer and an independent reviewer. 297 findings raised, 243 confirmed (2 critical, 52 high), 150 fixed, 69 partly fixed, 1 deferred, 23 open, each with its reason in `docs/backend-audit.md`. Highlights:
+  - **Auth:** CSRF header required for cookie-authenticated mutations, refresh and logout; JWKS errors no longer 500; outages return 503 instead of "Invalid credentials"; logout revokes this device only; rate-limit keys are HMAC digests.
+  - **Privacy:** Sentry no longer captures frame locals; OAuth code/state, PKCE verifier and token keys are scrubbed; undecryptable fields return null instead of ciphertext; audit metadata is allowlisted.
+  - **Email:** Gmail delete moves to Trash; Bcc is no longer dropped; Graph paging and folder mapping fixed; strict request schemas that accept what the frontend sends; attachment errors mapped to 404/403.
+  - **Tasks:** RRULE subset validated with bounded evaluation (INTERVAL=0 hang fixed); re-completing a task no longer duplicates the next occurrence; clear-completed keeps open subtasks; subtask/list rules enforced (409).
+  - **Chat and AI:** Gemini timeouts and circuit breaker; AI unavailable returns 503 and stores nothing; default model `gemini-3.5-flash-lite` (2.5-flash shuts down 2026-12-01).
+  - **Platform:** request IDs on every response and log line, `Cache-Control: no-store`, `Retry-After` on 429, docs only in development, strict boot-time config checks, single-worker container with graceful shutdown and a non-root UID.
+  - **Integration (orchestrator):** the Cloudflare Worker now forwards `X-Requested-With` (without it production would have rejected every mutation and the token refresh); leftmost `X-Forwarded-For` kept (rightmost-untrusted deferred until the production hop list is known); email account status aligned with the migration (`connected`); AI draft request fixed in `ComposeModal`; the task editor no longer erases notes it could not decrypt; the Tasks UI shows the new 409 rules and save errors; chat gives typed text back on failure; bandit B613 (literal bidi characters) fixed.
+- **Files Changed:** `backend/*.py`, `backend/Dockerfile`, `backend/.env.example`, `pyproject.toml`, `.dockerignore`, `worker/index.js`, `tests/*` (6 new test files), `frontend/src/os/apps/{Chat,Email,Tasks}/*`, `CLAUDE.md` (deploy order, sync README/LICENSE), `docs/backend-audit.md`.
+- **Verification:** pytest **1031 passed, 1 skipped** (126 before); ruff check and format ✓; bandit ✓; local uvicorn smoke test (CSRF 403/401, preflight 204, `X-Request-ID`) ✓; frontend lint ✓, Prettier ✓, Vitest **640/640** ✓, build ✓, Playwright 39/39 ✓, `check.sh` ✓.
+- **Follow-ups:** Deploy the Worker before the backend; check production env against the new boot checks; `WEB_CONCURRENCY` must be 1; deferred items in `docs/backend-audit.md` (rightmost XFF, Origin middleware, atomic recurrence spawn, Graph threading). Not verified: live Supabase/Gemini/Gmail/Graph/Redis, Docker build, production env. Not deployed.
+
 ### 2026-11-08 (Australia/Sydney) — Windows 7 parity: fix all audit findings (pass 2) and polish
 
 **Raouf:**

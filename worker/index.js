@@ -15,6 +15,9 @@ export default {
       'accept',
       'accept-language',
       'accept-encoding',
+      // CSRF marker: the backend rejects cookie-authenticated unsafe requests
+      // without it (backend/auth.py). Deploy this Worker before that backend.
+      'x-requested-with',
     ]
     const headers = new Headers()
     for (const name of ALLOWED_HEADERS) {

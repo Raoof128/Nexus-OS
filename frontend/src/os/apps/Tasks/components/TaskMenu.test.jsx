@@ -7,9 +7,14 @@ const lists = [
   { id: 'b', name: 'Work' },
 ]
 
-function renderMenu(task = { id: 't1', title: 'Pay rent', list_id: 'a', recurrence: null }) {
+function renderMenu(
+  task = { id: 't1', title: 'Pay rent', list_id: 'a', recurrence: null },
+  extra = {},
+) {
   const onMoveToList = vi.fn()
-  const utils = render(<TaskMenu task={task} lists={lists} onMoveToList={onMoveToList} />)
+  const utils = render(
+    <TaskMenu task={task} lists={lists} onMoveToList={onMoveToList} {...extra} />,
+  )
   const trigger = screen.getByRole('button', { name: 'More actions for "Pay rent"' })
   return { ...utils, trigger, onMoveToList }
 }
@@ -83,6 +88,30 @@ describe('TaskMenu', () => {
     expect(notice.getAttribute('aria-disabled')).toBe('true')
     fireEvent.keyDown(screen.getByRole('menu'), { key: 'ArrowDown' })
     expect(document.activeElement).not.toBe(notice)
+  })
+
+  it('keeps subtasks in their parent list (the API answers 409)', () => {
+    const { trigger, onMoveToList } = renderMenu({
+      id: 't3',
+      title: 'Pay rent',
+      list_id: 'a',
+      parent_id: 't1',
+      recurrence: null,
+    })
+    fireEvent.click(trigger)
+    expect(
+      screen.getByRole('menuitem', { name: "Subtasks stay in their parent's list" }),
+    ).toBeTruthy()
+    expect(screen.queryByRole('menuitem', { name: 'Work' })).toBeNull()
+    expect(onMoveToList).not.toHaveBeenCalled()
+  })
+
+  it('keeps a task with subtasks in its list', () => {
+    const { trigger } = renderMenu(undefined, { hasSubtasks: true })
+    fireEvent.click(trigger)
+    expect(
+      screen.getByRole('menuitem', { name: 'Tasks with subtasks stay in their list' }),
+    ).toBeTruthy()
   })
 
   it('shows the trigger at touch size and always visible on coarse pointers', () => {

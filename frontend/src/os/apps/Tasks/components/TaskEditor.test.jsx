@@ -29,4 +29,21 @@ describe('TaskEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(onCancel).toHaveBeenCalled()
   })
+
+  it('leaves untouched notes out of an edit so an undecryptable note is not erased', () => {
+    const onSave = vi.fn()
+    const task = { id: 't1', title: 'Pay rent', notes_encrypted: null, all_day: true }
+    render(<TaskEditor initial={task} onSave={onSave} onCancel={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty('notes')
+  })
+
+  it('sends notes when the user changed them', () => {
+    const onSave = vi.fn()
+    const task = { id: 't1', title: 'Pay rent', notes_encrypted: 'old', all_day: true }
+    render(<TaskEditor initial={task} onSave={onSave} onCancel={vi.fn()} />)
+    fireEvent.change(screen.getByLabelText('Details'), { target: { value: 'new' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    expect(onSave.mock.calls[0][0].notes).toBe('new')
+  })
 })

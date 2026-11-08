@@ -142,19 +142,17 @@ function ComposeModal({
     setIsDrafting(true)
     setDraftError(null)
     try {
-      const result = await onAiDraft?.({
-        accountId: selectedAccountId,
-        replyTo: replyTo?.email,
-        subject,
-        to,
-      })
+      // The backend contract is { email_id, instruction } (AIDraftRequest,
+      // extra keys rejected). The button only shows for reply/forward.
+      if (!replyTo?.email?.id) return
+      const result = await onAiDraft?.({ email_id: replyTo.email.id, instruction: '' })
       if (result?.draft) setBody(result.draft)
     } catch (err) {
       setDraftError(err.message)
     } finally {
       setIsDrafting(false)
     }
-  }, [onAiDraft, selectedAccountId, replyTo, subject, to])
+  }, [onAiDraft, replyTo])
 
   const hasUnsavedContent = [
     [to, baselineRef.current.to],

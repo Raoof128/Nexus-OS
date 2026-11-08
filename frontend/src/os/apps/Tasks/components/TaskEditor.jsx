@@ -8,7 +8,8 @@ import RecurrencePicker from './RecurrencePicker'
 // Emits a payload shaped for CreateTaskRequest / UpdateTaskRequest.
 export default function TaskEditor({ initial, onSave, onCancel }) {
   const [title, setTitle] = useState(initial?.title || '')
-  const [notes, setNotes] = useState(initial?.notes_encrypted || initial?.notes || '')
+  const initialNotes = initial?.notes_encrypted || initial?.notes || ''
+  const [notes, setNotes] = useState(initialNotes)
   const [due, setDue] = useState(initial?.due || '')
   const [time, setTime] = useState(
     initial?.due_at && !initial?.all_day ? new Date(initial.due_at).toTimeString().slice(0, 5) : '',
@@ -26,7 +27,7 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
     if (!trimmed) return null
     const allDay = !time
     const dueAt = due && time ? `${due}T${time}:00` : null
-    return {
+    const payload = {
       title: trimmed,
       notes: notes.trim() || null,
       due: due || null,
@@ -34,6 +35,10 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
       all_day: allDay,
       recurrence: recurrence || null,
     }
+    // Leave untouched notes out of an edit. The API returns null for a note it
+    // cannot decrypt, so re-sending the blank field would erase the stored one.
+    if (initial && notes === initialNotes) delete payload.notes
+    return payload
   }
 
   const save = () => {

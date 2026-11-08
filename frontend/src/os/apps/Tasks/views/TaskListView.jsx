@@ -67,6 +67,11 @@ export default function TaskListView({
   const [showCompleted, setShowCompleted] = useState(true)
   const [focusedTaskId, setFocusedTaskId] = useState(null)
   const [confirmClear, setConfirmClear] = useState(false)
+  // Failed saves roll back optimistically; say why (e.g. an unsupported custom
+  // repeat rule is a 400, a subtask moved across lists is a 409).
+  const saveError = [createTask, updateTask, moveTask, deleteTask, clearCompleted].find(
+    (mutation) => mutation?.isError,
+  )?.error?.message
 
   useTaskReminders(items)
 
@@ -191,6 +196,7 @@ export default function TaskListView({
       depth={depth}
       asListItem={!inReorder}
       lists={lists}
+      hasSubtasks={items.some((t) => t.parent_id === task.id)}
       onMoveToList={(targetListId) =>
         moveTask.mutate({ id: task.id, body: { list_id: targetListId } })
       }
@@ -221,6 +227,11 @@ export default function TaskListView({
       </header>
 
       <div className="flex-1 overflow-y-auto px-3 pb-3">
+        {saveError && (
+          <p role="alert" className="w7-error mb-3">
+            Couldn't save the change. {saveError}
+          </p>
+        )}
         {!starredActive && (
           <div className="mb-3">
             <QuickAddBar onAdd={handleAdd} disabled={!listId} />
@@ -316,7 +327,7 @@ export default function TaskListView({
       <ConfirmDialog
         open={confirmClear}
         title="Clear completed?"
-        message="This permanently deletes all completed tasks in this list."
+        message="This permanently deletes all completed tasks in this list. Open subtasks of a completed task are kept and moved to the top level."
         confirmLabel="Clear"
         onCancel={() => setConfirmClear(false)}
         onConfirm={() => {

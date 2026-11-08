@@ -191,10 +191,11 @@ Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`, `VITE_AION_SUPABA
 
   # Sync backend files to droplet
   sshpass -p "$DROPLET_PASSWORD" rsync -avz --delete --exclude 'venv' --exclude '.env.production' --exclude '__pycache__' --exclude '.git' --exclude 'node_modules' --exclude '.DS_Store' --exclude '._*' -e "ssh -o StrictHostKeyChecking=no" ./backend/ "$DROPLET_USER@$DROPLET_IP:/opt/nexus/backend/"
-  sshpass -p "$DROPLET_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./pyproject.toml "$DROPLET_USER@$DROPLET_IP:/opt/nexus/pyproject.toml"
+  sshpass -p "$DROPLET_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./pyproject.toml ./README.md ./LICENSE "$DROPLET_USER@$DROPLET_IP:/opt/nexus/"
 
   # Rebuild and run docker container on droplet
   sshpass -p "$DROPLET_PASSWORD" ssh -o StrictHostKeyChecking=no "$DROPLET_USER@$DROPLET_IP" "docker build -t nexus-api -f /opt/nexus/backend/Dockerfile /opt/nexus && docker stop nexus-api && docker rm nexus-api && docker run -d --name nexus-api -p 127.0.0.1:8000:8000 --restart unless-stopped --env-file /opt/nexus/.env.production nexus-api:latest"
   ```
 
+- **Deploy order (since the 2026-11 backend audit):** deploy the Worker (`worker/`, `wrangler deploy`) **before** the backend. The backend now rejects cookie-authenticated POST/PUT/PATCH/DELETE without `X-Requested-With: XMLHttpRequest`, and only the updated Worker forwards that header. The backend also refuses to boot on invalid production env (see `docs/backend-audit.md` → Deploy checklist).
 - **Security headers** defined in `vercel.json` (CSP, X-Frame-Options, etc.) — NOTE: this is a legacy file from Vercel. Cloudflare Pages does NOT read `vercel.json`. These headers need to be migrated to `frontend/public/_headers` to take effect.
