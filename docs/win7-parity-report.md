@@ -166,10 +166,10 @@ test data only). Files in `docs/win7-screenshots/`.
 - Rendering with real Segoe UI on Windows; Firefox and Safari (Chromium only).
 - Live backend flows (OAuth mailbox connection, sending mail, Gemini responses, Realtime events) —
   all screenshots and journeys use mocked fixtures.
-- Populated Chat conversation, Aion reader and Aion chat views, Tasks editor dialog, File Manager
-  file viewer, boot sequence: implemented and covered by unit tests where they exist, but not
-  screenshot-reviewed.
+- ~~Populated Chat conversation, Aion reader and Aion chat views, Tasks editor dialog, File Manager
+  file viewer, boot sequence~~: screenshot-reviewed in the follow-up (section 5).
 - Touch drag/resize on tablets (pointer-event code unchanged from before the redesign).
+- Caption-button touch targets on non-phone windows (see audit #54).
 
 ## 4. Follow-up audit
 
@@ -177,3 +177,46 @@ After this report, an all-Haiku parity audit ran with 3-vote adversarial verific
 164 findings. Two fix passes followed. Now 149 are fixed, 11 are partly fixed, and 4 are deliberately
 kept, each with its reason. Every status is in [`win7-parity-audit.md`](win7-parity-audit.md).
 Screenshots in `docs/win7-screenshots/` were re-captured after the fixes.
+
+## 5. Follow-up verification (2026-11-08)
+
+Opus orchestrated, Haiku agents (`.claude/agents/win7-*`, `model: claude-haiku-5-5`) did the
+audits and fixes, Opus reviewed every diff and screenshot before commit. Base: `7adfa9d`.
+
+### Screens reviewed for the first time
+
+Captured with Playwright (Chromium, deviceScaleFactor 1) against the mocked E2E fixtures
+(`frontend/e2e/fixtures.js`). Chat sessions and the Aion chat reply are mock data. Images are in
+[`win7-screenshots/followup/`](win7-screenshots/followup/).
+
+| Screen                       | Screenshot(s)                                             | Finding                                                                  | Status          |
+| ---------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------ | --------------- |
+| Chat, populated conversation | chat-populated-1366x768.png, chat-populated-390x844.png   | None                                                                     | Pass            |
+| Aion chat                    | aion-chat-390x844.png                                     | None                                                                     | Pass            |
+| Aion reader                  | aion-reader-1366x768.png, aion-reader-390x844.png         | Drop cap split from its word ("I¹n"); phone toolbar split mid-group      | Fixed (75d5dd3) |
+| Tasks editor, phone          | tasks-editor-390x844.png, tasks-lists-overlay-390x844.png | 208px list rail hid task titles, overlapped headers, clipped Save        | Fixed (725d4ab) |
+| Tasks editor, desktop        | tasks-editor-1366x768.png                                 | None (unchanged)                                                         | Pass            |
+| File Manager preview         | files-preview-1366x768.png, files-preview-390x844.png     | Preview starved Name column to "d.."; phone address field clipped        | Fixed (eb90dd5) |
+| Post-sign-in Welcome         | boot-welcome-1366x768.png                                 | Matches Win7 Welcome; spinner is a Lucide icon, font is a Linux fallback | Pass (accepted) |
+
+### Parity harness
+
+`60-glass-frame-color` and `62-glass-frame-color` swung between 0% and ~53% from run to run. The
+cause was the docs.css photo behind glass examples loading after the screenshot on some runs, not a
+Nexus change. Both stages now drop that photo (`0046639`). Two consecutive runs then gave 64
+examples with only `09-button` (accepted, section 1) over 0.5%.
+
+### Other changes
+
+- Touch: 48px taskbar and 44px tray targets on `(pointer: coarse)`; the Playwright mobile project
+  now sets `isMobile` so the touch CSS is actually exercised (`05323f0`, audit #54).
+- Last cyberpunk leftovers removed: infinite-pulse caret in Aion chat, four unused legacy classes
+  (`290da4c`). The white halo on the WCO title was kept: 7.css `.title-bar-text` uses the same one.
+
+### Gate at `05323f0`
+
+ESLint pass · Vitest 77 files / 671 tests pass · `vite build` pass · Prettier pass · Playwright
+41/41 on two consecutive runs · backend pytest 1066 passed / 1 skipped · ruff check + format pass.
+Playwright ran with a scratch config that only overrides the Chromium executable path: this
+container ships a Chromium revision that does not match the pinned Playwright version, so the
+literal `npm run test:e2e` cannot launch a browser here.
