@@ -9,6 +9,36 @@ async function openDesktop(page) {
   await expect(win(page, 'Media Vault')).toBeVisible()
 }
 
+/** Resolves once the box has the same geometry on two reads 100ms apart (animation finished). */
+async function waitForStillBox(locator) {
+  let previous = null
+  await expect
+    .poll(
+      async () => {
+        const box = JSON.stringify(await locator.boundingBox())
+        const still = box === previous
+        previous = box
+        return still
+      },
+      { intervals: [100] },
+    )
+    .toBe(true)
+}
+
+async function lockFromStart(page) {
+  await page.getByRole('button', { name: 'Start' }).click()
+  await page.getByRole('button', { name: 'Shut down options' }).click()
+  await page.getByRole('menuitem', { name: 'Lock' }).click()
+  await expect(page.getByRole('dialog', { name: /Lock screen/ })).toBeVisible()
+}
+
+/** Snapped-right geometry: the right half of the viewport. */
+async function onRightHalf(locator, page) {
+  const b = await locator.boundingBox()
+  const vw = page.viewportSize().width
+  return Math.abs(b.x - vw / 2) < 4 && Math.abs(b.width - vw / 2) < 4
+}
+
 async function launchFromStart(page, query, appName) {
   await page.getByRole('button', { name: 'Start' }).click()
   const search = page.getByRole('searchbox', { name: 'Search programs' })
@@ -141,7 +171,7 @@ test.describe('desktop shell', () => {
     await expect
       .poll(async () => Math.round(Math.abs((await w.boundingBox()).width - 1000)))
       .toBeLessThan(2)
-    await page.waitForTimeout(300)
+    await waitForStillBox(w)
     bb = await bar.boundingBox()
     await page.mouse.move(bb.x + 100, bb.y + 10)
     await page.mouse.down()
@@ -234,7 +264,10 @@ test.describe('desktop shell', () => {
     await openDesktop(page)
     await launchFromStart(page, 'notes', 'Notes')
     await win(page, 'Notes').getByRole('button', { name: 'Maximize window' }).click()
-    await page.waitForTimeout(800) // persistence is debounced
+    // Persistence is debounced: wait until the saved layout records the maximise.
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem('nexus-os:window-layout') ?? ''))
+      .toContain('"state":"maximized"')
     await page.reload()
     await expect(win(page, 'Notes')).toBeVisible()
     await expect(win(page, 'Notes')).toHaveClass(/is-maximized/)
@@ -265,8 +298,7 @@ test.describe('desktop shell', () => {
     await expect(page.getByRole('navigation', { name: 'Taskbar' })).toBeVisible()
     const lock = page.getByRole('dialog', { name: /Lock screen/ })
     await expect(lock).toBeVisible()
-    await page.waitForTimeout(400)
-    await expect(lock).toBeVisible() // stays locked after the triggering click
+    // Stays locked after the triggering click: the checks below run after it.
     // Any key or click no longer unlocks: Windows 7 asks for the password.
     await page.keyboard.press('Enter')
     await page.mouse.click(600, 300)
@@ -276,16 +308,95 @@ test.describe('desktop shell', () => {
     await page.keyboard.press('Enter')
     await expect(lock).toBeHidden()
   })
+
+  test('lock: a wrong password keeps the screen locked; the right one unlocks', async ({
+    page,
+  }) => {
+    await openDesktop(page)
+    // Only the test password passes; anything else is the backend's 401.
+    await page.route('http://127.0.0.1:8799/auth/login', (route) => {
+      if (route.request().postDataJSON()?.password === 'e2e-password') return route.fallback()
+      return route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'Invalid credentials' }),
+      })
+    })
+    await lockFromStart(page)
+    const lock = page.getByRole('dialog', { name: /Lock screen/ })
+    const password = lock.getByLabel('Password', { exact: true })
+    await password.fill('not-the-password')
+    await page.keyboard.press('Enter')
+    await expect(lock.getByText('The password is incorrect. Try again.')).toBeVisible()
+    await expect(lock).toBeVisible()
+    await expect(password).toBeFocused()
+    await password.fill('e2e-password')
+    await page.keyboard.press('Enter')
+    await expect(lock).toBeHidden()
+    await expect(win(page, 'Media Vault')).toBeVisible()
+  })
+})
+
+test.describe('snap and notification center', () => {
+  test('Win+Right snaps the active window to the right half', async ({ page }) => {
+    await openDesktop(page)
+    const w = win(page, 'Media Vault')
+    await w.getByTestId('titlebar').click({ position: { x: 300, y: 10 } })
+    await page.keyboard.press('Meta+ArrowRight')
+    await expect.poll(() => onRightHalf(w, page)).toBe(true)
+  })
+
+  test('dragging a window to the right edge snaps it to the right half', async ({ page }) => {
+    await openDesktop(page)
+    const w = win(page, 'Media Vault')
+    const bb = await w.getByTestId('titlebar').boundingBox()
+    await page.mouse.move(bb.x + 200, bb.y + 12)
+    await page.mouse.down()
+    await page.mouse.move(page.viewportSize().width - 2, 300, { steps: 10 })
+    await page.mouse.up()
+    await expect.poll(() => onRightHalf(w, page)).toBe(true)
+  })
+
+  test('Action Center opens from the tray and closes with Escape or its close button', async ({
+    page,
+  }) => {
+    await openDesktop(page)
+    const center = page.getByRole('dialog', { name: 'Action Center' })
+    const tray = page.getByRole('button', { name: /^Action Center/ })
+    await tray.click()
+    await expect(center).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(center).toBeHidden()
+    await tray.click()
+    await expect(center).toBeVisible()
+    await center.getByRole('button', { name: 'Close Action Center' }).click()
+    await expect(center).toBeHidden()
+  })
 })
 
 test.describe('signed out', () => {
-  test('shows the Win7 logon screen with a working sign-in form', async ({ page }) => {
+  test('shows the Win7 logon screen and signs in through the form', async ({ page }) => {
     await page.unrouteAll()
     await mockApi(page, { authenticated: false })
     await page.goto('/')
-    const email = page.getByLabel(/email/i).first()
+    const email = page.getByLabel('Email', { exact: true })
+    const password = page.getByLabel('Password', { exact: true })
     await expect(email).toBeVisible()
-    await expect(page.getByLabel(/password/i).first()).toBeVisible()
+    await expect(password).toBeVisible()
+    await email.fill('test.user@example.test')
+    await password.fill('e2e-password')
+    const login = page.waitForRequest(
+      (req) => req.method() === 'POST' && req.url().endsWith('/auth/login'),
+    )
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    // The form submits the typed credentials to the login endpoint...
+    expect((await login).postDataJSON()).toEqual({
+      email: 'test.user@example.test',
+      password: 'e2e-password',
+    })
+    // ...and the session it returns opens the desktop.
+    await expect(win(page, 'Media Vault')).toBeVisible()
+    await expect(page.getByLabel('Email', { exact: true })).toBeHidden()
   })
 })
 

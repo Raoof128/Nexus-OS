@@ -14,8 +14,10 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,md,json}\"",
     "prettier:check": "prettier --check \"**/*.{js,jsx,ts,tsx,css,md,json}\"",
     "check": "npm run lint && npm run build",
-    "test:e2e": "playwright test",
-    "test:visual": "playwright test e2e/visual.spec.js"
+    "test:e2e": "playwright test e2e/journeys.spec.js e2e/privacy.spec.js e2e/pwa-launch.spec.js",
+    "test:visual": "E2E_SUITE=visual playwright test e2e/visual.spec.js",
+    "test:parity": "E2E_SUITE=parity playwright test e2e/parity.spec.js",
+    "test:shots": "E2E_SUITE=shots playwright test e2e/shots.spec.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

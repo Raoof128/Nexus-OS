@@ -7,7 +7,11 @@ export const USER = {
   user_metadata: { full_name: 'Test User' },
 }
 
-const now = Date.now()
+// Fixture timestamps are anchored to a fixed instant, not the wall clock, so
+// anything the UI derives from them ("Yesterday", clock times) is stable. The
+// visual suite freezes the browser clock to this same instant.
+export const FIXTURE_NOW = Date.UTC(2026, 10, 8, 9, 30)
+const now = FIXTURE_NOW
 const MEDIA = {
   book: [
     {
@@ -196,6 +200,8 @@ export async function mockApi(page, { authenticated = true } = {}) {
       const type = url.searchParams.get('type')
       return json(route, type ? (MEDIA[type] ?? []) : Object.values(MEDIA).flat())
     }
+    if (p === '/api/email/messages' && method === 'GET')
+      return json(route, { items: EMAILS, next_cursor: null })
     if (p === '/api/tasks/lists' && method === 'GET') return json(route, TASK_LISTS)
     const m = p.match(/^\/api\/tasks\/lists\/([^/]+)\/items$/)
     if (m && method === 'GET')

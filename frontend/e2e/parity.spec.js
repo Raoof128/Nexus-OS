@@ -3,7 +3,7 @@
 // win7-parity.html (Nexus's full CSS stack) and pixel-diffed. A mismatch means
 // the Nexus integration (Preflight, win7-reset, nexus adapter) altered 7.css.
 //
-//   npx playwright test e2e/parity.spec.js --project=desktop
+//   npm run test:parity
 //
 // Needs network access to khang-nd.github.io. Results: e2e/.results/parity/
 // (ref-*.png, ours-*.png, diff-*.png, summary.json).
