@@ -1,6 +1,6 @@
 # CLAUDE.md — Nexus OS
 
-A cyberpunk **browser "OS"**: a windowing desktop shell (draggable/resizable/snappable windows, taskbar, app launcher, desktop icons, lock screen, boot sequence) hosting real apps — a personal media vault (books, movies, anime, job applications) with AI recommendations, an email client, an AI chat assistant, plus utility apps (Terminal, File Manager, System Monitor, Notes, Settings).
+A Windows 7 Aero-style **browser "OS"**: a windowing desktop shell (draggable/resizable/snappable windows, taskbar, app launcher, desktop icons, lock screen, boot sequence) hosting real apps — a personal media vault (books, movies, anime, job applications) with AI recommendations, an email client, an AI chat assistant, plus utility apps (Terminal, File Manager, System Monitor, Notes, Settings).
 
 > The product evolved from the original "Nexus Archive" single-page tabbed app into the "Nexus OS" shell. If you find docs referring to `components/features/*` or `App.jsx` "tabs", they're stale — the live structure is `frontend/src/os/*` (see Architecture below).
 
@@ -21,6 +21,7 @@ cd frontend && npm run build        # Production build → dist/
 cd frontend && npm run lint         # ESLint
 cd frontend && npm run test         # Vitest (run once)
 cd frontend && npm run test:watch   # Vitest (watch mode)
+cd frontend && npm run test:e2e     # Playwright journeys (mocked API) — `npx playwright install chromium` once
 
 # Backend
 python3 -m uvicorn backend.app:app --reload   # Dev server on :8000
@@ -63,7 +64,7 @@ backend/
 frontend/src/
   App.jsx                          # Auth gate: loading → ResetPassword / AuthPanel / <Desktop>
   main.jsx                         # React root + QueryClient provider + Sentry init
-  index.css                        # Tailwind v4 + cyberpunk design system + global focus ring
+  index.css                        # Tailwind v4 + 7.css (layered) + Win7 adapter (see docs/win7-design-system.md)
   context/AuthContext.jsx          # Session state from backend cookie auth
   hooks/useMedia.js                # React Query + Realtime subscription + optimistic updates
   hooks/useChat.js                 # Chat messages query + mutation
@@ -78,14 +79,15 @@ frontend/src/
   lib/motion.js                    # Shared Framer Motion SPRING/DURATION/EASE tokens
   os/Desktop.jsx                   # OS shell: wallpaper, windows, taskbar, boot, lock, idle-lock
   os/stores/windowStore.js         # Window open/close/focus/move/resize/snap/minimize (zustand)
-  os/stores/settingsStore.js       # Accent, wallpaper, UI scale, scanlines/orbs (persisted)
+  os/stores/settingsStore.js       # Window colour (--w7-w-bg), wallpaper, UI scale (persisted)
   os/stores/notificationStore.js   # Toast + notification badge state
   os/stores/fileSystemStore.js     # Sandboxed local file tree for File Manager (persisted)
   os/stores/appRegistry.js         # APP_REGISTRY + APP_ORDER — single source for all apps
   os/hooks/useGlobalShortcuts.js   # Alt+W/M/arrows/[ ]/1-8/L window + launcher shortcuts
   os/components/Window.jsx         # Draggable/resizable window chrome (memoized)
-  os/components/Taskbar.jsx        # Running-window dock + tray (clock, notif badge)
-  os/components/AppLauncher.jsx    # Searchable app grid (Alt+L), Escape-to-close
+  os/components/Taskbar.jsx        # Win7 superbar: Start orb, task buttons, tray, clock, Show desktop
+  os/components/AppLauncher.jsx    # Win7 Start menu (Alt+L): programs, search, places, Lock/Log off
+  os/components/AppIcon.jsx        # Original glossy SVG app icons (registry `tint`)
   os/components/DesktopIcons.jsx   # Desktop icon grid (click select / double-click open)
   os/components/ContextMenu.jsx    # Right-click desktop menu
   os/components/{BootSequence,LockScreen,SnapPreview,NotificationToast}.jsx
@@ -132,9 +134,13 @@ Backend manages HttpOnly cookies. Frontend never touches tokens directly. `apiCl
 
 Every app is declared once in `os/stores/appRegistry.js` (`APP_REGISTRY` keyed by app id, `APP_ORDER` for launcher/shortcut order) with its `title`, `icon`, `singleton`, `defaultSize`, `minSize`, and lazy `component`. The taskbar, app launcher, desktop icons, global shortcuts (Alt+1-8), and `Desktop.jsx` all read from it — to add an app, register it there and nothing else needs a hardcoded list. Window lifecycle (open/focus/move/resize/snap/minimize/maximize) lives entirely in `windowStore.js`; apps render inside `<Window>` and should not manage their own positioning.
 
+### Design system: Windows 7 Aero via 7.css
+
+The UI is Windows 7 (Aero glass frames/taskbar, light app windows, Segoe UI 9pt). `index.css` loads the unmodified **7.css** scoped build into `@layer win7` (scoped by `<body class="win7">`), then a `win7-reset` layer (opt-outs: _classed_ buttons are reset to bare — use a bare `<button>` or `.w7-btn` for a Win7 push button; label-less checkboxes; classed listboxes) and a `nexus` adapter layer (`.nx-*` shell classes, `.w7-*` Explorer helpers), all below Tailwind `utilities`. **Read `docs/win7-design-system.md` before any UI work** — it lists the markup 7.css styles automatically, the helper classes, tokens and the dark→light conversion table. Never put `role="dialog"` on a `.window` element (7.css hides it). Verify visual changes with `npm run test:e2e` and the 7.css pixel-parity harness (`npx playwright test e2e/parity.spec.js`).
+
 ### Accessibility: one global focus ring
 
-`index.css` defines a single app-wide `:where(...):focus-visible { outline }` neon ring (specificity 0) so icon-only OS controls are keyboard-visible. Elements that render their own branded Tailwind `focus-visible:ring*` must also set `focus-visible:outline-none` to avoid a double ring; form inputs already do this via `focus:outline-none`.
+`index.css` defines a single app-wide `:where(...):focus-visible { outline }` Win7 dotted focus rectangle (specificity 0) so icon-only OS controls are keyboard-visible; 7.css controls draw their own. Never add `outline-none` without a replacement indicator.
 
 ## Environment Variables
 
@@ -158,14 +164,14 @@ Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`, `VITE_AION_SUPABA
 - **Seed SQL is local-only** — `supabase/seed.sql` creates a dev user. Never run against production. Production accounts go through Supabase Auth dashboard.
 - **Frontend env vars must start with `VITE_`** — Vite only exposes prefixed vars to client code. Both `realtimeClient.js` and `apiClient.js` validate their required vars at import time.
 - **AuthPanel registration** uses `signIn()` after successful signup, NOT `window.location.reload()`.
-- **CyberCard is memoized** with a custom comparator on item fields. If you add a new displayable field to the media model, add it to the comparator in `CyberCard.jsx`.
+- **CyberCard is memoized** (name kept for history; it renders a Win7 card) with a custom comparator on item fields. If you add a new displayable field to the media model, add it to the comparator in `CyberCard.jsx`.
 - **Production builds MUST set `VITE_API_URL=https://home-notes-app.uk/api`** — the local `.env` has `localhost:8000`. If you forget the override, the deployed site will try to hit localhost and all API calls fail with `ERR_CONNECTION_REFUSED`. A Cloudflare Worker (`worker/`) proxies `/api/*` to the DigitalOcean droplet (`api.home-notes-app.uk`).
 
 ## Code Style
 
 - **Frontend:** ESLint with react-hooks plugin. No TypeScript. JSX. Tailwind utility classes. Framer Motion for animation. `import { motion as Motion }` convention.
 - **Backend:** Ruff (line-length 88, select E/F/I/B). Double quotes. Python 3.12+. Pydantic v2 models with `ConfigDict(str_strip_whitespace=True)`.
-- **Design:** Cyberpunk aesthetic is mandatory — neon cyan/magenta on dark, glassmorphism, Orbitron/Oxanium/JetBrains Mono fonts. No generic/minimal designs.
+- **Design:** Windows 7 Aero is mandatory — follow `docs/win7-design-system.md` (7.css controls, light window bodies, Segoe UI, sentence case). No neon, glow, scanlines, uppercase/letter-spaced labels or Orbitron/Oxanium fonts. Never ship Microsoft logos, wallpapers, icons or font files; all artwork is original.
 
 ## Testing
 
@@ -185,10 +191,11 @@ Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`, `VITE_AION_SUPABA
 
   # Sync backend files to droplet
   sshpass -p "$DROPLET_PASSWORD" rsync -avz --delete --exclude 'venv' --exclude '.env.production' --exclude '__pycache__' --exclude '.git' --exclude 'node_modules' --exclude '.DS_Store' --exclude '._*' -e "ssh -o StrictHostKeyChecking=no" ./backend/ "$DROPLET_USER@$DROPLET_IP:/opt/nexus/backend/"
-  sshpass -p "$DROPLET_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./pyproject.toml "$DROPLET_USER@$DROPLET_IP:/opt/nexus/pyproject.toml"
+  sshpass -p "$DROPLET_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./pyproject.toml ./README.md ./LICENSE "$DROPLET_USER@$DROPLET_IP:/opt/nexus/"
 
   # Rebuild and run docker container on droplet
   sshpass -p "$DROPLET_PASSWORD" ssh -o StrictHostKeyChecking=no "$DROPLET_USER@$DROPLET_IP" "docker build -t nexus-api -f /opt/nexus/backend/Dockerfile /opt/nexus && docker stop nexus-api && docker rm nexus-api && docker run -d --name nexus-api -p 127.0.0.1:8000:8000 --restart unless-stopped --env-file /opt/nexus/.env.production nexus-api:latest"
   ```
 
+- **Deploy order (since the 2026-11 backend audit):** deploy the Worker (`worker/`, `wrangler deploy`) **before** the backend. The backend now rejects cookie-authenticated POST/PUT/PATCH/DELETE without `X-Requested-With: XMLHttpRequest`, and only the updated Worker forwards that header. The backend also refuses to boot on invalid production env (see `docs/backend-audit.md` → Deploy checklist).
 - **Security headers** defined in `vercel.json` (CSP, X-Frame-Options, etc.) — NOTE: this is a legacy file from Vercel. Cloudflare Pages does NOT read `vercel.json`. These headers need to be migrated to `frontend/public/_headers` to take effect.

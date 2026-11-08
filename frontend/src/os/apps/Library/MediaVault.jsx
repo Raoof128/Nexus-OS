@@ -1,6 +1,6 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useMemo, useRef, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { ArrowLeft, ChevronLeft, ChevronRight, Pencil, Search, SearchX, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
 import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../../lib/mediaConfig'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 
@@ -8,6 +8,7 @@ function MediaVault({
   items,
   mediaType,
   filterStatus,
+  selectedId = null,
   onBack,
   onUpdate,
   onDelete,
@@ -16,10 +17,15 @@ function MediaVault({
 }) {
   const [search, setSearch] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [focusedId, setFocusedId] = useState(null)
+  const rowsRef = useRef(null)
 
   const config = MEDIA_CONFIG[mediaType]
   const Icon = TYPE_ICONS[mediaType]
   const isJob = mediaType === 'job'
+  const rowGrid = isJob
+    ? '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_72px]'
+    : '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_72px]'
 
   const filtered = useMemo(() => {
     let result = items
@@ -37,6 +43,49 @@ function MediaVault({
     }
     return result
   }, [items, filterStatus, search])
+
+  // Roving tabindex: one row is in the Tab sequence (the last one focused,
+  // else the selected one, else the first). Arrow keys move between rows.
+  const tabStopId = filtered.some((i) => i.id === focusedId)
+    ? focusedId
+    : filtered.some((i) => i.id === selectedId)
+      ? selectedId
+      : (filtered[0]?.id ?? null)
+
+  const focusRowAt = (index) => {
+    const rows = rowsRef.current?.querySelectorAll('[data-vault-row]')
+    rows?.[index]?.focus()
+  }
+
+  const handleRowKeyDown = (event, index, item) => {
+    // Keys pressed on the row's own buttons belong to those buttons.
+    if (event.target !== event.currentTarget) return
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault()
+        focusRowAt(Math.min(index + 1, filtered.length - 1))
+        break
+      case 'ArrowUp':
+        event.preventDefault()
+        focusRowAt(Math.max(index - 1, 0))
+        break
+      case 'Home':
+        event.preventDefault()
+        focusRowAt(0)
+        break
+      case 'End':
+        event.preventDefault()
+        focusRowAt(filtered.length - 1)
+        break
+      case 'Enter':
+      case ' ':
+        event.preventDefault()
+        onSelect?.(item)
+        break
+      default:
+        break
+    }
+  }
 
   const handleStatusChange = (event, item, newStatus) => {
     event.stopPropagation()
@@ -56,204 +105,222 @@ function MediaVault({
     setDeleteTarget(null)
   }
 
+  const label = config?.label || 'Items'
+  const hasRows = filtered.length > 0
+
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex h-full w-full flex-col">
       {/* Header */}
-      <div className="shrink-0 mb-6 flex flex-col gap-4 p-3 @sm:p-4 @md:p-6 @sm:flex-row @sm:items-center @sm:justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-2 font-mono text-xs text-muted-foreground transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-          >
-            <ArrowLeft size={14} />
-            Overview
+      <div className="flex shrink-0 flex-col gap-2 p-3 @sm:flex-row @sm:items-center @sm:justify-between @sm:p-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <button type="button" onClick={onBack} className="w7-toolbtn">
+            <ArrowLeft size={14} aria-hidden="true" />
+            Back to overview
           </button>
-          <div className="flex items-center gap-2">
-            <Icon size={18} className="text-primary" />
-            <h2 className="heading-display text-sm font-bold text-white @sm:text-lg">
-              <span aria-hidden="true">// </span>
-              {filterStatus || 'All'} — {config?.label}
-            </h2>
-            <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-xs text-muted-foreground">
-              {filtered.length}
-            </span>
-          </div>
+          <Icon size={16} className="shrink-0 text-[#3d5a80]" aria-hidden="true" />
+          <h2 className="w7-heading truncate">
+            {filterStatus || 'All'} — {label}
+          </h2>
+          <span className="w7-badge tabular-nums">{filtered.length}</span>
         </div>
 
-        {/* Search */}
-        <div className="relative max-w-sm flex-1 @sm:max-w-xs">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          />
+        {/* Search: 7.css search box (type=search draws the magnifier) */}
+        <div className="w-full @sm:max-w-xs">
           <input
-            type="text"
+            type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search vault..."
+            placeholder="Search this list"
             aria-label="Search vault"
-            className="w-full rounded-lg border border-white/10 bg-black/40 py-2 pl-9 pr-3 font-mono text-xs text-white placeholder:text-white/40 focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="w-full"
           />
         </div>
       </div>
 
-      {/* Table */}
-      <div className="neon-border flex flex-col flex-1 min-h-0 overflow-hidden rounded-xl glass-panel mx-3 mb-3 @sm:mx-4 @sm:mb-4 @md:mx-6 @md:mb-6">
-        {/* Table header */}
+      {/* List: a table-style list view (header row + selectable data rows) */}
+      <div className="w7-sunken mx-3 mb-3 flex min-h-0 flex-1 flex-col overflow-hidden @sm:mx-4 @sm:mb-4">
         <div
-          className={`shrink-0 hidden border-b border-white/5 bg-white/[0.02] px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground @sm:grid ${isJob ? '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'}`}
+          role="table"
+          aria-label={`${label}, ${filterStatus || 'all statuses'}`}
+          className="flex min-h-0 flex-1 flex-col"
         >
-          <span>Title</span>
-          <span>{config?.creatorLabel || 'Creator'}</span>
-          {!isJob && <span>Genre</span>}
-          <span>Status</span>
-          {!isJob && <span>Rating</span>}
-          <span>{isJob ? config?.subInfoLabel || 'Info' : ''}</span>
-        </div>
-
-        {/* Rows */}
-        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-          {filtered.length === 0 &&
-            (search.trim() ? (
-              <div className="m-3 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/10 px-6 py-12 text-center @sm:m-4 @sm:py-14">
-                <SearchX size={28} className="text-muted-foreground/30" aria-hidden="true" />
-                <p className="font-mono text-xs text-muted-foreground/70">
-                  No matches for &ldquo;<span className="text-white/80">{search.trim()}</span>
-                  &rdquo;
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 font-mono text-[11px] text-primary/80 transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                >
-                  Clear search
-                </button>
-              </div>
-            ) : (
-              <div className="m-3 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/10 px-6 py-12 text-center @sm:m-4 @sm:py-14">
-                <Icon size={28} className="text-muted-foreground/25" aria-hidden="true" />
-                <p className="font-mono text-xs text-muted-foreground/60">
-                  Nothing in <span className="text-white/70">{filterStatus || 'this vault'}</span>{' '}
-                  yet.
-                </p>
-              </div>
-            ))}
-          {filtered.map((item) => (
-            <Motion.div
-              key={item.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              onClick={() => onSelect?.(item)}
-              className={`group cursor-pointer border-b border-white/[0.03] px-4 py-3 transition-colors hover:bg-white/[0.03] @sm:grid ${isJob ? '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_80px]' : '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_80px]'} @sm:items-center`}
+          {/* Column headings */}
+          <div role="rowgroup" className="shrink-0">
+            <div
+              role="row"
+              className={`hidden border-b border-border bg-w7-pane px-3 py-1.5 text-[12px] text-muted-foreground @sm:grid @sm:items-center ${rowGrid}`}
             >
-              {/* Title */}
-              <div className="mb-1 font-medium text-white transition-colors group-hover:text-primary @sm:mb-0 @sm:text-sm">
-                {item.title}
-              </div>
+              <span role="columnheader">Title</span>
+              <span role="columnheader">{config?.creatorLabel || 'Creator'}</span>
+              {!isJob && <span role="columnheader">Genre</span>}
+              <span role="columnheader">Status</span>
+              {!isJob && <span role="columnheader">Rating</span>}
+              {isJob && <span role="columnheader">{config?.subInfoLabel || 'Info'}</span>}
+              <span role="columnheader" className="sr-only">
+                Actions
+              </span>
+            </div>
+          </div>
 
-              {/* Creator */}
-              <div className="mb-1 font-mono text-xs text-muted-foreground @sm:mb-0">
-                <span className="mr-1 text-[10px] text-muted-foreground @sm:hidden">Creator:</span>
-                {item.creator !== '—' ? item.creator : ''}
-              </div>
-
-              {/* Genre */}
-              {!isJob && (
-                <div className="mb-1 @sm:mb-0">
-                  <span className="mr-1 text-[10px] text-muted-foreground @sm:hidden">Genre:</span>
-                  {item.genre && (
-                    <span className="inline-flex items-center rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-gray-300 ring-1 ring-inset ring-white/10">
-                      {item.genre}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Status */}
-              <div className="mb-1 flex items-center gap-1 @sm:mb-0">
-                <span className="mr-1 text-[10px] text-muted-foreground @sm:hidden">Status:</span>
-                {(() => {
-                  const { prev, next } = getStatusNav(mediaType, item.status)
-                  return (
+          {/* Rows */}
+          <div ref={rowsRef} role="rowgroup" className="min-h-0 flex-1 overflow-y-auto p-1">
+            {!hasRows && (
+              // The empty message sits in a row/cell so the table keeps valid ARIA children.
+              <div role="row" className="flex">
+                <div
+                  role="cell"
+                  className="flex w-full flex-col items-center justify-center gap-3 px-6 py-10 text-center"
+                >
+                  {search.trim() ? (
                     <>
-                      <button
-                        type="button"
-                        onClick={(e) => handleStatusChange(e, item, prev)}
-                        disabled={!prev}
-                        className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary disabled:invisible"
-                        aria-label={prev ? `Back to ${prev}` : undefined}
-                      >
-                        <ChevronLeft size={12} />
-                      </button>
-                      <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-mono text-primary">
-                        {item.status}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => handleStatusChange(e, item, next)}
-                        disabled={!next}
-                        className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-primary/20 hover:text-primary disabled:invisible"
-                        aria-label={next ? `Advance to ${next}` : undefined}
-                      >
-                        <ChevronRight size={12} />
+                      <p className="text-[12px] text-muted-foreground">
+                        No items match &ldquo;{search.trim()}&rdquo;.
+                      </p>
+                      <button type="button" onClick={() => setSearch('')} className="w7-btn">
+                        Clear search
                       </button>
                     </>
-                  )
-                })()}
+                  ) : (
+                    <p className="text-[12px] text-muted-foreground">
+                      {filterStatus
+                        ? `No ${label.toLowerCase()} marked “${filterStatus}” yet.`
+                        : `No ${label.toLowerCase()} here yet. Use Add ${config?.singular}… to add one.`}
+                    </p>
+                  )}
+                </div>
               </div>
-
-              {/* Rating */}
-              {!isJob && (
-                <div className="mb-1 text-xs text-yellow-500 @sm:mb-0">
-                  <span className="mr-1 text-[10px] text-muted-foreground @sm:hidden">Rating:</span>
-                  {item.rating != null && item.rating > 0 ? `★ ${item.rating}` : ''}
-                </div>
-              )}
-
-              {/* Sub-info (job only — occupies the Salary/Location column in the 5-col grid) */}
-              {isJob && (
-                <div className="mb-1 font-mono text-xs text-muted-foreground @sm:mb-0">
-                  <span className="mr-1 text-[10px] text-muted-foreground @sm:hidden">
-                    {config?.subInfoLabel}:
-                  </span>
-                  {item.sub_info || ''}
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex gap-1 @sm:opacity-0 @sm:transition-opacity @sm:group-hover:opacity-100 @sm:group-focus-within:opacity-100">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onEdit?.(item)
+            )}
+            {filtered.map((item, index) => {
+              const isSelected = item.id === selectedId
+              const { prev, next } = getStatusNav(mediaType, item.status)
+              return (
+                <Motion.div
+                  key={item.id}
+                  role="row"
+                  tabIndex={item.id === tabStopId ? 0 : -1}
+                  aria-selected={isSelected}
+                  data-vault-row
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  onClick={() => onSelect?.(item)}
+                  onFocus={(e) => {
+                    if (e.target === e.currentTarget) setFocusedId(item.id)
                   }}
-                  className="rounded p-1 text-muted-foreground hover:bg-primary/20 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                  title="Edit"
-                  aria-label="Edit"
+                  onKeyDown={(e) => handleRowKeyDown(e, index, item)}
+                  className={`w7-item group cursor-pointer px-2 py-1.5 @sm:grid @sm:items-center ${rowGrid}`}
                 >
-                  <Pencil size={12} />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => handleDelete(e, item)}
-                  className="rounded p-1 text-muted-foreground hover:bg-destructive/20 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                  title="Delete"
-                  aria-label="Delete"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            </Motion.div>
-          ))}
+                  {/* Title: a real button inside the row, so it opens from the keyboard too. */}
+                  <div role="cell" className="mb-0.5 min-w-0 @sm:mb-0 @sm:pr-3">
+                    <button
+                      type="button"
+                      aria-haspopup="dialog"
+                      tabIndex={-1}
+                      className="block w-full min-w-0 truncate text-left font-semibold text-foreground"
+                    >
+                      {item.title}
+                    </button>
+                  </div>
+
+                  {/* Creator */}
+                  <div
+                    role="cell"
+                    className="mb-0.5 truncate text-muted-foreground @sm:mb-0 @sm:pr-3"
+                  >
+                    <span className="mr-1 text-[11px] @sm:hidden">{config?.creatorLabel}:</span>
+                    {item.creator !== '—' ? item.creator : ''}
+                  </div>
+
+                  {/* Genre */}
+                  {!isJob && (
+                    <div role="cell" className="mb-0.5 @sm:mb-0">
+                      <span className="mr-1 text-[11px] text-muted-foreground @sm:hidden">
+                        Genre:
+                      </span>
+                      {item.genre && <span className="w7-badge">{item.genre}</span>}
+                    </div>
+                  )}
+
+                  {/* Status: disabled arrows stay visible and greyed (7.css :disabled) */}
+                  <div role="cell" className="mb-0.5 flex items-center gap-1 @sm:mb-0">
+                    <span className="mr-1 text-[11px] text-muted-foreground @sm:hidden">
+                      Status:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleStatusChange(e, item, prev)}
+                      disabled={!prev}
+                      className="w7-toolbtn px-1"
+                      title={prev ? `Back to ${prev}` : 'No earlier status'}
+                      aria-label={prev ? `Back to ${prev}` : 'No earlier status'}
+                    >
+                      <ChevronLeft size={12} aria-hidden="true" />
+                    </button>
+                    <span className="w7-badge">{item.status}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleStatusChange(e, item, next)}
+                      disabled={!next}
+                      className="w7-toolbtn px-1"
+                      title={next ? `Advance to ${next}` : 'No later status'}
+                      aria-label={next ? `Advance to ${next}` : 'No later status'}
+                    >
+                      <ChevronRight size={12} aria-hidden="true" />
+                    </button>
+                  </div>
+
+                  {/* Rating */}
+                  {!isJob && (
+                    <div role="cell" className="mb-0.5 text-[12px] text-[#8a5a00] @sm:mb-0">
+                      <span className="mr-1 text-[11px] text-muted-foreground @sm:hidden">
+                        Rating:
+                      </span>
+                      {item.rating != null && item.rating > 0 ? `★ ${item.rating}` : ''}
+                    </div>
+                  )}
+
+                  {/* Sub-info (job only, occupies the Salary/Location column in the grid) */}
+                  {isJob && (
+                    <div role="cell" className="mb-0.5 text-muted-foreground @sm:mb-0">
+                      <span className="mr-1 text-[11px] @sm:hidden">{config?.subInfoLabel}:</span>
+                      {item.sub_info || ''}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div role="cell" className="flex gap-0.5">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onEdit?.(item)
+                      }}
+                      className="w7-toolbtn px-1"
+                      title="Edit"
+                      aria-label="Edit"
+                    >
+                      <Pencil size={12} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDelete(e, item)}
+                      className="w7-toolbtn w7-toolbtn--danger px-1"
+                      title="Delete"
+                      aria-label="Delete"
+                    >
+                      <Trash2 size={12} aria-hidden="true" />
+                    </button>
+                  </div>
+                </Motion.div>
+              )
+            })}
+          </div>
         </div>
       </div>
 
       <ConfirmDialog
         open={!!deleteTarget}
         id={deleteTarget}
-        title="Delete Entry"
+        title="Delete entry"
         message="This action cannot be undone. Are you sure you want to delete this entry?"
         onConfirm={confirmDeleteAction}
         onCancel={() => setDeleteTarget(null)}

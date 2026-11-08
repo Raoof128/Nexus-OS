@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNotificationStore } from '../../../stores/notificationStore'
+import { useWindowStore } from '../../../stores/windowStore'
 
 const FIRED_KEY = 'nexus-os:tasks:reminders-fired'
 const CHECK_INTERVAL_MS = 60 * 1000
@@ -28,11 +29,7 @@ export function dueTasksToNotify(tasks, now, fired) {
   return (tasks || []).filter((t) => {
     if (t.status !== 'needsAction') return false
     if (fired[t.id]) return false
-    const when = t.due_at
-      ? new Date(t.due_at)
-      : t.due
-        ? new Date(`${t.due}T00:00:00`)
-        : null
+    const when = t.due_at ? new Date(t.due_at) : t.due ? new Date(`${t.due}T00:00:00`) : null
     if (!when) return false
     return when.getTime() <= now.getTime()
   })
@@ -52,6 +49,8 @@ export function useTaskReminders(tasks) {
         addNotification({ title: 'Task due', message: t.title, type: 'warning' })
         fired[t.id] = Date.now()
       }
+      // A background Tasks window flashes its taskbar button, as on Windows 7.
+      useWindowStore.getState().requestAttention?.('tasks')
       saveFired(fired)
     }
 

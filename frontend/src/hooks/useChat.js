@@ -77,10 +77,11 @@ export function useChatMessages(userId, sessionId) {
       queryClient.setQueryData(queryKey, context?.previous ?? [])
     },
   })
+  const resetSendMessage = sendMessage.reset
 
   useEffect(() => {
-    sendMessage.reset()
-  }, [sessionId, sendMessage])
+    resetSendMessage()
+  }, [sessionId, resetSendMessage])
 
   return {
     messages: messagesQuery.data ?? [],

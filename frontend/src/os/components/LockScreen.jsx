@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
-import { useWindowStore } from '../stores/windowStore'
+import { useAuth } from '../../hooks/useAuth'
+import PasswordInput from '../../components/ui/PasswordInput'
+import { ArrowSubmitButton, FormBalloon, UserTile } from '../apps/Auth/LogonParts'
+import { fieldClass } from '../apps/Auth/logonStyles'
+import { PASSWORD_INCORRECT } from '../apps/Auth/copy'
 
-/** Clock that updates every second for the lock screen */
+const TEXT_SHADOW = '0 1px 2px #000, 0 0 8px #0008'
+const FOCUSABLE = 'input:not([disabled]), button:not([disabled])'
+
+/** Lock-screen clock, shown small under the sign-in tile. */
 function LockClock() {
   const [now, setNow] = useState(() => new Date())
 
@@ -17,198 +24,33 @@ function LockClock() {
     hour12: false,
   })
 
-  const date = now.toLocaleDateString([], {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  })
-
   return (
-    <div className="flex flex-col items-center gap-1">
-      <span
-        className="heading-display select-none tabular-nums"
-        style={{
-          fontSize: 'clamp(4rem, 10vw, 7rem)',
-          fontWeight: 900,
-          color: 'hsl(56 100% 48%)',
-          textShadow: '0 0 20px hsl(56 100% 48% / 0.6), 0 0 60px hsl(56 100% 48% / 0.2)',
-          lineHeight: 1,
-          letterSpacing: '0.04em',
-        }}
-      >
-        {time}
-      </span>
-      <span
-        className="heading-ui select-none"
-        style={{
-          fontSize: 'clamp(0.85rem, 2vw, 1.1rem)',
-          color: 'hsl(170 76% 63% / 0.85)',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-        }}
-      >
-        {date}
-      </span>
-    </div>
-  )
-}
-
-/** Blinking "click/tap to unlock" hint — adapts to mobile vs desktop */
-function UnlockHint() {
-  const isMobile = useWindowStore((s) => s.isMobile)
-  return (
-    <Motion.p
-      className="select-none font-mono text-xs"
-      style={{ color: 'hsl(0 0% 60%)' }}
-      animate={{ opacity: [1, 0.3, 1] }}
-      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+    <span
+      className="select-none text-[12px] tabular-nums text-white"
+      style={{ textShadow: TEXT_SHADOW }}
     >
-      {isMobile ? 'Tap to unlock' : 'Click or press any key to unlock'}
-    </Motion.p>
+      {time}
+    </span>
   )
 }
 
-/** CSS-only animated circuit pattern rendered as a background div */
-function CircuitBackground() {
-  return (
-    <div className="pointer-events-none absolute inset-0" style={{ zIndex: 0 }} aria-hidden>
-      {/* Base grid */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `
-            linear-gradient(hsl(56 100% 48% / 0.04) 1px, transparent 1px),
-            linear-gradient(90deg, hsl(56 100% 48% / 0.04) 1px, transparent 1px)
-          `,
-          backgroundSize: '60px 60px',
-        }}
-      />
-      {/* Denser sub-grid */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `
-            linear-gradient(hsl(170 76% 63% / 0.02) 1px, transparent 1px),
-            linear-gradient(90deg, hsl(170 76% 63% / 0.02) 1px, transparent 1px)
-          `,
-          backgroundSize: '20px 20px',
-        }}
-      />
-      {/* Animated horizontal scan highlight — animate `y` (transform) rather
-         than `top` so the infinite loop is GPU-composited and skips layout. */}
-      <Motion.div
-        className="absolute inset-x-0 top-0 h-[1px]"
-        style={{
-          background:
-            'linear-gradient(90deg, transparent 0%, hsl(56 100% 48% / 0.15) 30%, hsl(170 76% 63% / 0.12) 70%, transparent 100%)',
-          willChange: 'transform',
-        }}
-        animate={{ y: ['0vh', '100vh'] }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: 'linear',
-        }}
-      />
-      {/* Ambient orbs */}
-      <div
-        style={{
-          position: 'absolute',
-          width: 600,
-          height: 600,
-          borderRadius: '50%',
-          background: 'hsl(56 100% 48%)',
-          opacity: 0.05,
-          filter: 'blur(130px)',
-          top: '-15%',
-          right: '-10%',
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          width: 700,
-          height: 700,
-          borderRadius: '50%',
-          background: 'hsl(170 76% 63%)',
-          opacity: 0.04,
-          filter: 'blur(140px)',
-          bottom: '-20%',
-          left: '-15%',
-        }}
-      />
-    </div>
-  )
-}
-
-/** Pulsing neon "N" logo for the lock screen */
-function LockLogo() {
-  return (
-    <Motion.div
-      style={{
-        width: 80,
-        height: 80,
-        borderRadius: 16,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0,0,0,0.7)',
-        border: '1px solid hsl(56 100% 48% / 0.35)',
-        position: 'relative',
-      }}
-      animate={{
-        boxShadow: [
-          '0 0 15px hsl(56 100% 48% / 0.3), 0 0 40px hsl(170 76% 63% / 0.1)',
-          '0 0 30px hsl(56 100% 48% / 0.5), 0 0 80px hsl(170 76% 63% / 0.2)',
-          '0 0 15px hsl(56 100% 48% / 0.3), 0 0 40px hsl(170 76% 63% / 0.1)',
-        ],
-      }}
-      transition={{
-        duration: 3,
-        repeat: Infinity,
-        ease: 'easeInOut',
-      }}
-    >
-      <span
-        className="heading-display select-none"
-        style={{
-          fontSize: '2.4rem',
-          fontWeight: 900,
-          color: 'hsl(56 100% 48%)',
-          textShadow: '0 0 16px hsl(56 100% 48% / 0.7)',
-          lineHeight: 1,
-        }}
-      >
-        N
-      </span>
-      {/* Corner marks */}
-      {[
-        { top: 5, left: 5, borderTop: true, borderLeft: true },
-        { bottom: 5, right: 5, borderBottom: true, borderRight: true },
-      ].map((pos, i) => (
-        <span
-          key={i}
-          style={{
-            position: 'absolute',
-            width: 8,
-            height: 8,
-            ...(pos.top !== undefined ? { top: pos.top } : { bottom: pos.bottom }),
-            ...(pos.left !== undefined ? { left: pos.left } : { right: pos.right }),
-            borderTop: pos.borderTop ? '1px solid hsl(170 76% 63% / 0.5)' : undefined,
-            borderLeft: pos.borderLeft ? '1px solid hsl(170 76% 63% / 0.5)' : undefined,
-            borderBottom: pos.borderBottom ? '1px solid hsl(170 76% 63% / 0.5)' : undefined,
-            borderRight: pos.borderRight ? '1px solid hsl(170 76% 63% / 0.5)' : undefined,
-          }}
-        />
-      ))}
-    </Motion.div>
-  )
-}
-
+/**
+ * Windows 7 locked screen. Any click or key only wakes it and puts focus in the
+ * password box. The session opens only after the password is verified through
+ * AuthContext.verifyPassword, which re-checks the credentials with the backend.
+ */
 export default function LockScreen({ onUnlock }) {
+  const { session, signOut, verifyPassword } = useAuth()
+  const displayName =
+    session?.user?.user_metadata?.full_name || session?.user?.email || 'Nexus OS user'
   const [exiting, setExiting] = useState(false)
   const exitingRef = useRef(false)
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const submittingRef = useRef(false)
+  const rootRef = useRef(null)
+  const passwordRef = useRef(null)
 
   const dismiss = useCallback(() => {
     if (exitingRef.current) return
@@ -216,83 +58,142 @@ export default function LockScreen({ onUnlock }) {
     setExiting(true)
   }, [])
 
-  // Listen for any user interaction — register once, stable via ref guard
+  const focusPassword = useCallback(() => {
+    passwordRef.current?.focus()
+  }, [])
+
+  // Focus the password box as soon as the lock appears.
   useEffect(() => {
-    const handleInteraction = () => {
-      // Don't dismiss if user is typing in a focused input inside the lock screen
-      const active = document.activeElement
-      if (
-        active &&
-        (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)
-      ) {
-        return
+    focusPassword()
+  }, [focusPassword])
+
+  // Wake-on-input: a key pressed while focus is outside the lock (or Escape
+  // anywhere) moves focus back to the password box. Escape clears the entry.
+  // Nothing here unlocks the session.
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setPassword('')
+        setError(null)
       }
-      dismiss()
+      if (!rootRef.current?.contains(document.activeElement)) focusPassword()
     }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [focusPassword])
 
-    document.addEventListener('click', handleInteraction)
-    document.addEventListener('keydown', handleInteraction)
-    document.addEventListener('mousedown', handleInteraction)
-
-    return () => {
-      document.removeEventListener('click', handleInteraction)
-      document.removeEventListener('keydown', handleInteraction)
-      document.removeEventListener('mousedown', handleInteraction)
+  // Keep Tab inside the lock so keyboard focus cannot wander to the desktop.
+  const handleRootKeyDown = (event) => {
+    if (event.key !== 'Tab' || !rootRef.current) return
+    const items = [...rootRef.current.querySelectorAll(FOCUSABLE)]
+    if (items.length === 0) return
+    const first = items[0]
+    const last = items[items.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
     }
-  }, [dismiss])
+  }
+
+  // A click on the lock background wakes it: focus the password box instead of
+  // letting the click drop focus to the page.
+  const handleRootMouseDown = (event) => {
+    if (event.target.closest?.('button, input')) return
+    event.preventDefault()
+    focusPassword()
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    if (submittingRef.current || !password) return
+    submittingRef.current = true
+    setError(null)
+    setSubmitting(true)
+    try {
+      const verified = await verifyPassword(password)
+      setPassword('')
+      if (verified) {
+        dismiss()
+      } else {
+        setError(PASSWORD_INCORRECT)
+        focusPassword()
+      }
+    } catch (verifyError) {
+      setPassword('')
+      setError(verifyError?.message || PASSWORD_INCORRECT)
+      focusPassword()
+    } finally {
+      submittingRef.current = false
+      setSubmitting(false)
+    }
+  }
+
+  const handleSwitchUser = () => {
+    // Log off: the lock unmounts with the session and the logon screen appears.
+    signOut()
+  }
 
   return (
     <AnimatePresence onExitComplete={onUnlock}>
       {!exiting && (
         <Motion.div
           key="lock-screen"
-          className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
-          style={{
-            zIndex: 2000,
-            background: 'rgba(0, 0, 0, 0.97)',
-            cursor: 'pointer',
-          }}
+          ref={rootRef}
+          className="nx-wallpaper-aero fixed inset-0 flex flex-col items-center justify-center overflow-hidden"
+          style={{ zIndex: 2000 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ y: '-100%', opacity: 0, transition: { duration: 0.5, ease: 'easeInOut' } }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
-          aria-label="Lock screen — click or press any key to unlock"
           role="dialog"
           aria-modal
+          aria-label="Lock screen"
+          onKeyDown={handleRootKeyDown}
+          onMouseDown={handleRootMouseDown}
         >
-          <CircuitBackground />
-
-          {/* Scanlines */}
-          <div
-            className="pointer-events-none absolute inset-0"
-            style={{
-              background:
-                'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px)',
-              zIndex: 1,
-            }}
-          />
-
-          {/* Center content */}
-          <div className="relative flex flex-col items-center gap-6" style={{ zIndex: 5 }}>
-            <LockLogo />
+          {/* Centre sign-in block */}
+          <div className="relative flex flex-col items-center gap-3" style={{ zIndex: 5 }}>
+            <UserTile />
+            <p
+              id="lock-user-name"
+              className="mt-2 select-none text-[18px] text-white"
+              style={{ textShadow: TEXT_SHADOW }}
+            >
+              {displayName}
+            </p>
+            <form onSubmit={handleSubmit} className="flex flex-col items-center gap-2">
+              <div className="flex items-center gap-2">
+                <PasswordInput
+                  id="lock-password"
+                  ref={passwordRef}
+                  wrapperClassName="w-[200px]"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={fieldClass}
+                  placeholder="Password"
+                  aria-label="Password"
+                  autoComplete="current-password"
+                  required
+                  {...(error ? { 'aria-describedby': 'lock-error', 'aria-invalid': true } : {})}
+                />
+                <ArrowSubmitButton submitting={submitting} label="Unlock" />
+              </div>
+              <FormBalloon id="lock-error">{error}</FormBalloon>
+            </form>
+            <p className="select-none text-[12px] text-white" style={{ textShadow: TEXT_SHADOW }}>
+              Locked
+            </p>
             <LockClock />
-            <UnlockHint />
           </div>
 
-          {/* Bottom NEXUS wordmark */}
-          <div
-            className="absolute bottom-8 left-0 right-0 flex justify-center"
-            style={{ zIndex: 5 }}
-          >
-            <span
-              className="heading-display select-none text-[10px]"
-              style={{
-                color: 'hsl(56 100% 48% / 0.25)',
-                letterSpacing: '0.3em',
-              }}
-            >
-              NEXUS OS
-            </span>
+          {/* Bottom-left actions, as on the Windows 7 lock screen */}
+          <div className="absolute bottom-4 left-4 z-10">
+            <button type="button" onClick={handleSwitchUser} className="w7-btn">
+              Switch User
+            </button>
           </div>
         </Motion.div>
       )}

@@ -30,7 +30,7 @@ export default function TasksApp() {
   const handleDeleteList = (list) => deleteList.mutate(list.id)
 
   return (
-    <div ref={rootRef} className="flex h-full w-full overflow-hidden text-white">
+    <div ref={rootRef} className="flex h-full w-full overflow-hidden text-[12px] text-foreground">
       <ListSidebar
         lists={lists}
         activeListId={activeListId}
@@ -47,11 +47,11 @@ export default function TasksApp() {
 
       {lists.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center text-muted-foreground">
-          <p className="text-sm">No task lists yet.</p>
+          <p>No task lists yet.</p>
           <button
             type="button"
             onClick={() => handleCreateList('My Tasks')}
-            className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-black hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+            className="w7-btn default"
           >
             Create your first list
           </button>

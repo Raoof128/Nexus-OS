@@ -1,4 +1,26 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Nexus OS — Windows 7 Aero design system
+   Spec: docs/win7-design-system.md
+
+   Cascade order (first declaration wins the ordering):
+     theme → base → win7 → win7-reset → nexus → components → utilities
+   - `win7`   the unmodified 7.css scoped build (MIT, khang-nd/7.css). It only
+              matches inside a `.win7` ancestor; <body class="win7"> provides
+              that, so portals rendered into document.body are covered too.
+   - `win7-reset` opt-outs where 7.css's element-level selectors would fight
+              existing markup. Its own layer so its (high-specificity)
+              selectors can never beat the shell classes in `nexus`.
+   - `nexus`  the small adapter below: opt-outs where 7.css's element-level
+              selectors would fight existing markup, plus shell primitives
+              (taskbar, start menu, Explorer list states) that 7.css does not
+              ship.
+   Because both sit below `utilities`, any Tailwind class still wins without
+   `!important`, and Tailwind's Preflight (in `base`) is overridden by 7.css.
+   ───────────────────────────────────────────────────────────────────────────── */
+@layer theme, base, win7, win7-reset, nexus, components, utilities;
+
 @import 'tailwindcss';
+@import '7.css/dist/7.scoped.css' layer(win7);
 
 @theme {
   --color-background: hsl(var(--background));
@@ -20,133 +42,1071 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  --color-neon-yellow: hsl(var(--neon-yellow));
-  --color-neon-teal: hsl(var(--neon-teal));
-  --font-display: 'Orbitron', sans-serif;
-  --font-ui: 'Oxanium', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  /* Windows 7 named colours, usable as Tailwind utilities (text-w7-title …) */
+  --color-w7-title: #003399;
+  --color-w7-link: #0066cc;
+  --color-w7-surface: #f0f0f0;
+  --color-w7-pane: #f1f5fb;
+  --color-w7-select: #cce8ff;
+  --color-w7-select-border: #99d1ff;
+  --color-w7-hover: #e5f3ff;
+  /* Legacy token names kept so untouched code degrades to the Win7 blue
+     instead of breaking. New code must not use them. */
+  --color-neon-yellow: hsl(var(--primary));
+  --color-neon-teal: hsl(var(--primary));
+  --font-display: 'Segoe UI', 'SegoeUI', 'Noto Sans', system-ui, sans-serif;
+  --font-ui: 'Segoe UI', 'SegoeUI', 'Noto Sans', system-ui, sans-serif;
+  --font-sans: 'Segoe UI', 'SegoeUI', 'Noto Sans', system-ui, sans-serif;
+  --font-mono: Consolas, 'Lucida Console', 'Cascadia Mono', ui-monospace, monospace;
 }
 
 @layer base {
   :root {
-    --background: 0 0% 0%;
-    --foreground: 0 0% 91%;
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 91%;
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 91%;
-    --primary: 56 100% 48%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 170 76% 63%;
-    --secondary-foreground: 0 0% 0%;
-    --muted: 0 0% 7%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 56 100% 48%;
-    --accent-foreground: 0 0% 0%;
-    --destructive: 345 100% 39%;
-    --destructive-foreground: 0 0% 91%;
-    --border: 56 100% 48% / 0.15;
-    --input: 0 0% 4%;
-    --ring: 56 100% 48%;
-    --neon-yellow: 56 100% 48%;
-    --neon-teal: 170 76% 63%;
+    /* Window content is light, like every Windows 7 application. */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 12%;
+    --popover: 0 0% 98%;
+    --popover-foreground: 0 0% 12%;
+    --primary: 208 79% 43%; /* #1773c4 — Win7 command blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 33% 96%;
+    --secondary-foreground: 0 0% 12%;
+    --muted: 0 0% 94%; /* #f0f0f0 — the 7.css surface */
+    --muted-foreground: 0 0% 36%;
+    --accent: 205 100% 95%; /* Explorer hover tint */
+    --accent-foreground: 0 0% 12%;
+    --destructive: 6 75% 44%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 122 46% 33%;
+    --warning: 35 100% 31%;
+    --border: 216 12% 80%;
+    --input: 0 0% 100%;
+    --ring: 208 79% 43%;
+    /* Legacy aliases (see @theme note). */
+    --neon-yellow: var(--primary);
+    --neon-teal: var(--primary);
+
+    /* Shell tokens */
+    --w7-taskbar-h: 40px;
+    --w7-titlebar-h: 30px;
+    --w7-startmenu-w: 400px;
+    --w7-startmenu-h: 535px;
+    --w7-icon-sm: 16px;
+    --w7-icon-md: 24px;
+    --w7-icon-lg: 48px;
+    --w7-glass-blur: 6px;
+    --w7-motion-fast: 120ms;
+    --w7-motion: 200ms;
+    --w7-ease: cubic-bezier(0.2, 0, 0, 1);
   }
 
   * {
     border-color: hsl(var(--border));
   }
 
+  html,
   body {
-    background-color: hsl(var(--background));
+    height: 100%;
+  }
+
+  body {
+    background-color: #1c3f6e;
     color: hsl(var(--foreground));
-    font-family: var(--font-mono);
-    line-height: 1.6;
+    font:
+      9pt 'Segoe UI',
+      'SegoeUI',
+      'Noto Sans',
+      system-ui,
+      sans-serif;
+    line-height: 1.4;
+    -webkit-font-smoothing: auto;
   }
 }
 
-/* ── Cyberpunk scrollbar ─────────────────────────────────── */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 3px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: hsl(var(--neon-yellow) / 0.25);
-  border-radius: 9999px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--neon-yellow) / 0.5);
-}
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--neon-yellow) / 0.25) transparent;
+/* ═══════════════════════════════════════════════════════════════════════════
+   nexus — adapter over 7.css
+   ═══════════════════════════════════════════════════════════════════════════ */
+@layer win7-reset {
+  /* ── Opt-outs ──────────────────────────────────────────────────────────────
+     7.css styles every <button> / [role=button] as a Win7 push button. Nexus
+     has hundreds of icon, list-row and tile buttons that carry their own
+     classes, so a *classed* button is reset to bare and keeps its Tailwind
+     styling. Get the Win7 push button by using a bare <button> or adding
+     `.w7-btn`. 7.css's own composite controls and its state classes
+     (.default / .focused / .active) are excluded from the reset. Drag-and-drop
+     wrappers (dnd-kit sets role=button + aria-roledescription on a bare div)
+     are reset too. */
+  .win7
+    :is(button[class], [role='button'][class], [role='button'][aria-roledescription]):not(
+      .w7-btn,
+      .default,
+      .focused,
+      .active,
+      .title-bar-controls *,
+      [role='tab'],
+      .combobox *,
+      .searchbox *,
+      [role='menuitem'] > *
+    ) {
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    color: inherit;
+    font: inherit;
+    min-height: 0;
+    min-width: 0;
+    padding: 0;
+    text-align: inherit;
+    animation: none;
+    z-index: auto;
+  }
+  .win7
+    :is(button[class], [role='button'][class], [role='button'][aria-roledescription]):not(
+      .w7-btn,
+      .default,
+      .focused,
+      .active,
+      .title-bar-controls *,
+      [role='tab'],
+      .combobox *,
+      .searchbox *,
+      [role='menuitem'] > *
+    )::before,
+  .win7
+    :is(button[class], [role='button'][class], [role='button'][aria-roledescription]):not(
+      .w7-btn,
+      .default,
+      .focused,
+      .active,
+      .title-bar-controls *,
+      [role='tab'],
+      .combobox *,
+      .searchbox *,
+      [role='menuitem'] > *
+    )::after {
+    content: none;
+  }
+  /* A disabled bare/w7 button keeps 7.css greying; a classed one just dims. */
+  .win7 button[class]:not(.w7-btn, .title-bar-controls *, [role='tab']):disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  /* 7.css turns any [role=listbox] into a bordered, always-scrolling list box
+     and paints every [role=option][aria-selected] — including "false" — solid
+     blue. A *classed* listbox is a custom Nexus list: drop the frame and the
+     blanket highlight so `.w7-item` (or Tailwind) decides selection. */
+  .win7 [role='listbox'][class]:not(.has-shadow, .has-hover) {
+    background: transparent;
+    border: 0;
+    overflow-y: visible;
+    font: inherit;
+  }
+  .win7
+    [role='listbox'][class]:not(.has-shadow, .has-hover)
+    [role='option'][class]:is(:focus, [aria-selected]) {
+    background-color: transparent;
+    color: inherit;
+  }
+
+  /* Tailwind Preflight makes every element border-box; 7.css sizes these as
+     content-box (a `width: 300px` .window is 302px wide with its borders).
+     Restore it so stand-alone 7.css components measure exactly like the
+     reference. Nexus's own shell window (.nx-window) stays border-box because
+     the drag/snap maths sizes it that way. */
+  .win7
+    :is(
+      .window:not(.nx-window),
+      ul[role='menu'],
+      ul[role='menubar'],
+      [role='tooltip'],
+      .status-bar,
+      .status-bar-field,
+      [role='progressbar'],
+      [role='listbox']:is(:not([class]), .has-shadow, .has-hover)
+    ) {
+    box-sizing: content-box;
+  }
+  /* Preflight makes form controls inherit text colour; Win7 control text is
+     black (7.css assumes the UA default). Tailwind text-* still overrides. */
+  .win7 :is(input, textarea) {
+    color: #000;
+  }
+  /* Preflight zeroes the 2px UA margin 7.css's slider layout relies on. */
+  .win7 input[type='range'] {
+    margin: 2px;
+  }
+
+  /* 7.css's `.group` helper (flex column, 6px gap, stacked margins) collides
+     with Tailwind's `group` marker class used for group-hover: it turned
+     table rows and list rows into flex columns. Tailwind's marker always
+     sits beside other classes, so only a lone class="group" keeps 7.css's
+     helper (as in the 7.css docs); Tailwind layout utilities still win. */
+  .win7 .group:not(fieldset, [class='group']) {
+    display: revert;
+    flex-direction: revert;
+    gap: normal;
+  }
+  .win7 .group:not([class='group']) + .group:not([class='group']) {
+    margin-top: 0;
+  }
+  /* 7.css pulls <pre> inside a .window-body out by -6px (for its demo
+     layout); inside Nexus app windows that overlapped terminal lines. */
+  .win7 .nx-window > .window-body pre {
+    margin: 0;
+  }
+
+  /* 7.css hides the real checkbox/radio and draws one on `+ label`. Inputs
+     without an adjacent label (most of Nexus) would vanish — restore the
+     native control, tinted Win7 blue. */
+  .win7 input:is([type='checkbox'], [type='radio']):not(:has(+ label)) {
+    appearance: auto;
+    -webkit-appearance: auto;
+    opacity: 1;
+    accent-color: #3c7fb1;
+    width: 13px;
+    height: 13px;
+    margin: 0;
+  }
 }
 
-/* ── Ambient background orbs ─────────────────────────────── */
-.ambient-orbs {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  overflow: hidden;
-  contain: strict;
-}
-.ambient-orbs::before,
-.ambient-orbs::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  will-change: transform;
-  animation: float-orb 20s ease-in-out infinite;
-}
-.ambient-orbs::before {
-  width: 500px;
-  height: 500px;
-  background: hsl(var(--neon-yellow));
-  opacity: 0.08;
-  top: -10%;
-  right: -5%;
-  animation-delay: -5s;
-}
-.ambient-orbs::after {
-  width: 600px;
-  height: 600px;
-  background: hsl(var(--neon-teal));
-  opacity: 0.06;
-  bottom: -15%;
-  left: -10%;
-  animation-delay: -12s;
+@layer nexus {
+  /* Window frame colour. Settings → Personalise writes --w7-w-bg on <body>
+     (inline style, which beats 7.css's `.win7 {}` default of #4580c4). */
+  .win7 {
+    --w7-frame: var(--w7-w-bg, #4580c4);
+  }
+
+  /* Access-key underlines (menu mnemonics) stay hidden until the keyboard is
+     used, as Windows 7 does by default. Desktop.jsx toggles .nx-kbd-cues. */
+  .win7 .nx-accel {
+    text-decoration: none;
+  }
+  .win7.nx-kbd-cues .nx-accel {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* Control Panel → Window Color → "Enable transparency" off: opaque frames,
+     no blur behind windows, the taskbar or the Start menu (Windows 7 Basic-like
+     glass-off look). settingsStore writes data-transparency on <body>. */
+  body.win7[data-transparency='off'] {
+    --w7-glass-blur: 0px;
+  }
+  body.win7[data-transparency='off'] .window.glass::before {
+    opacity: 1;
+  }
+  body.win7[data-transparency='off'] .window.glass::after {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  /* Inputs 7.css does not cover get the same sunken Win7 field. */
+  .win7 input:is([type='date'], [type='time'], [type='datetime-local'], [type='tel']) {
+    background-color: #fff;
+    border: 1px solid;
+    border-color: #abadb3 #dbdfe6 #e3e9ef #e2e3ea;
+    border-radius: 2px;
+    font: var(--w7-font);
+    padding: 2px 4px;
+    min-height: 23px;
+  }
+  .win7 input:is([type='date'], [type='time'], [type='datetime-local']):focus,
+  .win7 input[type='tel']:focus {
+    border-color: #3d7bad #a4c9e3 #b7d9ed #b5cfe7;
+    outline: none;
+  }
+  .win7 input:is([type='date'], [type='time'], [type='datetime-local'], [type='tel']):disabled {
+    background-color: #f4f4f4;
+    border-color: #adb2b5;
+    color: #838383;
+  }
+
+  /* 7.css gives the search box no focus state at all; Windows 7 turns the
+     field border blue while it has focus, like every other text box. */
+  .win7 input[type='search']:focus {
+    box-shadow:
+      inset 1px 1px 0 #3d7bad,
+      inset -1px -1px 0 #b5cfe7;
+  }
+
+  /* 7.css orders `button.default` after `button:disabled`, so a disabled
+     default button keeps the blue face and the pulse. Windows 7 draws it
+     flat grey like any other disabled button. */
+  .win7 :is(button, [role='button']).default:disabled {
+    animation: none;
+    background: #f4f4f4;
+    border-color: #adb2b5;
+    color: #838383;
+  }
+
+  /* ── Push buttons ─────────────────────────────────────────────────────── */
+  /* `.w7-btn` = the 7.css push button on an element that also carries layout
+     utilities. `.w7-btn.default` = default (pulsing) button. */
+  .win7 .w7-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  /* Explorer command-bar / toolbar button: flat until hovered. */
+  .win7 .w7-toolbtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 24px;
+    padding: 2px 8px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: #1e1e1e;
+    background: transparent;
+    font: var(--w7-font);
+    white-space: nowrap;
+    transition:
+      background-color var(--w7-motion-fast),
+      border-color var(--w7-motion-fast);
+  }
+  .win7 .w7-toolbtn:hover:not(:disabled) {
+    border-color: #a8cbf0;
+    background: linear-gradient(#f7fbff, #e1eefc);
+    box-shadow: inset 0 0 0 1px #fffc;
+  }
+  .win7 .w7-toolbtn:active:not(:disabled),
+  .win7 .w7-toolbtn[aria-pressed='true'] {
+    border-color: #7da2ce;
+    background: linear-gradient(#dcebfc, #c1dbfc);
+    box-shadow: inset 0 1px 2px #0002;
+  }
+  .win7 .w7-toolbtn:disabled {
+    color: #8d8d8d;
+  }
+  .win7 .w7-toolbtn--danger:hover:not(:disabled) {
+    border-color: #e3a49c;
+    background: linear-gradient(#fff6f5, #fbdedb);
+    color: #a8261b;
+  }
+
+  /* ── Explorer list item states (hover / selected / focused) ───────────── */
+  .win7 .w7-item {
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: #1e1e1e;
+  }
+  .win7 .w7-item:hover {
+    border-color: #b8d6fb;
+    background: linear-gradient(#fafbfd, #ebf3fd);
+  }
+  .win7 .w7-item.is-selected,
+  .win7 .w7-item[aria-selected='true'],
+  .win7 .w7-item[aria-current='true'],
+  .win7 .w7-item[aria-current='page'] {
+    border-color: #7da2ce;
+    background: linear-gradient(#dcebfc, #c1dbfc);
+  }
+  .win7 .w7-item.is-selected:hover,
+  .win7 .w7-item[aria-selected='true']:hover {
+    border-color: #7da2ce;
+    background: linear-gradient(#d0e5fc, #b4d3fa);
+  }
+
+  /* Navigation pane (Explorer left column). */
+  .win7 .w7-navpane {
+    background: linear-gradient(to right, #f1f5fb, #f4f7fc);
+    border-right: 1px solid #d6e5f5;
+  }
+
+  /* Command bar (Explorer toolbar strip under the title bar). */
+  .win7 .w7-commandbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-height: 32px;
+    padding: 2px 6px;
+    background: linear-gradient(#f5f9fe, #e3ecf7 50%, #d7e3f2 50%, #dde9f7);
+    border-bottom: 1px solid #a0afc3;
+    box-shadow: inset 0 1px 0 #fff;
+  }
+
+  /* Details pane / status strip at the bottom of Explorer. */
+  .win7 .w7-detailspane {
+    background: linear-gradient(#f2f6fc, #dce7f5);
+    border-top: 1px solid #a0afc3;
+    color: #003399;
+  }
+
+  /* Plain white "document" surface with the sunken Win7 border. */
+  .win7 .w7-sunken {
+    background: #fff;
+    border: 1px solid #828790;
+    box-shadow: inset 1px 1px 0 #00000014;
+  }
+
+  /* Card on a light surface (media tiles, dialog sections). */
+  .win7 .w7-card {
+    background: #fff;
+    border: 1px solid #d9d9d9;
+    border-radius: 3px;
+    box-shadow: 0 1px 2px #0000000f;
+  }
+
+  /* Main instruction (Win7 dialog heading) and group heading. */
+  .win7 .w7-heading {
+    color: #039;
+    font-size: 12pt;
+    font-weight: 400;
+    line-height: 1.3;
+  }
+  .win7 .w7-subheading {
+    color: #039;
+    font-size: 11pt;
+    font-weight: 400;
+  }
+
+  /* Small status pill (statuses, counts). */
+  .win7 .w7-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px;
+    min-height: 18px;
+    border: 1px solid #c5d3e4;
+    border-radius: 9px;
+    background: linear-gradient(#fff, #edf2f9);
+    color: #003399;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* Inline error / info messages (Win7 dialog style). */
+  .win7 .w7-error {
+    color: #c42b1c;
+  }
+  .win7 .w7-infobar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid #e6d27a;
+    background: #fff9d9;
+    color: #1e1e1e;
+  }
+
+  /* Win7 scrollbars everywhere inside the desktop, not just `.has-scrollbar`
+     (which 7.css limits them to). Compact gradient version of the 7.css
+     thumb; arrow buttons stay on `.has-scrollbar` elements only. */
+  .win7 :not(.has-scrollbar)::-webkit-scrollbar {
+    width: 17px;
+    height: 17px;
+  }
+  .win7 :not(.has-scrollbar)::-webkit-scrollbar-track {
+    background: linear-gradient(to right, #e5e5e5, #f0f0f0 20%);
+  }
+  .win7 :not(.has-scrollbar)::-webkit-scrollbar-track:horizontal {
+    background: linear-gradient(to bottom, #e5e5e5, #f0f0f0 20%);
+  }
+  .win7 :not(.has-scrollbar)::-webkit-scrollbar-thumb {
+    border: 1px solid #979797;
+    border-radius: 3px;
+    background: linear-gradient(to right, #f5f5f5 45%, #e7e7e7 45%, #d9d9d9);
+    box-shadow: inset 0 0 0 1px #fff;
+  }
+  .win7 :not(.has-scrollbar)::-webkit-scrollbar-thumb:horizontal {
+    background: linear-gradient(to bottom, #f5f5f5 45%, #e7e7e7 45%, #d9d9d9);
+  }
+  .win7 :not(.has-scrollbar)::-webkit-scrollbar-thumb:hover {
+    border-color: #3c7fb1;
+    background: linear-gradient(to right, #e3f4fc 45%, #c4e8f9 45%, #a8d8f2);
+  }
+  .win7 :not(.has-scrollbar)::-webkit-scrollbar-thumb:horizontal:hover {
+    background: linear-gradient(to bottom, #e3f4fc 45%, #c4e8f9 45%, #a8d8f2);
+  }
+  .win7 :not(.has-scrollbar)::-webkit-scrollbar-corner {
+    background: #f0f0f0;
+  }
+  /* Firefox fallback. */
+  @supports not selector(::-webkit-scrollbar) {
+    .win7 * {
+      scrollbar-color: #c2c2c2 #f0f0f0;
+    }
+  }
+
+  /* ── Window chrome (see Window.jsx) ───────────────────────────────────── */
+  .win7 .window.nx-window {
+    display: flex;
+    flex-direction: column;
+    font: var(--w7-font);
+    box-shadow:
+      0 0 0 1px #fff6 inset,
+      0 6px 24px 2px #0007;
+  }
+  .win7 .window.nx-window.active {
+    box-shadow:
+      0 0 0 1px #fffa inset,
+      0 8px 32px 4px #000a;
+  }
+  /* Real Win7 frames lose tint when inactive. */
+  .win7 .window.nx-window:not(.active):before {
+    opacity: 0.45;
+    filter: saturate(0.4);
+  }
+  .win7 .window.nx-window:not(.active) .title-bar-text {
+    color: #383838;
+  }
+  .win7 .window.nx-window.is-maximized {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+  .win7 .window.nx-window.is-maximized:before,
+  .win7 .window.nx-window.is-maximized > .title-bar {
+    border-radius: 0;
+  }
+  .win7 .window.nx-window.is-maximized > .window-body {
+    margin: 0;
+  }
+  .win7 .nx-window > .title-bar {
+    flex-shrink: 0;
+    min-height: var(--w7-titlebar-h);
+    gap: 8px;
+    cursor: default;
+    user-select: none;
+    touch-action: none;
+  }
+  .win7 .nx-window .title-bar-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 9pt;
+  }
+  .win7 .nx-window .title-bar-text > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .win7 .nx-window .title-bar-controls {
+    flex-shrink: 0;
+    align-self: flex-start;
+  }
+  .win7 .nx-window > .window-body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    background: #fff;
+    color: #1e1e1e;
+    position: relative;
+  }
+  /* Drop the pulse animation on focused title-bar buttons inherited from
+     7.css's generic button:focus rule; keep a visible keyboard ring. */
+  .win7 .nx-window .title-bar-controls button:focus-visible {
+    outline: 1px dotted #000;
+    outline-offset: -3px;
+  }
+
+  /* ── Desktop ──────────────────────────────────────────────────────────── */
+  .nx-wallpaper-aero {
+    background-color: #1a4f8a;
+    background-image: url('/wallpapers/aero.svg');
+    background-size: cover;
+    background-position: center;
+  }
+
+  .win7 .nx-desktop-icon {
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: #fff;
+  }
+  .win7 .nx-desktop-icon:hover {
+    border-color: #ffffff59;
+    background: linear-gradient(#ffffff40, #ffffff1a);
+  }
+  .win7 .nx-desktop-icon.is-selected {
+    border-color: #ffffff8c;
+    background: linear-gradient(#a8d4ff73, #6fb2ff59);
+    box-shadow: inset 0 0 0 1px #ffffff40;
+  }
+  .win7 .nx-desktop-icon:focus-visible {
+    outline: 1px dotted #fff;
+    outline-offset: -3px;
+  }
+  .nx-desktop-icon__label {
+    color: #fff;
+    text-shadow:
+      0 0 3px #000,
+      0 1px 2px #000,
+      0 0 8px #000a;
+  }
+
+  /* ── Taskbar (superbar) ───────────────────────────────────────────────── */
+  .nx-taskbar {
+    position: relative;
+    height: var(--w7-taskbar-h);
+    background:
+      linear-gradient(#ffffff33, #ffffff0d 45%, #0000 46%, #ffffff0d),
+      color-mix(in srgb, var(--w7-frame) 30%, #0b1a2c 70%);
+    background-color: #102538cc;
+    border-top: 1px solid #ffffff59;
+    box-shadow:
+      0 -1px 0 #0000008c,
+      inset 0 1px 0 #ffffff26;
+    backdrop-filter: blur(var(--w7-glass-blur)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--w7-glass-blur)) saturate(140%);
+    color: #fff;
+  }
+  @supports not (backdrop-filter: blur(1px)) {
+    .nx-taskbar {
+      background-color: #13304b;
+    }
+  }
+
+  .nx-start-orb {
+    position: relative;
+    width: 54px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .nx-start-orb__ball {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 0%, #ffffffd9 0 22%, #fff0 52%),
+      radial-gradient(circle at 50% 120%, #8fe8ff 0 25%, #fff0 60%),
+      radial-gradient(circle at 50% 50%, #2d7fc8, #0b3f78 70%);
+    border: 1px solid #0a2c50;
+    box-shadow:
+      inset 0 0 0 1px #ffffff66,
+      0 0 6px #0008;
+    transition:
+      filter var(--w7-motion),
+      box-shadow var(--w7-motion);
+  }
+  .nx-start-orb:hover .nx-start-orb__ball,
+  .nx-start-orb:focus-visible .nx-start-orb__ball {
+    filter: brightness(1.18) saturate(1.1);
+    box-shadow:
+      inset 0 0 0 1px #ffffff99,
+      0 0 12px 3px #7fd3ffb3;
+  }
+  .nx-start-orb[aria-expanded='true'] .nx-start-orb__ball {
+    filter: brightness(0.92);
+    box-shadow:
+      inset 0 2px 4px #0006,
+      0 0 10px 2px #7fd3ff80;
+  }
+  .nx-start-orb:focus-visible {
+    outline: none;
+  }
+
+  .nx-taskbtn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: calc(var(--w7-taskbar-h) - 4px);
+    min-width: 44px;
+    max-width: 168px;
+    padding: 0 10px 0 8px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: #fff;
+    font: var(--w7-font);
+    text-shadow:
+      0 0 6px #000,
+      0 1px 1px #000;
+    transition:
+      background-color var(--w7-motion),
+      border-color var(--w7-motion);
+  }
+  /* Running window — glass button like the Win7 superbar. */
+  .nx-taskbtn.is-running {
+    border-color: #ffffff4d #0006 #0009 #ffffff33;
+    background: linear-gradient(#ffffff38, #ffffff14 50%, #ffffff00 51%, #ffffff17);
+    box-shadow: inset 0 0 0 1px #ffffff1f;
+  }
+  .nx-taskbtn:hover {
+    border-color: #ffffff73 #0006 #0009 #ffffff4d;
+    background:
+      radial-gradient(ellipse at 50% 120%, #9fdcffa6, #fff0 70%),
+      linear-gradient(#ffffff4d, #ffffff1f 50%, #ffffff0d 51%, #ffffff26);
+  }
+  .nx-taskbtn.is-active {
+    border-color: #ffffff80 #0007 #000a #ffffff59;
+    background:
+      radial-gradient(ellipse at 50% 120%, #b9e6ffbf, #fff0 75%),
+      linear-gradient(#ffffff59, #ffffff26 50%, #ffffff14 51%, #ffffff33);
+    box-shadow:
+      inset 0 0 0 1px #ffffff33,
+      inset 0 0 8px #ffffff26;
+  }
+  .nx-taskbtn.is-minimized {
+    opacity: 0.85;
+  }
+  .nx-taskbtn:focus-visible {
+    outline: 1px dotted #fff;
+    outline-offset: -3px;
+  }
+  /* Grouped windows: room for the count pill in the corner. */
+  .nx-taskbtn.is-stacked {
+    padding-right: 22px;
+  }
+  .nx-taskbtn__count {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    box-sizing: border-box;
+    border: 1px solid #7da2ce;
+    border-radius: 7px;
+    background: #e5f3ff;
+    color: #1e1e1e;
+    font-size: 10px;
+    line-height: 12px;
+    text-align: center;
+    text-shadow: none;
+  }
+  /* Attention request (a background window asked for notice). Flashes a few
+     times, then stays amber until the window is activated. Finite, so no
+     endless pulse. */
+  .nx-taskbtn.is-flashing {
+    background: linear-gradient(#ffe39a80, #ffb94d59);
+    border-color: #ffd27aa6 #7a4a00 #5c3800 #ffd27a80;
+    box-shadow: inset 0 0 0 1px #ffd27a66;
+    animation: nx-taskbtn-flash var(--w7-motion) ease-in-out 4 alternate;
+  }
+  @keyframes nx-taskbtn-flash {
+    from {
+      background-color: transparent;
+    }
+    to {
+      background-color: #ffb94d80;
+    }
+  }
+
+  .nx-tray {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding-left: 6px;
+    border-left: 1px solid #0006;
+    box-shadow: inset 1px 0 0 #ffffff1f;
+  }
+  .nx-tray-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    min-width: 24px;
+    padding: 0 4px;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    color: #fff;
+  }
+  .nx-tray-btn:hover,
+  .nx-tray-btn[aria-expanded='true'] {
+    border-color: #ffffff40;
+    background: linear-gradient(#ffffff33, #ffffff0d);
+  }
+  .nx-tray-btn:focus-visible {
+    outline: 1px dotted #fff;
+    outline-offset: -2px;
+  }
+  /* Show desktop: a 4px sliver at the far right edge, with a 24px hit area
+     (44px on touch, below). The visible strip is ::before. */
+  .nx-show-desktop {
+    position: relative;
+    width: 24px;
+    height: 100%;
+    margin-left: 0;
+    border: 0;
+    background: none;
+  }
+  .nx-show-desktop::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 4px;
+    border-left: 1px solid #0007;
+    box-shadow: inset 1px 0 0 #ffffff33;
+    background: linear-gradient(to right, #ffffff14, #ffffff2e);
+    pointer-events: none;
+  }
+  .nx-show-desktop:hover::before {
+    background: linear-gradient(to right, #ffffff40, #ffffff73);
+  }
+  .nx-show-desktop:focus-visible {
+    outline: 1px dotted #fff;
+    outline-offset: -2px;
+  }
+
+  /* Touch: the 7.css-style 44px minimum where the 40px bar allows it. The
+     task buttons stay 36px tall, so their height is a known shortfall. */
+  @media (pointer: coarse) {
+    .nx-tray-btn {
+      min-width: 40px;
+      height: 36px;
+    }
+    .nx-show-desktop {
+      width: 44px;
+    }
+  }
+
+  /* Aero Peek: hovering Show desktop fades the windows to their outlines
+     (Taskbar.jsx sets data-aero-peek on <html> after 500ms). 7.css paints the
+     frame on .window::before and blurs through .window.glass::after, so those
+     pseudo-elements must be hidden too. The selectors carry .win7 so they tie
+     with .win7 .window.nx-window.active and win on source order. */
+  :root[data-aero-peek='true'] .win7 .nx-window {
+    background: transparent;
+    box-shadow: none;
+    outline: 1px solid #ffffffb3;
+    outline-offset: -1px;
+  }
+  :root[data-aero-peek='true'] .win7 .nx-window::before,
+  :root[data-aero-peek='true'] .win7 .nx-window::after {
+    display: none;
+  }
+  :root[data-aero-peek='true'] .win7 .nx-window > * {
+    opacity: 0.12;
+    transition: opacity var(--w7-motion-fast);
+  }
+
+  /* ── Start menu ───────────────────────────────────────────────────────── */
+  .nx-startmenu {
+    position: fixed;
+    left: 0;
+    bottom: var(--w7-taskbar-h);
+    width: min(var(--w7-startmenu-w), 100vw);
+    height: min(var(--w7-startmenu-h), calc(100dvh - var(--w7-taskbar-h) - 8px));
+    display: flex;
+    padding: 7px;
+    border: 1px solid #0009;
+    border-radius: 7px 7px 0 0;
+    background:
+      linear-gradient(#ffffff40, #ffffff0d 40%, #0000001a),
+      color-mix(in srgb, var(--w7-frame) 55%, #0c2238 45%);
+    background-color: #284d72d9;
+    box-shadow:
+      inset 0 0 0 1px #ffffff59,
+      2px -2px 12px #0009;
+    backdrop-filter: blur(var(--w7-glass-blur)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--w7-glass-blur)) saturate(140%);
+    color: #1e1e1e;
+    font: var(--w7-font);
+  }
+  .nx-startmenu__left {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #0006;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #ffffff80;
+    overflow: hidden;
+  }
+  .nx-startmenu__right {
+    width: 146px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0 0 0 8px;
+    color: #fff;
+  }
+  .nx-startmenu__program {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 40px;
+    padding: 3px 6px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: #1e1e1e;
+    font-size: 9pt;
+    text-align: left;
+  }
+  .nx-startmenu__program:hover,
+  .nx-startmenu__program.is-selected {
+    border-color: #7da2ce;
+    background: linear-gradient(#dcebfc, #c1dbfc);
+  }
+  .nx-startmenu__program:focus-visible {
+    outline: 1px dotted #000;
+    outline-offset: -3px;
+  }
+  .nx-startmenu__link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 31px;
+    padding: 0 10px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: #fff;
+    text-shadow:
+      0 0 8px #000,
+      0 1px 1px #000a;
+    text-align: left;
+  }
+  .nx-startmenu__link:hover,
+  .nx-startmenu__link:focus-visible {
+    border-color: #ffffff59 #0006 #0006 #ffffff40;
+    background: linear-gradient(#ffffff4d, #ffffff1a 50%, #ffffff0d 51%, #ffffff26);
+    outline: none;
+  }
+  .nx-startmenu__divider {
+    height: 1px;
+    margin: 4px 6px;
+    background: linear-gradient(to right, #fff0, #ffffff66, #fff0);
+    box-shadow: 0 1px 0 #00000026;
+  }
+  .nx-startmenu__search {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-top: 1px solid #d6dfec;
+    background: linear-gradient(#e4ecf7, #dbe5f2);
+  }
+  .nx-startmenu__power {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+    padding: 0 10px;
+    border: 1px solid #0009;
+    border-radius: 3px;
+    color: #fff;
+    text-shadow: 0 1px 1px #000;
+    background: linear-gradient(#ffffff4d, #ffffff14 50%, #0000001a 51%, #ffffff1a);
+    box-shadow: inset 0 0 0 1px #ffffff40;
+  }
+  .nx-startmenu__power:hover,
+  .nx-startmenu__power:focus-visible {
+    background: linear-gradient(#ffffff73, #ffffff33 50%, #0000000d 51%, #ffffff33);
+    outline: none;
+    box-shadow:
+      inset 0 0 0 1px #ffffff66,
+      0 0 6px #9fdcffb3;
+  }
+  .nx-user-tile {
+    width: 64px;
+    height: 64px;
+    padding: 3px;
+    border-radius: 5px;
+    background: linear-gradient(#fdfdfd, #c9d6e4);
+    box-shadow:
+      0 0 0 1px #0007,
+      inset 0 0 0 1px #fff,
+      0 2px 6px #0008;
+  }
+
+  /* ── Flyouts (context menu, notification area, action centre) ──────────── */
+  .nx-flyout {
+    background: var(--w7-surface, #f0f0f0);
+    border: 1px solid #0006;
+    box-shadow: 4px 4px 3px -2px #00000080;
+    color: #1e1e1e;
+    font: var(--w7-font);
+  }
+  .nx-menuitem {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 22px;
+    /* 7.css menu.css: label starts 32px in (4px pad + 22px icon + 6px gap). */
+    padding: 4px 10px 4px 4px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: #1e1e1e;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .nx-menuitem:hover,
+  .nx-menuitem:focus-visible {
+    border-color: #b3d3f9;
+    background: linear-gradient(#fff9, #e6ecf5cc 90%, #fffc);
+    outline: none;
+  }
+  .nx-menuitem__icon {
+    width: 22px;
+    display: inline-flex;
+    justify-content: center;
+    color: #3d5a80;
+  }
+  /* 7.css has-divider: a 2px etched line, starting at the label gutter. */
+  .nx-menu-separator {
+    height: 2px;
+    margin: 3px 0 2px 28px;
+    box-shadow:
+      inset 0 1px #00000026,
+      inset 0 -1px #fff;
+  }
+
+  /* Aero glass panel (dark), e.g. lock screen / boot overlays. */
+  .nx-glass {
+    background:
+      linear-gradient(#ffffff40, #ffffff0d 40%, #0000001a),
+      color-mix(in srgb, var(--w7-frame) 55%, #0c2238 45%);
+    border: 1px solid #0009;
+    box-shadow: inset 0 0 0 1px #ffffff59;
+    backdrop-filter: blur(var(--w7-glass-blur));
+    -webkit-backdrop-filter: blur(var(--w7-glass-blur));
+    color: #fff;
+  }
+
+  /* Snap preview — Aero Snap's translucent glass outline. */
+  .nx-snap-preview {
+    border: 1px solid #ffffffb3;
+    border-radius: 6px;
+    background: linear-gradient(#ffffff59, #ffffff26);
+    box-shadow:
+      inset 0 0 0 1px #0000004d,
+      0 0 24px #0006;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
 }
 
-@keyframes float-orb {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
+/* ── Legacy class names → Win7 equivalents ───────────────────────────────────
+   These names are still referenced by a few components. They now render in
+   the Win7 language so stale markup can't reintroduce neon. Prefer the
+   `.w7-*` classes in new code. */
+@layer components {
+  .glass-panel {
+    background: #fff;
+    border: 1px solid hsl(var(--border));
   }
-  33% {
-    transform: translate(30px, -40px) scale(1.05);
+  .heading-display {
+    color: #003399;
+    font-weight: 400;
   }
-  66% {
-    transform: translate(-20px, 30px) scale(0.95);
+  .heading-ui {
+    font-family: var(--font-ui);
   }
-}
-
-/* ── Scanline overlay ────────────────────────────────────── */
-.scanlines {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  contain: strict;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(255, 255, 255, 0.03) 2px,
-    rgba(255, 255, 255, 0.03) 4px
-  );
+  .custom-scrollbar {
+    scrollbar-gutter: auto;
+  }
 }
 
 /* Window Controls Overlay titlebar — only mounted by <TitlebarOverlay/> when
@@ -162,310 +1122,56 @@
   display: flex;
   align-items: center;
   padding: 0 0.75rem;
-  background: linear-gradient(90deg, rgba(5, 8, 22, 0.95), rgba(5, 8, 22, 0.75));
-  border-bottom: 1px solid color-mix(in srgb, var(--color-primary, #00f5ff) 25%, transparent);
+  background: linear-gradient(#ffffff40, #ffffff0d), var(--w7-frame, #4580c4);
+  border-bottom: 1px solid #0006;
   -webkit-app-region: drag;
   app-region: drag;
   user-select: none;
 }
 
 .titlebar-overlay__brand {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  color: var(--color-primary, #00f5ff);
-  text-shadow: 0 0 8px color-mix(in srgb, var(--color-primary, #00f5ff) 60%, transparent);
+  font:
+    9pt 'Segoe UI',
+    'SegoeUI',
+    'Noto Sans',
+    sans-serif;
+  color: #000;
+  text-shadow:
+    0 0 8px #fff,
+    0 0 8px #fff;
 }
 
-/* ── Wallpaper patterns ──────────────────────────────────── */
-/*
- * Wallpaper div is the FIRST -z-1 child in Desktop.jsx so ambient-orbs and
- * scanlines render on top of it. Only Neural Mesh remains as a CSS pattern;
- * all other wallpapers are image-based (W1-W8).
- */
-
-.wallpaper-mesh {
-  background-image:
-    linear-gradient(
-      45deg,
-      hsl(var(--neon-yellow) / 0.04) 25%,
-      transparent 25%,
-      transparent 75%,
-      hsl(var(--neon-yellow) / 0.04) 75%,
-      hsl(var(--neon-yellow) / 0.04)
-    ),
-    linear-gradient(
-      -45deg,
-      hsl(var(--neon-yellow) / 0.04) 25%,
-      transparent 25%,
-      transparent 75%,
-      hsl(var(--neon-yellow) / 0.04) 75%,
-      hsl(var(--neon-yellow) / 0.04)
-    );
-  background-size: 60px 60px;
-}
-
-/* ── Neon glow border effect ─────────────────────────────── */
-.neon-border {
-  position: relative;
-}
-.neon-border::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    135deg,
-    hsl(var(--neon-yellow) / 0.4),
-    transparent 40%,
-    transparent 60%,
-    hsl(var(--neon-teal) / 0.3)
-  );
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-/* ── Cyber Brackets ─────────────────────────────────────── */
-.cyber-bracket {
-  position: relative;
-}
-.cyber-bracket::before,
-.cyber-bracket::after {
-  content: '';
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-color: hsl(var(--neon-yellow) / 0.5);
-  pointer-events: none;
-}
-.cyber-bracket-tl::before {
-  top: 0;
-  left: 0;
-  border-top: 1.5px solid;
-  border-left: 1.5px solid;
-}
-.cyber-bracket-tr::before {
-  top: 0;
-  right: 0;
-  border-top: 1.5px solid;
-  border-right: 1.5px solid;
-}
-.cyber-bracket-bl::after {
-  bottom: 0;
-  left: 0;
-  border-bottom: 1.5px solid;
-  border-left: 1.5px solid;
-}
-.cyber-bracket-br::after {
-  bottom: 0;
-  right: 0;
-  border-bottom: 1.5px solid;
-  border-right: 1.5px solid;
-}
-
-/* ── Terminal Input ──────────────────────────────────────── */
-.terminal-input {
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.6) 0%, rgba(20, 20, 20, 0.4) 100%);
-  border-left: 2px solid transparent;
-}
-.terminal-input:focus {
-  border-left-color: hsl(var(--neon-yellow));
-  box-shadow: inset 2px 0 10px -2px hsl(var(--neon-yellow) / 0.2);
-}
-
-/* ── Glitch text effect ──────────────────────────────────── */
-@keyframes glitch-shift {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  20% {
-    transform: translateX(-2px);
-  }
-  40% {
-    transform: translateX(2px);
-  }
-  60% {
-    transform: translateX(-1px);
-  }
-  80% {
-    transform: translateX(1px);
-  }
-}
-
-@keyframes glitch-chromatic {
-  0%,
-  100% {
-    text-shadow: none;
-  }
-  20% {
-    text-shadow:
-      -3px 0 #f3e600,
-      3px 0 #55ead4;
-  }
-  40% {
-    text-shadow:
-      3px 0 #f3e600,
-      -3px 0 #c5003c;
-  }
-  60% {
-    text-shadow:
-      -2px 0 #55ead4,
-      2px 0 #f3e600;
-  }
-  80% {
-    text-shadow:
-      2px 0 #c5003c,
-      -2px 0 #f3e600;
-  }
-}
-
-.glitch-hover:hover {
-  animation:
-    glitch-shift 0.3s ease-in-out,
-    glitch-chromatic 0.3s ease-in-out;
-}
-
-/* ── Neon pulse animation ────────────────────────────────── */
-@keyframes neon-pulse {
-  0%,
-  100% {
-    box-shadow:
-      0 0 5px hsl(var(--neon-yellow) / 0.3),
-      0 0 20px hsl(var(--neon-yellow) / 0.1);
-  }
-  50% {
-    box-shadow:
-      0 0 10px hsl(var(--neon-yellow) / 0.5),
-      0 0 40px hsl(var(--neon-yellow) / 0.15);
-  }
-}
-
-.neon-pulse:hover,
-.neon-pulse:focus-visible {
-  animation: neon-pulse 6s ease-in-out infinite;
-}
-
-/* ── Decryption Text Animation ───────────────────────────── */
-@keyframes decrypt {
-  0% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.3;
-  }
-}
-.decrypt-effect {
-  animation: decrypt 0.1s steps(1) infinite;
-}
-
-/* ── Glass panel base ────────────────────────────────────── */
-.glass-panel {
-  background: rgba(4, 4, 4, 0.7);
-  backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transition:
-    box-shadow 0.2s ease,
-    background 0.2s ease;
-}
-
-.window-active {
-  background: rgba(4, 4, 4, 0.8);
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.4),
-    0 10px 10px -5px rgba(0, 0, 0, 0.3),
-    0 0 40px -10px hsl(var(--neon-yellow) / 0.15);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.window-inactive {
-  opacity: 0.95;
-  filter: grayscale(20%) brightness(90%);
-}
-
-@supports not (backdrop-filter: blur(1px)) {
-  .glass-panel {
-    background: hsl(var(--card) / 0.95);
-  }
-}
-
-/* ── Heading typography ──────────────────────────────────── */
-.heading-display {
-  font-family: var(--font-display);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.heading-ui {
-  font-family: var(--font-ui);
-  letter-spacing: 0.04em;
-}
-
-/* ── Keyboard focus visibility ───────────────────────────────
-   A single app-wide neon focus ring for keyboard users. Many icon-only OS
-   controls (window titlebar buttons, taskbar, desktop icons, context-menu
-   items) previously fell back to the near-invisible browser default outline
-   on the dark glass UI. `outline` (not a box-shadow ring) is used so it is
-   never clipped by the `overflow`/mask containers in the taskbar and windows.
-   `:where()` keeps specificity at 0 so any component can still override it,
-   and form fields opt out automatically via their existing `outline-none`. */
+/* ── Keyboard focus visibility ───────────────────────────────────────────────
+   Windows 7 draws a 1px dotted focus rectangle. `:where()` keeps specificity
+   at 0 so components can override it; 7.css's own controls supply theirs. */
 :where(
   a,
   button,
   [role='button'],
   [role='menuitem'],
+  [role='option'],
   [role='tab'],
   [role='switch'],
   select,
   summary,
   [tabindex]:not([tabindex='-1'])
 ):focus-visible {
-  outline: 2px solid hsl(var(--neon-yellow) / 0.75);
-  outline-offset: 2px;
+  outline: 1px dotted currentColor;
+  outline-offset: -2px;
 }
 
-/* ── UI Scale ────────────────────────────────────────────── */
-[data-ui-scale='compact'] {
-  font-size: 13px;
+/* ── UI Scale ────────────────────────────────────────────────────────────── */
+[data-ui-scale='compact'] body {
+  --w7-font: 8pt 'Segoe UI', 'SegoeUI', 'Noto Sans', sans-serif;
+  font-size: 8pt;
 }
-[data-ui-scale='compact'] .glass-panel {
-  padding: 0.625rem;
-}
-[data-ui-scale='large'] {
-  font-size: 16px;
+[data-ui-scale='large'] body {
+  --w7-font: 10.5pt 'Segoe UI', 'SegoeUI', 'Noto Sans', sans-serif;
+  font-size: 10.5pt;
 }
 
-/* ── Reduced motion ──────────────────────────────────────── */
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .ambient-orbs::before,
-  .ambient-orbs::after {
-    animation: none;
-  }
-  .neon-pulse {
-    animation: none;
-  }
-  .glitch-hover:hover {
-    animation: none;
-    text-shadow: none;
-  }
-  .scanlines {
-    display: none;
-  }
   *,
   *::before,
   *::after {

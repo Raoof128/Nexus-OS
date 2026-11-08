@@ -25,9 +25,15 @@ const FileManagerApp = lazy(() => import('../apps/FileManagerApp'))
 const AionApp = lazy(() => import('../apps/Aion/AionApp'))
 const TasksApp = lazy(() => import('../apps/Tasks/TasksApp'))
 
+/**
+ * `tint` is the [top, bottom] gradient of the app's glossy icon (AppIcon.jsx);
+ * `description` is the Start-menu tooltip / search text.
+ */
 export const APP_REGISTRY = {
   media: {
     id: 'media',
+    tint: ['#f6b24a', '#c4650d'],
+    description: 'Your books, films, anime and job applications',
     title: 'Media Vault',
     icon: BookOpen,
     singleton: true,
@@ -37,6 +43,8 @@ export const APP_REGISTRY = {
   },
   email: {
     id: 'email',
+    tint: ['#5cb3f2', '#1a5fb4'],
+    description: 'Read and send mail',
     title: 'Email',
     icon: Mail,
     singleton: true,
@@ -46,6 +54,8 @@ export const APP_REGISTRY = {
   },
   chat: {
     id: 'chat',
+    tint: ['#6fd38a', '#1f8a45'],
+    description: 'Ask the AI assistant',
     title: 'AI Chat',
     icon: MessageSquare,
     singleton: true,
@@ -55,6 +65,8 @@ export const APP_REGISTRY = {
   },
   terminal: {
     id: 'terminal',
+    tint: ['#5b6470', '#1b1f24'],
+    description: 'Command line',
     title: 'Terminal',
     icon: TerminalSquare,
     singleton: false,
@@ -64,6 +76,9 @@ export const APP_REGISTRY = {
   },
   files: {
     id: 'files',
+    tint: ['#ffe28a', '#e0a526'],
+    description: 'Browse your files',
+    // Default title; the app can retitle its window to the folder with setWindowTitle.
     title: 'File Manager',
     icon: FolderOpen,
     singleton: true,
@@ -73,7 +88,10 @@ export const APP_REGISTRY = {
   },
   settings: {
     id: 'settings',
-    title: 'Settings',
+    tint: ['#9fb6cf', '#4d6784'],
+    description: 'Personalise Nexus OS',
+    // Win7 names this window "Control Panel", matching the Start menu entry.
+    title: 'Control Panel',
     icon: Settings,
     singleton: true,
     defaultSize: { width: 600, height: 500 },
@@ -82,6 +100,8 @@ export const APP_REGISTRY = {
   },
   sysmon: {
     id: 'sysmon',
+    tint: ['#7fd8c8', '#1c7f73'],
+    description: 'Performance and status',
     title: 'System Monitor',
     icon: Activity,
     singleton: true,
@@ -91,6 +111,8 @@ export const APP_REGISTRY = {
   },
   notes: {
     id: 'notes',
+    tint: ['#fff08a', '#e0b81c'],
+    description: 'Quick notes',
     title: 'Notes',
     icon: StickyNote,
     singleton: false,
@@ -100,6 +122,8 @@ export const APP_REGISTRY = {
   },
   tasks: {
     id: 'tasks',
+    tint: ['#7ec3ff', '#2a6fd1'],
+    description: 'To-do lists and reminders',
     title: 'Tasks',
     icon: ListChecks,
     singleton: true,
@@ -109,6 +133,8 @@ export const APP_REGISTRY = {
   },
   aion: {
     id: 'aion',
+    tint: ['#c79cf2', '#6a3aa8'],
+    description: 'Bible reader and companion',
     title: 'Aion',
     icon: ScrollText,
     singleton: true,

@@ -6,7 +6,7 @@ import { Z } from '../../lib/zLayers'
  *
  * When the PWA is installed and the user enables "Window Controls Overlay", the
  * browser hands the title-bar row back to the page and exposes its geometry via
- * the `titlebar-area-*` CSS env() vars. We paint a thin draggable cyberpunk bar
+ * the `titlebar-area-*` CSS env() vars. We paint a thin draggable Aero-style bar
  * into that region so the window still feels like part of the OS (and stays
  * movable — the strip is `app-region: drag`).
  *
@@ -32,7 +32,7 @@ export default function TitlebarOverlay() {
 
   return (
     <div className="titlebar-overlay" style={{ zIndex: Z.titlebarOverlay }} aria-hidden="true">
-      <span className="titlebar-overlay__brand">◢ NEXUS&nbsp;OS</span>
+      <span className="titlebar-overlay__brand">Nexus OS</span>
     </div>
   )
 }

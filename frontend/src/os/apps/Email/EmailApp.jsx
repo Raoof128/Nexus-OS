@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { ArrowLeft, Menu, Search, X } from 'lucide-react'
+import { ArrowLeft, Loader2, Menu, Plus, X } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
 import { useEmailAccounts } from '../../../hooks/useEmailAccounts'
 import { useEmails } from '../../../hooks/useEmails'
 import { useEmailActions } from '../../../hooks/useEmailActions'
 import { DURATION } from '../../../lib/motion'
+import { EMAIL_FOLDERS } from '../../../lib/emailConfig'
 import FolderSidebar from './FolderSidebar'
 import EmailList from './EmailList'
 import EmailReader from './EmailReader'
@@ -66,7 +67,9 @@ export default function EmailApp() {
     }
   }, [searchTerm, search])
 
-  const displayedEmails = searchTerm.trim() ? searchResults : emails
+  const isSearching = searchTerm.trim() !== ''
+  const displayedEmails = isSearching ? searchResults : emails
+  const folderLabel = EMAIL_FOLDERS.find((f) => f.id === activeFolder)?.label ?? activeFolder
 
   const handleSelect = useCallback(
     (id) => {
@@ -114,11 +117,8 @@ export default function EmailApp() {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: DURATION.slow }}
-      className="neon-border relative flex h-full w-full overflow-hidden rounded-none glass-panel @sm:rounded-2xl"
+      className="relative flex h-full w-full overflow-hidden bg-white text-foreground"
     >
-      {/* Top neon accent */}
-      <div className="absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent shadow-[0_0_15px_var(--color-primary)]" />
-
       {/* Left: Folder Sidebar — hidden on mobile, shown on md+ */}
       <div className="hidden @md:flex">
         <FolderSidebar
@@ -136,7 +136,7 @@ export default function EmailApp() {
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-50 flex @md:hidden">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/20"
             onClick={() => setMobileSidebarOpen(false)}
             aria-hidden="true"
           />
@@ -156,85 +156,79 @@ export default function EmailApp() {
 
       {/* Middle: Email List */}
       <div
-        className={`flex w-full shrink-0 flex-col border-r border-white/[0.06] @md:w-80 ${
+        className={`flex w-full shrink-0 flex-col border-r border-border @md:w-80 ${
           mobileView === 'reader' ? 'hidden @md:flex' : 'flex'
         }`}
       >
-        {/* List header */}
-        <div className="relative flex items-center justify-between border-b border-white/[0.06] bg-white/[0.01] px-4 py-2.5">
-          <div className="flex items-center gap-2">
-            {/* Mobile menu button */}
-            <button
-              type="button"
-              onClick={() => setMobileSidebarOpen(true)}
-              className="mr-1 rounded-md p-1 text-muted-foreground hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary @md:hidden"
-              aria-label="Open folder menu"
-            >
-              <Menu size={14} />
-            </button>
-            <span className="heading-display text-[10px] tracking-[0.2em] text-primary/60">
-              // {activeFolder}
-            </span>
-            {emailsLoading && (
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary shadow-[0_0_6px_var(--color-primary)]" />
-            )}
-          </div>
+        {/* List header (command bar) */}
+        <div className="w7-commandbar">
+          {/* Mobile menu button */}
           <button
             type="button"
-            onClick={() => {
-              setReplyTo(null)
-              setComposeOpen(true)
-            }}
-            className="heading-ui rounded-md bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary ring-1 ring-inset ring-primary/20 transition-all hover:bg-primary/20 hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.15)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-            aria-label="Compose new email"
+            onClick={() => setMobileSidebarOpen(true)}
+            className="w7-toolbtn @md:hidden"
+            aria-label="Open folder menu"
+            title="Folders"
           >
-            Compose
+            <Menu size={16} aria-hidden="true" />
           </button>
-          {/* Neon bottom accent */}
-          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
+          <span className="truncate px-1 text-[12px] font-semibold text-foreground">
+            {folderLabel}
+          </span>
+          {emailsLoading && (
+            <Loader2 size={14} className="animate-spin text-primary" aria-hidden="true" />
+          )}
+          <div className="ml-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setReplyTo(null)
+                setComposeOpen(true)
+              }}
+              className="w7-btn"
+              aria-label="Compose new email"
+            >
+              <Plus size={14} aria-hidden="true" />
+              Compose
+            </button>
+          </div>
         </div>
 
-        {/* Search bar */}
-        <div className="relative border-b border-white/[0.04] bg-white/[0.01] px-3 py-2">
-          <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 focus-within:border-primary/30 focus-within:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.08)]">
-            <Search size={11} className="shrink-0 text-primary/40" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="search::signals..."
-              className="flex-1 bg-transparent font-mono text-[11px] text-white/70 placeholder-muted-foreground/30 focus:outline-none"
-              aria-label="Search emails"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchTerm('')
-                  setSearchResults([])
-                }}
-                className="text-muted-foreground/40 hover:text-white"
-                aria-label="Clear search"
-              >
-                <X size={10} />
-              </button>
-            )}
-          </div>
+        {/* Search */}
+        <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search mail"
+            className="min-w-0 flex-1"
+            aria-label="Search emails"
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm('')
+                setSearchResults([])
+              }}
+              className="w7-toolbtn"
+              aria-label="Clear search"
+              title="Clear search"
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
+          )}
         </div>
 
         {/* Error banner */}
         {error && (
           <div
             role="alert"
-            className="flex items-center justify-between gap-2 border-b border-red-500/20 bg-red-500/10 px-4 py-2"
+            className="flex items-center justify-between gap-2 border-b border-border px-3 py-2"
           >
-            <span className="font-mono text-[10px] text-red-400">error:: {error}</span>
-            <button
-              type="button"
-              onClick={() => refetch()}
-              className="rounded px-2 py-0.5 font-mono text-[10px] text-red-400 ring-1 ring-red-500/30 hover:bg-red-500/20"
-            >
-              retry
+            <span className="w7-error text-[12px]">Your mail couldn&apos;t be loaded. {error}</span>
+            <button type="button" onClick={() => refetch()} className="w7-btn">
+              Try again
             </button>
           </div>
         )}
@@ -247,6 +241,7 @@ export default function EmailApp() {
           onToggleStar={actions.toggleStar}
           onLoadMore={loadMore}
           activeFolder={activeFolder}
+          searchActive={isSearching}
         />
       </div>
 
@@ -261,9 +256,9 @@ export default function EmailApp() {
           <button
             type="button"
             onClick={() => setMobileView('list')}
-            className="flex min-h-[44px] items-center gap-1.5 border-b border-white/[0.04] bg-white/[0.01] px-4 heading-ui text-xs text-muted-foreground transition-colors hover:text-white @md:hidden"
+            className="w7-toolbtn min-h-[44px] gap-1.5 rounded-none border-b border-border px-4 @md:hidden"
           >
-            <ArrowLeft size={12} />
+            <ArrowLeft size={16} aria-hidden="true" />
             Back
           </button>
         )}
@@ -310,9 +305,6 @@ export default function EmailApp() {
         sendError={actions.sendError}
         replyTo={replyTo}
       />
-
-      {/* Bottom neon accent */}
-      <div className="absolute inset-x-0 bottom-0 z-10 h-px bg-gradient-to-r from-transparent via-accent/20 to-transparent" />
     </Motion.div>
   )
 }

@@ -1,8 +1,12 @@
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useWindowStore } from './stores/windowStore'
-import { useSettingsStore, WALLPAPER_PRESETS } from './stores/settingsStore'
+import {
+  useSettingsStore,
+  WALLPAPER_PRESETS,
+  wallpaperBackgroundStyle,
+} from './stores/settingsStore'
 import { useNotificationStore } from './stores/notificationStore'
 import { useFileSystemStore } from './stores/fileSystemStore'
 import useGlobalShortcuts from './hooks/useGlobalShortcuts'
@@ -14,6 +18,22 @@ import NotificationToast from './components/NotificationToast'
 import NotificationCenter from './components/NotificationCenter'
 import DesktopIcons from './components/DesktopIcons'
 import ContextMenu from './components/ContextMenu'
+import {
+  hideDesktopIcon,
+  isIdleLockEnabled,
+  refreshDesktopIcons,
+  requestDesktopIconRename,
+  restoreDesktopIcons,
+  setDesktopIconSort,
+  setDesktopIconsShown,
+  useDesktopIconPrefs,
+} from './components/DesktopMenus/desktopPrefs'
+import {
+  buildDesktopMenu,
+  buildIconMenu,
+  buildTaskbarMenu,
+  toggleShowDesktop,
+} from './components/DesktopMenus/menuModels'
 import BootSequence from './components/BootSequence'
 import LockScreen from './components/LockScreen'
 import SnapPreview from './components/SnapPreview'
@@ -23,13 +43,15 @@ import TitlebarOverlay from './components/TitlebarOverlay'
 import { consumeShareTarget, consumeFileHandlers } from '../lib/pwaLaunch'
 
 const Z_INDEX_BASE = 100
-const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes, only when the idle lock is switched on
 const BOOT_SESSION_KEY = 'nexus_booted'
 
 export default function Desktop() {
   const desktopRef = useRef(null)
   const [snapPreview, setSnapPreview] = useState(null) // null | 'left' | 'right' | 'top'
-  const [contextMenu, setContextMenu] = useState(null) // null | { x, y }
+  // null | { id, kind: 'desktop' | 'taskbar' | 'icon', x, y, appId? }
+  const [contextMenu, setContextMenu] = useState(null)
+  const menuSerial = useRef(0)
 
   // ── Boot state ────────────────────────────────────────────
   // Skip boot animation if already shown this browser session
@@ -60,8 +82,36 @@ export default function Desktop() {
     }, IDLE_TIMEOUT_MS)
   }, [])
 
+  // Keyboard cues: show menu access-key underlines once the keyboard is in
+  // use, hide them again on pointer input (Windows 7 default behaviour).
   useEffect(() => {
-    if (!booted) return
+    const body = document.body
+    const onKey = (e) => {
+      if (e.key === 'Alt' || e.key === 'F10' || e.key === 'ContextMenu' || e.key === 'Tab') {
+        body.classList.add('nx-kbd-cues')
+      }
+    }
+    const onPointer = () => body.classList.remove('nx-kbd-cues')
+    document.addEventListener('keydown', onKey, true)
+    document.addEventListener('pointerdown', onPointer, true)
+    return () => {
+      document.removeEventListener('keydown', onKey, true)
+      document.removeEventListener('pointerdown', onPointer, true)
+      body.classList.remove('nx-kbd-cues')
+    }
+  }, [])
+
+  // Re-read the opt-in idle lock when Control Panel changes it.
+  const [idleLockOn, setIdleLockOn] = useState(isIdleLockEnabled)
+  useEffect(() => {
+    const sync = () => setIdleLockOn(isIdleLockEnabled())
+    window.addEventListener('nexus:idle-lock-changed', sync)
+    return () => window.removeEventListener('nexus:idle-lock-changed', sync)
+  }, [])
+
+  useEffect(() => {
+    // The idle lock is opt-in and off by default.
+    if (!booted || !idleLockOn) return
 
     const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll']
     const handler = () => resetIdleTimer()
@@ -73,7 +123,7 @@ export default function Desktop() {
       events.forEach((e) => document.removeEventListener(e, handler))
       clearTimeout(idleTimerRef.current)
     }
-  }, [booted, resetIdleTimer])
+  }, [booted, idleLockOn, resetIdleTimer])
 
   // ── Window store ──────────────────────────────────────────
   const windows = useWindowStore((s) => s.windows)
@@ -81,6 +131,8 @@ export default function Desktop() {
   const launcherOpen = useWindowStore((s) => s.launcherOpen)
   const openApp = useWindowStore((s) => s.openApp)
   const setMobile = useWindowStore((s) => s.setMobile)
+  const cascadeWindows = useWindowStore((s) => s.cascadeWindows)
+  const iconPrefs = useDesktopIconPrefs()
 
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 767px)')
@@ -90,10 +142,10 @@ export default function Desktop() {
     return () => mql.removeEventListener('change', handler)
   }, [setMobile])
 
-  const scanlinesEnabled = useSettingsStore((s) => s.scanlinesEnabled)
-  const orbsEnabled = useSettingsStore((s) => s.orbsEnabled)
   const wallpaperKey = useSettingsStore((s) => s.wallpaper)
-  const wallpaperPreset = WALLPAPER_PRESETS[wallpaperKey] || { id: wallpaperKey }
+  const wallpaperPosition = useSettingsStore((s) => s.wallpaperPosition)
+  const attentionIds = useWindowStore((s) => s.attentionIds)
+  const wallpaperPreset = WALLPAPER_PRESETS[wallpaperKey] || WALLPAPER_PRESETS.aero
   const hydrateSettings = useSettingsStore((s) => s.hydrateSettings)
 
   const hydrateFromStorage = useWindowStore((s) => s.hydrateFromStorage)
@@ -131,7 +183,7 @@ export default function Desktop() {
     if (firstBoot && sessionStorage.getItem(BOOT_SESSION_KEY) !== '1') {
       useNotificationStore.getState().addNotification({
         title: 'System Ready',
-        message: `Nexus OS initialized successfully. ${APP_ORDER.length} apps operational.`,
+        message: `Welcome to Nexus OS. ${APP_ORDER.length} programs are ready to use.`,
         type: 'success',
       })
     }
@@ -143,20 +195,79 @@ export default function Desktop() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useGlobalShortcuts()
+  useGlobalShortcuts({ disabled: locked })
+
+  const handleLock = useCallback(() => setLocked(true), [])
+
+  // `nexus:lock` lets any part of the OS lock the desktop (Start menu, shortcuts).
+  useEffect(() => {
+    const lockNow = () => setLocked(true)
+    window.addEventListener('nexus:lock', lockNow)
+    return () => window.removeEventListener('nexus:lock', lockNow)
+  }, [])
+
+  // A locked desktop shows no menus behind the lock screen.
+  useEffect(() => {
+    if (locked) setContextMenu(null)
+  }, [locked])
 
   const handleSnapHint = useCallback((hint) => {
     setSnapPreview(hint)
   }, [])
 
-  const handleContextMenu = useCallback((e) => {
-    e.preventDefault()
-    setContextMenu({ x: e.clientX, y: e.clientY })
+  const openMenu = useCallback((spec) => {
+    menuSerial.current += 1
+    setContextMenu({ ...spec, id: menuSerial.current })
   }, [])
+
+  // Right-click on the taskbar gets the taskbar menu; anywhere else on the
+  // desktop gets the desktop menu. Icons and windows stop their own event.
+  const handleContextMenu = useCallback(
+    (e) => {
+      const target = e.target instanceof Element ? e.target : null
+      // Inside a window or a text field, leave the browser's own menu (copy,
+      // paste, spelling) alone; apps that want a menu open their own.
+      if (target?.closest('.nx-window, input, textarea, [contenteditable="true"]')) return
+      e.preventDefault()
+      if (locked) return
+      if (target?.closest('.nx-startmenu')) return
+      const kind = target?.closest('.nx-taskbar') ? 'taskbar' : 'desktop'
+      openMenu({ kind, x: e.clientX, y: e.clientY })
+    },
+    [locked, openMenu],
+  )
+
+  const handleIconContextMenu = useCallback(
+    ({ x, y, appId }) => {
+      if (!locked) openMenu({ kind: 'icon', x, y, appId })
+    },
+    [locked, openMenu],
+  )
 
   const closeContextMenu = useCallback(() => {
     setContextMenu(null)
   }, [])
+
+  const menu = useMemo(() => {
+    if (!contextMenu) return null
+    const actions = {
+      openApp,
+      cascadeWindows,
+      showDesktop: () => toggleShowDesktop(useWindowStore.getState()),
+      setIconsShown: setDesktopIconsShown,
+      setSort: setDesktopIconSort,
+      restoreIcons: restoreDesktopIcons,
+      refresh: refreshDesktopIcons,
+      hideIcon: hideDesktopIcon,
+      rename: requestDesktopIconRename,
+    }
+    if (contextMenu.kind === 'icon') {
+      const title = APP_REGISTRY[contextMenu.appId]?.title ?? contextMenu.appId
+      return buildIconMenu({ appId: contextMenu.appId, title, prefs: iconPrefs, actions })
+    }
+    if (contextMenu.kind === 'taskbar') return buildTaskbarMenu({ actions })
+    return buildDesktopMenu({ prefs: iconPrefs, actions })
+  }, [contextMenu, iconPrefs, openApp, cascadeWindows])
 
   const visibleWindows = zStack.map((id) => windows[id]).filter((w) => w && w.state !== 'minimized')
 
@@ -167,39 +278,24 @@ export default function Desktop() {
 
       {/* Desktop shell — flex column: work area fills space, taskbar at bottom */}
       <div
-        className="fixed inset-0 flex flex-col overflow-hidden bg-background"
+        className="fixed inset-0 flex flex-col overflow-hidden bg-[#1c3f6e]"
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >
-        {/* Wallpaper layers ─────────────────────────────────────────
-             Stacking order (all z-index: -1, DOM order = bottom→top):
-               1. wallpaper  — base texture / image (rendered first = lowest)
-               2. orbs       — neon glow on top of wallpaper
-               3. scanlines  — CRT overlay on top of everything
-             Image wallpapers use `background-size: cover` which fills the
-             full viewport on every device and orientation. */}
+        {/* Wallpaper — every preset is an image; the CSS class supplies the
+             Aero fallback colour while the image loads. */}
         <div
-          className={`pointer-events-none absolute inset-0 -z-1 ${
-            wallpaperPreset.image ? '' : `wallpaper-${wallpaperKey}`
-          }`}
-          style={
-            wallpaperPreset.image
-              ? {
-                  backgroundImage: `url(${wallpaperPreset.image})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                }
-              : {}
-          }
+          className="nx-wallpaper-aero pointer-events-none absolute inset-0 -z-1"
+          style={{
+            backgroundImage: `url(${wallpaperPreset.image})`,
+            ...wallpaperBackgroundStyle(wallpaperPosition),
+          }}
         />
-        {orbsEnabled && <div className="ambient-orbs" />}
-        {scanlinesEnabled && <div className="scanlines" />}
 
         {/* Work area — takes all space above the taskbar */}
         <div ref={desktopRef} data-testid="desktop" className="relative flex-1 overflow-hidden">
           {/* Desktop icons — behind all windows */}
-          <DesktopIcons />
+          <DesktopIcons onIconContextMenu={handleIconContextMenu} />
 
           <AnimatePresence>
             {visibleWindows.map((win) => {
@@ -225,7 +321,10 @@ export default function Desktop() {
                   <Suspense
                     fallback={
                       <div className="flex h-full items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden="true" />
+                        <span className="sr-only" role="status">
+                          Loading…
+                        </span>
                       </div>
                     }
                   >
@@ -241,16 +340,23 @@ export default function Desktop() {
         </div>
 
         {/* Taskbar — normal flex child at the bottom, NOT fixed */}
-        <Taskbar />
+        <Taskbar flashingWindowIds={attentionIds} />
 
         {/* Overlays — these use fixed/absolute positioning above everything */}
         {!locked && <NotificationToast />}
 
-        <AnimatePresence>{launcherOpen && <AppLauncher />}</AnimatePresence>
+        <AnimatePresence>{launcherOpen && <AppLauncher onLock={handleLock} />}</AnimatePresence>
 
         <AnimatePresence>
-          {contextMenu && (
-            <ContextMenu x={contextMenu.x} y={contextMenu.y} onClose={closeContextMenu} />
+          {contextMenu && menu && (
+            <ContextMenu
+              key={contextMenu.id}
+              x={contextMenu.x}
+              y={contextMenu.y}
+              label={menu.label}
+              items={menu.items}
+              onClose={closeContextMenu}
+            />
           )}
         </AnimatePresence>
 

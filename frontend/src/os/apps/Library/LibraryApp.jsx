@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
@@ -6,6 +6,7 @@ import { useMedia } from '../../../hooks/useMedia'
 import { MEDIA_TYPES, MEDIA_CONFIG, TYPE_ICONS } from '../../../lib/mediaConfig'
 import { DURATION } from '../../../lib/motion'
 import KanbanBoard from './KanbanBoard'
+import { getTabKeyTarget } from './tablistKeys'
 import MediaVault from './MediaVault'
 import AddMediaDialog from './AddMediaDialog'
 import LazyAICmdPalette from '../Chat/LazyAICmdPalette'
@@ -44,6 +45,7 @@ export default function LibraryApp() {
   const [selectedItemId, setSelectedItemId] = useState(null)
   const [editItem, setEditItem] = useState(null)
   const [vaultState, setVaultState] = useState(null)
+  const tabRefs = useRef([])
 
   const selectedItem = useMemo(
     () => (selectedItemId ? (items.find((i) => i.id === selectedItemId) ?? null) : null),
@@ -59,6 +61,11 @@ export default function LibraryApp() {
   const handleCloseDetail = useCallback(() => setSelectedItemId(null), [])
   const handleCloseEdit = useCallback(() => setEditItem(null), [])
 
+  const selectType = useCallback((type) => {
+    setActiveType(type)
+    setVaultState(null)
+  }, [])
+
   const handleAddRequest = useCallback((status) => {
     window.dispatchEvent(new CustomEvent('nexus:open-add-media', { detail: { status } }))
   }, [])
@@ -67,67 +74,81 @@ export default function LibraryApp() {
   }, [])
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden">
-      {/* Media type tabs — inside the window */}
-      <nav className="shrink-0 border-b border-white/[0.04] bg-black/20">
-        <div
+    <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
+      {/* Media type tabs (Windows 7 tab control) */}
+      <div className="shrink-0 px-2 pt-2">
+        <menu
           role="tablist"
           aria-label="Media types"
-          className="flex items-center gap-1 overflow-x-auto px-3 py-1.5"
-          style={{
-            maskImage:
-              'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
-            WebkitMaskImage:
-              'linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%)',
-          }}
+          className="flex items-end gap-0.5 overflow-x-auto"
         >
-          {MEDIA_TYPES.map((type) => {
+          {MEDIA_TYPES.map((type, index) => {
             const Icon = TYPE_ICONS[type]
             const isActive = activeType === type
             return (
               <button
                 key={type}
+                ref={(element) => {
+                  tabRefs.current[index] = element
+                }}
+                id={`library-tab-${type}`}
                 role="tab"
                 aria-selected={isActive}
+                aria-controls="library-tabpanel"
+                tabIndex={isActive ? 0 : -1}
                 type="button"
-                onClick={() => {
-                  setActiveType(type)
-                  setVaultState(null)
+                onClick={() => selectType(type)}
+                onKeyDown={(event) => {
+                  const target = getTabKeyTarget({
+                    key: event.key,
+                    index,
+                    count: MEDIA_TYPES.length,
+                    ctrlKey: event.ctrlKey,
+                    shiftKey: event.shiftKey,
+                  })
+                  if (target === null) return
+                  event.preventDefault()
+                  selectType(MEDIA_TYPES[target])
+                  tabRefs.current[target]?.focus()
                 }}
-                className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 heading-ui text-[11px] font-semibold uppercase tracking-wider transition-all ${
-                  isActive
-                    ? 'bg-primary/20 text-primary'
-                    : 'text-muted-foreground hover:bg-white/5 hover:text-white'
-                }`}
+                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap"
               >
-                <Icon size={12} />
+                <Icon size={14} aria-hidden="true" />
                 {MEDIA_CONFIG[type].label}
               </button>
             )
           })}
-        </div>
-      </nav>
+        </menu>
+      </div>
+
+      {/* Command bar */}
+      <div className="w7-commandbar shrink-0">
+        <AddMediaDialog mediaType={activeType} onAdd={addMedia} />
+        <LazyAICmdPalette mediaType={activeType} onAdd={addMedia} placement="inline" />
+      </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <article
+        id="library-tabpanel"
+        role="tabpanel"
+        aria-labelledby={`library-tab-${activeType}`}
+        className="min-h-0 flex-1 overflow-y-auto bg-background"
+      >
         {dataLoading && items.length === 0 ? (
           <div
-            className="flex h-full items-center justify-center"
+            className="flex h-full flex-col items-center justify-center gap-2 p-6 text-muted-foreground"
             role="status"
             aria-label="Loading media"
           >
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p>Loading…</p>
           </div>
         ) : error ? (
           <div role="alert" className="flex flex-col items-center gap-3 p-6 text-center">
-            <p className="font-bold uppercase tracking-widest text-destructive">
-              API Error: {error}
+            <p className="w7-error">
+              Your media couldn&rsquo;t be loaded. {error} Check your connection, then select Retry.
             </p>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 font-mono text-xs text-destructive transition-colors hover:bg-destructive/20"
-            >
+            <button type="button" onClick={() => window.location.reload()} className="w7-btn">
               Retry
             </button>
           </div>
@@ -145,6 +166,7 @@ export default function LibraryApp() {
                   items={items}
                   mediaType={activeType}
                   filterStatus={vaultState.status}
+                  selectedId={selectedItemId}
                   onBack={() => setVaultState(null)}
                   onUpdate={updateMedia}
                   onDelete={deleteMedia}
@@ -176,7 +198,7 @@ export default function LibraryApp() {
             )}
           </AnimatePresence>
         )}
-      </div>
+      </article>
 
       <Suspense fallback={null}>
         <MediaDetailModal
@@ -190,8 +212,6 @@ export default function LibraryApp() {
       <Suspense fallback={null}>
         <EditMediaDialog item={editItem} onUpdate={updateMedia} onClose={handleCloseEdit} />
       </Suspense>
-      <AddMediaDialog mediaType={activeType} onAdd={addMedia} />
-      <LazyAICmdPalette mediaType={activeType} onAdd={addMedia} />
     </div>
   )
 }

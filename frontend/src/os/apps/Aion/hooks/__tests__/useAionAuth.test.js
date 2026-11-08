@@ -31,9 +31,10 @@ describe('useAionAuth', () => {
       error: null,
     })
 
-    const { result } = renderHook(() => useAionAuth())
+    const { result, unmount } = renderHook(() => useAionAuth())
     expect(result.current.isLoading).toBe(true)
     expect(result.current.session).toBeNull()
+    unmount()
   })
 
   it('reuses existing session without signing in again', async () => {

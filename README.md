@@ -1,21 +1,25 @@
 # Nexus OS
 
-Nexus OS is a premium, cyberpunk-styled personal media vault and job tracker. It combines a high-performance React frontend, a Litestar API, and Supabase-backed identity and persistence to manage books, movies, anime, job applications, ratings, takeaways, and AI-assisted recommendations within a unified, immersive interface.
+Nexus OS is a personal media vault, job tracker, mail client, task manager and AI assistant presented as a **Windows 7 Aero-style web desktop**. It combines a React frontend, a Litestar API, and Supabase-backed identity and persistence to manage books, movies, anime, job applications, ratings, takeaways and AI-assisted recommendations.
 
 ## Visual Aesthetic
 
-Nexus OS is built with a **Cyberpunk-First** design philosophy. It features:
+The interface recreates the Windows 7 Aero experience with [7.css](https://khang-nd.github.io/7.css/):
 
-- **Neon-Glow Design System**: Tailored HSL color palettes with high-contrast accents.
-- **Glassmorphism**: Translucent windowing system with backdrop filters and depth.
-- **Dynamic Backgrounds**: High-performance CSS patterns and 4K cyberpunk wallpapers.
-- **Silky Transitions**: View Transitions API (2026) for seamless theme and state changes.
+- **Aero glass shell**: translucent window frames and taskbar, glossy caption buttons, a Start orb and a two-column Start menu.
+- **Native-feeling apps**: light Explorer-style windows, 7.css buttons, fields, tabs, tree views and list views.
+- **Personalisation**: Windows 7 window colours and desktop backgrounds (Settings → Personalization).
+- **Original artwork**: the wallpaper, Start orb and app icons are original; no Microsoft assets are shipped.
+
+See [`docs/win7-design-system.md`](docs/win7-design-system.md) for the design contract.
 
 ## Security Upgrade Highlights
 
 This repository includes a hardened defensive posture:
 
-- **Zero-Trust Auth**: Backend-managed `HttpOnly` cookies; no sensitive tokens in browser storage.
+- **Backend-Mediated Auth**: API credentials live exclusively in `HttpOnly`
+  cookies. Auth responses return identity metadata, not bearer tokens, and
+  private data reads go through the cookie-authenticated API.
 - **Silent Rotation**: Strict cookie refresh flow with short-lived access tokens.
 - **AI Isolation**: Prompt scrubbing, XML delimiters, and PII masking for Gemini interactions.
 - **Rate Limiting**: Shared server-side AI quotas enforced via Redis-backed sliding windows.

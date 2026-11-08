@@ -6,38 +6,44 @@
  * web and on platforms without these APIs.
  */
 
-const NOTES_KEY = 'nexus-os:notes'
-
 /**
  * Consume a Web Share Target launch (`/?share-target=1&title=…&text=…&url=…`).
  *
  * The manifest registers a GET share target, so shared content arrives as query
- * params. We append it to the Notes buffer (the natural inbox for stray text)
- * and return the app id to open, or null if this wasn't a share launch. The
- * share params are stripped from the URL so a refresh won't re-import.
+ * params. The URL is scrubbed immediately, then the content is persisted through
+ * the authenticated Notes API. Keeping it out of a global localStorage buffer
+ * prevents a second account on the same browser from inheriting private shares.
  */
-export function consumeShareTarget() {
+export function consumeShareTarget({ createNote, onSaved, onError } = {}) {
   if (typeof window === 'undefined') return null
   const params = new URLSearchParams(window.location.search)
   if (!params.has('share-target')) return null
 
-  const title = params.get('title') || ''
+  const title = (params.get('title') || '').trim()
   const text = params.get('text') || ''
   const url = params.get('url') || ''
-  const shared = [title, text, url].filter(Boolean).join('\n').trim()
+  const content = [text, url].filter(Boolean).join('\n').trim()
 
-  if (shared) {
-    try {
-      const existing = localStorage.getItem(NOTES_KEY) || ''
-      const stamp = new Date().toLocaleString()
-      const block = `── Shared ${stamp} ──\n${shared}\n`
-      localStorage.setItem(NOTES_KEY, existing ? `${existing}\n\n${block}` : block)
-    } catch {
-      // Storage full — drop the share rather than crash the boot sequence.
+  // Shared text can be sensitive, so remove it from the address bar before
+  // waiting on any network operation or opening another app.
+  stripParams(['share-target', 'title', 'text', 'url'])
+
+  if (title || content) {
+    if (typeof createNote !== 'function') {
+      onError?.(new Error('The Notes service is unavailable.'))
+    } else {
+      Promise.resolve(
+        createNote({
+          title: (title || 'Shared item').slice(0, 500),
+          content: content.slice(0, 20_000),
+          type: 'text',
+        }),
+      )
+        .then((note) => onSaved?.(note))
+        .catch((error) => onError?.(error))
     }
   }
 
-  stripParams(['share-target', 'title', 'text', 'url'])
   return 'notes'
 }
 

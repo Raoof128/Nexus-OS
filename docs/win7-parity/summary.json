@@ -1,0 +1,898 @@
+[
+  {
+    "name": "00-scoping",
+    "section": "scoping",
+    "refSize": [
+      941,
+      23
+    ],
+    "oursSize": [
+      941,
+      23
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "01-balloon",
+    "section": "balloon",
+    "refSize": [
+      723,
+      40
+    ],
+    "oursSize": [
+      723,
+      40
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "02-balloon",
+    "section": "balloon",
+    "refSize": [
+      723,
+      23
+    ],
+    "oursSize": [
+      723,
+      23
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "03-balloon",
+    "section": "balloon",
+    "refSize": [
+      723,
+      232
+    ],
+    "oursSize": [
+      723,
+      232
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "04-button",
+    "section": "button",
+    "refSize": [
+      741,
+      23
+    ],
+    "oursSize": [
+      741,
+      23
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "05-button",
+    "section": "button",
+    "refSize": [
+      741,
+      23
+    ],
+    "oursSize": [
+      741,
+      23
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "06-button",
+    "section": "button",
+    "refSize": [
+      741,
+      23
+    ],
+    "oursSize": [
+      741,
+      23
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "07-button",
+    "section": "button",
+    "refSize": [
+      741,
+      23
+    ],
+    "oursSize": [
+      741,
+      23
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "08-button",
+    "section": "button",
+    "refSize": [
+      741,
+      23
+    ],
+    "oursSize": [
+      741,
+      23
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "09-button",
+    "section": "button",
+    "refSize": [
+      741,
+      23
+    ],
+    "oursSize": [
+      741,
+      23
+    ],
+    "mismatchedPixels": 314,
+    "mismatchPct": 1.842
+  },
+  {
+    "name": "10-button",
+    "section": "button",
+    "refSize": [
+      741,
+      23
+    ],
+    "oursSize": [
+      741,
+      23
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "11-checkbox",
+    "section": "checkbox",
+    "refSize": [
+      741,
+      17
+    ],
+    "oursSize": [
+      741,
+      17
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "12-checkbox",
+    "section": "checkbox",
+    "refSize": [
+      741,
+      63
+    ],
+    "oursSize": [
+      741,
+      63
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "13-collapse",
+    "section": "collapse",
+    "refSize": [
+      439,
+      14
+    ],
+    "oursSize": [
+      439,
+      14
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "14-collapse",
+    "section": "collapse",
+    "refSize": [
+      439,
+      68
+    ],
+    "oursSize": [
+      439,
+      68
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "15-combobox",
+    "section": "combobox",
+    "refSize": [
+      741,
+      118
+    ],
+    "oursSize": [
+      741,
+      118
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "16-dropdown",
+    "section": "dropdown",
+    "refSize": [
+      741,
+      20
+    ],
+    "oursSize": [
+      741,
+      20
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "17-dropdown",
+    "section": "dropdown",
+    "refSize": [
+      741,
+      20
+    ],
+    "oursSize": [
+      741,
+      20
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "18-dropdown",
+    "section": "dropdown",
+    "refSize": [
+      741,
+      20
+    ],
+    "oursSize": [
+      741,
+      20
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "19-groupbox",
+    "section": "groupbox",
+    "refSize": [
+      741,
+      94
+    ],
+    "oursSize": [
+      741,
+      94
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "20-groupbox",
+    "section": "groupbox",
+    "refSize": [
+      741,
+      107
+    ],
+    "oursSize": [
+      741,
+      107
+    ],
+    "mismatchedPixels": 388,
+    "mismatchPct": 0.489
+  },
+  {
+    "name": "21-groupbox",
+    "section": "groupbox",
+    "refSize": [
+      741,
+      63
+    ],
+    "oursSize": [
+      741,
+      63
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "22-listbox",
+    "section": "listbox",
+    "refSize": [
+      741,
+      76
+    ],
+    "oursSize": [
+      741,
+      74
+    ],
+    "mismatchedPixels": 748,
+    "mismatchPct": 1.364
+  },
+  {
+    "name": "23-listbox",
+    "section": "listbox",
+    "refSize": [
+      741,
+      92
+    ],
+    "oursSize": [
+      741,
+      92
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "24-listbox",
+    "section": "listbox",
+    "refSize": [
+      741,
+      92
+    ],
+    "oursSize": [
+      741,
+      92
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "25-listview",
+    "section": "listview",
+    "refSize": [
+      658,
+      80
+    ],
+    "oursSize": [
+      658,
+      80
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "26-listview",
+    "section": "listview",
+    "refSize": [
+      658,
+      114
+    ],
+    "oursSize": [
+      658,
+      114
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "27-menu",
+    "section": "menu",
+    "refSize": [
+      741,
+      198
+    ],
+    "oursSize": [
+      741,
+      198
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "28-menu",
+    "section": "menu",
+    "refSize": [
+      741,
+      212
+    ],
+    "oursSize": [
+      741,
+      212
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "29-menu",
+    "section": "menu",
+    "refSize": [
+      741,
+      133
+    ],
+    "oursSize": [
+      741,
+      133
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "30-menubar",
+    "section": "menubar",
+    "refSize": [
+      661,
+      26
+    ],
+    "oursSize": [
+      661,
+      26
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "31-menubar",
+    "section": "menubar",
+    "refSize": [
+      661,
+      26
+    ],
+    "oursSize": [
+      661,
+      26
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "32-radio",
+    "section": "radio",
+    "refSize": [
+      741,
+      34
+    ],
+    "oursSize": [
+      741,
+      34
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "33-radio",
+    "section": "radio",
+    "refSize": [
+      741,
+      54
+    ],
+    "oursSize": [
+      741,
+      54
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "34-progressbar",
+    "section": "progressbar",
+    "refSize": [
+      665,
+      17
+    ],
+    "oursSize": [
+      665,
+      17
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "35-progressbar",
+    "section": "progressbar",
+    "refSize": [
+      665,
+      17
+    ],
+    "oursSize": [
+      665,
+      17
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "36-progressbar",
+    "section": "progressbar",
+    "refSize": [
+      665,
+      17
+    ],
+    "oursSize": [
+      665,
+      17
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "37-progressbar",
+    "section": "progressbar",
+    "refSize": [
+      665,
+      17
+    ],
+    "oursSize": [
+      665,
+      17
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "38-progressbar",
+    "section": "progressbar",
+    "refSize": [
+      665,
+      17
+    ],
+    "oursSize": [
+      665,
+      17
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "39-scrollbar",
+    "section": "scrollbar",
+    "refSize": [
+      639,
+      150
+    ],
+    "oursSize": [
+      639,
+      150
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "40-searchbox",
+    "section": "searchbox",
+    "refSize": [
+      741,
+      24
+    ],
+    "oursSize": [
+      741,
+      24
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "41-searchbox",
+    "section": "searchbox",
+    "refSize": [
+      741,
+      24
+    ],
+    "oursSize": [
+      741,
+      24
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "42-slider",
+    "section": "slider",
+    "refSize": [
+      741,
+      27
+    ],
+    "oursSize": [
+      741,
+      27
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "43-slider",
+    "section": "slider",
+    "refSize": [
+      741,
+      150
+    ],
+    "oursSize": [
+      741,
+      150
+    ],
+    "mismatchedPixels": 344,
+    "mismatchPct": 0.309
+  },
+  {
+    "name": "44-spinner",
+    "section": "spinner",
+    "refSize": [
+      741,
+      23
+    ],
+    "oursSize": [
+      741,
+      23
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "45-tabs",
+    "section": "tabs",
+    "refSize": [
+      500,
+      223
+    ],
+    "oursSize": [
+      500,
+      223
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "46-tabs",
+    "section": "tabs",
+    "refSize": [
+      500,
+      65
+    ],
+    "oursSize": [
+      500,
+      65
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "47-textbox",
+    "section": "textbox",
+    "refSize": [
+      741,
+      23
+    ],
+    "oursSize": [
+      741,
+      23
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "48-textbox",
+    "section": "textbox",
+    "refSize": [
+      741,
+      92
+    ],
+    "oursSize": [
+      741,
+      92
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "49-textbox",
+    "section": "textbox",
+    "refSize": [
+      741,
+      142
+    ],
+    "oursSize": [
+      741,
+      142
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "50-tree-view",
+    "section": "tree-view",
+    "refSize": [
+      741,
+      74
+    ],
+    "oursSize": [
+      741,
+      74
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "51-tree-view",
+    "section": "tree-view",
+    "refSize": [
+      741,
+      212
+    ],
+    "oursSize": [
+      741,
+      212
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "52-tree-view",
+    "section": "tree-view",
+    "refSize": [
+      741,
+      64
+    ],
+    "oursSize": [
+      741,
+      64
+    ],
+    "mismatchedPixels": 65,
+    "mismatchPct": 0.137
+  },
+  {
+    "name": "53-title-bar",
+    "section": "title-bar",
+    "refSize": [
+      741,
+      29
+    ],
+    "oursSize": [
+      741,
+      29
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "54-title-bar",
+    "section": "title-bar",
+    "refSize": [
+      741,
+      115
+    ],
+    "oursSize": [
+      741,
+      115
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "55-title-bar",
+    "section": "title-bar",
+    "refSize": [
+      741,
+      29
+    ],
+    "oursSize": [
+      741,
+      29
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "56-title-bar",
+    "section": "title-bar",
+    "refSize": [
+      741,
+      29
+    ],
+    "oursSize": [
+      741,
+      29
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "57-window-body",
+    "section": "window-body",
+    "refSize": [
+      741,
+      91
+    ],
+    "oursSize": [
+      741,
+      91
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "58-window-body",
+    "section": "window-body",
+    "refSize": [
+      741,
+      313
+    ],
+    "oursSize": [
+      741,
+      313
+    ],
+    "mismatchedPixels": 372,
+    "mismatchPct": 0.16
+  },
+  {
+    "name": "59-status-bar",
+    "section": "status-bar",
+    "refSize": [
+      741,
+      168
+    ],
+    "oursSize": [
+      741,
+      168
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "60-glass-frame-color",
+    "section": "glass-frame-color",
+    "refSize": [
+      741,
+      127
+    ],
+    "oursSize": [
+      741,
+      127
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "61-glass-frame-color",
+    "section": "glass-frame-color",
+    "refSize": [
+      741,
+      236
+    ],
+    "oursSize": [
+      741,
+      236
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "62-glass-frame-color",
+    "section": "glass-frame-color",
+    "refSize": [
+      741,
+      127
+    ],
+    "oursSize": [
+      741,
+      127
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  },
+  {
+    "name": "63-dialog-box",
+    "section": "dialog-box",
+    "refSize": [
+      741,
+      14
+    ],
+    "oursSize": [
+      741,
+      14
+    ],
+    "mismatchedPixels": 0,
+    "mismatchPct": 0
+  }
+]

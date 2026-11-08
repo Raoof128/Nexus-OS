@@ -51,7 +51,13 @@ export const useFileSystemStore = create((set, get) => ({
         files: {
           ...state.files,
           [parentPath]: { ...parent, children: [...parent.children, name] },
-          [folderPath]: { type: 'folder', name, children: [] },
+          [folderPath]: {
+            type: 'folder',
+            name,
+            children: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          },
         },
       }
     })

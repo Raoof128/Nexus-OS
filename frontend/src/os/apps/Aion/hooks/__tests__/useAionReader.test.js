@@ -30,9 +30,10 @@ beforeEach(() => {
 describe('useAionReader', () => {
   it('starts in loading state when bookId and chapter are provided', () => {
     __mockChain.order.mockResolvedValue({ data: sampleVerses, error: null })
-    const { result } = renderHook(() => useAionReader('PSA', 23))
+    const { result, unmount } = renderHook(() => useAionReader('PSA', 23))
     expect(result.current.isLoading).toBe(true)
     expect(result.current.verses).toEqual([])
+    unmount()
   })
 
   it('returns verses on successful fetch', async () => {

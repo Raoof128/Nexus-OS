@@ -44,10 +44,10 @@ describe('App', () => {
     })
   })
 
-  it('renders the login panel when signed out', () => {
+  it('renders the sign-in form when signed out', () => {
     render(<App />)
-    expect(screen.getByText(/system login/i)).toBeTruthy()
-    expect(screen.getByRole('button', { name: /authenticate/i })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: /nexus os/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeTruthy()
   })
 
   it('shows loading spinner when auth is loading', () => {
@@ -142,21 +142,9 @@ describe('App', () => {
     })
   })
 
-  it('renders mobile brand header on small screens', () => {
-    window.innerWidth = 500
+  it('shows the email and password fields on the logon screen', () => {
     render(<App />)
-    // The mobile brand header lives inside a div with the lg:hidden class
-    const mobileWrapper = document.querySelector('[class*="lg:hidden"]')
-    expect(mobileWrapper).toBeTruthy()
-    expect(mobileWrapper.textContent).toMatch(/nexus\s*os/i)
-  })
-
-  it('hides mobile brand header on large screens via lg:hidden', () => {
-    window.innerWidth = 1200
-    render(<App />)
-    // The container is in the DOM with lg:hidden (Tailwind hides it at lg+)
-    const mobileWrapper = document.querySelector('[class*="lg:hidden"]')
-    expect(mobileWrapper).toBeTruthy()
-    expect(mobileWrapper.className).toContain('lg:hidden')
+    expect(screen.getByLabelText(/^email$/i)).toBeTruthy()
+    expect(screen.getByLabelText(/^password$/i)).toBeTruthy()
   })
 })

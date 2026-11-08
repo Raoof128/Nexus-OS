@@ -58,7 +58,7 @@ python3 -m bandit -r backend -c bandit.yaml
 # PYSEC-2024-271: flask-cors (transitive via locust dev dep, not in production
 #   runtime) — no patched release available yet.
 # Remove each --ignore-vuln entry once upstream publishes a fix.
-python3 -m pip_audit . --ignore-vuln PYSEC-2025-183 --ignore-vuln PYSEC-2024-271
+python3 -m pip_audit .
 
 # Gate 7: Tests
 log "Running test suites..."

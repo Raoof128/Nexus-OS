@@ -1,3 +1,4 @@
+import { useId, useState } from 'react'
 import { RECURRENCE_PRESETS, buildRRule, labelForRRule } from '../lib/recurrence'
 
 // Maps the current rrule value back to a preset key for the <select>.
@@ -8,31 +9,31 @@ function presetForValue(value) {
 }
 
 export default function RecurrencePicker({ value, onChange }) {
-  const preset = presetForValue(value)
+  const selectId = useId()
+  // Custom mode is sticky. Clearing the RRULE box sets the value to null, which
+  // would otherwise look like "Does not repeat" and unmount the field mid-typing.
+  const [customMode, setCustomMode] = useState(() => presetForValue(value) === 'custom')
+  const derived = presetForValue(value)
+  const preset = customMode || derived === 'custom' ? 'custom' : derived
 
   const handlePreset = (e) => {
     const next = e.target.value
     if (next === 'custom') {
       // Keep any existing custom rule; otherwise start an editable blank one.
-      onChange(value && presetForValue(value) === 'custom' ? value : 'FREQ=WEEKLY;BYDAY=MO')
+      setCustomMode(true)
+      onChange(value && derived === 'custom' ? value : 'FREQ=WEEKLY;BYDAY=MO')
     } else {
+      setCustomMode(false)
       onChange(buildRRule(next))
     }
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] uppercase tracking-wider text-muted-foreground">
-        Repeat
-      </label>
-      <select
-        value={preset}
-        onChange={handlePreset}
-        aria-label="Recurrence"
-        className="rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1.5 text-sm text-white/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-      >
+    <div className="flex flex-col gap-1">
+      <label htmlFor={selectId}>Repeat</label>
+      <select id={selectId} value={preset} onChange={handlePreset}>
         {RECURRENCE_PRESETS.map((p) => (
-          <option key={p.value} value={p.value} className="bg-zinc-900">
+          <option key={p.value} value={p.value}>
             {p.label}
           </option>
         ))}
@@ -43,15 +44,13 @@ export default function RecurrencePicker({ value, onChange }) {
           type="text"
           value={value || ''}
           onChange={(e) => onChange(e.target.value.trim() || null)}
-          placeholder="RRULE e.g. FREQ=WEEKLY;BYDAY=MO,WE,FR"
+          placeholder="RRULE, e.g. FREQ=WEEKLY;BYDAY=MO,WE,FR"
           aria-label="Custom recurrence rule (RRULE)"
-          className="rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-1.5 font-mono text-[11px] text-primary/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          className="font-mono text-[12px]"
         />
       )}
 
-      {value && (
-        <span className="text-[11px] text-muted-foreground">{labelForRRule(value)}</span>
-      )}
+      {value && <span className="text-[12px] text-muted-foreground">{labelForRRule(value)}</span>}
     </div>
   )
 }

@@ -47,8 +47,7 @@ async function request(path, { method = 'GET', body, headers = {} } = {}, retry 
     ) {
       try {
         const refreshed = await refreshSession()
-        if (!refreshed) {
-          onAuthExpired?.()
+        if (!refreshed?.user) {
           throw new Error('Your session has expired. Please log in again.')
         }
       } catch (refreshError) {

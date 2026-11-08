@@ -17,8 +17,7 @@ export function useTaskItems(listId, showCompleted = true) {
   return useQuery({
     queryKey: itemsKey(listId, showCompleted),
     enabled: Boolean(listId),
-    queryFn: () =>
-      apiFetch(`/api/tasks/lists/${listId}/items?showCompleted=${showCompleted}`),
+    queryFn: () => apiFetch(`/api/tasks/lists/${listId}/items?showCompleted=${showCompleted}`),
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   })
@@ -29,8 +28,7 @@ export function useTaskMutations(listId, showCompleted = true) {
   const key = itemsKey(listId, showCompleted)
 
   const createList = useMutation({
-    mutationFn: (name) =>
-      apiFetch('/api/tasks/lists', { method: 'POST', body: { name } }),
+    mutationFn: (name) => apiFetch('/api/tasks/lists', { method: 'POST', body: { name } }),
     onSettled: () => qc.invalidateQueries({ queryKey: listsKey }),
   })
 
@@ -73,9 +71,7 @@ export function useTaskMutations(listId, showCompleted = true) {
     onMutate: async ({ id, patch }) => {
       await qc.cancelQueries({ queryKey: key })
       const previous = qc.getQueryData(key)
-      qc.setQueryData(key, (old = []) =>
-        old.map((t) => (t.id === id ? { ...t, ...patch } : t)),
-      )
+      qc.setQueryData(key, (old = []) => old.map((t) => (t.id === id ? { ...t, ...patch } : t)))
       return { previous }
     },
     onError: (_e, _v, ctx) => ctx?.previous && qc.setQueryData(key, ctx.previous),
@@ -83,14 +79,11 @@ export function useTaskMutations(listId, showCompleted = true) {
   })
 
   const moveTask = useMutation({
-    mutationFn: ({ id, body }) =>
-      apiFetch(`/api/tasks/items/${id}/move`, { method: 'POST', body }),
+    mutationFn: ({ id, body }) => apiFetch(`/api/tasks/items/${id}/move`, { method: 'POST', body }),
     onMutate: async ({ id, body }) => {
       await qc.cancelQueries({ queryKey: key })
       const previous = qc.getQueryData(key)
-      qc.setQueryData(key, (old = []) =>
-        old.map((t) => (t.id === id ? { ...t, ...body } : t)),
-      )
+      qc.setQueryData(key, (old = []) => old.map((t) => (t.id === id ? { ...t, ...body } : t)))
       return { previous }
     },
     onError: (_e, _v, ctx) => ctx?.previous && qc.setQueryData(key, ctx.previous),
@@ -110,8 +103,7 @@ export function useTaskMutations(listId, showCompleted = true) {
   })
 
   const clearCompleted = useMutation({
-    mutationFn: () =>
-      apiFetch(`/api/tasks/lists/${listId}/clear-completed`, { method: 'POST' }),
+    mutationFn: () => apiFetch(`/api/tasks/lists/${listId}/clear-completed`, { method: 'POST' }),
     onMutate: async () => {
       await qc.cancelQueries({ queryKey: key })
       const previous = qc.getQueryData(key)

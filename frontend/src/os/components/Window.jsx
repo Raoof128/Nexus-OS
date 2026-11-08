@@ -1,14 +1,22 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { Minus, Square, X } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
-import { APP_REGISTRY } from '../stores/appRegistry'
+import AppIcon from './AppIcon'
+import SystemMenu from './SystemMenu'
 
-const TITLEBAR_HEIGHT = 36
-const TASKBAR_HEIGHT = 48
+const TASKBAR_HEIGHT = 40 // keep in sync with --w7-taskbar-h in index.css
+const TITLEBAR_HEIGHT = 30 // keep in sync with --w7-titlebar-h in index.css
 const RESIZE_EDGE_SIZE = 6
 const RESIZE_CORNER_SIZE = 14
-const SNAP_THRESHOLD = 20
+// Aero Snap and top-edge maximise fire when the POINTER reaches the screen edge.
+const SNAP_EDGE_PX = 2
+// Pointer travel before a maximised or snapped window is restored and dragged.
+const RESTORE_DRAG_PX = 4
+// Keyboard move/size: arrow keys step 10px, Ctrl+arrow nudges 1px.
+const KEY_STEP = 10
+const KEY_NUDGE = 1
+// Same rule as windowStore's clampPosition: keep this much width on screen.
+const MIN_ACCESSIBLE_PX = 80
 
 const CURSOR_MAP = {
   n: 'ns-resize',
@@ -19,6 +27,33 @@ const CURSOR_MAP = {
   nw: 'nwse-resize',
   se: 'nwse-resize',
   sw: 'nesw-resize',
+}
+
+// Which screen edge, if any, the pointer is touching.
+function snapZoneAt(x, y) {
+  if (x <= SNAP_EDGE_PX) return 'left'
+  if (x >= window.innerWidth - 1 - SNAP_EDGE_PX) return 'right'
+  if (y <= SNAP_EDGE_PX) return 'top'
+  return null
+}
+
+// Keeps a keyboard move/size preview inside the same bounds the store enforces.
+function clampKeyRect(rect, kind, minSize) {
+  if (kind === 'size') {
+    return {
+      ...rect,
+      width: Math.max(minSize.width, rect.width),
+      height: Math.max(minSize.height, rect.height),
+    }
+  }
+  return {
+    ...rect,
+    x: Math.max(
+      -(rect.width - MIN_ACCESSIBLE_PX),
+      Math.min(rect.x, window.innerWidth - MIN_ACCESSIBLE_PX),
+    ),
+    y: Math.max(0, Math.min(rect.y, window.innerHeight - TASKBAR_HEIGHT - TITLEBAR_HEIGHT)),
+  }
 }
 
 function ResizeHandle({ direction, windowId, position, size, minSize }) {
@@ -109,7 +144,9 @@ function ResizeHandle({ direction, windowId, position, size, minSize }) {
         }
         if (direction.includes('s')) newH = Math.max(minSize.height, s.h + dy)
         if (direction.includes('n')) {
-          newH = Math.max(minSize.height, s.h - dy)
+          // The top edge stops at the top of the screen; the bottom edge stays
+          // put instead of the window growing downwards.
+          newH = Math.max(minSize.height, Math.min(s.h - dy, s.y + s.h))
           newY = s.y + s.h - newH
         }
         updateWindowRect(windowId, {
@@ -157,12 +194,13 @@ function Window({
   size,
   minSize,
   state: windowState,
-  restoredRect: _restoredRect,
+  restoredRect,
   zIndex,
   onSnapHint,
   children,
 }) {
   const isFocused = useWindowStore((s) => s.activeWindowId === windowId)
+  const zStack = useWindowStore((s) => s.zStack)
   const isMobile = useWindowStore((s) => s.isMobile)
   const focusWindow = useWindowStore((s) => s.focusWindow)
   const closeWindow = useWindowStore((s) => s.closeWindow)
@@ -170,13 +208,24 @@ function Window({
   const maximizeWindow = useWindowStore((s) => s.maximizeWindow)
   const restoreWindow = useWindowStore((s) => s.restoreWindow)
   const moveWindow = useWindowStore((s) => s.moveWindow)
+  const updateWindowRect = useWindowStore((s) => s.updateWindowRect)
   const snapWindow = useWindowStore((s) => s.snapWindow)
 
   const isMaximized = windowState === 'maximized'
   const isSnapped = windowState === 'snapped-left' || windowState === 'snapped-right'
   const isSnappedLeft = windowState === 'snapped-left'
   const isLocked = isMaximized || isSnapped
-  const AppIcon = APP_REGISTRY[appId]?.icon
+
+  const frameRef = useRef(null)
+  const menuAnchorRef = useRef(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  // ── Keyboard move / size ──────────────────────────────────
+  // keyMode is 'move' | 'size' | null. While it is set, keyRect is the live
+  // preview; Enter commits it to the store and Escape discards it.
+  const [keyMode, setKeyMode] = useState(null)
+  const [keyRect, setKeyRect] = useState(null)
+  const keyRectRef = useRef(null)
 
   // ── Pointer-event drag ────────────────────────────────────
   // dragDelta null = not dragging; {x,y} = current offset from drag start.
@@ -188,62 +237,169 @@ function Window({
   const rafRef = useRef(null)
   const latestPointerRef = useRef(null)
 
-  // Stash current size in a ref so the closure in handleTitleBarPointerDown
-  // always reads the current value without stale capture.
-  const sizeRef = useRef(size)
-  useEffect(() => {
-    sizeRef.current = size
-  }, [size])
-
   const toggleMaximize = useCallback(() => {
     if (isMaximized) restoreWindow(windowId)
     else maximizeWindow(windowId)
   }, [windowId, isMaximized, restoreWindow, maximizeWindow])
 
+  // Win7 moves keyboard focus into a window when it opens, is focused or is
+  // cycled to, so its own controls (and the app's autofocus) receive keystrokes.
+  // zStack gets a new array on every focus, so re-activating the window that is
+  // already active (a singleton relaunched from the Start menu) still focuses it.
+  useEffect(() => {
+    if (!isFocused) return
+    const frame = frameRef.current
+    if (!frame || frame.contains(document.activeElement)) return
+    frame.focus({ preventScroll: true })
+  }, [isFocused, zStack])
+
+  // Keyboard move/size belongs to the focused window only. When focus leaves
+  // the window (for example a click on another window), the mode ends without
+  // moving anything.
+  const handleFrameBlur = useCallback((e) => {
+    if (!keyRectRef.current || e.currentTarget.contains(e.relatedTarget)) return
+    keyRectRef.current = null
+    setKeyRect(null)
+    setKeyMode(null)
+  }, [])
+
+  const closeMenu = useCallback(({ restoreFocus } = {}) => {
+    setMenuOpen(false)
+    if (restoreFocus) menuAnchorRef.current?.focus()
+  }, [])
+
+  // Alt+Space opens the system menu of the focused window, or closes it.
+  useEffect(() => {
+    if (!isFocused || isMobile) return
+    const handleKeyDown = (e) => {
+      if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
+      if (e.code !== 'Space' && e.key !== ' ') return
+      // Never hijack keys while the user is typing.
+      const active = document.activeElement
+      if (
+        active &&
+        (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)
+      ) {
+        return
+      }
+      e.preventDefault()
+      if (menuOpen) closeMenu({ restoreFocus: true })
+      else setMenuOpen(true)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isFocused, isMobile, menuOpen, closeMenu])
+
+  const startKeyMode = useCallback(
+    (kind) => {
+      if (isLocked) return
+      const rect = { x: position.x, y: position.y, width: size.width, height: size.height }
+      keyRectRef.current = rect
+      setKeyRect(rect)
+      setKeyMode(kind)
+    },
+    [isLocked, position, size],
+  )
+
+  useEffect(() => {
+    if (!keyMode) return
+
+    const finish = (commit) => {
+      const rect = keyRectRef.current
+      keyRectRef.current = null
+      setKeyRect(null)
+      setKeyMode(null)
+      if (!commit || !rect) return
+      if (keyMode === 'move') {
+        moveWindow(windowId, { x: rect.x, y: rect.y })
+      } else {
+        updateWindowRect(windowId, {
+          position: { x: rect.x, y: rect.y },
+          size: { width: rect.width, height: rect.height },
+        })
+      }
+    }
+
+    // Capture phase, so the arrows, Enter and Escape reach the window and not
+    // the app content underneath while the mode is active.
+    const handleKeyDown = (e) => {
+      const rect = keyRectRef.current
+      if (!rect) return
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        e.stopPropagation()
+        finish(true)
+        return
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        finish(false)
+        return
+      }
+      const step = e.ctrlKey ? KEY_NUDGE : KEY_STEP
+      const isMove = keyMode === 'move'
+      let next = null
+      switch (e.key) {
+        case 'ArrowLeft':
+          next = isMove ? { ...rect, x: rect.x - step } : { ...rect, width: rect.width - step }
+          break
+        case 'ArrowRight':
+          next = isMove ? { ...rect, x: rect.x + step } : { ...rect, width: rect.width + step }
+          break
+        case 'ArrowUp':
+          next = isMove ? { ...rect, y: rect.y - step } : { ...rect, height: rect.height - step }
+          break
+        case 'ArrowDown':
+          next = isMove ? { ...rect, y: rect.y + step } : { ...rect, height: rect.height + step }
+          break
+        default:
+          return
+      }
+      e.preventDefault()
+      e.stopPropagation()
+      const clamped = clampKeyRect(next, keyMode, minSize)
+      keyRectRef.current = clamped
+      setKeyRect(clamped)
+    }
+
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
+  }, [keyMode, windowId, minSize, moveWindow, updateWindowRect])
+
   const handleTitleBarPointerDown = useCallback(
     (e) => {
       if (e.target.closest('button')) return
       if (e.button !== 0) return
-
-      // Dragging a snapped window restores it first then allow re-drag
-      if (isSnapped) {
-        restoreWindow(windowId)
-        return
-      }
-      if (isMaximized) return
-
       e.preventDefault()
 
-      dragStartRef.current = {
-        mouseX: e.clientX,
-        mouseY: e.clientY,
-        winX: position.x,
-        winY: position.y,
+      // A maximised or snapped window is restored only once the pointer has
+      // moved, so a plain click, or a double-click that toggles maximise, leaves
+      // it alone. The restored window lands with the pointer at the same
+      // proportional x along the title bar, and the drag carries on from there.
+      const startX = e.clientX
+      const startY = e.clientY
+      const frameRect = frameRef.current?.getBoundingClientRect()
+      const grabRatio =
+        frameRect && frameRect.width > 0 ? (e.clientX - frameRect.left) / frameRect.width : 0.5
+      const restored = restoredRect ?? {
+        x: position.x,
+        y: position.y,
+        width: size.width,
+        height: size.height,
       }
-      setDragDelta({ x: 0, y: 0 })
-      document.body.style.cursor = 'grabbing'
-      document.body.style.userSelect = 'none'
+      let started = !isLocked
 
-      const onMove = (moveEvent) => {
-        // Stash latest pointer; process at most once per animation frame.
-        latestPointerRef.current = { clientX: moveEvent.clientX, clientY: moveEvent.clientY }
-        if (rafRef.current !== null) return
-        rafRef.current = requestAnimationFrame(() => {
-          rafRef.current = null
-          const ptr = latestPointerRef.current
-          if (!ptr || !dragStartRef.current) return
-          const dx = ptr.clientX - dragStartRef.current.mouseX
-          const dy = ptr.clientY - dragStartRef.current.mouseY
-          setDragDelta({ x: dx, y: dy })
-          // Snap zone hints
-          const rawX = dragStartRef.current.winX + dx
-          const rawY = dragStartRef.current.winY + dy
-          const sw = sizeRef.current.width
-          if (rawX <= SNAP_THRESHOLD) onSnapHint?.('left')
-          else if (rawX + sw >= window.innerWidth - SNAP_THRESHOLD) onSnapHint?.('right')
-          else if (rawY <= SNAP_THRESHOLD) onSnapHint?.('top')
-          else onSnapHint?.(null)
-        })
+      const beginDrag = (origin) => {
+        dragStartRef.current = origin
+        setDragDelta({ x: 0, y: 0 })
+        document.body.style.cursor = 'grabbing'
+        document.body.style.userSelect = 'none'
+        started = true
+      }
+
+      if (!isLocked) {
+        beginDrag({ mouseX: startX, mouseY: startY, winX: position.x, winY: position.y })
       }
 
       const cleanup = () => {
@@ -258,18 +414,54 @@ function Window({
         document.removeEventListener('keydown', onKeyDown)
       }
 
+      const onMove = (moveEvent) => {
+        if (!started) {
+          const dx = moveEvent.clientX - startX
+          const dy = moveEvent.clientY - startY
+          if (Math.hypot(dx, dy) < RESTORE_DRAG_PX) return
+          // Restore under the pointer, then carry on dragging from there.
+          const nextX = moveEvent.clientX - grabRatio * restored.width
+          const nextY = Math.max(0, moveEvent.clientY - TITLEBAR_HEIGHT / 2)
+          restoreWindow(windowId)
+          moveWindow(windowId, { x: nextX, y: nextY })
+          beginDrag({
+            mouseX: moveEvent.clientX,
+            mouseY: moveEvent.clientY,
+            winX: nextX,
+            winY: nextY,
+          })
+        }
+        // Stash latest pointer; process at most once per animation frame.
+        latestPointerRef.current = { clientX: moveEvent.clientX, clientY: moveEvent.clientY }
+        if (rafRef.current !== null) return
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = null
+          const ptr = latestPointerRef.current
+          if (!ptr || !dragStartRef.current) return
+          const dx = ptr.clientX - dragStartRef.current.mouseX
+          const dy = ptr.clientY - dragStartRef.current.mouseY
+          setDragDelta({ x: dx, y: dy })
+          onSnapHint?.(snapZoneAt(ptr.clientX, ptr.clientY))
+        })
+      }
+
       const onUp = (upEvent) => {
+        // A click on a maximised or snapped window never started a drag.
+        if (!started || !dragStartRef.current) {
+          cleanup()
+          return
+        }
         const dx = upEvent.clientX - dragStartRef.current.mouseX
         const dy = upEvent.clientY - dragStartRef.current.mouseY
         const finalX = dragStartRef.current.winX + dx
         const finalY = dragStartRef.current.winY + dy
-        const sw = sizeRef.current.width
+        const zone = snapZoneAt(upEvent.clientX, upEvent.clientY)
 
         // Batch: reset delta + commit position → single React flush, no flash.
         setDragDelta(null)
-        if (finalX <= SNAP_THRESHOLD) snapWindow(windowId, 'left')
-        else if (finalX + sw >= window.innerWidth - SNAP_THRESHOLD) snapWindow(windowId, 'right')
-        else if (finalY <= SNAP_THRESHOLD) maximizeWindow(windowId)
+        if (zone === 'left') snapWindow(windowId, 'left')
+        else if (zone === 'right') snapWindow(windowId, 'right')
+        else if (zone === 'top') maximizeWindow(windowId)
         else moveWindow(windowId, { x: finalX, y: finalY })
 
         onSnapHint?.(null)
@@ -295,8 +487,9 @@ function Window({
     [
       windowId,
       position,
-      isMaximized,
-      isSnapped,
+      size,
+      restoredRect,
+      isLocked,
       onSnapHint,
       moveWindow,
       snapWindow,
@@ -306,30 +499,39 @@ function Window({
   )
 
   // ── Mobile layout ─────────────────────────────────────────
+  // Phones get a full-screen maximised Win7 window above the taskbar: same
+  // frame and title bar, no drag/resize, and a 44px-tall close target.
   if (isMobile) {
     return (
       <div
-        className="fixed inset-0 z-[100] flex flex-col bg-background"
+        ref={frameRef}
+        tabIndex={-1}
+        className="window glass nx-window active is-maximized fixed inset-x-0 top-0 z-[100]"
         data-testid="mobile-window"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: TASKBAR_HEIGHT + 8 }}
+        role="region"
+        aria-roledescription="window"
+        aria-label={title}
+        style={{
+          bottom: `calc(${TASKBAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+        }}
       >
-        <div className="glass-panel flex h-11 items-center justify-between border-b border-cyan-500/10 px-3">
-          <div className="flex items-center gap-2">
-            {AppIcon && <AppIcon size={14} className="text-primary" />}
-            <span className="heading-ui text-[12px] font-semibold text-white/80 truncate">
-              {title}
-            </span>
+        <div className="title-bar" style={{ minHeight: 44 }}>
+          <div className="title-bar-text">
+            <AppIcon appId={appId} size={16} />
+            <span>{title}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => closeWindow(windowId)}
-            aria-label="Close window"
-            className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-red-500/20 hover:text-red-400"
-          >
-            <X size={18} />
-          </button>
+          <div className="title-bar-controls">
+            <button
+              type="button"
+              className="is-close"
+              onClick={() => closeWindow(windowId)}
+              aria-label="Close window"
+              style={{ minHeight: 44, minWidth: 56 }}
+            />
+          </div>
         </div>
-        <div className="flex-1 overflow-hidden" style={{ containerType: 'inline-size' }}>
+        <div className="window-body" style={{ containerType: 'inline-size' }}>
           {children}
         </div>
       </div>
@@ -343,53 +545,99 @@ function Window({
   const effectiveX = dragDelta !== null ? position.x + dragDelta.x : position.x
   const effectiveY = dragDelta !== null ? position.y + dragDelta.y : position.y
 
-  const displayStyle = isSnapped
+  const displayStyle = keyRect
     ? {
         position: 'absolute',
-        left: isSnappedLeft ? '0px' : '50%',
-        top: '0px',
-        width: '50%',
-        height: '100%',
+        left: keyRect.x,
+        top: keyRect.y,
+        width: keyRect.width,
+        height: keyRect.height,
         zIndex,
       }
-    : isMaximized
-      ? { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', zIndex }
-      : {
+    : isSnapped
+      ? {
           position: 'absolute',
-          left: effectiveX,
-          top: effectiveY,
-          width: size.width,
-          height: size.height,
+          left: isSnappedLeft ? '0px' : '50%',
+          top: '0px',
+          width: '50%',
+          height: '100%',
           zIndex,
         }
+      : isMaximized
+        ? { position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', zIndex }
+        : {
+            position: 'absolute',
+            left: effectiveX,
+            top: effectiveY,
+            width: size.width,
+            height: size.height,
+            zIndex,
+          }
 
-  // CSS transition for position/size — disabled during active drag so movement
-  // stays instant. When drag ends and the store commits (or clamping adjusts
-  // the position), the transition produces a short ease into the final rect.
+  // CSS transition for position/size — disabled during active drag and keyboard
+  // move/size so movement stays instant. When the store commits (or clamping
+  // adjusts the position), the transition produces a short ease into the final rect.
   // Snap/maximize/restore changes animate automatically because dragDelta is
   // null for those (they're triggered by buttons or keyboard, not pointer drag).
   const positionTransition =
-    dragDelta !== null
+    dragDelta !== null || keyRect !== null
       ? undefined
       : 'left 240ms cubic-bezier(0.16,1,0.3,1), top 240ms cubic-bezier(0.16,1,0.3,1), width 240ms cubic-bezier(0.16,1,0.3,1), height 240ms cubic-bezier(0.16,1,0.3,1)'
 
+  // Win7 system menu entries. Move and Size are unavailable while the window is
+  // maximised or snapped, as on Windows 7.
+  const systemMenuItems = [
+    { id: 'restore', label: 'Restore', disabled: !isLocked, action: () => restoreWindow(windowId) },
+    { id: 'move', label: 'Move', disabled: isLocked, action: () => startKeyMode('move') },
+    { id: 'size', label: 'Size', disabled: isLocked, action: () => startKeyMode('size') },
+    { id: 'minimize', label: 'Minimize', action: () => minimizeWindow(windowId) },
+    {
+      id: 'maximize',
+      label: 'Maximize',
+      disabled: isMaximized,
+      divider: true,
+      action: () => maximizeWindow(windowId),
+    },
+    {
+      id: 'close',
+      label: 'Close',
+      shortcut: 'Alt+F4',
+      action: () => closeWindow(windowId),
+    },
+  ]
+
+  const handleSystemMenuSelect = (item) => {
+    setMenuOpen(false)
+    item.action()
+    // Keep keyboard focus in the window (Move/Size and Restore keep working).
+    frameRef.current?.focus({ preventScroll: true })
+  }
+
+  const keyModeHint =
+    keyMode === 'move'
+      ? 'Move mode. Use the arrow keys to move the window, Enter to place it or Escape to cancel.'
+      : keyMode === 'size'
+        ? 'Size mode. Use the arrow keys to resize the window, Enter to confirm or Escape to cancel.'
+        : ''
+
   return (
     <Motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
+      ref={frameRef}
+      tabIndex={-1}
+      initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.12 } }}
-      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12 } }}
+      transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
       style={{ ...displayStyle, transition: positionTransition }}
       onPointerDownCapture={() => focusWindow(windowId)}
+      onBlur={handleFrameBlur}
       onContextMenu={(e) => e.stopPropagation()}
-      className={`flex flex-col glass-panel shadow-2xl ${isFocused ? 'window-active' : 'window-inactive'} ${isMaximized ? 'rounded-none border-none' : 'rounded-lg'}`}
+      role="region"
+      aria-roledescription="window"
+      aria-label={title}
+      className={`window glass nx-window ${isFocused ? 'active' : ''} ${isMaximized ? 'is-maximized' : ''}`}
     >
-      {/* Focused border glow — inner overlay so resize handles aren't clipped */}
-      <div
-        className={`pointer-events-none absolute inset-0 rounded-lg border transition-all duration-200 ${isFocused ? 'border-cyan-500/20 shadow-[0_0_20px_rgba(0,255,255,0.1)]' : 'border-white/[0.06]'}`}
-      />
-
-      {/* Title bar */}
+      {/* Title bar — 7.css .title-bar with Aero glass streaks */}
       <div
         data-testid="titlebar"
         onPointerDown={handleTitleBarPointerDown}
@@ -397,54 +645,71 @@ function Window({
           if (e.target.closest('button')) return
           toggleMaximize()
         }}
-        className={`glass-panel flex h-9 shrink-0 items-center justify-between border-b rounded-t-lg px-3 select-none ${dragDelta !== null ? 'cursor-grabbing' : isLocked ? 'cursor-default' : 'cursor-grab'} ${isFocused ? 'border-b-cyan-500/15' : 'border-b-white/[0.04] bg-white/[0.01]'}`}
-        style={{
-          borderImage: isFocused
-            ? 'linear-gradient(to right, rgba(0,255,255,0.3), transparent 40%, transparent 60%, rgba(243,230,0,0.2)) 1'
-            : undefined,
-        }}
+        className="title-bar"
       >
-        <div className="flex items-center gap-2 overflow-hidden">
-          {AppIcon && <AppIcon size={12} className="shrink-0 text-primary" />}
-          <span
-            className={`heading-ui truncate text-[11px] font-semibold ${isFocused ? 'text-white/80' : 'text-white/50'}`}
+        <div className="title-bar-text">
+          {/* Title icon opens the window system menu (click or Alt+Space); double-click closes. */}
+          <button
+            ref={menuAnchorRef}
+            type="button"
+            aria-label="Window menu"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            title="Window menu"
+            onClick={() => setMenuOpen((open) => !open)}
+            onDoubleClick={() => closeWindow(windowId)}
+            className="flex h-6 w-6 shrink-0 cursor-default items-center justify-center rounded-[2px] p-0"
           >
-            {title}
-          </span>
+            <AppIcon appId={appId} size={16} />
+          </button>
+          <span>{title}</span>
         </div>
-        <div className="flex items-center gap-0.5">
+        <div className="title-bar-controls">
           <button
             type="button"
+            className="is-minimize"
             onClick={() => minimizeWindow(windowId)}
             aria-label="Minimize window"
-            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-cyan-500/15 hover:text-cyan-400"
-          >
-            <Minus size={10} />
-          </button>
+            title="Minimize"
+            style={{ minHeight: 24 }}
+          />
           <button
             type="button"
+            className={isMaximized ? 'is-restore' : 'is-maximize'}
             onClick={toggleMaximize}
             aria-label={isMaximized ? 'Restore window' : 'Maximize window'}
-            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-cyan-500/15 hover:text-cyan-400"
-          >
-            <Square size={10} />
-          </button>
+            title={isMaximized ? 'Restore Down' : 'Maximize'}
+            style={{ minHeight: 24 }}
+          />
           <button
             type="button"
+            className="is-close"
             onClick={() => closeWindow(windowId)}
             aria-label="Close window"
-            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-400"
-          >
-            <X size={10} />
-          </button>
+            title="Close"
+            style={{ minHeight: 24 }}
+          />
         </div>
       </div>
 
-      {/* Content area — rounded-b-lg so bottom corners stay clipped */}
-      <div
-        className="flex-1 overflow-hidden rounded-b-lg bg-background"
-        style={{ containerType: 'inline-size' }}
-      >
+      {menuOpen && (
+        <SystemMenu
+          items={systemMenuItems}
+          onSelect={handleSystemMenuSelect}
+          onClose={closeMenu}
+          anchorRef={menuAnchorRef}
+          style={{ position: 'absolute', left: 4, top: TITLEBAR_HEIGHT + 2, zIndex: 20 }}
+        />
+      )}
+
+      {keyMode && (
+        <div role="status" className="sr-only">
+          {keyModeHint}
+        </div>
+      )}
+
+      {/* Client area — white, like every Win7 application window */}
+      <div className="window-body" style={{ containerType: 'inline-size' }}>
         {children}
       </div>
 

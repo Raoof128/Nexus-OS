@@ -1,21 +1,14 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, FolderOpen, Loader2, MessageCircle, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, FolderOpen, MessageCircle, Plus, Trash2 } from 'lucide-react'
 import { MEDIA_CONFIG, MEDIA_TYPES, TYPE_ICONS } from '../../../lib/mediaConfig'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
-
-const MEDIA_CATEGORY_COLORS = {
-  book: 'text-primary',
-  movie: 'text-destructive',
-  anime: 'text-secondary',
-  job: 'text-primary',
-}
 
 const CATEGORY_CONFIG = Object.fromEntries([
   ...MEDIA_TYPES.map((type) => [
     MEDIA_CONFIG[type].label.toLowerCase(),
-    { label: MEDIA_CONFIG[type].label, icon: TYPE_ICONS[type], color: MEDIA_CATEGORY_COLORS[type] },
+    { label: MEDIA_CONFIG[type].label, icon: TYPE_ICONS[type] },
   ]),
-  ['general', { label: 'General', icon: FolderOpen, color: 'text-neutral-400' }],
+  ['general', { label: 'General', icon: FolderOpen }],
 ])
 
 const CATEGORIES = [...MEDIA_TYPES.map((type) => MEDIA_CONFIG[type].label.toLowerCase()), 'general']
@@ -50,39 +43,30 @@ export default function ChatSidebar({
   }
 
   return (
-    <div className="flex h-full w-full flex-col border-r border-white/[0.04] glass-panel">
+    <div className="flex h-full w-full flex-col w7-navpane">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/[0.04] p-4">
-        <div className="flex items-center gap-2.5">
-          <div
-            className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/15 ring-1 ring-primary/20"
-            aria-hidden="true"
-          >
-            <MessageCircle size={12} className="text-primary" />
-          </div>
-          <span className="heading-display text-xs font-bold text-white">Nexus AI</span>
-        </div>
+      <div className="flex items-center gap-2 border-b border-border p-2">
         <button
           type="button"
           onClick={() => setShowCreate(!showCreate)}
-          className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-          title="New chat"
-          aria-label="New chat"
+          className="w7-btn"
+          aria-expanded={showCreate}
         >
-          <Plus size={14} />
+          <Plus size={14} aria-hidden="true" />
+          New conversation
         </button>
       </div>
 
       {/* Create form */}
       {showCreate && (
-        <form onSubmit={handleCreate} className="border-b border-white/[0.04] p-3 space-y-2">
+        <form onSubmit={handleCreate} className="space-y-2 border-b border-border p-2">
           <input
             type="text"
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="Session name..."
-            aria-label="Session title"
-            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 heading-ui text-xs text-white placeholder:text-muted-foreground/30 focus:border-primary/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            placeholder="Conversation title"
+            aria-label="Conversation title"
+            className="w-full"
             maxLength={200}
             autoFocus
           />
@@ -90,92 +74,72 @@ export default function ChatSidebar({
             <select
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
-              aria-label="Session category"
-              className="w-full appearance-none rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 pr-8 heading-ui text-xs text-white focus:border-primary/30 focus:outline-none"
+              aria-label="Conversation category"
+              className="w-full"
             >
               {CATEGORIES.map((cat) => (
-                <option key={cat} value={cat} className="bg-neutral-900 text-white">
+                <option key={cat} value={cat}>
                   {CATEGORY_CONFIG[cat].label}
                 </option>
               ))}
             </select>
-            <ChevronDown
-              size={12}
-              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
           </div>
-          <button
-            type="submit"
-            disabled={isCreating}
-            className="heading-ui w-full rounded-lg bg-primary/15 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/25 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black flex items-center justify-center gap-2"
-          >
-            {isCreating && <Loader2 size={12} className="animate-spin" />}
-            {isCreating ? 'Initializing...' : 'Initialize Session'}
+          <button type="submit" disabled={isCreating} className="w7-btn default w-full">
+            {isCreating ? 'Creating…' : 'Create'}
           </button>
         </form>
       )}
 
       {/* Session list */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-4">
+      <div className="flex-1 space-y-3 overflow-y-auto p-2">
         {CATEGORIES.map((cat) => {
           const items = grouped[cat]
           if (!items || items.length === 0) return null
-          const { label, icon: Icon, color } = CATEGORY_CONFIG[cat]
+          const { label, icon: Icon } = CATEGORY_CONFIG[cat]
           return (
             <div key={cat}>
-              <div
-                className={`mb-1.5 flex items-center gap-1.5 px-2 heading-ui text-[10px] tracking-wider ${color} opacity-80`}
-              >
-                <Icon size={10} aria-hidden="true" />
+              <div className="mb-1 flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
+                <Icon size={12} aria-hidden="true" />
                 {label}
               </div>
               <div className="space-y-0.5">
-                {items.map((session) => (
-                  <div
-                    key={session.id}
-                    className={`group relative flex items-center rounded-lg transition-all ${
-                      activeSessionId === session.id
-                        ? 'bg-primary/10 ring-1 ring-primary/15'
-                        : 'hover:bg-white/[0.03]'
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => onSelect(session.id)}
-                      className={`flex-1 truncate px-3 py-2.5 text-left heading-ui text-[11px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-                        activeSessionId === session.id
-                          ? 'text-primary'
-                          : 'text-muted-foreground hover:text-white'
-                      }`}
-                    >
-                      {session.title}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleteSessionId(session.id)}
-                      className="mr-1 shrink-0 rounded p-1.5 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                      aria-label={`Delete ${session.title}`}
-                    >
-                      <Trash2 size={10} />
-                    </button>
-                  </div>
-                ))}
+                {items.map((session) => {
+                  const isActive = activeSessionId === session.id
+                  return (
+                    <div key={session.id} className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => onSelect(session.id)}
+                        aria-current={isActive ? 'true' : undefined}
+                        className="w7-item min-w-0 flex-1 truncate px-2 py-1 text-left text-[12px]"
+                      >
+                        {session.title}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteSessionId(session.id)}
+                        className="w7-toolbtn w7-toolbtn--danger shrink-0 text-muted-foreground"
+                        aria-label={`Delete ${session.title}`}
+                        title="Delete conversation"
+                      >
+                        <Trash2 size={12} aria-hidden="true" />
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )
         })}
 
         {sessions.length === 0 && (
-          <div className="flex flex-col items-center gap-3 py-10">
-            <MessageCircle size={24} className="text-muted-foreground/40" />
-            <p className="heading-ui text-[10px] text-muted-foreground/50">No sessions</p>
-            <button
-              type="button"
-              onClick={() => setShowCreate(true)}
-              className="mt-3 text-xs text-primary hover:text-primary/80"
-            >
-              Create your first session
+          <div className="flex flex-col items-center gap-3 px-3 py-10 text-center">
+            <MessageCircle size={24} className="text-[#3d5a80]" aria-hidden="true" />
+            <p className="text-[12px] text-muted-foreground">
+              No conversations yet. Start one to ask the assistant anything.
+            </p>
+            <button type="button" onClick={() => setShowCreate(true)} className="w7-btn">
+              New conversation
             </button>
           </div>
         )}
@@ -183,8 +147,8 @@ export default function ChatSidebar({
 
       <ConfirmDialog
         open={deleteSessionId !== null}
-        title="Delete Session"
-        message="This will permanently delete this chat session."
+        title="Delete conversation"
+        message="This will permanently delete this conversation."
         onConfirm={() => {
           onDelete(deleteSessionId)
           setDeleteSessionId(null)

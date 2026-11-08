@@ -1,73 +1,37 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import DOMPurify from 'dompurify'
-import { Eye, Pencil } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Eye } from 'lucide-react'
+import NotesMenuBar from './Notes/NotesMenuBar'
+import { NotesAboutDialog, NotesFindDialog } from './Notes/NotesDialogs'
+import { renderMarkdown } from './Notes/markdown'
+import {
+  findInText,
+  formatDateTime,
+  insertAt,
+  readNotesPrefs,
+  writeNotesPrefs,
+} from './Notes/noteUtils'
 
 const SAVE_DEBOUNCE_MS = 500
-
-function escapeHtml(text) {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
-
-function renderMarkdown(text) {
-  if (!text) return ''
-  const escaped = escapeHtml(text)
-  // Build the HTML string via regex substitutions on the escaped input,
-  // then pass the result through DOMPurify before rendering.  DOMPurify acts
-  // as a second-pass safety net: any future regex change that accidentally
-  // reintroduces an executable element will be stripped before it reaches
-  // dangerouslySetInnerHTML.
-  const raw = escaped
-    // Code blocks (must come before inline code)
-    .replace(
-      /```([\s\S]*?)```/g,
-      '<pre class="my-2 rounded-lg bg-white/[0.03] p-3 font-mono text-[11px] text-white/70 overflow-x-auto border border-white/[0.06]"><code>$1</code></pre>',
-    )
-    // Inline code
-    .replace(
-      /`([^`]+)`/g,
-      '<code class="rounded bg-white/[0.06] px-1 py-0.5 font-mono text-[11px] text-primary/80">$1</code>',
-    )
-    // Headers
-    .replace(
-      /^### (.+)$/gm,
-      '<h3 class="heading-ui mt-3 mb-1 text-sm font-semibold text-white">$1</h3>',
-    )
-    .replace(
-      /^## (.+)$/gm,
-      '<h2 class="heading-display mt-4 mb-1 text-base font-bold text-primary">$1</h2>',
-    )
-    .replace(
-      /^# (.+)$/gm,
-      '<h1 class="heading-display mt-4 mb-2 text-lg font-bold text-primary">$1</h1>',
-    )
-    // Bold + Italic
-    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em class="text-white/80">$1</em>')
-    // Unordered lists
-    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc text-muted-foreground">$1</li>')
-    // Horizontal rule
-    .replace(/^---$/gm, '<hr class="my-3 border-white/[0.06]" />')
-    // Line breaks
-    .replace(/\n/g, '<br />')
-  // Sanitize with DOMPurify — strips any executable elements that may have
-  // slipped through the regex chain (e.g. event handlers, script tags).
-  return DOMPurify.sanitize(raw, {
-    ALLOWED_TAGS: ['h1', 'h2', 'h3', 'strong', 'em', 'code', 'pre', 'li', 'hr', 'br'],
-    ALLOWED_ATTR: ['class'],
-  })
-}
 
 export default function NotesApp({ windowId }) {
   const storageKey = `nexus-os:note-${windowId}`
   const [content, setContent] = useState('')
+  // View → Edit / Markdown preview. Preview is an extra mode, not Notepad's default.
   const [preview, setPreview] = useState(false)
+  // Format → Word wrap / Monospace font.
+  const [prefs, setPrefs] = useState(() => readNotesPrefs())
+  // 'saved' | 'pending' | 'error'
+  const [saveState, setSaveState] = useState('saved')
+  const [findOpen, setFindOpen] = useState(false)
+  const [findQuery, setFindQuery] = useState('')
+  const [findMessage, setFindMessage] = useState('')
+  const [aboutOpen, setAboutOpen] = useState(false)
+
+  const textareaRef = useRef(null)
   const saveTimeout = useRef(null)
+  const pendingText = useRef(null)
+  // Where the caret should land after Time/Date is inserted.
+  const pendingCaret = useRef(null)
 
   // Load on mount
   useEffect(() => {
@@ -84,95 +48,323 @@ export default function NotesApp({ windowId }) {
     })
   }, [storageKey])
 
-  // Clear any pending debounce timer on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeout.current) clearTimeout(saveTimeout.current)
-    }
-  }, [])
-
-  // Debounced save
-  const saveToStorage = useCallback(
+  const persist = useCallback(
     (text) => {
-      if (saveTimeout.current) clearTimeout(saveTimeout.current)
-      saveTimeout.current = setTimeout(() => {
-        try {
-          localStorage.setItem(storageKey, JSON.stringify({ content: text }))
-        } catch {
-          // Storage full
-        }
-      }, SAVE_DEBOUNCE_MS)
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({ content: text }))
+        return true
+      } catch {
+        // Storage full or unavailable
+        return false
+      }
     },
     [storageKey],
   )
 
-  const handleChange = (e) => {
-    const val = e.target.value
-    setContent(val)
-    saveToStorage(val)
+  // A typed change is saved after a short pause. Leaving the note saves at once.
+  const scheduleSave = useCallback(
+    (text) => {
+      pendingText.current = text
+      setSaveState('pending')
+      if (saveTimeout.current) clearTimeout(saveTimeout.current)
+      saveTimeout.current = setTimeout(() => {
+        saveTimeout.current = null
+        const latest = pendingText.current
+        pendingText.current = null
+        setSaveState(persist(latest) ? 'saved' : 'error')
+      }, SAVE_DEBOUNCE_MS)
+    },
+    [persist],
+  )
+
+  const saveNow = () => {
+    if (saveTimeout.current) clearTimeout(saveTimeout.current)
+    saveTimeout.current = null
+    pendingText.current = null
+    setSaveState(persist(content) ? 'saved' : 'error')
+  }
+
+  // Clear the timer on unmount, saving any change still waiting for it.
+  useEffect(() => {
+    return () => {
+      if (saveTimeout.current) clearTimeout(saveTimeout.current)
+      if (pendingText.current !== null) persist(pendingText.current)
+    }
+  }, [persist])
+
+  // Put the caret after an inserted Time/Date stamp, once the text has changed.
+  useLayoutEffect(() => {
+    const ta = textareaRef.current
+    if (pendingCaret.current === null || !ta) return
+    ta.setSelectionRange(pendingCaret.current, pendingCaret.current)
+    pendingCaret.current = null
+  }, [content])
+
+  const applyContent = (text) => {
+    setContent(text)
+    scheduleSave(text)
+  }
+
+  const handleChange = (e) => applyContent(e.target.value)
+
+  const focusEditor = () => {
+    if (!preview) textareaRef.current?.focus()
+  }
+
+  const insertDateTime = () => {
+    const ta = textareaRef.current
+    if (!ta) return
+    const start = ta.selectionStart ?? content.length
+    const end = ta.selectionEnd ?? start
+    const stamp = formatDateTime(new Date())
+    pendingCaret.current = start + stamp.length
+    applyContent(insertAt(content, start, end, stamp))
+  }
+
+  const openFind = () => {
+    if (preview) return
+    setFindMessage('')
+    setFindOpen(true)
+  }
+
+  const findNext = (query) => {
+    setFindQuery(query)
+    const ta = textareaRef.current
+    if (!ta) return
+    const from = ta.selectionEnd ?? 0
+    const index = findInText(content, query, from)
+    if (index === -1) {
+      setFindMessage(`Cannot find "${query}"`)
+      return
+    }
+    setFindMessage('')
+    // Selecting text needs the note focused; hand focus back to the dialog so
+    // Enter keeps working for the next match.
+    ta.focus()
+    ta.setSelectionRange(index, index + query.length)
+    document.getElementById('notes-find-input')?.focus()
+  }
+
+  const closeFind = () => {
+    setFindOpen(false)
+    focusEditor()
+  }
+
+  const togglePref = (key) => {
+    const next = { ...prefs, [key]: !prefs[key] }
+    setPrefs(next)
+    writeNotesPrefs(next)
+  }
+
+  const handleEditorKeyDown = (e) => {
+    const withCtrl = e.ctrlKey || e.metaKey
+    if (e.key === 'F5') {
+      // Stop the browser reloading the whole desktop.
+      e.preventDefault()
+      insertDateTime()
+    } else if (withCtrl && !e.altKey && e.key.toLowerCase() === 'f') {
+      e.preventDefault()
+      openFind()
+    } else if (withCtrl && !e.altKey && e.key.toLowerCase() === 's') {
+      e.preventDefault()
+      saveNow()
+    }
   }
 
   const charCount = content.length
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0
 
+  const editing = !preview
+  const menus = [
+    {
+      id: 'file',
+      label: 'File',
+      items: [
+        {
+          id: 'save',
+          label: 'Save',
+          shortcut: 'Ctrl+S',
+          onSelect: () => {
+            saveNow()
+            focusEditor()
+          },
+        },
+      ],
+    },
+    {
+      id: 'edit',
+      label: 'Edit',
+      items: [
+        {
+          id: 'undo',
+          label: 'Undo',
+          shortcut: 'Ctrl+Z',
+          disabled: !editing,
+          onSelect: () => {
+            focusEditor()
+            document.execCommand('undo')
+          },
+        },
+        {
+          id: 'cut',
+          label: 'Cut',
+          shortcut: 'Ctrl+X',
+          disabled: !editing,
+          divider: true,
+          onSelect: () => {
+            focusEditor()
+            document.execCommand('cut')
+          },
+        },
+        {
+          id: 'copy',
+          label: 'Copy',
+          shortcut: 'Ctrl+C',
+          disabled: !editing,
+          onSelect: () => {
+            focusEditor()
+            document.execCommand('copy')
+          },
+        },
+        {
+          id: 'select-all',
+          label: 'Select all',
+          shortcut: 'Ctrl+A',
+          disabled: !editing,
+          divider: true,
+          onSelect: () => {
+            focusEditor()
+            textareaRef.current?.select()
+          },
+        },
+        {
+          id: 'time-date',
+          label: 'Time/Date',
+          shortcut: 'F5',
+          disabled: !editing,
+          onSelect: () => {
+            focusEditor()
+            insertDateTime()
+          },
+        },
+        {
+          id: 'find',
+          label: 'Find…',
+          shortcut: 'Ctrl+F',
+          disabled: !editing,
+          divider: true,
+          onSelect: openFind,
+        },
+      ],
+    },
+    {
+      id: 'format',
+      label: 'Format',
+      items: [
+        {
+          id: 'word-wrap',
+          label: 'Word wrap',
+          checked: prefs.wordWrap,
+          onSelect: () => togglePref('wordWrap'),
+        },
+        {
+          id: 'monospace',
+          label: 'Monospace font',
+          checked: prefs.monospace,
+          onSelect: () => togglePref('monospace'),
+        },
+      ],
+    },
+    {
+      id: 'view',
+      label: 'View',
+      items: [
+        {
+          id: 'view-edit',
+          label: 'Edit',
+          checked: editing,
+          onSelect: () => {
+            setPreview(false)
+            requestAnimationFrame(() => textareaRef.current?.focus())
+          },
+        },
+        {
+          id: 'view-preview',
+          label: 'Markdown preview',
+          checked: preview,
+          onSelect: () => setPreview(true),
+        },
+      ],
+    },
+    {
+      id: 'help',
+      label: 'Help',
+      items: [{ id: 'about', label: 'About Notes…', onSelect: () => setAboutOpen(true) }],
+    },
+  ]
+
+  const saveLabel =
+    saveState === 'pending'
+      ? 'Saving…'
+      : saveState === 'error'
+        ? 'Couldn’t save. Storage is full.'
+        : 'Saved'
+
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex shrink-0 items-center justify-between border-b border-white/[0.04] bg-black/20 px-3 py-1.5">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setPreview(false)}
-            aria-pressed={!preview}
-            className={`flex items-center gap-1 rounded-md px-2 py-1 font-mono text-[10px] transition-all ${
-              !preview ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-white'
-            }`}
-          >
-            <Pencil size={10} />
-            Edit
-          </button>
-          <button
-            type="button"
-            onClick={() => setPreview(true)}
-            aria-pressed={preview}
-            className={`flex items-center gap-1 rounded-md px-2 py-1 font-mono text-[10px] transition-all ${
-              preview ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-white'
-            }`}
-          >
-            <Eye size={10} />
-            Preview
-          </button>
-        </div>
-        <span className="font-mono text-[9px] text-muted-foreground/50">
-          {wordCount}w · {charCount}c
-        </span>
-      </div>
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-white">
+      <NotesMenuBar menus={menus} />
 
       {/* Content */}
       {preview ? (
         content.trim() ? (
           <div
-            className="flex-1 overflow-y-auto custom-scrollbar p-4 text-xs leading-relaxed text-muted-foreground"
+            className="flex-1 overflow-y-auto bg-white p-3 text-[13px] leading-relaxed text-foreground"
             dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
           />
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center">
-            <Eye size={24} className="text-muted-foreground/30" />
-            <p className="font-mono text-[10px] text-muted-foreground/50">
-              Nothing to preview yet — switch to Edit and start writing.
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 bg-white p-4 text-center">
+            <Eye size={24} className="text-muted-foreground" aria-hidden="true" />
+            <p className="text-[12px] text-muted-foreground">
+              Nothing to preview yet. Choose View, then Edit, to start writing.
             </p>
           </div>
         )
       ) : (
         <textarea
+          ref={textareaRef}
           value={content}
           onChange={handleChange}
-          placeholder="// start typing..."
+          onKeyDown={handleEditorKeyDown}
+          placeholder="Start typing…"
           aria-label="Note editor"
-          className="flex-1 resize-none bg-transparent p-4 font-mono text-xs leading-relaxed text-white/80 placeholder-muted-foreground/30 focus:outline-none custom-scrollbar"
+          wrap={prefs.wordWrap ? 'soft' : 'off'}
+          className={`flex-1 resize-none text-[13px] leading-relaxed ${
+            prefs.monospace ? 'font-mono' : ''
+          } ${prefs.wordWrap ? '' : 'whitespace-pre'}`}
           spellCheck={false}
         />
       )}
+
+      {/* Status bar */}
+      <div className="status-bar shrink-0">
+        <p className="status-bar-field">
+          {wordCount} {wordCount === 1 ? 'word' : 'words'} · {charCount}{' '}
+          {charCount === 1 ? 'character' : 'characters'}
+        </p>
+        <p className="status-bar-field" role="status" aria-live="polite">
+          {saveLabel}
+        </p>
+      </div>
+
+      {findOpen && (
+        <NotesFindDialog
+          initialQuery={findQuery}
+          message={findMessage}
+          onFindNext={findNext}
+          onClose={closeFind}
+        />
+      )}
+      {aboutOpen && <NotesAboutDialog onClose={() => setAboutOpen(false)} />}
     </div>
   )
 }

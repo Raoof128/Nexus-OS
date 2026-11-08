@@ -1,17 +1,25 @@
-"""Service helpers for backend integrations."""
+"""Service helpers for backend integrations.
+
+Covers the Supabase client factories, the Gemini-backed media recommender with
+its local fallback, and the in-process resilience primitives (circuit breaker
+and suggestion cache) that wrap the Gemini call.
+"""
 
 from __future__ import annotations
 
 import hashlib
 import json
 import logging
-from dataclasses import dataclass, field
+import re
+from dataclasses import dataclass
 from functools import lru_cache, partial
 from time import monotonic
+from typing import Any, Callable
 
 import tiktoken
-from anyio import to_thread
+from anyio import fail_after, to_thread
 from google import genai
+from google.genai import types as genai_types
 from postgrest import SyncPostgrestClient
 
 from supabase import Client, create_client
@@ -25,14 +33,22 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
 
 logger = logging.getLogger(__name__)
 
+# Gemini timeouts are expressed in milliseconds because that is the unit of
+# ``genai.types.HttpOptions.timeout``; ``get_timeout_in_seconds`` divides by 1000.
+GEMINI_TIMEOUT_MS_DEFAULT = 60_000
+# Number of suggestions kept from one Gemini reply (the prompt asks for three).
+MAX_SUGGESTIONS_PER_REPLY = 3
+# Rough character-to-token ratio used only when the BPE tokenizer is unavailable.
+_CHARS_PER_TOKEN_ESTIMATE = 4
 
-async def run_blocking(func, *args, **kwargs):
+
+async def run_blocking(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     """Run a blocking sync call in a worker thread.
 
     The controllers are ``async`` but the PostgREST and Gemini SDKs are
-    synchronous — calling them directly blocks the event loop and stalls every
-    other concurrent request. Offloading to anyio's thread pool keeps the loop
-    free so the backend stays responsive under load.
+    synchronous, so calling them directly would block the event loop and stall
+    every other concurrent request. Offloading to anyio's thread pool keeps the
+    loop free.
     """
 
     return await to_thread.run_sync(partial(func, *args, **kwargs))
@@ -41,28 +57,37 @@ async def run_blocking(func, *args, **kwargs):
 # ── AI suggestion cache ─────────────────────────────────────────────────
 # A recommendation is a pure function of (media_type, the user's library), so a
 # repeat request with an unchanged library can reuse the previous Gemini answer
-# instead of paying the multi-second call + quota again. Keying on a hash of the
-# library content makes the cache automatically per-user (different libraries →
-# different keys) without storing any identity.
+# instead of paying the multi-second call and quota again.
+#
+# The key is content-addressed: identical (media_type, pruned library, model,
+# prompt version) tuples share one entry, across any users with the same
+# library. The cache lives in process memory and is not an identity or privacy
+# boundary; it must never be relied on to isolate users.
 
 _SUGGESTION_CACHE_TTL_SECONDS = 600
-_suggestion_cache: dict[str, tuple[float, "SuggestionPayload"]] = {}
+# Bump when the prompt templates or reply-parsing rules change, so answers
+# produced under the old prompt are not served for the new one.
+PROMPT_VERSION = "2026-11-08"
+_suggestion_cache: dict[str, tuple[float, SuggestionPayload]] = {}
 
 
-def _suggestion_cache_key(media_type: str, pruned: list[dict]) -> str:
-    """Build a stable cache key from the media type + pruned library.
+def _suggestion_cache_key(media_type: str, pruned: list[dict], model: str) -> str:
+    """Build a stable cache key from the inputs that shape a Gemini answer.
 
-    SHA-256 (not the built-in ``hash()``) so the key is collision-resistant —
-    the cache is effectively per-user via library content, and a 64-bit hash
-    collision would hand one user another user's cached suggestions.
+    The key covers the media type, the pruned library, the Gemini model and the
+    prompt version. SHA-256 (not the built-in ``hash()``) keeps the key
+    collision-resistant, so two different inputs cannot be served each other's
+    cached answer.
     """
 
-    payload = json.dumps([pruned, media_type], sort_keys=True, default=str)
+    payload = json.dumps(
+        [pruned, media_type, model, PROMPT_VERSION], sort_keys=True, default=str
+    )
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
     return f"{media_type}:{digest}"
 
 
-def _get_cached_suggestion(key: str) -> "SuggestionPayload | None":
+def _get_cached_suggestion(key: str) -> SuggestionPayload | None:
     cached = _suggestion_cache.get(key)
     if cached is None:
         return None
@@ -73,8 +98,8 @@ def _get_cached_suggestion(key: str) -> "SuggestionPayload | None":
     return payload
 
 
-def _store_cached_suggestion(key: str, payload: "SuggestionPayload") -> None:
-    # Sweep expired entries on write — they are otherwise only removed when the
+def _store_cached_suggestion(key: str, payload: SuggestionPayload) -> None:
+    # Sweep expired entries on write. They are otherwise only removed when the
     # same key is read again, so stale per-library keys would accumulate.
     now = monotonic()
     expired = [
@@ -294,7 +319,13 @@ MASTER_PROMPTS = {
 
 @dataclass
 class GeminiCircuitBreaker:
-    """Small in-memory circuit breaker for unstable AI upstream calls."""
+    """Small in-memory circuit breaker for unstable AI upstream calls.
+
+    The breaker opens after ``failure_threshold`` consecutive failures and
+    admits requests again once ``reset_timeout_seconds`` has passed since it
+    opened. Failures recorded while it is already open do not move the reset
+    deadline, so a burst of in-flight failures cannot extend the outage.
+    """
 
     failure_threshold: int
     reset_timeout_seconds: int
@@ -316,7 +347,8 @@ class GeminiCircuitBreaker:
 
     def record_failure(self) -> None:
         self.consecutive_failures += 1
-        if self.consecutive_failures >= self.failure_threshold:
+        reached = self.consecutive_failures >= self.failure_threshold
+        if self.opened_at is None and reached:
             self.opened_at = monotonic()
 
 
@@ -333,14 +365,23 @@ class SuggestionItem:
 
 @dataclass(frozen=True)
 class SuggestionPayload:
-    """Structured multi-suggestion response used by controllers."""
+    """Multi-suggestion result used by controllers.
 
-    suggestions: list[SuggestionItem] = field(default_factory=list)
+    ``suggestions`` is a tuple because the payload is cached process-wide and
+    shared across requests; a mutable list would let one caller change what
+    every later caller receives.
+    """
+
+    suggestions: tuple[SuggestionItem, ...] = ()
     source: str = "local"
 
 
 def create_supabase_user_client(access_token: str) -> SyncPostgrestClient:
-    """Return a PostgREST client bound to the caller token so RLS is enforced."""
+    """Return a PostgREST client bound to the caller token so RLS is enforced.
+
+    The caller owns the returned client and its HTTP session; call
+    ``aclose()`` (or use it as a context manager) when the request is done.
+    """
 
     settings = get_settings()
     rest_url = f"{settings.supabase_url.rstrip('/')}/rest/v1"
@@ -354,18 +395,24 @@ def create_supabase_user_client(access_token: str) -> SyncPostgrestClient:
 
 
 def create_supabase_auth_client() -> Client:
-    """Return a fresh Supabase client for per-request auth operations."""
+    """Return a fresh Supabase client for per-request auth operations.
+
+    Deliberately not cached: the GoTrue session and its refresh timer live on
+    the instance, so one client must never serve two requests.
+    """
 
     settings = get_settings()
     return create_client(settings.supabase_url, settings.supabase_auth_key)
 
 
+@lru_cache(maxsize=1)
 def create_supabase_service_client() -> Client:
-    """Return a Supabase client with the service role key — bypasses RLS.
+    """Return a Supabase client with the service role key. Bypasses RLS.
 
     Use ONLY for backend operations that need to write to RLS-protected tables
     (e.g., the email poller writing to nexus_emails). Never expose this to
-    user-facing code paths.
+    user-facing code paths. The client carries no per-user session, so it is
+    cached and shared by the poller across cycles.
     """
 
     settings = get_settings()
@@ -378,19 +425,47 @@ def create_supabase_service_client() -> Client:
     return create_client(settings.supabase_url, key)
 
 
+def _gemini_timeout_ms() -> int:
+    """Return the per-request Gemini timeout in milliseconds.
+
+    Reads ``gemini_timeout_ms`` from settings when present and falls back to
+    ``GEMINI_TIMEOUT_MS_DEFAULT`` otherwise or when the value is not usable.
+    """
+
+    value = getattr(get_settings(), "gemini_timeout_ms", GEMINI_TIMEOUT_MS_DEFAULT)
+    try:
+        timeout_ms = int(value)
+    except (TypeError, ValueError):
+        return GEMINI_TIMEOUT_MS_DEFAULT
+    return timeout_ms if timeout_ms > 0 else GEMINI_TIMEOUT_MS_DEFAULT
+
+
 @lru_cache(maxsize=1)
 def get_genai_client() -> genai.Client | None:
-    """Return a Gemini client when configured."""
+    """Return a Gemini client when configured.
+
+    The timeout is set once here so every caller of the shared client (media
+    suggestions, chat, email) gets a bounded SDK call instead of an open-ended
+    httpx read.
+    """
 
     api_key = get_settings().gemini_api_key
     if not api_key:
         return None
-    return genai.Client(api_key=api_key)
+    return genai.Client(
+        api_key=api_key,
+        http_options=genai_types.HttpOptions(timeout=_gemini_timeout_ms()),
+    )
 
 
 @lru_cache(maxsize=1)
 def get_token_encoder() -> tiktoken.Encoding:
-    """Return a tokenizer for rough context-budget estimation."""
+    """Return the cl100k_base tokenizer used for context-budget estimation.
+
+    The first call may download the BPE file (tiktoken uses ``requests.get``
+    without a timeout). Callers that cannot afford that must handle a failure;
+    ``prune_media_context`` falls back to a character estimate.
+    """
 
     return tiktoken.get_encoding("cl100k_base")
 
@@ -406,10 +481,29 @@ def get_gemini_circuit_breaker() -> GeminiCircuitBreaker:
     )
 
 
-def prune_media_context(media_context: list[dict]) -> list[dict]:
-    """Trim media context to stay within a rough token budget."""
+def _estimate_tokens(text: str) -> int:
+    return max(1, len(text) // _CHARS_PER_TOKEN_ESTIMATE)
 
-    encoder = get_token_encoder()
+
+def prune_media_context(media_context: list[dict]) -> list[dict]:
+    """Trim media context to stay within a rough token budget.
+
+    Returns ``[]`` for an empty library. Callers must treat that as "no personal
+    signal" rather than substituting a placeholder title, which would otherwise
+    reach the model as if the user owned it.
+    """
+
+    if not media_context:
+        return []
+
+    try:
+        encoder: tiktoken.Encoding | None = get_token_encoder()
+    except Exception:
+        # No network or a corrupt cache must not fail the request; the budget
+        # is a rough estimate, so a character count is good enough.
+        logger.warning("Tokenizer unavailable, using character estimate", exc_info=True)
+        encoder = None
+
     budget = get_settings().gemini_context_token_budget
     pruned: list[dict] = []
     used_tokens = 0
@@ -427,15 +521,16 @@ def prune_media_context(media_context: list[dict]) -> list[dict]:
             "type": item.get("type") or "book",
             "creator": item.get("creator") or "Unknown",
         }
-        estimated = len(encoder.encode(str(compact)))
+        text = str(compact)
+        estimated = (
+            len(encoder.encode(text)) if encoder is not None else _estimate_tokens(text)
+        )
         if pruned and used_tokens + estimated > budget:
             break
         pruned.append(compact)
         used_tokens += estimated
 
-    return pruned or [
-        {"title": "Neuromancer", "genre": "Cyberpunk", "rating": 5, "type": "book"}
-    ]
+    return pruned
 
 
 def build_prompt(media_context: list[dict], media_type: str = "book") -> str:
@@ -444,6 +539,17 @@ def build_prompt(media_context: list[dict], media_type: str = "book") -> str:
     template = MASTER_PROMPTS.get(media_type, MASTER_PROMPTS["book"])
     context = serialize_media_context_for_llm(media_context)
     return template.format(context=context)
+
+
+def _genre_matches(genre_key: str, genre_text: str) -> bool:
+    """Return True when ``genre_key`` appears as a whole word in ``genre_text``.
+
+    Word boundaries stop the short key ``ai`` from matching ``Retail`` or
+    ``Maintenance`` while keeping hyphenated keys such as ``sci-fi`` intact.
+    """
+
+    pattern = rf"(?<![a-z0-9]){re.escape(genre_key)}(?![a-z0-9])"
+    return re.search(pattern, genre_text) is not None
 
 
 def build_local_suggestion(
@@ -462,32 +568,72 @@ def build_local_suggestion(
     top_genre = lowered_genres[0] if lowered_genres else ""
 
     for genre_key, (title, creator, genre, pitch) in fallbacks.items():
-        if genre_key != "_default" and genre_key in top_genre:
+        if genre_key != "_default" and _genre_matches(genre_key, top_genre):
             return SuggestionPayload(
-                suggestions=[
+                suggestions=(
                     SuggestionItem(
                         title=title,
                         creator=creator,
                         genre=genre,
                         pitch=f"Local fallback. {pitch}",
-                    )
-                ],
+                    ),
+                ),
                 source="local",
             )
 
     dt, dc, dg, dp = fallbacks["_default"]
     return SuggestionPayload(
-        suggestions=[
+        suggestions=(
             SuggestionItem(
                 title=dt, creator=dc, genre=dg, pitch=f"Local fallback. {dp}"
-            )
-        ],
+            ),
+        ),
         source="local",
     )
 
 
+def _as_str(value: object) -> str:
+    """Coerce one model-supplied field to a stripped string.
+
+    ``None``, booleans and containers become ``""`` rather than the literal
+    text ``"None"``, so a null field never reaches the response schema as a
+    non-string.
+    """
+
+    if value is None or isinstance(value, bool):
+        return ""
+    if isinstance(value, (int, float)):
+        return str(value).strip()
+    if isinstance(value, str):
+        return value.strip()
+    return ""
+
+
+def _item_from_dict(raw: dict) -> SuggestionItem | None:
+    """Build a SuggestionItem from one model object, or None if unusable."""
+
+    title_value = raw.get("title")
+    if not isinstance(title_value, str):
+        return None
+    title = title_value.strip()
+    if not title:
+        return None
+    return SuggestionItem(
+        title=title,
+        creator=_as_str(raw.get("creator")),
+        genre=_as_str(raw.get("genre")),
+        pitch=_as_str(raw.get("pitch")) or _as_str(raw.get("reasoning")),
+        year=_as_str(raw.get("year")),
+    )
+
+
 def parse_gemini_json_response(response_text: str) -> list[SuggestionItem]:
-    """Parse Gemini JSON array output into suggestion items."""
+    """Parse Gemini output into suggestion items.
+
+    Invalid entries are skipped before the per-reply cap is applied, so bad
+    objects do not use up the budget that valid ones need. Returns ``[]`` when
+    no usable suggestion is present; callers treat that as a failed parse.
+    """
 
     text = response_text.strip()
     if text.startswith("```"):
@@ -498,61 +644,97 @@ def parse_gemini_json_response(response_text: str) -> list[SuggestionItem]:
     except json.JSONDecodeError:
         return _parse_legacy_response(response_text)
 
-    if isinstance(data, list):
-        return [
-            SuggestionItem(
-                title=item.get("title", "Unknown"),
-                creator=item.get("creator", ""),
-                genre=item.get("genre", ""),
-                pitch=item.get("pitch", item.get("reasoning", "")),
-                year=str(item.get("year", "")),
-            )
-            for item in data[:3]
-            if isinstance(item, dict) and item.get("title")
-        ]
+    if not isinstance(data, list):
+        return _parse_legacy_response(response_text)
 
-    return _parse_legacy_response(response_text)
+    items: list[SuggestionItem] = []
+    for raw in data:
+        if not isinstance(raw, dict):
+            continue
+        item = _item_from_dict(raw)
+        if item is None:
+            continue
+        items.append(item)
+        if len(items) == MAX_SUGGESTIONS_PER_REPLY:
+            break
+    return items
 
 
 def _parse_legacy_response(response_text: str) -> list[SuggestionItem]:
-    """Fallback parser for non-JSON Gemini output."""
+    """Parse ``Title:`` / ``Reasoning:`` labelled output.
 
-    title = "Recommended title"
-    reasoning = response_text.strip()
+    Returns ``[]`` unless a ``Title:`` label with a value is present. Free-form
+    prose is never turned into a suggestion, since it would be cached and served
+    as if it were a real recommendation.
+    """
+
+    title = ""
+    reasoning = ""
     for line in response_text.splitlines():
         normalized = line.strip()
         if normalized.lower().startswith("title:"):
-            title = normalized.split(":", 1)[1].strip() or title
+            title = normalized.split(":", 1)[1].strip()
         if normalized.lower().startswith("reasoning:"):
-            reasoning = normalized.split(":", 1)[1].strip() or reasoning
+            reasoning = normalized.split(":", 1)[1].strip()
+    if not title:
+        return []
     return [SuggestionItem(title=title, pitch=reasoning)]
+
+
+async def _run_gemini_call(func: Callable[..., Any], /, **kwargs: Any) -> Any:
+    """Run a Gemini SDK call in a worker thread with a wall-clock cap.
+
+    The SDK timeout (``HttpOptions.timeout``) is the primary control: it makes
+    the blocked httpx call raise, which the caller records as a breaker failure.
+    This deadline is a backstop for slow streams that keep the per-read timeout
+    alive. ``abandon_on_cancel=True`` lets the request return on deadline; the
+    worker thread still ends on its own SDK timeout. Only Gemini calls use this,
+    because abandoning a database write would leave its outcome unknown.
+    """
+
+    deadline_seconds = _gemini_timeout_ms() / 1000
+    with fail_after(deadline_seconds):
+        return await to_thread.run_sync(
+            partial(func, **kwargs),
+            abandon_on_cancel=True,
+        )
 
 
 async def get_media_suggestion(
     media_context: list[dict],
     media_type: str = "book",
 ) -> SuggestionPayload:
-    """Create a resilient recommendation based on current user media."""
+    """Create a resilient recommendation based on current user media.
+
+    Order of checks: empty library (no Gemini call), Gemini client configured,
+    cache hit (served even while the breaker is open), breaker gate, upstream
+    call. Only a parsed, non-empty reply is marked as a breaker success and
+    cached.
+    """
+
+    pruned = await run_blocking(prune_media_context, media_context)
+    if not pruned:
+        return build_local_suggestion([], media_type)
 
     client = get_genai_client()
-    pruned = prune_media_context(media_context)
-    breaker = get_gemini_circuit_breaker()
-
     if client is None:
         return build_local_suggestion(pruned, media_type)
-    if not breaker.allows_requests():
-        logger.warning("Gemini circuit breaker open, returning local fallback")
-        return build_local_suggestion(pruned, media_type)
 
-    cache_key = _suggestion_cache_key(media_type, pruned)
+    model = get_settings().gemini_model
+    cache_key = _suggestion_cache_key(media_type, pruned, model)
     cached = _get_cached_suggestion(cache_key)
     if cached is not None:
         return cached
 
+    breaker = get_gemini_circuit_breaker()
+    if not breaker.allows_requests():
+        logger.warning("Gemini circuit breaker open, returning local fallback")
+        return build_local_suggestion(pruned, media_type)
+
     try:
-        response = await run_blocking(
+        response = await _run_gemini_call(
             client.models.generate_content,
-            model=get_settings().gemini_model,
+            model=model,
             contents=build_prompt(pruned, media_type),
         )
     except Exception:  # pragma: no cover - third-party failure path
@@ -565,11 +747,13 @@ async def get_media_suggestion(
         logger.warning("Gemini returned an empty recommendation payload")
         return build_local_suggestion(pruned, media_type)
 
-    breaker.record_success()
     items = parse_gemini_json_response(response.text)
     if not items:
+        breaker.record_failure()
+        logger.warning("Gemini reply contained no usable recommendations")
         return build_local_suggestion(pruned, media_type)
 
-    payload = SuggestionPayload(suggestions=items, source="gemini")
+    breaker.record_success()
+    payload = SuggestionPayload(suggestions=tuple(items), source="gemini")
     _store_cached_suggestion(cache_key, payload)
     return payload

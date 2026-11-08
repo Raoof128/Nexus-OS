@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
-import { Pencil, Star, Trash2, X } from 'lucide-react'
+import { Star } from 'lucide-react'
 import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../../lib/mediaConfig'
-import { DURATION, EASE, SPRING, TRANSITION_FADE } from '../../../lib/motion'
+import { SPRING, TRANSITION_FADE } from '../../../lib/motion'
 import { lockScroll } from '../../../lib/scrollLock'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
@@ -29,14 +29,15 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
     if (!item) return
     const unlock = lockScroll()
     const handleEsc = (e) => {
-      if (e.key === 'Escape') onClose()
+      // Escape belongs to the nested Delete confirmation while it is open.
+      if (e.key === 'Escape' && !confirmDelete) onClose()
     }
     document.addEventListener('keydown', handleEsc)
     return () => {
       unlock()
       document.removeEventListener('keydown', handleEsc)
     }
-  }, [item, onClose])
+  }, [item, onClose, confirmDelete])
 
   const handleStatusChange = (newStatus) => {
     if (!newStatus || !onUpdate || !item || newStatus === item.status) return
@@ -51,219 +52,208 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
     onClose()
   }
 
+  const showGenre = item?.type !== 'job' && !!item?.genre
+  const showRating = item?.type !== 'job' && item?.rating != null && item.rating > 0
+  const showSubInfo = !!item?.sub_info
+  const showDetails = showGenre || showRating || showSubInfo
+
   return createPortal(
     <AnimatePresence>
       {item && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop: click outside the window to close */}
           <Motion.div
             key="backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={TRANSITION_FADE}
-            className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-md"
+            className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20 p-4 sm:p-6"
             onClick={onClose}
-          />
-
-          {/* Modal */}
-          <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4 sm:p-6">
-            {/* No `layoutId` here — see CyberCard for the full reasoning.
-               Sharing the id with the card while both were simultaneously
-               mounted caused a shake on status updates and stalled the exit
-               animation when close was clicked. A clean fade/scale entry is
-               the safe, deterministic behaviour. */}
+          >
+            {/* role="dialog" sits on a wrapper: 7.css hides .window[role=dialog] */}
             <Motion.div
               ref={trapRef}
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
               transition={SPRING.soft}
               role="dialog"
               aria-modal="true"
               aria-labelledby="detail-modal-title"
-              className="neon-border relative w-full max-w-lg max-h-[90dvh] overflow-y-auto custom-scrollbar rounded-2xl glass-panel shadow-[0_0_60px_rgba(243,230,0,0.08)]"
+              onClick={(e) => e.stopPropagation()}
+              className="flex max-h-[90dvh] w-full max-w-[460px] flex-col"
             >
-              {/* Neon top border */}
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent shadow-[0_0_15px_var(--color-primary)]" />
-
-              {/* Header */}
-              <div className="flex items-start justify-between p-4 pb-0 sm:p-6 sm:pb-0">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/30">
-                    <Icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-primary/70">
-                      {config?.label || 'Media'} // Deep Dive
-                    </p>
-                    <h2
-                      id="detail-modal-title"
-                      className="heading-display text-lg font-bold text-white sm:text-xl"
-                    >
-                      {item.title}
-                    </h2>
+              <div className="window glass active is-bright flex min-h-0 flex-1 flex-col">
+                <div className="title-bar">
+                  <div className="title-bar-text">{config?.singular || 'Entry'} details</div>
+                  <div className="title-bar-controls">
+                    <button
+                      type="button"
+                      className="is-close"
+                      aria-label="Close"
+                      onClick={onClose}
+                    />
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                  aria-label="Close detail view"
-                >
-                  <X size={18} />
-                </button>
-              </div>
 
-              {/* Body */}
-              <div className="space-y-3 p-4 sm:space-y-4 sm:p-6">
-                {/* Creator */}
-                {item.creator && item.creator !== '—' && (
-                  <div className="font-mono text-sm text-muted-foreground">
-                    {config?.creatorLabel}: {item.creator}
+                <div className="window-body has-space min-h-0 flex-1 overflow-y-auto">
+                  {/* Heading */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[3px] border border-border bg-w7-pane">
+                      <Icon className="h-5 w-5 text-[#3d5a80]" aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 id="detail-modal-title" className="w7-heading break-words">
+                        {item.title}
+                      </h2>
+                      {item.creator && item.creator !== '—' && (
+                        <p className="text-[12px] text-muted-foreground">
+                          {config?.creatorLabel}: {item.creator}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                )}
 
-                {/* Status Stepper */}
-                {statusNav && (
-                  <div className="flex items-center gap-1 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-4 sm:px-4 overflow-x-auto">
-                    {statusNav.flow.map((stepStatus, index) => {
-                      const isCurrent = index === statusNav.currentIndex
-                      const isPast = index < statusNav.currentIndex
+                  {/* Status stepper */}
+                  {statusNav && (
+                    <fieldset className="mt-3">
+                      <legend>Status</legend>
+                      <div className="flex items-center overflow-x-auto py-1">
+                        {statusNav.flow.map((stepStatus, index) => {
+                          const isCurrent = index === statusNav.currentIndex
+                          const isPast = index < statusNav.currentIndex
 
-                      return (
-                        <div key={stepStatus} className="flex flex-1 items-center last:flex-none">
-                          <button
-                            type="button"
-                            onClick={() => handleStatusChange(stepStatus)}
-                            disabled={isCurrent}
-                            aria-label={
-                              isCurrent
-                                ? `Current status: ${stepStatus}`
-                                : `Change status to ${stepStatus}`
-                            }
-                            className="relative flex flex-col items-center group outline-none disabled:cursor-default"
-                          >
-                            <Motion.div
-                              whileHover={isCurrent ? {} : { scale: 1.3 }}
-                              whileTap={isCurrent ? {} : { scale: 0.9 }}
-                              className={`h-3.5 w-3.5 rotate-45 border transition-all duration-300 ${
-                                isCurrent
-                                  ? 'bg-primary border-primary/60 shadow-[0_0_12px_hsl(var(--neon-yellow)/0.6)]'
-                                  : isPast
-                                    ? 'bg-primary/30 border-primary/40'
-                                    : 'bg-zinc-900 border-zinc-700 group-hover:border-primary/50 group-hover:bg-primary/10'
-                              }`}
-                            />
-                            <span
-                              className={`absolute top-6 text-center max-w-[56px] sm:max-w-[80px] truncate font-mono text-[7px] sm:text-[9px] uppercase tracking-wider transition-colors ${
-                                isCurrent
-                                  ? 'text-primary'
-                                  : isPast
-                                    ? 'text-primary/60'
-                                    : 'text-zinc-600 group-hover:text-primary/50'
-                              }`}
+                          return (
+                            <div
+                              key={stepStatus}
+                              className="flex flex-1 items-center last:flex-none"
                             >
-                              {stepStatus}
-                            </span>
-                          </button>
-                          {index < statusNav.flow.length - 1 && (
-                            <div className="relative mx-2 h-px flex-1 bg-zinc-800">
-                              <Motion.div
-                                initial={false}
-                                animate={{ width: isPast ? '100%' : '0%' }}
-                                transition={{ duration: DURATION.slow, ease: EASE.inOut }}
-                                className="absolute inset-y-0 left-0 bg-primary/50 shadow-[0_0_6px_hsl(var(--neon-yellow)/0.4)]"
-                              />
+                              <button
+                                type="button"
+                                onClick={() => handleStatusChange(stepStatus)}
+                                disabled={isCurrent}
+                                aria-current={isCurrent ? 'step' : undefined}
+                                aria-label={
+                                  isCurrent
+                                    ? `Current status: ${stepStatus}`
+                                    : `Change status to ${stepStatus}`
+                                }
+                                className="w7-toolbtn shrink-0 gap-1.5 px-1.5 disabled:text-w7-title disabled:opacity-100"
+                              >
+                                <span
+                                  aria-hidden="true"
+                                  className={`h-2.5 w-2.5 rounded-full border ${
+                                    isCurrent
+                                      ? 'border-w7-title bg-w7-title'
+                                      : isPast
+                                        ? 'border-w7-select-border bg-w7-select-border'
+                                        : 'border-[#828790] bg-white'
+                                  }`}
+                                />
+                                <span className={isCurrent ? 'font-semibold' : undefined}>
+                                  {stepStatus}
+                                </span>
+                              </button>
+                              {index < statusNav.flow.length - 1 && (
+                                <span
+                                  aria-hidden="true"
+                                  className={`mx-1 h-px min-w-3 flex-1 ${
+                                    isPast ? 'bg-w7-select-border' : 'bg-border'
+                                  }`}
+                                />
+                              )}
                             </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* Metadata grid */}
-                <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:grid-cols-3 sm:gap-3">
-                  {item.type !== 'job' && item.genre && (
-                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                      <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Genre
-                      </p>
-                      <p className="text-sm font-medium text-white">{item.genre}</p>
-                    </div>
-                  )}
-                  {item.type !== 'job' && item.rating != null && item.rating > 0 && (
-                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                      <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Rating
-                      </p>
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: 5 }, (_, i) => (
-                          <Star
-                            key={i}
-                            size={14}
-                            className={
-                              i < item.rating ? 'fill-yellow-500 text-yellow-500' : 'text-white/10'
-                            }
-                          />
-                        ))}
+                          )
+                        })}
                       </div>
-                    </div>
+                    </fieldset>
                   )}
-                  {item.sub_info && (
-                    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-                      <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                        {config?.subInfoLabel || 'Info'}
+
+                  {/* Details */}
+                  {showDetails && (
+                    <fieldset className="mt-3">
+                      <legend>Details</legend>
+                      <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-[12px]">
+                        {showGenre && (
+                          <>
+                            <dt className="text-muted-foreground">Genre</dt>
+                            <dd className="text-foreground">{item.genre}</dd>
+                          </>
+                        )}
+                        {showRating && (
+                          <>
+                            <dt className="text-muted-foreground">Rating</dt>
+                            <dd className="flex items-center gap-0.5">
+                              <span className="sr-only">{item.rating} of 5</span>
+                              {Array.from({ length: 5 }, (_, i) => (
+                                <Star
+                                  key={i}
+                                  size={14}
+                                  aria-hidden="true"
+                                  className={
+                                    i < item.rating
+                                      ? 'fill-amber-500 text-amber-500'
+                                      : 'text-[#c5cad3]'
+                                  }
+                                />
+                              ))}
+                            </dd>
+                          </>
+                        )}
+                        {showSubInfo && (
+                          <>
+                            <dt className="text-muted-foreground">
+                              {config?.subInfoLabel || 'Info'}
+                            </dt>
+                            <dd className="truncate text-foreground">{item.sub_info}</dd>
+                          </>
+                        )}
+                      </dl>
+                    </fieldset>
+                  )}
+
+                  {/* Takeaway */}
+                  {item.takeaway && (
+                    <fieldset className="mt-3">
+                      <legend>Takeaway</legend>
+                      <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
+                        {item.takeaway}
                       </p>
-                      <p className="truncate text-sm font-medium text-white">{item.sub_info}</p>
-                    </div>
+                    </fieldset>
                   )}
                 </div>
 
-                {/* Takeaway */}
-                {item.takeaway && (
-                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                    <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                      Takeaway // Notes
-                    </p>
-                    <div className="text-sm leading-relaxed text-neutral-300">{item.takeaway}</div>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 border-t border-white/5 pt-4">
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    className="w7-btn mr-auto"
+                  >
+                    Delete
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
                       onClose()
                       requestAnimationFrame(() => onEdit?.(item))
                     }}
-                    className="flex items-center justify-center gap-2 rounded-lg bg-primary/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-primary ring-1 ring-primary/20 transition-all hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                    className="w7-btn default"
                   >
-                    <Pencil size={14} />
                     Edit
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmDelete(true)}
-                    className="flex items-center justify-center gap-2 rounded-lg bg-destructive/10 px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider text-destructive ring-1 ring-destructive/20 transition-all hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                  >
-                    <Trash2 size={14} />
-                    Delete
+                  <button type="button" onClick={onClose} className="w7-btn">
+                    Close
                   </button>
                 </div>
               </div>
-
-              {/* Neon bottom border */}
-              <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
             </Motion.div>
-          </div>
+          </Motion.div>
 
           <ConfirmDialog
             open={confirmDelete}
             id={item.id}
-            title="Delete Entry"
+            title="Delete entry"
             message="This action cannot be undone. Are you sure you want to delete this entry?"
             onConfirm={handleDelete}
             onCancel={() => setConfirmDelete(false)}

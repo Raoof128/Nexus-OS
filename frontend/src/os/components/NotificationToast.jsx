@@ -3,31 +3,12 @@ import { X, Info, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react'
 import { SPRING } from '../../lib/motion'
 import { useNotificationStore } from '../stores/notificationStore'
 
+// Icon colours are the Win7 balloon-tip palette, chosen to read on a light panel.
 const TYPE_CONFIG = {
-  info: {
-    icon: Info,
-    accentColor: '#06b6d4',
-    borderClass: 'border-l-cyan-500',
-    bgClass: 'bg-cyan-500/5',
-  },
-  success: {
-    icon: CheckCircle,
-    accentColor: '#22c55e',
-    borderClass: 'border-l-green-500',
-    bgClass: 'bg-green-500/5',
-  },
-  warning: {
-    icon: AlertTriangle,
-    accentColor: '#f59e0b',
-    borderClass: 'border-l-amber-500',
-    bgClass: 'bg-amber-500/5',
-  },
-  error: {
-    icon: AlertCircle,
-    accentColor: '#ef4444',
-    borderClass: 'border-l-red-500',
-    bgClass: 'bg-red-500/5',
-  },
+  info: { icon: Info, color: '#1773c4' },
+  success: { icon: CheckCircle, color: '#2e7d32' },
+  warning: { icon: AlertTriangle, color: '#9d5d00' },
+  error: { icon: AlertCircle, color: '#c42b1c' },
 }
 
 function formatTime(timestamp) {
@@ -38,46 +19,34 @@ function formatTime(timestamp) {
   })
 }
 
+/**
+ * One Win7 balloon tip (7.css `[role=tooltip]`). The tail points down toward
+ * the clock in the notification area. Errors are wrapped in an assertive alert;
+ * everything else is announced politely by the region around the stack.
+ */
 function Toast({ notification }) {
   const dismissToast = useNotificationStore((s) => s.dismissToast)
   const config = TYPE_CONFIG[notification.type] ?? TYPE_CONFIG.info
   const Icon = config.icon
+  const isError = notification.type === 'error'
 
-  return (
-    <Motion.div
-      layout
-      initial={{ opacity: 0, x: 60, scale: 0.95 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: 60, scale: 0.95 }}
-      transition={SPRING.snappy}
-      className={`glass-panel relative w-[300px] overflow-hidden rounded-lg border border-white/10 shadow-lg ${config.bgClass}`}
-      role="alert"
-      aria-live={notification.type === 'error' ? 'assertive' : 'polite'}
-    >
-      {/* Left accent bar */}
-      <div
-        className="absolute inset-y-0 left-0 w-[3px]"
-        style={{
-          backgroundColor: config.accentColor,
-          boxShadow: `0 0 6px ${config.accentColor}80`,
-        }}
-      />
-
-      <div className="flex items-start gap-2.5 px-3 py-2.5 pl-4">
+  const balloon = (
+    <div role="tooltip" className="is-top is-left box-border w-[300px] px-3 py-2">
+      <div className="flex items-start gap-2">
         {/* Icon */}
-        <Icon size={13} className="mt-[1px] shrink-0" style={{ color: config.accentColor }} />
+        <Icon size={16} className="mt-px shrink-0" style={{ color: config.color }} aria-hidden />
 
         {/* Body */}
         <div className="min-w-0 flex-1">
-          <p className="heading-ui truncate text-[11px] font-semibold leading-tight text-white">
+          <p className="truncate text-[12px] font-bold leading-snug text-foreground">
             {notification.title}
           </p>
           {notification.message && (
-            <p className="mt-0.5 line-clamp-2 font-mono text-[10px] leading-relaxed text-white/50">
+            <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-foreground">
               {notification.message}
             </p>
           )}
-          <p className="mt-1 font-mono text-[9px] text-white/30">
+          <p className="mt-0.5 text-[12px] text-muted-foreground">
             {formatTime(notification.timestamp)}
           </p>
         </div>
@@ -86,14 +55,17 @@ function Toast({ notification }) {
         <button
           type="button"
           onClick={() => dismissToast(notification.id)}
-          aria-label="Dismiss notification"
-          className="shrink-0 rounded p-0.5 text-white/30 transition-colors hover:text-white/70"
+          aria-label="Close notification"
+          title="Close"
+          className="w7-toolbtn -mr-1 -mt-1 shrink-0 p-0.5"
         >
-          <X size={10} />
+          <X size={12} aria-hidden />
         </button>
       </div>
-    </Motion.div>
+    </div>
   )
+
+  return isError ? <div role="alert">{balloon}</div> : balloon
 }
 
 export default function NotificationToast() {
@@ -103,17 +75,29 @@ export default function NotificationToast() {
   // dismissed. Dismissed-but-unread items live on in the notification centre.
   const visible = notifications.filter((n) => !n.read && !n.toastDismissed).slice(0, 3)
 
+  // One polite live region for the whole stack. It is always mounted so that
+  // the first announcement is not lost. The 18px bottom padding on each item
+  // leaves room for the balloon tail.
   return (
     <div
-      className="pointer-events-none fixed right-3 top-3 z-[1500] flex flex-col gap-2"
+      role="region"
       aria-label="Notifications"
+      aria-live="polite"
+      className="pointer-events-none fixed bottom-12 right-3 z-[1500] flex flex-col"
     >
       <AnimatePresence mode="sync" initial={false}>
         {visible.map((n) => (
-          // Wrap each toast so pointer-events work even inside a pointer-events-none container
-          <div key={n.id} className="pointer-events-auto">
+          <Motion.div
+            key={n.id}
+            layout
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 40 }}
+            transition={SPRING.snappy}
+            className="pointer-events-auto pb-[18px]"
+          >
             <Toast notification={n} />
-          </div>
+          </Motion.div>
         ))}
       </AnimatePresence>
     </div>

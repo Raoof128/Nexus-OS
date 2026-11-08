@@ -3,7 +3,17 @@ export default {
     const url = new URL(request.url)
 
     // Strip the /api prefix and forward to DigitalOcean backend
-    const backendPath = url.pathname.replace(/^\/api/, '') || '/'
+    const strippedPath = url.pathname.replace(/^\/api/, '') || '/'
+    // The API client already prefixes backend `/api/email/*` routes with the
+    // configured `/api` proxy base. OAuth connect is a browser navigation and
+    // therefore arrives with only one prefix; normalize that supported public
+    // path here so both contracts reach the same backend controller.
+    const isEmailAccountPath =
+      strippedPath === '/email/accounts' ||
+      strippedPath.startsWith('/email/accounts/')
+    const backendPath = isEmailAccountPath
+      ? `/api${strippedPath}`
+      : strippedPath
     const backendUrl = `${env.BACKEND_ORIGIN}${backendPath}${url.search}`
 
     // Only forward an allowlist of safe headers (never forward raw
@@ -15,6 +25,10 @@ export default {
       'accept',
       'accept-language',
       'accept-encoding',
+      'idempotency-key',
+      'x-requested-with',
+      'x-recovery-access-token',
+      'x-recovery-refresh-token',
     ]
     const headers = new Headers()
     for (const name of ALLOWED_HEADERS) {
@@ -33,7 +47,10 @@ export default {
       method: request.method,
       headers,
       body: request.body,
-      redirect: 'follow',
+      // OAuth redirects belong in the user's browser. Following them inside
+      // the Worker breaks the flow and risks forwarding sensitive headers to
+      // a third-party redirect destination.
+      redirect: 'manual',
     })
 
     const response = await fetch(proxyRequest)

@@ -2,16 +2,19 @@ import { create } from 'zustand'
 import { nanoid } from 'nanoid'
 import { APP_REGISTRY } from './appRegistry'
 
-export const TASKBAR_HEIGHT = 48
+export const TASKBAR_HEIGHT = 40 // keep in sync with --w7-taskbar-h (index.css)
 
 const STORAGE_KEY = 'nexus-os:window-layout'
 const SCHEMA_VERSION = 1
 const SAVE_DEBOUNCE_MS = 500
 
-function boundedSize(defaultSize) {
+// Viewport-bounded default size. Never below the app's declared minimum: Win7
+// does not open a window smaller than its minimum track size, even on a narrow
+// screen (the window may then overflow the viewport instead).
+function boundedSize(defaultSize, minSize) {
   return {
-    width: Math.min(defaultSize.width, window.innerWidth * 0.8),
-    height: Math.min(defaultSize.height, window.innerHeight * 0.8),
+    width: Math.max(minSize.width, Math.min(defaultSize.width, window.innerWidth * 0.8)),
+    height: Math.max(minSize.height, Math.min(defaultSize.height, window.innerHeight * 0.8)),
   }
 }
 
@@ -19,7 +22,8 @@ function cascadePosition(zStack, _size) {
   // Simple cascading: each new window is offset by 30px
   const offset = (zStack.length % 10) * 30
   return {
-    x: Math.min(offset + 60, window.innerWidth - 100),
+    // Start right of the desktop icon column (DesktopIcons cell is 78px).
+    x: Math.min(offset + 96, window.innerWidth - 100),
     y: Math.min(offset + 40, window.innerHeight - TASKBAR_HEIGHT - 100),
   }
 }
@@ -30,7 +34,7 @@ function clampPosition(pos, size) {
   // occupy roughly the rightmost 80px, so 80px is the minimum useful threshold.
   // Top is clamped to 0 (titlebar must not go above the viewport).
   // Bottom is clamped so the full titlebar height stays above the taskbar.
-  const TITLEBAR_H = 36
+  const TITLEBAR_H = 30
   const MIN_ACCESSIBLE = 80
   return {
     x: Math.max(
@@ -57,6 +61,9 @@ export const useWindowStore = create((set, get) => ({
   activeWindowId: null,
   isMobile: false,
   launcherOpen: false,
+  desktopShown: null,
+  // Windows whose taskbar button flashes for attention (Win7 FlashWindow).
+  attentionIds: [],
 
   openApp: (appId) => {
     const manifest = APP_REGISTRY[appId]
@@ -74,7 +81,8 @@ export const useWindowStore = create((set, get) => ({
     }
 
     const windowId = manifest.singleton ? appId : `${appId}-${nanoid(6)}`
-    const size = boundedSize(manifest.defaultSize)
+    const minSize = manifest.minSize ?? { width: 0, height: 0 }
+    const size = boundedSize(manifest.defaultSize, minSize)
     const position = cascadePosition(zStack, size)
 
     set((state) => ({
@@ -86,7 +94,7 @@ export const useWindowStore = create((set, get) => ({
           title: manifest.title,
           position,
           size,
-          minSize: { ...manifest.minSize },
+          minSize: { ...minSize },
           state: 'normal',
           restoredRect: { ...position, ...size },
         },
@@ -109,6 +117,36 @@ export const useWindowStore = create((set, get) => ({
         windows: rest,
         zStack: newZStack,
         activeWindowId: newActive,
+        attentionIds: state.attentionIds.filter((id) => id !== windowId),
+      }
+    })
+  },
+
+  // Flash the taskbar button of every window of `appId` that is not the
+  // active window. Focusing or closing the window clears it.
+  requestAttention: (appId) => {
+    set((state) => {
+      const ids = Object.values(state.windows)
+        .filter((w) => w.appId === appId && w.windowId !== state.activeWindowId)
+        .map((w) => w.windowId)
+        .filter((id) => !state.attentionIds.includes(id))
+      if (ids.length === 0) return state
+      return { attentionIds: [...state.attentionIds, ...ids] }
+    })
+  },
+
+  // Apps may retitle their own window (e.g. File Manager shows the folder name).
+  // Blank titles are ignored so a window never ends up with no name.
+  setWindowTitle: (windowId, title) => {
+    set((state) => {
+      const win = state.windows[windowId]
+      const next = typeof title === 'string' ? title.trim().slice(0, 200) : ''
+      if (!win || !next || win.title === next) return state
+      return {
+        windows: {
+          ...state.windows,
+          [windowId]: { ...win, title: next },
+        },
       }
     })
   },
@@ -121,24 +159,28 @@ export const useWindowStore = create((set, get) => ({
       const newZStack = [...state.zStack.filter((id) => id !== windowId), windowId]
 
       if (win.state === 'minimized') {
+        // Come back in the state the window was minimised from (maximised and
+        // snapped windows stay maximised/snapped, as on Windows 7). Position
+        // and size are untouched while minimised, so they are still correct.
         return {
           windows: {
             ...state.windows,
             [windowId]: {
               ...win,
-              state: 'normal',
-              position: { ...win.restoredRect },
-              size: { width: win.restoredRect.width, height: win.restoredRect.height },
+              state: win.preMinimizeState || 'normal',
+              preMinimizeState: undefined,
             },
           },
           zStack: newZStack,
           activeWindowId: windowId,
+          attentionIds: state.attentionIds.filter((id) => id !== windowId),
         }
       }
 
       return {
         zStack: newZStack,
         activeWindowId: windowId,
+        attentionIds: state.attentionIds.filter((id) => id !== windowId),
       }
     })
   },
@@ -150,7 +192,11 @@ export const useWindowStore = create((set, get) => ({
 
       const newWindows = {
         ...state.windows,
-        [windowId]: { ...win, state: 'minimized' },
+        [windowId]: {
+          ...win,
+          state: 'minimized',
+          preMinimizeState: win.state === 'minimized' ? win.preMinimizeState : win.state,
+        },
       }
 
       const newActive =
@@ -308,15 +354,19 @@ export const useWindowStore = create((set, get) => ({
         const newId = manifest.singleton ? win.appId : oldId
         idMap[oldId] = newId
 
+        const minSize = manifest.minSize ?? { width: 0, height: 0 }
         const x = Math.max(0, Math.min(win.position?.x ?? 0, window.innerWidth - 100))
         const y = Math.max(
           0,
           Math.min(win.position?.y ?? 0, window.innerHeight - TASKBAR_HEIGHT - 40),
         )
-        const width = Math.min(win.size?.width ?? 600, window.innerWidth * 0.95)
-        const height = Math.min(
-          win.size?.height ?? 400,
-          (window.innerHeight - TASKBAR_HEIGHT) * 0.95,
+        const width = Math.max(
+          minSize.width,
+          Math.min(win.size?.width ?? 600, window.innerWidth * 0.95),
+        )
+        const height = Math.max(
+          minSize.height,
+          Math.min(win.size?.height ?? 400, (window.innerHeight - TASKBAR_HEIGHT) * 0.95),
         )
 
         const state = win.state === 'minimized' ? 'normal' : win.state || 'normal'
@@ -327,7 +377,7 @@ export const useWindowStore = create((set, get) => ({
           title: manifest.title,
           position: { x, y },
           size: { width, height },
-          minSize: { ...manifest.minSize },
+          minSize: { ...minSize },
           state,
           restoredRect: { x, y, width, height },
         }
@@ -396,11 +446,31 @@ export const useWindowStore = create((set, get) => ({
   minimizeAll: () => {
     set((state) => {
       const newWindows = { ...state.windows }
+      // Remember what was on screen (bottom to top) so Show desktop can bring
+      // it back whichever control hid it (taskbar strip or desktop menu).
+      const shown = state.zStack.filter(
+        (id) => newWindows[id] && newWindows[id].state !== 'minimized',
+      )
       for (const id of Object.keys(newWindows)) {
-        newWindows[id] = { ...newWindows[id], state: 'minimized' }
+        const win = newWindows[id]
+        if (win.state === 'minimized') continue
+        newWindows[id] = { ...win, state: 'minimized', preMinimizeState: win.state }
       }
-      return { windows: newWindows, activeWindowId: null }
+      return {
+        windows: newWindows,
+        activeWindowId: null,
+        desktopShown: shown.length > 0 ? shown : state.desktopShown,
+      }
     })
+  },
+
+  // Second press of Show desktop: bring back the windows minimizeAll hid, in
+  // their previous stacking order, if nothing has been opened since.
+  restoreDesktop: () => {
+    const ids = (get().desktopShown || []).filter((id) => get().windows[id]?.state === 'minimized')
+    set({ desktopShown: null })
+    ids.forEach((id) => get().focusWindow(id))
+    return ids.length > 0
   },
 
   closeAll: () => {
@@ -420,7 +490,8 @@ useWindowStore.subscribe((state) => {
       // Convert minimized windows to normal before saving — hydration ignores minimized state anyway
       const windowsToSave = {}
       for (const [id, win] of Object.entries(windows)) {
-        windowsToSave[id] = win.state === 'minimized' ? { ...win, state: 'normal' } : win
+        windowsToSave[id] =
+          win.state === 'minimized' ? { ...win, state: win.preMinimizeState || 'normal' } : win
       }
       const snapshot = {
         schemaVersion: SCHEMA_VERSION,
