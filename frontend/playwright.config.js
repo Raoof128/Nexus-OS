@@ -38,9 +38,9 @@ export default defineConfig({
     env: {
       VITE_API_URL: 'http://127.0.0.1:8799',
       VITE_SUPABASE_URL: 'http://127.0.0.1:8798',
-      VITE_SUPABASE_ANON_KEY: 'e2e-placeholder-anon-key',
+      VITE_SUPABASE_ANON_KEY: 'e2e-placeholder-anon-key', // gitleaks:allow (fake e2e placeholder)
       VITE_AION_SUPABASE_URL: 'http://127.0.0.1:8798',
-      VITE_AION_SUPABASE_ANON_KEY: 'e2e-placeholder-anon-key',
+      VITE_AION_SUPABASE_ANON_KEY: 'e2e-placeholder-anon-key', // gitleaks:allow (fake e2e placeholder)
     },
   },
 })
