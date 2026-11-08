@@ -6,6 +6,16 @@ let mockZStack = []
 let mockActiveWindowId = null
 let mockIsMobile = false
 let mockLauncherOpen = false
+const mockHydrateNotifications = vi.fn()
+const mockClaimLocalState = vi.fn()
+
+vi.mock('../../../hooks/useAuth', () => ({
+  useAuth: () => ({ session: { user: { id: 'user-a' } } }),
+}))
+
+vi.mock('../../../lib/privateState', () => ({
+  claimLocalState: (...args) => mockClaimLocalState(...args),
+}))
 
 vi.mock('../../stores/windowStore', () => {
   const useWindowStore = (selector) => {
@@ -59,7 +69,7 @@ vi.mock('../../stores/notificationStore', () => {
     })
   useNotificationStore.getState = () => ({
     addNotification: vi.fn(),
-    hydrateNotifications: vi.fn(),
+    hydrateNotifications: (...args) => mockHydrateNotifications(...args),
   })
   return { useNotificationStore }
 })
@@ -168,6 +178,16 @@ describe('Desktop', () => {
   it('renders taskbar', () => {
     render(<Desktop />)
     expect(screen.getByTestId('taskbar')).toBeDefined()
+  })
+
+  it('claims local data for the signed-in user and hydrates their notifications', () => {
+    mockClaimLocalState.mockClear()
+    mockHydrateNotifications.mockClear()
+    render(<Desktop />)
+    // Regression: hydrateNotifications() was called with no user id, so Do
+    // Not Disturb and notification history never persisted (ARCH-03).
+    expect(mockClaimLocalState).toHaveBeenCalledWith('user-a')
+    expect(mockHydrateNotifications).toHaveBeenCalledWith('user-a')
   })
 
   it('renders wallpaper elements', () => {

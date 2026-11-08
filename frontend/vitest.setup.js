@@ -17,6 +17,11 @@ Object.defineProperty(globalThis, 'localStorage', {
     getItem: (key) => storage.get(String(key)) ?? null,
     removeItem: (key) => storage.delete(String(key)),
     setItem: (key, value) => storage.set(String(key), String(value)),
+    // Full Storage interface: code that enumerates keys needs these too.
+    key: (index) => [...storage.keys()][index] ?? null,
+    get length() {
+      return storage.size
+    },
   },
   configurable: true,
 })

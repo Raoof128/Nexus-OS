@@ -42,6 +42,8 @@ import CommandPalette from './components/CommandPalette'
 import InstallPrompt from './components/InstallPrompt'
 import TitlebarOverlay from './components/TitlebarOverlay'
 import { consumeShareTarget, consumeFileHandlers } from '../lib/pwaLaunch'
+import { claimLocalState } from '../lib/privateState'
+import { useAuth } from '../hooks/useAuth'
 
 const Z_INDEX_BASE = 100
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes, only when the idle lock is switched on
@@ -162,12 +164,17 @@ export default function Desktop() {
   const hydrateSettings = useSettingsStore((s) => s.hydrateSettings)
 
   const hydrateFromStorage = useWindowStore((s) => s.hydrateFromStorage)
+  const { session } = useAuth()
+  const userId = session?.user?.id
 
   useEffect(() => {
+    // Files, notes and window layout live in this browser. If another account
+    // owned them, wipe them before any store hydrates (see lib/privateState).
+    claimLocalState(userId)
     hydrateFromStorage()
     hydrateSettings()
-    // Restore notification history + Do Not Disturb preference from last session.
-    useNotificationStore.getState().hydrateNotifications()
+    // Restore this account's notification history + Do Not Disturb preference.
+    useNotificationStore.getState().hydrateNotifications(userId)
     // PWA Web Share Target: shared text/url is appended to Notes, which we open.
     const sharedApp = consumeShareTarget()
     if (sharedApp) openApp(sharedApp)

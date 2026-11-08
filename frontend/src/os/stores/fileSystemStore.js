@@ -175,6 +175,18 @@ export const useFileSystemStore = create((set, get) => ({
     })
   },
 
+  // Back to the empty default drive (used when local data changes owner).
+  resetFileSystem: () =>
+    set({
+      files: Object.fromEntries(
+        Object.entries(DEFAULT_FILES).map(([path, entry]) => [
+          path,
+          entry.children ? { ...entry, children: [...entry.children] } : { ...entry },
+        ]),
+      ),
+      currentPath: '/',
+    }),
+
   hydrateFileSystem: () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)

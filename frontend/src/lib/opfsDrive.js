@@ -61,6 +61,32 @@ export async function readBlob(id) {
   }
 }
 
+/**
+ * Delete every blob in Nexus Drive. Used when browser-local data must not
+ * outlive its owner (a different account signs in on this browser, or a
+ * factory reset). Best-effort; resolves to the number of entries removed.
+ */
+export async function clearAllBlobs() {
+  try {
+    const root = await getRoot()
+    if (!root || typeof root.keys !== 'function') return 0
+    const names = []
+    for await (const name of root.keys()) names.push(name)
+    let removed = 0
+    for (const name of names) {
+      try {
+        await root.removeEntry(name, { recursive: true })
+        removed += 1
+      } catch {
+        // Locked or already gone — keep going.
+      }
+    }
+    return removed
+  } catch {
+    return 0
+  }
+}
+
 /** Best-effort delete; swallows "not found" and unsupported. */
 export async function deleteBlob(id) {
   try {
