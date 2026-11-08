@@ -16,16 +16,22 @@ export default function ConfirmDialog({
   cancelLabel = 'Cancel',
   variant = 'destructive',
   // Which button is the default (Enter, initial focus). Windows 7 makes the
-  // safe choice the default when the action loses work (discard, close all).
-  defaultAction = 'confirm',
+  // safe choice the default when the action loses work, so destructive
+  // confirms default to Cancel unless a caller opts out explicitly.
+  defaultAction,
 }) {
   const trapRef = useFocusTrap(open)
+  const defaultButton = defaultAction ?? (variant === 'destructive' ? 'cancel' : 'confirm')
 
   useEffect(() => {
     if (!open) return
     const unlock = lockScroll()
+    // React flushes this effect while the key event that opened the dialog is
+    // still dispatching (e.g. Escape on a dirty Compose opens "Discard?"). That
+    // same event then reaches document; ignore anything older than the dialog.
+    const openedAt = performance.now()
     const handleEsc = (e) => {
-      if (e.key === 'Escape') onCancel?.()
+      if (e.key === 'Escape' && e.timeStamp >= openedAt) onCancel?.()
     }
     document.addEventListener('keydown', handleEsc)
     return () => {
@@ -45,7 +51,12 @@ export default function ConfirmDialog({
         <Motion.div
           key="confirm-backdrop"
           className="fixed inset-0 z-[1051] flex items-center justify-center bg-black/20 p-4"
-          onClick={onCancel}
+          onClick={(e) => {
+            // Portal events still bubble through the React tree; don't let a
+            // backdrop click reach the component that opened the dialog.
+            e.stopPropagation()
+            onCancel?.()
+          }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -89,14 +100,14 @@ export default function ConfirmDialog({
               <button
                 type="button"
                 onClick={onConfirm}
-                className={`w7-btn${defaultAction === 'confirm' ? ' default' : ''}`}
+                className={`w7-btn${defaultButton === 'confirm' ? ' default' : ''}`}
               >
                 {confirmLabel}
               </button>
               <button
                 type="button"
                 onClick={onCancel}
-                className={`w7-btn${defaultAction === 'cancel' ? ' default' : ''}`}
+                className={`w7-btn${defaultButton === 'cancel' ? ' default' : ''}`}
               >
                 {cancelLabel}
               </button>
