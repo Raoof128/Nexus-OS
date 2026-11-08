@@ -63,6 +63,30 @@ describe('parseQuickAdd', () => {
     expect(r.due_at).toMatch(/^2026-06-15T14:00:00[+-]\d{2}:\d{2}$/)
   })
 
+  it('keeps a bare "5pm" as a timed due date today', () => {
+    const r = parseQuickAdd('Call mom 5pm')
+    expect(r.title).toBe('Call mom')
+    expect(r.due).toBe('2026-06-15')
+    expect(r.due_at).toMatch(/^2026-06-15T17:00:00[+-]\d{2}:\d{2}$/)
+    expect(r.all_day).toBe(false)
+  })
+
+  it('keeps "at 17:30" as a timed due date and strips it from the title', () => {
+    const r = parseQuickAdd('Call mom at 17:30')
+    expect(r.title).toBe('Call mom')
+    expect(r.due).toBe('2026-06-15')
+    expect(r.due_at).toMatch(/^2026-06-15T17:30:00[+-]\d{2}:\d{2}$/)
+    expect(r.all_day).toBe(false)
+  })
+
+  it('keeps "tomorrow at 9am" as tomorrow at 09:00', () => {
+    const r = parseQuickAdd('Dentist tomorrow at 9am')
+    expect(r.title).toBe('Dentist')
+    expect(r.due).toBe('2026-06-16')
+    expect(r.due_at).toMatch(/^2026-06-16T09:00:00[+-]\d{2}:\d{2}$/)
+    expect(r.all_day).toBe(false)
+  })
+
   it('handles empty input', () => {
     const r = parseQuickAdd('   ')
     expect(r.title).toBe('')

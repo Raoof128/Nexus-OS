@@ -1,12 +1,32 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { ListChecks } from 'lucide-react'
-import { useTaskLists, useTaskMutations } from './hooks/useTasks'
+import { useTaskItems, useTaskLists, useTaskMutations } from './hooks/useTasks'
 import ListSidebar from './components/ListSidebar'
 import TaskListView from './views/TaskListView'
+import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 
+function deleteListMessage(list, items) {
+  if (!list) return ''
+  const name = `"${list.name}"`
+  // Items still loading: say what is certain without a count.
+  if (!items) return `Delete the list ${name} and all of its tasks?`
+  if (items.length === 0) return `Delete the list ${name}?`
+  const n = items.length
+  return `Delete the list ${name} and its ${n} ${n === 1 ? 'task' : 'tasks'}?`
+}
+
 export default function TasksApp() {
-  const { data: lists = [] } = useTaskLists()
+  const {
+    data: lists = [],
+    isLoading: listsLoading,
+    isError: listsError,
+    refetch: refetchLists,
+  } = useTaskLists()
+  // The list awaiting delete confirmation. Its items are fetched only while the
+  // dialog is open, so the dialog can say how many tasks go with the list.
+  const [pendingDeleteList, setPendingDeleteList] = useState(null)
+  const pendingItems = useTaskItems(pendingDeleteList?.id, true)
   const [selectedListId, setSelectedListId] = useState(null)
   const [starredActive, setStarredActive] = useState(false)
   const [sortMode, setSortMode] = useState('myorder')
@@ -76,7 +96,12 @@ export default function TasksApp() {
       onSuccess: (created) => created?.id && setSelectedListId(created.id),
     })
 
-  const handleDeleteList = (list) => deleteList.mutate(list.id)
+  // Deleting a list cascades to all of its tasks, so it always asks first.
+  const handleDeleteList = (list) => setPendingDeleteList(list)
+  const confirmDeleteList = () => {
+    deleteList.mutate(pendingDeleteList.id)
+    setPendingDeleteList(null)
+  }
 
   const onRootKeyDown = (e) => {
     if (e.key === 'Escape' && navOpen && e.target.tagName !== 'INPUT') {
@@ -140,7 +165,26 @@ export default function TasksApp() {
         <div aria-hidden="true" onClick={closeNav} className="absolute inset-0 z-[5] @md:hidden" />
       )}
 
-      {lists.length === 0 ? (
+      {lists.length === 0 && listsError ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+          <p role="alert" className="w7-error">
+            Couldn't load your task lists.
+          </p>
+          <button type="button" onClick={() => refetchLists()} className="w7-btn">
+            Try again
+          </button>
+        </div>
+      ) : lists.length === 0 && listsLoading ? (
+        <div
+          role="status"
+          className="flex flex-1 flex-col items-center justify-center gap-2 text-muted-foreground"
+        >
+          <div className="flex w-48 flex-col gap-2">
+            <div role="progressbar" aria-label="Loading task lists" className="marquee" />
+            <p className="text-center text-[12px]">Loading task lists…</p>
+          </div>
+        </div>
+      ) : lists.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center text-muted-foreground">
           <p>No task lists yet.</p>
           <button
@@ -164,6 +208,16 @@ export default function TasksApp() {
           leading={navToggle}
         />
       )}
+
+      <ConfirmDialog
+        id="task-list-delete"
+        open={Boolean(pendingDeleteList)}
+        title="Delete list?"
+        message={deleteListMessage(pendingDeleteList, pendingItems.data)}
+        confirmLabel="Delete"
+        onCancel={() => setPendingDeleteList(null)}
+        onConfirm={confirmDeleteList}
+      />
     </div>
   )
 }

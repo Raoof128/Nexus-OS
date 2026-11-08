@@ -9,11 +9,22 @@ import TaskEditor from '../components/TaskEditor'
 import QuickAddBar from '../components/QuickAddBar'
 import ConfirmDialog from '../../../../components/ui/ConfirmDialog'
 
-// Drag-reorderable top-level task group. Local order is held in state for smooth
-// dragging; the `key` (set by the caller from the server id set) re-initialises it
-// when the server data changes, so no state-sync effect is needed.
+// Drag-reorderable top-level task group. Only the id sequence is local state, and
+// only while dragging. Row data always comes from the current `tasks` prop, so a
+// title, star or due edit shows at once without remounting the row. The `key`
+// the caller sets from the id sequence still re-initialises the order when the
+// server order changes.
 function ReorderableTasks({ tasks, renderRow, onPersist }) {
-  const [order, setOrder] = useState(tasks)
+  const [orderIds, setOrderIds] = useState(() => tasks.map((t) => t.id))
+
+  const byId = new Map(tasks.map((t) => [t.id, t]))
+  const known = new Set(orderIds)
+  const order = [
+    ...orderIds.filter((id) => byId.has(id)).map((id) => byId.get(id)),
+    ...tasks.filter((t) => !known.has(t.id)),
+  ]
+
+  const handleReorder = (next) => setOrderIds(next.map((t) => t.id))
 
   const handleDragEnd = (task) => {
     const idx = order.findIndex((t) => t.id === task.id)
@@ -24,7 +35,7 @@ function ReorderableTasks({ tasks, renderRow, onPersist }) {
   }
 
   return (
-    <Reorder.Group axis="y" values={order} onReorder={setOrder} as="ul" role="list">
+    <Reorder.Group axis="y" values={order} onReorder={handleReorder} as="ul" role="list">
       {order.map((task) => (
         <Reorder.Item key={task.id} value={task} onDragEnd={() => handleDragEnd(task)}>
           {renderRow(task, 0)}
@@ -32,6 +43,15 @@ function ReorderableTasks({ tasks, renderRow, onPersist }) {
       ))}
     </Reorder.Group>
   )
+}
+
+function deleteMessage(task, subtasks) {
+  if (!task) return ''
+  const parts = [`Delete "${task.title}"`]
+  if (subtasks > 0) parts.push(` and its ${subtasks} ${subtasks === 1 ? 'subtask' : 'subtasks'}`)
+  let message = `${parts.join('')}?`
+  if (task.notes_encrypted || task.notes) message += ' Its notes will be deleted too.'
+  return message
 }
 
 function sortTasks(tasks, mode) {
@@ -59,7 +79,7 @@ export default function TaskListView({
   rootRef,
   leading = null,
 }) {
-  const { data: items = [], isLoading } = useTaskItems(listId, true)
+  const { data: items = [], isLoading, isError, refetch } = useTaskItems(listId, true)
   const { createTask, updateTask, moveTask, deleteTask, clearCompleted } = useTaskMutations(
     listId,
     true,
@@ -68,6 +88,8 @@ export default function TaskListView({
   const [showCompleted, setShowCompleted] = useState(true)
   const [focusedTaskId, setFocusedTaskId] = useState(null)
   const [confirmClear, setConfirmClear] = useState(false)
+  // Row deletes that lose work (subtasks, notes) wait for confirmation here.
+  const [pendingDelete, setPendingDelete] = useState(null)
   // Failed saves roll back optimistically; say why (e.g. an unsupported custom
   // repeat rule is a 400, a subtask moved across lists is a 409).
   const saveError = [createTask, updateTask, moveTask, deleteTask, clearCompleted].find(
@@ -178,8 +200,16 @@ export default function TaskListView({
       patch: { status: task.status === 'completed' ? 'needsAction' : 'completed' },
     })
   const handleStar = (task) => updateTask.mutate({ id: task.id, patch: { starred: !task.starred } })
-  const handleDelete = (task) => deleteTask.mutate(task.id)
-  const handleAdd = ({ title, due }) => createTask.mutate({ title, due, all_day: true })
+  const subtaskCount = (task) => items.filter((t) => t.parent_id === task.id).length
+  const hasNotes = (task) => Boolean(task.notes_encrypted || task.notes)
+  // A plain task deletes at once. A parent (which takes its subtasks with it) or a
+  // task with notes (which cannot be recovered) asks first.
+  const handleDelete = (task) => {
+    if (subtaskCount(task) > 0 || hasNotes(task)) setPendingDelete(task)
+    else deleteTask.mutate(task.id)
+  }
+  const handleAdd = ({ title, due, due_at, all_day }) =>
+    createTask.mutate({ title, due, due_at: due_at ?? null, all_day: all_day ?? true })
   const handleSave = (payload) => {
     if (editing && editing !== 'new') {
       updateTask.mutate({ id: editing.id, patch: payload })
@@ -197,7 +227,7 @@ export default function TaskListView({
       depth={depth}
       asListItem={!inReorder}
       lists={lists}
-      hasSubtasks={items.some((t) => t.parent_id === task.id)}
+      hasSubtasks={subtaskCount(task) > 0}
       onMoveToList={(targetListId) =>
         moveTask.mutate({ id: task.id, body: { list_id: targetListId } })
       }
@@ -265,12 +295,23 @@ export default function TaskListView({
             </div>
           </div>
         ) : parents.length === 0 && completed.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
-            <ListChecks size={28} className="text-[#3d5a80] opacity-60" aria-hidden="true" />
-            <p>
-              {starredActive ? 'No starred tasks in this list.' : 'No tasks yet. Add one above.'}
-            </p>
-          </div>
+          isError ? (
+            <div className="flex flex-col items-center gap-3 py-12 text-center">
+              <p role="alert" className="w7-error">
+                Couldn't load tasks for this list.
+              </p>
+              <button type="button" onClick={() => refetch()} className="w7-btn">
+                Try again
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
+              <ListChecks size={28} className="text-[#3d5a80] opacity-60" aria-hidden="true" />
+              <p>
+                {starredActive ? 'No starred tasks in this list.' : 'No tasks yet. Add one above.'}
+              </p>
+            </div>
+          )
         ) : (
           <div
             onFocusCapture={(e) => {
@@ -327,6 +368,19 @@ export default function TaskListView({
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        id="task-delete"
+        open={Boolean(pendingDelete)}
+        title="Delete task?"
+        message={deleteMessage(pendingDelete, pendingDelete ? subtaskCount(pendingDelete) : 0)}
+        confirmLabel="Delete"
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          deleteTask.mutate(pendingDelete.id)
+          setPendingDelete(null)
+        }}
+      />
 
       <ConfirmDialog
         open={confirmClear}

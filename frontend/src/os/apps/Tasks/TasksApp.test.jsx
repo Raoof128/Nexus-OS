@@ -1,12 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 
 // Shared mutable mock state (hoisted so the vi.mock factories can read it).
-const m = vi.hoisted(() => ({ lists: [] }))
+const m = vi.hoisted(() => ({
+  lists: [],
+  listsError: false,
+  refetchLists: null,
+  itemsByList: {},
+  deleteList: null,
+}))
 
 const mutations = () => ({
   createList: { mutate: vi.fn() },
-  deleteList: { mutate: vi.fn() },
+  deleteList: m.deleteList,
   reorderList: { mutate: vi.fn() },
   createTask: { mutate: vi.fn() },
   updateTask: { mutate: vi.fn() },
@@ -16,8 +22,12 @@ const mutations = () => ({
 })
 
 vi.mock('./hooks/useTasks', () => ({
-  useTaskLists: () => ({ data: m.lists }),
-  useTaskItems: () => ({ data: [], isLoading: false }),
+  useTaskLists: () => ({
+    data: m.lists,
+    isError: m.listsError,
+    refetch: m.refetchLists,
+  }),
+  useTaskItems: (listId) => ({ data: m.itemsByList[listId] ?? [], isLoading: false }),
   useTaskMutations: () => mutations(),
 }))
 vi.mock('./hooks/useTaskReminders', () => ({ useTaskReminders: () => {} }))
@@ -32,6 +42,9 @@ const LISTS = [
 describe('TasksApp narrow list switcher', () => {
   beforeEach(() => {
     m.lists = LISTS
+    m.listsError = false
+    m.deleteList = { mutate: vi.fn() }
+    m.itemsByList = {}
   })
 
   it('keeps the list rail out of the flow and offers a Lists toggle below the breakpoint', () => {
@@ -185,5 +198,75 @@ describe('TasksApp narrow list overlay accessibility', () => {
       'false',
     )
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})
+
+describe('TasksApp list deletion', () => {
+  beforeEach(() => {
+    m.lists = LISTS
+    m.listsError = false
+    m.deleteList = { mutate: vi.fn() }
+    m.itemsByList = {
+      a: [
+        { id: 't1', title: 'Milk', status: 'needsAction', parent_id: null, position: 1 },
+        { id: 't2', title: 'Eggs', status: 'completed', parent_id: null, position: 2 },
+      ],
+    }
+  })
+
+  it('asks before deleting a list and names it with its task count', () => {
+    render(<TasksApp />)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete list "Home"' }))
+
+    const dialog = screen.getByRole('alertdialog')
+    expect(dialog.textContent).toContain('Delete the list "Home" and its 2 tasks?')
+    expect(m.deleteList.mutate).not.toHaveBeenCalled()
+  })
+
+  it('defaults to Cancel and keeps the list', async () => {
+    render(<TasksApp />)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete list "Home"' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+    expect(m.deleteList.mutate).not.toHaveBeenCalled()
+  })
+
+  it('deletes the list only after Delete is confirmed', async () => {
+    render(<TasksApp />)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete list "Home"' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(m.deleteList.mutate).toHaveBeenCalledWith('a')
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull())
+  })
+
+  it('uses singular wording for a list with one task', () => {
+    m.itemsByList = { a: [{ id: 't1', title: 'Milk', status: 'needsAction', parent_id: null }] }
+    render(<TasksApp />)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete list "Home"' }))
+    expect(screen.getByRole('alertdialog').textContent).toContain(
+      'Delete the list "Home" and its 1 task?',
+    )
+  })
+})
+
+describe('TasksApp list load state', () => {
+  beforeEach(() => {
+    m.lists = []
+    m.listsError = true
+    m.refetchLists = vi.fn()
+    m.deleteList = { mutate: vi.fn() }
+    m.itemsByList = {}
+  })
+
+  it('shows a load error with Try again instead of "No task lists yet"', () => {
+    render(<TasksApp />)
+    expect(screen.getByRole('alert').textContent).toBe("Couldn't load your task lists.")
+    expect(screen.queryByText('No task lists yet.')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Create your first list' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(m.refetchLists).toHaveBeenCalledTimes(1)
   })
 })

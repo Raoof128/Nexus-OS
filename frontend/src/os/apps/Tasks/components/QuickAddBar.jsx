@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { parseQuickAdd } from '../lib/quickAddParse'
 
-// Single-line quick add. Parses a natural-language due date out of the typed
-// title ("Pay rent tomorrow") and emits { title, due }.
+// Single-line quick add. Parses a natural-language due date and optional time out
+// of the typed title ("Pay rent tomorrow", "Call mom at 5pm") and emits
+// { title, due, due_at, all_day }. `due_timezone` is parsed but not sent: the
+// create endpoint does not accept it.
 export default function QuickAddBar({ onAdd, disabled }) {
   const [value, setValue] = useState('')
 
@@ -10,7 +12,12 @@ export default function QuickAddBar({ onAdd, disabled }) {
     e.preventDefault()
     const parsed = parseQuickAdd(value)
     if (!parsed.title) return
-    onAdd({ title: parsed.title, due: parsed.due })
+    onAdd({
+      title: parsed.title,
+      due: parsed.due,
+      due_at: parsed.due_at,
+      all_day: parsed.all_day,
+    })
     setValue('')
   }
 
