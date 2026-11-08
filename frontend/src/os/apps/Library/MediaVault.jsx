@@ -4,6 +4,9 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-rea
 import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../../lib/mediaConfig'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
 
+// Rows drawn at once; a long list grows by 'Show more', like the Kanban columns.
+const MAX_ROWS = 50
+
 function MediaVault({
   items,
   mediaType,
@@ -18,7 +21,15 @@ function MediaVault({
   const [search, setSearch] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [focusedId, setFocusedId] = useState(null)
+  const [rowLimit, setRowLimit] = useState(MAX_ROWS)
+  const [limitScope, setLimitScope] = useState(`${filterStatus}|${search}`)
   const rowsRef = useRef(null)
+  // A new filter or search starts again from the first page of rows.
+  const scope = `${filterStatus}|${search}`
+  if (scope !== limitScope) {
+    setLimitScope(scope)
+    setRowLimit(MAX_ROWS)
+  }
 
   const config = MEDIA_CONFIG[mediaType]
   const Icon = TYPE_ICONS[mediaType]
@@ -44,13 +55,16 @@ function MediaVault({
     return result
   }, [items, filterStatus, search])
 
+  const visible = useMemo(() => filtered.slice(0, rowLimit), [filtered, rowLimit])
+  const hiddenCount = filtered.length - visible.length
+
   // Roving tabindex: one row is in the Tab sequence (the last one focused,
   // else the selected one, else the first). Arrow keys move between rows.
-  const tabStopId = filtered.some((i) => i.id === focusedId)
+  const tabStopId = visible.some((i) => i.id === focusedId)
     ? focusedId
-    : filtered.some((i) => i.id === selectedId)
+    : visible.some((i) => i.id === selectedId)
       ? selectedId
-      : (filtered[0]?.id ?? null)
+      : (visible[0]?.id ?? null)
 
   const focusRowAt = (index) => {
     const rows = rowsRef.current?.querySelectorAll('[data-vault-row]')
@@ -63,7 +77,7 @@ function MediaVault({
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault()
-        focusRowAt(Math.min(index + 1, filtered.length - 1))
+        focusRowAt(Math.min(index + 1, visible.length - 1))
         break
       case 'ArrowUp':
         event.preventDefault()
@@ -75,7 +89,7 @@ function MediaVault({
         break
       case 'End':
         event.preventDefault()
-        focusRowAt(filtered.length - 1)
+        focusRowAt(visible.length - 1)
         break
       case 'Enter':
       case ' ':
@@ -106,14 +120,14 @@ function MediaVault({
   }
 
   const label = config?.label || 'Items'
-  const hasRows = filtered.length > 0
+  const hasRows = visible.length > 0
 
   return (
     <div className="flex h-full w-full flex-col">
       {/* Header */}
       <div className="flex shrink-0 flex-col gap-2 p-3 @sm:flex-row @sm:items-center @sm:justify-between @sm:p-4">
         <div className="flex min-w-0 items-center gap-2">
-          <button type="button" onClick={onBack} className="w7-toolbtn">
+          <button type="button" onClick={onBack} className="w7-toolbtn pointer-coarse:min-h-11">
             <ArrowLeft size={14} aria-hidden="true" />
             Back to overview
           </button>
@@ -132,7 +146,7 @@ function MediaVault({
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search this list"
             aria-label="Search vault"
-            className="w-full"
+            className="w-full pointer-coarse:min-h-11"
           />
         </div>
       </div>
@@ -190,7 +204,7 @@ function MediaVault({
                 </div>
               </div>
             )}
-            {filtered.map((item, index) => {
+            {visible.map((item, index) => {
               const isSelected = item.id === selectedId
               const { prev, next } = getStatusNav(mediaType, item.status)
               return (
@@ -249,7 +263,7 @@ function MediaVault({
                       type="button"
                       onClick={(e) => handleStatusChange(e, item, prev)}
                       disabled={!prev}
-                      className="w7-toolbtn px-1"
+                      className="w7-toolbtn px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                       title={prev ? `Back to ${prev}` : 'No earlier status'}
                       aria-label={prev ? `Back to ${prev}` : 'No earlier status'}
                     >
@@ -260,7 +274,7 @@ function MediaVault({
                       type="button"
                       onClick={(e) => handleStatusChange(e, item, next)}
                       disabled={!next}
-                      className="w7-toolbtn px-1"
+                      className="w7-toolbtn px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                       title={next ? `Advance to ${next}` : 'No later status'}
                       aria-label={next ? `Advance to ${next}` : 'No later status'}
                     >
@@ -294,7 +308,7 @@ function MediaVault({
                         e.stopPropagation()
                         onEdit?.(item)
                       }}
-                      className="w7-toolbtn px-1"
+                      className="w7-toolbtn px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                       title="Edit"
                       aria-label="Edit"
                     >
@@ -303,7 +317,7 @@ function MediaVault({
                     <button
                       type="button"
                       onClick={(e) => handleDelete(e, item)}
-                      className="w7-toolbtn w7-toolbtn--danger px-1"
+                      className="w7-toolbtn w7-toolbtn--danger px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                       title="Delete"
                       aria-label="Delete"
                     >
@@ -313,6 +327,20 @@ function MediaVault({
                 </Motion.div>
               )
             })}
+            {hiddenCount > 0 && (
+              // Same row/cell wrapper as the empty state, so the table keeps valid ARIA children.
+              <div role="row" className="flex">
+                <div role="cell" className="flex w-full justify-center px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setRowLimit((limit) => limit + MAX_ROWS)}
+                    className="w7-btn pointer-coarse:min-h-11"
+                  >
+                    Show {Math.min(hiddenCount, MAX_ROWS)} more
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

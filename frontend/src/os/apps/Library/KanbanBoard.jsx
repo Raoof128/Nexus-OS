@@ -228,7 +228,7 @@ function DroppableColumn({
           type="button"
           onClick={() => onHeaderClick?.(status, mediaType)}
           aria-label={`${status} — open vault`}
-          className="flex w-full items-center justify-between gap-2 px-1 text-left hover:opacity-80"
+          className="flex w-full items-center justify-between gap-2 px-1 text-left hover:opacity-80 pointer-coarse:min-h-11"
         >
           <span className="truncate">{status}</span>
           <span className="w7-badge tabular-nums">{total}</span>
@@ -254,7 +254,11 @@ function DroppableColumn({
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {onAddRequest && (
-                  <button type="button" onClick={() => onAddRequest(status)} className="w7-btn">
+                  <button
+                    type="button"
+                    onClick={() => onAddRequest(status)}
+                    className="w7-btn pointer-coarse:min-h-11"
+                  >
                     <Plus size={12} aria-hidden="true" />
                     Add {singular}…
                   </button>
@@ -263,7 +267,7 @@ function DroppableColumn({
                   <button
                     type="button"
                     onClick={() => onAiSuggest(status, mediaType)}
-                    className="w7-btn"
+                    className="w7-btn pointer-coarse:min-h-11"
                   >
                     <Sparkles size={12} aria-hidden="true" />
                     Ask AI
@@ -276,7 +280,7 @@ function DroppableColumn({
             <button
               type="button"
               onClick={() => onHeaderClick?.(status, mediaType)}
-              className="w7-btn w-full"
+              className="w7-btn w-full pointer-coarse:min-h-11"
             >
               Show {total - MAX_PREVIEW} more
             </button>

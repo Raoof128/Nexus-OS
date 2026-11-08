@@ -124,3 +124,23 @@ describe('MediaVault search', () => {
     expect(screen.getByRole('button', { name: 'Clear search' })).not.toBeNull()
   })
 })
+
+describe('MediaVault long lists', () => {
+  it('draws the first 50 rows and grows by 50 on Show more', () => {
+    const many = Array.from({ length: 60 }, (_, i) => ({
+      id: `m${i}`,
+      type: 'book',
+      title: `Title ${i}`,
+      creator: 'Author',
+      genre: null,
+      status: 'To Read',
+      rating: null,
+    }))
+    render(<MediaVault items={many} mediaType="book" filterStatus={null} onSelect={vi.fn()} />)
+    expect(document.querySelectorAll('[data-vault-row]')).toHaveLength(50)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show 10 more' }))
+    expect(document.querySelectorAll('[data-vault-row]')).toHaveLength(60)
+    expect(screen.queryByRole('button', { name: /Show \d+ more/ })).toBeNull()
+  })
+})

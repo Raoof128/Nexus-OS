@@ -79,12 +79,12 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
             <span className="text-[12px] text-[#8a5a00]">★ {item.rating}/5</span>
           )}
 
-          <div className="ml-auto flex gap-0.5">
+          <div className="ml-auto flex max-w-full flex-wrap justify-end gap-0.5">
             {prev && (
               <button
                 type="button"
                 onClick={handleRevert}
-                className="w7-toolbtn px-1"
+                className="w7-toolbtn px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                 title={`Back to ${prev}`}
                 aria-label={`Back to ${prev}`}
               >
@@ -95,7 +95,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
               <button
                 type="button"
                 onClick={handleAdvance}
-                className="w7-toolbtn px-1"
+                className="w7-toolbtn px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
                 title={`Move to ${next}`}
                 aria-label={`Move to ${next}`}
               >
@@ -105,7 +105,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
             <button
               type="button"
               onClick={handleEdit}
-              className="w7-toolbtn px-1"
+              className="w7-toolbtn px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
               title="Edit"
               aria-label="Edit"
             >
@@ -114,7 +114,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
             <button
               type="button"
               onClick={handleDeleteClick}
-              className="w7-toolbtn w7-toolbtn--danger px-1"
+              className="w7-toolbtn w7-toolbtn--danger px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
               title="Delete"
               aria-label="Delete"
             >

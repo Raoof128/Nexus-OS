@@ -80,7 +80,12 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
 
   return (
     <>
-      <button type="button" onClick={handleOpen} className="w7-toolbtn" aria-haspopup="dialog">
+      <button
+        type="button"
+        onClick={handleOpen}
+        className="w7-toolbtn pointer-coarse:min-h-11"
+        aria-haspopup="dialog"
+      >
         <Plus size={14} aria-hidden="true" />
         Add {config.singular}…
       </button>

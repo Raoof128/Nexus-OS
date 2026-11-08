@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 
-const inputClass = 'w-full'
+const inputClass = 'w-full pointer-coarse:min-h-11'
 
 const labelClass = 'mb-1 block text-[12px] text-foreground'
 
@@ -25,9 +25,36 @@ export default function MediaForm({
   const [rating, setRating] = useState(defaultValues.rating ? String(defaultValues.rating) : '')
   const [takeaway, setTakeaway] = useState(defaultValues.takeaway || '')
   const [subInfo, setSubInfo] = useState(defaultValues.sub_info || '')
+  // Whitespace passes the native `required` check, so title and creator are
+  // checked after trimming. The message sits under the field that failed.
+  const [fieldError, setFieldError] = useState(null)
+  const titleRef = useRef(null)
+  const creatorRef = useRef(null)
+
+  const describedBy = (field) =>
+    [
+      error ? `${idPrefix}-form-error` : null,
+      fieldError?.field === field ? `${idPrefix}-${field}-error` : null,
+    ]
+      .filter(Boolean)
+      .join(' ') || undefined
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    const titleMissing = !title.trim()
+    const creatorMissing = !creator.trim()
+    if (titleMissing || creatorMissing) {
+      const field = titleMissing ? 'title' : 'creator'
+      setFieldError({
+        field,
+        message: titleMissing
+          ? 'Enter a title.'
+          : `Enter the ${config.creatorLabel.toLowerCase()}.`,
+      })
+      ;(titleMissing ? titleRef : creatorRef).current?.focus()
+      return
+    }
+    setFieldError(null)
     const mediaData = {
       title: title.trim(),
       creator: creator.trim(),
@@ -58,16 +85,24 @@ export default function MediaForm({
           <input
             id={`${idPrefix}-title`}
             type="text"
+            ref={titleRef}
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value)
+              setFieldError(null)
+            }}
             className={inputClass}
             placeholder={placeholders.title}
             required
             maxLength={200}
-            {...(error
-              ? { 'aria-describedby': `${idPrefix}-form-error`, 'aria-invalid': true }
-              : {})}
+            aria-invalid={Boolean(error) || fieldError?.field === 'title' || undefined}
+            aria-describedby={describedBy('title')}
           />
+          {fieldError?.field === 'title' && (
+            <p id={`${idPrefix}-title-error`} role="alert" className="w7-error mt-1 text-[12px]">
+              {fieldError.message}
+            </p>
+          )}
         </div>
 
         <div>
@@ -77,13 +112,24 @@ export default function MediaForm({
           <input
             id={`${idPrefix}-creator`}
             type="text"
+            ref={creatorRef}
             value={creator}
-            onChange={(e) => setCreator(e.target.value)}
+            onChange={(e) => {
+              setCreator(e.target.value)
+              setFieldError(null)
+            }}
             className={inputClass}
             placeholder={placeholders.creator}
             required
             maxLength={100}
+            aria-invalid={fieldError?.field === 'creator' || undefined}
+            aria-describedby={describedBy('creator')}
           />
+          {fieldError?.field === 'creator' && (
+            <p id={`${idPrefix}-creator-error`} role="alert" className="w7-error mt-1 text-[12px]">
+              {fieldError.message}
+            </p>
+          )}
         </div>
 
         {isJob ? (
@@ -199,7 +245,11 @@ export default function MediaForm({
 
       {/* Command area: default action first, then Cancel (Windows 7 order). */}
       <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <button type="submit" disabled={submitting} className="w7-btn default">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w7-btn default pointer-coarse:min-h-11"
+        >
           {submitting ? (
             <span className="flex items-center justify-center gap-2">
               <Loader2 size={14} className="animate-spin" aria-hidden="true" />
@@ -210,7 +260,12 @@ export default function MediaForm({
           )}
         </button>
         {onCancel && (
-          <button type="button" onClick={onCancel} disabled={submitting} className="w7-btn">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={submitting}
+            className="w7-btn pointer-coarse:min-h-11"
+          >
             Cancel
           </button>
         )}

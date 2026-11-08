@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Command } from 'cmdk'
 import { Check, Cpu, Plus, Sparkles, Zap } from 'lucide-react'
@@ -8,6 +8,11 @@ import { MEDIA_CONFIG } from '../../../lib/mediaConfig'
 export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', onAdd }) {
   const [result, setResult] = useState(null)
   const [addedIndices, setAddedIndices] = useState(new Set())
+  // The failed quick-add (suggestion index + message), shown under that card.
+  const [addError, setAddError] = useState(null)
+  // Bumped whenever the suggestion list is replaced or closed, so a quick-add
+  // that finishes late cannot mark a card from the previous list.
+  const listGenerationRef = useRef(0)
   // Reset prior-suggestion state when the caller switches media type — a 0th
   // book suggestion must not inherit the "Added" flag when the user toggles to
   // movies. Using the render-time reset pattern avoids a setState-in-effect.
@@ -15,10 +20,17 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
   if (lastType !== mediaType) {
     setLastType(mediaType)
     setAddedIndices(new Set())
+    setAddError(null)
     setResult(null)
   }
   const config = MEDIA_CONFIG[mediaType]
   const { suggest, suggestError, suggesting, resetSuggest } = useSuggest(mediaType)
+
+  const clearListState = () => {
+    listGenerationRef.current += 1
+    setAddedIndices(new Set())
+    setAddError(null)
+  }
 
   // Single close path: Escape, the caption close button and the backdrop all
   // reset the prior suggestion state before the parent hears about it.
@@ -26,13 +38,15 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
     if (!v) {
       setResult(null)
       resetSuggest()
-      setAddedIndices(new Set())
+      clearListState()
     }
     onOpenChange(v)
   }
 
   const handleAddToArchive = async (suggestion, status, index) => {
     if (!onAdd || addedIndices.has(index)) return
+    const generation = listGenerationRef.current
+    setAddError(null)
     try {
       await onAdd({
         title: suggestion.title,
@@ -43,15 +57,32 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
         takeaway: suggestion.pitch || null,
         sub_info: suggestion.year || null,
       })
-      setAddedIndices((prev) => new Set(prev).add(index))
+      if (generation === listGenerationRef.current) {
+        setAddedIndices((prev) => new Set(prev).add(index))
+      }
     } catch {
-      // mutation error surfaced by useMedia
+      if (generation === listGenerationRef.current) {
+        setAddError({
+          index,
+          message: `“${suggestion.title}” wasn’t added. Check your connection, then try again.`,
+        })
+      }
     }
   }
 
   const handleSuggest = async () => {
-    const response = await suggest()
+    let response
+    try {
+      response = await suggest()
+    } catch {
+      // The failure is shown from useSuggest's suggestError.
+      return
+    }
     if (response) {
+      // A new list starts with no "Added" marks and no stale add error.
+      listGenerationRef.current += 1
+      setAddedIndices(new Set())
+      setAddError(null)
       setResult(response)
     }
   }
@@ -199,7 +230,7 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
                             key={status}
                             type="button"
                             onClick={() => handleAddToArchive(s, status, i)}
-                            className="w7-btn gap-1 text-[12px]"
+                            className="w7-btn gap-1 text-[12px] pointer-coarse:min-h-11"
                           >
                             <Plus size={10} aria-hidden="true" />
                             {status}
@@ -207,6 +238,11 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
                         ))}
                       </div>
                     )
+                  )}
+                  {addError?.index === i && (
+                    <p role="alert" className="ml-6 mt-2 w7-error text-[12px]">
+                      {addError.message}
+                    </p>
                   )}
                 </div>
               )

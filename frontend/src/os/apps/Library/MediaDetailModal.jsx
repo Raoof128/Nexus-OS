@@ -139,7 +139,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                                     ? `Current status: ${stepStatus}`
                                     : `Change status to ${stepStatus}`
                                 }
-                                className="w7-toolbtn shrink-0 gap-1.5 px-1.5 disabled:text-w7-title disabled:opacity-100"
+                                className="w7-toolbtn shrink-0 gap-1.5 px-1.5 pointer-coarse:min-h-11 disabled:text-w7-title disabled:opacity-100"
                               >
                                 <span
                                   aria-hidden="true"
@@ -192,9 +192,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                                   size={14}
                                   aria-hidden="true"
                                   className={
-                                    i < item.rating
-                                      ? 'fill-amber-500 text-amber-500'
-                                      : 'text-[#c5cad3]'
+                                    i < item.rating ? 'fill-warning text-warning' : 'text-[#c5cad3]'
                                   }
                                 />
                               ))}
@@ -228,7 +226,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}
-                    className="w7-btn mr-auto"
+                    className="w7-btn mr-auto pointer-coarse:min-h-11"
                   >
                     Delete
                   </button>
@@ -238,11 +236,15 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                       onClose()
                       requestAnimationFrame(() => onEdit?.(item))
                     }}
-                    className="w7-btn default"
+                    className="w7-btn default pointer-coarse:min-h-11"
                   >
                     Edit
                   </button>
-                  <button type="button" onClick={onClose} className="w7-btn">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="w7-btn pointer-coarse:min-h-11"
+                  >
                     Close
                   </button>
                 </div>

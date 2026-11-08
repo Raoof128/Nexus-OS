@@ -70,6 +70,7 @@ function CommandOption({ id, idx, active, item, onHover, onRun }) {
 export default function CommandPalette() {
   const [open, setOpen] = useState(false)
   const [confirmCloseAll, setConfirmCloseAll] = useState(false)
+  const [confirmReload, setConfirmReload] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIdx, setActiveIdx] = useState(0)
   const [installable, setInstallable] = useState(false)
@@ -108,19 +109,33 @@ export default function CommandPalette() {
   // happens here in the event handler, not in an effect.
   useEffect(() => {
     const onKey = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        if (open) {
-          close()
-        } else {
-          setQuery('')
-          setActiveIdx(0)
-          setOpen(true)
-        }
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'k') return
+      // A focused app already consumed the shortcut.
+      if (e.defaultPrevented) return
+      // Ask AI owns its own dialog; never stack a second palette on top of it.
+      if (document.querySelector('[role="dialog"][aria-label="Ask AI"]')) return
+      e.preventDefault()
+      if (open) {
+        close()
+      } else {
+        setQuery('')
+        setActiveIdx(0)
+        setOpen(true)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
+  }, [open, close])
+
+  // Escape closes the palette wherever focus has landed (for example after
+  // another dialog returned focus elsewhere), so it can never be left behind.
+  useEffect(() => {
+    if (!open) return undefined
+    const onEscape = (e) => {
+      if (e.key === 'Escape') close()
+    }
+    window.addEventListener('keydown', onEscape)
+    return () => window.removeEventListener('keydown', onEscape)
   }, [open, close])
 
   const run = useCallback(
@@ -215,7 +230,8 @@ export default function CommandPalette() {
         label: 'Restart Nexus OS shell',
         keywords: 'reload restart refresh shell reboot',
         icon: RotateCw,
-        action: () => window.location.reload(),
+        // Reloading drops unsaved work in open apps, so ask first (Cancel is the default).
+        action: () => setConfirmReload(true),
       },
     )
 
@@ -323,6 +339,19 @@ export default function CommandPalette() {
 
   return createPortal(
     <>
+      <ConfirmDialog
+        open={confirmReload}
+        id="palette-reload"
+        title="Restart Nexus OS"
+        message="Restart the shell now? Unsaved work in open apps will be lost."
+        confirmLabel="Restart"
+        defaultAction="cancel"
+        onConfirm={() => {
+          setConfirmReload(false)
+          window.location.reload()
+        }}
+        onCancel={() => setConfirmReload(false)}
+      />
       <ConfirmDialog
         open={confirmCloseAll}
         id="palette-close-all"

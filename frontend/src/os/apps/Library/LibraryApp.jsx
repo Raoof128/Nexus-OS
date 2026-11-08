@@ -29,10 +29,15 @@ export default function LibraryApp() {
     items,
     loading: dataLoading,
     error,
+    refreshing,
+    refetch,
     addMedia,
     updateMedia,
     deleteMedia,
   } = useMedia(session, activeType)
+  // A failed status move or delete from the board, vault or detail view has
+  // no dialog of its own, so it is reported here. The list stays on screen.
+  const [actionError, setActionError] = useState(null)
 
   // Mirror activeType into the URL so refresh/back buttons preserve context.
   useEffect(() => {
@@ -65,6 +70,21 @@ export default function LibraryApp() {
     setActiveType(type)
     setVaultState(null)
   }, [])
+
+  const handleBoardUpdate = useCallback(
+    (variables) =>
+      updateMedia(variables).catch(() =>
+        setActionError('The status couldn’t be changed. Check your connection, then try again.'),
+      ),
+    [updateMedia],
+  )
+  const handleBoardDelete = useCallback(
+    (mediaId) =>
+      deleteMedia(mediaId).catch(() =>
+        setActionError('The entry couldn’t be deleted. Check your connection, then try again.'),
+      ),
+    [deleteMedia],
+  )
 
   const handleAddRequest = useCallback((status) => {
     window.dispatchEvent(new CustomEvent('nexus:open-add-media', { detail: { status } }))
@@ -111,7 +131,7 @@ export default function LibraryApp() {
                   selectType(MEDIA_TYPES[target])
                   tabRefs.current[target]?.focus()
                 }}
-                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap pointer-coarse:min-h-11"
               >
                 <Icon size={14} aria-hidden="true" />
                 {MEDIA_CONFIG[type].label}
@@ -143,60 +163,100 @@ export default function LibraryApp() {
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <p>Loading…</p>
           </div>
-        ) : error ? (
+        ) : error && items.length === 0 ? (
           <div role="alert" className="flex flex-col items-center gap-3 p-6 text-center">
             <p className="w7-error">
               Your media couldn&rsquo;t be loaded. {error} Check your connection, then select Retry.
             </p>
-            <button type="button" onClick={() => window.location.reload()} className="w7-btn">
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={refreshing}
+              className="w7-btn pointer-coarse:min-h-11"
+            >
               Retry
             </button>
           </div>
         ) : (
-          <AnimatePresence mode="wait">
-            {vaultState ? (
-              <Motion.div
-                key="vault"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: DURATION.slow }}
+          <>
+            {error && (
+              <div
+                role="alert"
+                className="flex flex-wrap items-center gap-2 border-b border-border bg-w7-pane px-3 py-2"
               >
-                <MediaVault
-                  items={items}
-                  mediaType={activeType}
-                  filterStatus={vaultState.status}
-                  selectedId={selectedItemId}
-                  onBack={() => setVaultState(null)}
-                  onUpdate={updateMedia}
-                  onDelete={deleteMedia}
-                  onSelect={handleSelect}
-                  onEdit={handleEdit}
-                />
-              </Motion.div>
-            ) : (
-              <Motion.div
-                key="overview"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                transition={{ duration: DURATION.slow }}
-                className="p-3 sm:p-4"
-              >
-                <KanbanBoard
-                  items={items}
-                  mediaType={activeType}
-                  onUpdate={updateMedia}
-                  onDelete={deleteMedia}
-                  onSelect={handleSelect}
-                  onEdit={handleEdit}
-                  onHeaderClick={openVault}
-                  onAddRequest={handleAddRequest}
-                  onAiSuggest={handleAiSuggest}
-                />
-              </Motion.div>
+                <p className="w7-error min-w-0 flex-1 text-[12px]">
+                  Couldn&rsquo;t refresh your media. Showing the last list that loaded.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  disabled={refreshing}
+                  className="w7-btn pointer-coarse:min-h-11"
+                >
+                  Retry
+                </button>
+              </div>
             )}
-          </AnimatePresence>
+            {actionError && (
+              <div
+                role="alert"
+                className="flex flex-wrap items-center gap-2 border-b border-border bg-w7-pane px-3 py-2"
+              >
+                <p className="w7-error min-w-0 flex-1 text-[12px]">{actionError}</p>
+                <button
+                  type="button"
+                  onClick={() => setActionError(null)}
+                  className="w7-btn pointer-coarse:min-h-11"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+            <AnimatePresence mode="wait">
+              {vaultState ? (
+                <Motion.div
+                  key="vault"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: DURATION.slow }}
+                >
+                  <MediaVault
+                    items={items}
+                    mediaType={activeType}
+                    filterStatus={vaultState.status}
+                    selectedId={selectedItemId}
+                    onBack={() => setVaultState(null)}
+                    onUpdate={handleBoardUpdate}
+                    onDelete={handleBoardDelete}
+                    onSelect={handleSelect}
+                    onEdit={handleEdit}
+                  />
+                </Motion.div>
+              ) : (
+                <Motion.div
+                  key="overview"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: DURATION.slow }}
+                  className="p-3 sm:p-4"
+                >
+                  <KanbanBoard
+                    items={items}
+                    mediaType={activeType}
+                    onUpdate={handleBoardUpdate}
+                    onDelete={handleBoardDelete}
+                    onSelect={handleSelect}
+                    onEdit={handleEdit}
+                    onHeaderClick={openVault}
+                    onAddRequest={handleAddRequest}
+                    onAiSuggest={handleAiSuggest}
+                  />
+                </Motion.div>
+              )}
+            </AnimatePresence>
+          </>
         )}
       </article>
 
@@ -204,8 +264,8 @@ export default function LibraryApp() {
         <MediaDetailModal
           item={selectedItem}
           onClose={handleCloseDetail}
-          onUpdate={updateMedia}
-          onDelete={deleteMedia}
+          onUpdate={handleBoardUpdate}
+          onDelete={handleBoardDelete}
           onEdit={handleEdit}
         />
       </Suspense>

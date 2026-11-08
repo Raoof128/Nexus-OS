@@ -4,6 +4,12 @@ import { Zap } from 'lucide-react'
 const loadAICmdPalette = () => import('./AICmdPalette')
 const AICmdPalette = lazy(loadAICmdPalette)
 
+// Ctrl+K belongs to the OS command palette everywhere. Ask AI takes Alt+A.
+const IS_MAC =
+  typeof navigator !== 'undefined' &&
+  /Mac/i.test(navigator.userAgentData?.platform ?? navigator.platform)
+const SHORTCUT_LABEL = IS_MAC ? '⌥A' : 'Alt+A'
+
 function LoadingDialog() {
   return (
     <>
@@ -28,22 +34,18 @@ function LoadingDialog() {
 // placement="inline" renders it in normal flow, for a host's command bar.
 export default function LazyAICmdPalette({ mediaType = 'book', onAdd, placement = 'floating' }) {
   const [open, setOpen] = useState(false)
-  const [shouldLoad, setShouldLoad] = useState(false)
-
-  const openPalette = () => {
-    setShouldLoad(true)
-    setOpen(true)
-  }
 
   useEffect(() => {
     const handleShortcut = (event) => {
+      if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+      if (event.code !== 'KeyA') return
       if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return
-      if (event.key === 'k' && (event.metaKey || event.ctrlKey)) {
-        event.preventDefault()
-        openPalette()
-      }
+      // One palette at a time: the OS command palette is already open.
+      if (document.querySelector('[data-testid="command-palette"]')) return
+      event.preventDefault()
+      setOpen(true)
     }
-    const handleExternalOpen = () => openPalette()
+    const handleExternalOpen = () => setOpen(true)
 
     document.addEventListener('keydown', handleShortcut)
     window.addEventListener('nexus:open-ai-cmd', handleExternalOpen)
@@ -53,37 +55,34 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd, placement 
     }
   }, [])
 
+  // Hover and focus only warm the chunk. Mounting waits for an actual open,
+  // so a cold click never races a half-mounted palette.
+  const prefetch = () => {
+    void loadAICmdPalette()
+  }
+
   return (
     <>
       <button
         type="button"
         aria-label="Ask AI (open command palette)"
-        className={`w7-toolbtn w7-card min-h-[44px] min-w-[44px] gap-1.5 px-2 sm:min-h-[28px] sm:min-w-0 ${
+        aria-keyshortcuts="Alt+A"
+        title={`Ask AI (${SHORTCUT_LABEL})`}
+        className={`w7-toolbtn w7-card min-h-[44px] min-w-[44px] gap-1.5 px-2 sm:pointer-fine:min-h-[28px] sm:pointer-fine:min-w-0 ${
           placement === 'floating'
             ? 'fixed bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))] right-4 z-40 sm:bottom-[4.5rem] sm:right-6 sm:z-50'
             : ''
         }`}
-        onMouseEnter={() => {
-          setShouldLoad(true)
-          void loadAICmdPalette()
-        }}
-        onFocus={() => {
-          setShouldLoad(true)
-          void loadAICmdPalette()
-        }}
-        onClick={openPalette}
+        onMouseEnter={prefetch}
+        onFocus={prefetch}
+        onClick={() => setOpen(true)}
       >
         <Zap size={14} className="text-[#3d5a80]" aria-hidden="true" />
-        <span className="hidden sm:inline">Ask AI</span>
-        <kbd className="hidden text-[11px] text-muted-foreground sm:inline">
-          {typeof navigator !== 'undefined' &&
-          /Mac/i.test(navigator.userAgentData?.platform ?? navigator.platform)
-            ? '⌘K'
-            : 'Ctrl+K'}
-        </kbd>
+        <span>Ask AI</span>
+        <kbd className="hidden text-[11px] text-muted-foreground sm:inline">{SHORTCUT_LABEL}</kbd>
       </button>
 
-      {shouldLoad ? (
+      {open ? (
         <Suspense fallback={<LoadingDialog />}>
           <AICmdPalette open={open} onOpenChange={setOpen} mediaType={mediaType} onAdd={onAdd} />
         </Suspense>

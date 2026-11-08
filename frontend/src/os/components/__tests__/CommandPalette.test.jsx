@@ -172,4 +172,39 @@ describe('CommandPalette', () => {
     expect(screen.queryByRole('dialog', { name: 'Command palette' })).toBeNull()
     await waitFor(() => expect(mocks.openApp).toHaveBeenCalledWith('media'))
   })
+
+  it('closes on Escape even when focus has left the search box', () => {
+    render(<CommandPalette />)
+    openWithShortcut()
+    act(() => document.activeElement.blur())
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Command palette' })).toBeNull()
+  })
+
+  it('does not stack a second palette on top of Ask AI', () => {
+    const askAi = document.createElement('div')
+    askAi.setAttribute('role', 'dialog')
+    askAi.setAttribute('aria-label', 'Ask AI')
+    document.body.appendChild(askAi)
+    render(<CommandPalette />)
+    openWithShortcut()
+    expect(screen.queryByRole('dialog', { name: 'Command palette' })).toBeNull()
+    askAi.remove()
+  })
+
+  it('asks before restarting the shell and makes Cancel the default', async () => {
+    render(<CommandPalette />)
+    openWithShortcut()
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search apps and commands' }), {
+      target: { value: 'restart' },
+    })
+    fireEvent.click(screen.getByRole('option', { name: 'Restart Nexus OS shell' }))
+
+    const confirm = await screen.findByRole('alertdialog', { name: 'Restart Nexus OS' })
+    expect(within(confirm).getByRole('button', { name: 'Cancel' })).toBe(document.activeElement)
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() =>
+      expect(screen.queryByRole('alertdialog', { name: 'Restart Nexus OS' })).toBeNull(),
+    )
+  })
 })
