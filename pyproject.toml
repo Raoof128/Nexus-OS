@@ -1,5 +1,7 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+# setuptools 77 is the first release that understands the SPDX string license
+# and license-files forms used below. Older versions reject the build.
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,23 +10,28 @@ version = "0.3.0"
 description = "Personal cyberpunk OS shell with AI recommendations and a Litestar API."
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Raoof" }]
+# Runtime dependencies use compatible-release ranges (PEP 440 `~=`): each floor
+# is the version the test suite last ran against, and the range stops before
+# the next major. Locking the full transitive set is tracked separately.
 dependencies = [
-  "cryptography>=45.0.0",
-  "email-validator>=2.2.0",
-  "google-genai>=1.22.0",
-  "httpx>=0.28.1",
-  "litestar>=2.17.0",
-  "pydantic>=2.11.0",
-  "pyjwt>=2.12.1",
-  "python-dateutil>=2.9.0",
-  "python-dotenv>=1.2.2",
-  "redis>=6.0.0",
-  "sentry-sdk>=2.27.0",
-  "supabase>=2.15.3",
-  "tiktoken>=0.9.0",
-  "uvicorn[standard]>=0.34.0",
+  "cryptography~=50.0",
+  "email-validator~=2.3",
+  "google-genai~=3.0",
+  "httpx~=0.28.1",
+  "litestar~=2.25",
+  "pydantic~=2.14",
+  "pyjwt~=2.15",
+  # Installed 4.0.0 is accepted explicitly; the floor is the tested 2.9 line.
+  "python-dateutil>=2.9.0,<5",
+  "python-dotenv~=1.2",
+  "redis~=8.1",
+  "sentry-sdk~=2.74",
+  "supabase~=2.34",
+  "tiktoken~=0.14",
+  "uvicorn[standard]~=0.54",
 ]
 
 [project.optional-dependencies]
@@ -56,7 +63,9 @@ line-length = 88
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B"]
+# ASYNC flags blocking calls inside async handlers (zero findings today).
+# S, UP and RUF are deferred: they need per-file ignores and a fix pass first.
+select = ["E", "F", "I", "B", "ASYNC"]
 
 [tool.ruff.format]
 quote-style = "double"

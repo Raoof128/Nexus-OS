@@ -140,3 +140,56 @@ class TestMediaControllerCRUD:
         assert response.status_code == 422
         # The Supabase client must never be reached for a rejected filter.
         mock_client_fn.assert_not_called()
+
+
+@pytest.fixture()
+def _inject_user_without_token(monkeypatch):
+    """Authenticated user id with NO access token (the injected-state case)."""
+
+    from backend import auth as auth_mod
+
+    async def _bypass(self, scope, receive, send):
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            if not path.startswith(("/healthz", "/schema", "/auth")):
+                scope.setdefault("state", {})["user_id"] = "user-123"
+                scope["state"]["auth_payload"] = _fake_jwt_payload()
+        await self.app(scope, receive, send)
+
+    monkeypatch.setattr(auth_mod.SupabaseAuthMiddleware, "__call__", _bypass)
+
+
+_VALID_MEDIA_BODY = {"type": "book", "title": "Dune", "creator": "Herbert"}
+
+
+@pytest.mark.usefixtures("_inject_user_without_token")
+class TestMissingAccessTokenIsUnauthorized:
+    """A missing access token is a 401 on every verb, never a 502.
+
+    The app-level middleware normally rejects token-less requests first, so
+    these tests inject the state directly to exercise the controller guard.
+    """
+
+    @pytest.mark.parametrize(
+        ("method", "path", "json_body"),
+        [
+            ("get", "/media", None),
+            ("get", "/media?type=book", None),
+            ("post", "/media", _VALID_MEDIA_BODY),
+            ("put", "/media/m-1", {"status": "Finished"}),
+            ("delete", "/media/m-1", None),
+            ("get", "/media/suggest?type=book", None),
+        ],
+    )
+    @patch("backend.controllers.logger")
+    @patch("backend.controllers.create_supabase_user_client")
+    def test_missing_token_returns_401_without_external_call(
+        self, mock_client_fn, mock_logger, client, method, path, json_body
+    ):
+        kwargs = {"json": json_body} if json_body is not None else {}
+        response = getattr(client, method)(path, **kwargs)
+
+        assert response.status_code == HTTP_401_UNAUTHORIZED
+        assert response.json()["detail"] == "Missing or invalid authorization token"
+        mock_client_fn.assert_not_called()
+        mock_logger.exception.assert_not_called()
