@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Eye } from 'lucide-react'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import { useWindowStore } from '../stores/windowStore'
 import NotesMenuBar from './Notes/NotesMenuBar'
-import { NotesAboutDialog, NotesFindDialog } from './Notes/NotesDialogs'
+import { NotesAboutDialog, NotesFindDialog, NotesOpenDialog } from './Notes/NotesDialogs'
 import { renderMarkdown } from './Notes/markdown'
+import { addNote, deleteNote, deriveTitle, getNote, listNotes, saveNote } from './Notes/noteStore'
+import { linkNoteToWindow, noteWindowsShowing, resolveWindowNote } from './Notes/noteWindows'
 import {
   findInText,
   formatDateTime,
@@ -13,9 +17,20 @@ import {
 
 const SAVE_DEBOUNCE_MS = 500
 
+/**
+ * One Notes window shows one note. The note lives in storage under its own id
+ * (Notes/noteStore.js), so closing the window keeps it. File → New and File →
+ * Open… switch this window to another note.
+ */
 export default function NotesApp({ windowId }) {
-  const storageKey = `nexus-os:note-${windowId}`
-  const [content, setContent] = useState('')
+  // Which note this window shows is decided once, on mount.
+  const [initial] = useState(() => {
+    const id = resolveWindowNote(windowId)
+    const note = id ? getNote(id) : null
+    return { id, content: note?.content ?? '' }
+  })
+  const [noteId, setNoteId] = useState(initial.id)
+  const [content, setContent] = useState(initial.content)
   // View → Edit / Markdown preview. Preview is an extra mode, not Notepad's default.
   const [preview, setPreview] = useState(false)
   // Format → Word wrap / Monospace font.
@@ -26,69 +41,65 @@ export default function NotesApp({ windowId }) {
   const [findQuery, setFindQuery] = useState('')
   const [findMessage, setFindMessage] = useState('')
   const [aboutOpen, setAboutOpen] = useState(false)
+  const [openDialogOpen, setOpenDialogOpen] = useState(false)
+  const [notesList, setNotesList] = useState([])
+  const [openError, setOpenError] = useState('')
+  // The note waiting for confirmation before it is deleted.
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const focusWindow = useWindowStore((s) => s.focusWindow)
 
   const textareaRef = useRef(null)
   const saveTimeout = useRef(null)
-  const pendingText = useRef(null)
+  // { id, text } while a typed change waits for the save timer.
+  const pendingSave = useRef(null)
   // Where the caret should land after Time/Date is inserted.
   const pendingCaret = useRef(null)
 
-  // Load on mount
-  useEffect(() => {
-    queueMicrotask(() => {
-      try {
-        const raw = localStorage.getItem(storageKey)
-        if (raw) {
-          const saved = JSON.parse(raw)
-          if (saved.content) setContent(saved.content)
-        }
-      } catch {
-        // Corrupt data
-      }
-    })
-  }, [storageKey])
-
-  const persist = useCallback(
-    (text) => {
-      try {
-        localStorage.setItem(storageKey, JSON.stringify({ content: text }))
-        return true
-      } catch {
-        // Storage full or unavailable
-        return false
-      }
-    },
-    [storageKey],
-  )
+  const persist = useCallback((id, text) => {
+    if (!id) return false
+    try {
+      saveNote(id, text)
+      return true
+    } catch {
+      // Storage full, or the note was deleted elsewhere
+      return false
+    }
+  }, [])
 
   // A typed change is saved after a short pause. Leaving the note saves at once.
-  const scheduleSave = useCallback(
-    (text) => {
-      pendingText.current = text
-      setSaveState('pending')
-      if (saveTimeout.current) clearTimeout(saveTimeout.current)
-      saveTimeout.current = setTimeout(() => {
-        saveTimeout.current = null
-        const latest = pendingText.current
-        pendingText.current = null
-        setSaveState(persist(latest) ? 'saved' : 'error')
-      }, SAVE_DEBOUNCE_MS)
-    },
-    [persist],
-  )
+  const scheduleSave = (id, text) => {
+    pendingSave.current = { id, text }
+    setSaveState('pending')
+    if (saveTimeout.current) clearTimeout(saveTimeout.current)
+    saveTimeout.current = setTimeout(() => {
+      saveTimeout.current = null
+      const latest = pendingSave.current
+      pendingSave.current = null
+      if (latest) setSaveState(persist(latest.id, latest.text) ? 'saved' : 'error')
+    }, SAVE_DEBOUNCE_MS)
+  }
 
   const saveNow = () => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current)
     saveTimeout.current = null
-    pendingText.current = null
-    setSaveState(persist(content) ? 'saved' : 'error')
+    pendingSave.current = null
+    setSaveState(persist(noteId, content) ? 'saved' : 'error')
+  }
+
+  // Writes a change still waiting for the timer. False when it could not be saved.
+  const flushPendingSave = () => {
+    if (saveTimeout.current) clearTimeout(saveTimeout.current)
+    saveTimeout.current = null
+    const pending = pendingSave.current
+    pendingSave.current = null
+    return pending ? persist(pending.id, pending.text) : true
   }
 
   // Clear the timer on unmount, saving any change still waiting for it.
   useEffect(() => {
     return () => {
       if (saveTimeout.current) clearTimeout(saveTimeout.current)
-      if (pendingText.current !== null) persist(pendingText.current)
+      if (pendingSave.current) persist(pendingSave.current.id, pendingSave.current.text)
     }
   }, [persist])
 
@@ -102,7 +113,7 @@ export default function NotesApp({ windowId }) {
 
   const applyContent = (text) => {
     setContent(text)
-    scheduleSave(text)
+    scheduleSave(noteId, text)
   }
 
   const handleChange = (e) => applyContent(e.target.value)
@@ -111,14 +122,96 @@ export default function NotesApp({ windowId }) {
     if (!preview) textareaRef.current?.focus()
   }
 
-  const insertDateTime = () => {
-    const ta = textareaRef.current
-    if (!ta) return
-    const start = ta.selectionStart ?? content.length
-    const end = ta.selectionEnd ?? start
-    const stamp = formatDateTime(new Date())
-    pendingCaret.current = start + stamp.length
-    applyContent(insertAt(content, start, end, stamp))
+  // Shows another note in this window. Returns false, and keeps the current
+  // note, when the current note's last edit could not be saved.
+  const leaveCurrentNote = () => {
+    if (flushPendingSave()) return true
+    setSaveState('error')
+    return false
+  }
+
+  const showNote = (id, text) => {
+    setNoteId(id)
+    setContent(text)
+    setSaveState('saved')
+    setPreview(false)
+  }
+
+  const newNote = ({ focus = true } = {}) => {
+    if (!leaveCurrentNote()) return
+    let note
+    try {
+      note = addNote({ content: '' })
+    } catch {
+      setSaveState('error')
+      return
+    }
+    linkNoteToWindow(windowId, note.id)
+    showNote(note.id, '')
+    if (focus) requestAnimationFrame(() => textareaRef.current?.focus())
+  }
+
+  const openNote = (id) => {
+    if (id === noteId) return true
+    if (!leaveCurrentNote()) return false
+    const next = getNote(id)
+    if (!next) return false
+    linkNoteToWindow(windowId, id)
+    showNote(id, next.content)
+    return true
+  }
+
+  const openDialogNow = () => {
+    setOpenError('')
+    setNotesList(listNotes())
+    setOpenDialogOpen(true)
+  }
+
+  // Focus goes back to the editor after the dialog unmounts, since the focus
+  // trap restores focus to the menu title on unmount. Deferred so it wins.
+  const closeOpenDialog = () => {
+    setOpenDialogOpen(false)
+    requestAnimationFrame(() => textareaRef.current?.focus())
+  }
+
+  const chooseNote = (id) => {
+    const elsewhere = noteWindowsShowing(id, windowId)
+    if (elsewhere.length > 0) {
+      // Already open in another window: switch to that window, never two editors on one note.
+      setOpenDialogOpen(false)
+      focusWindow(elsewhere[0])
+      return
+    }
+    if (openNote(id)) closeOpenDialog()
+    else setOpenError('This note could not be opened. Try again.')
+  }
+
+  const requestDelete = (note) => {
+    if (noteWindowsShowing(note.id, windowId).length > 0) return
+    setOpenError('')
+    setDeleteTarget(note)
+  }
+
+  const confirmDelete = () => {
+    const target = deleteTarget
+    setDeleteTarget(null)
+    if (!target) return
+    if (target.id === noteId) {
+      // The note is going away, so its unsaved text must not be written back.
+      if (saveTimeout.current) clearTimeout(saveTimeout.current)
+      saveTimeout.current = null
+      pendingSave.current = null
+    }
+    try {
+      deleteNote(target.id)
+    } catch {
+      setOpenError('This note could not be deleted. Try again.')
+      setNotesList(listNotes())
+      return
+    }
+    // Deleting this window's own note leaves it on a fresh blank note.
+    if (target.id === noteId) newNote({ focus: false })
+    setNotesList(listNotes())
   }
 
   const openFind = () => {
@@ -156,6 +249,16 @@ export default function NotesApp({ windowId }) {
     writeNotesPrefs(next)
   }
 
+  const insertDateTime = () => {
+    const ta = textareaRef.current
+    if (!ta) return
+    const start = ta.selectionStart ?? content.length
+    const end = ta.selectionEnd ?? start
+    const stamp = formatDateTime(new Date())
+    pendingCaret.current = start + stamp.length
+    applyContent(insertAt(content, start, end, stamp))
+  }
+
   const handleEditorKeyDown = (e) => {
     const withCtrl = e.ctrlKey || e.metaKey
     if (e.key === 'F5') {
@@ -173,6 +276,7 @@ export default function NotesApp({ windowId }) {
 
   const charCount = content.length
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0
+  const title = deriveTitle(content)
 
   const editing = !preview
   const menus = [
@@ -180,6 +284,8 @@ export default function NotesApp({ windowId }) {
       id: 'file',
       label: 'File',
       items: [
+        { id: 'new', label: 'New', onSelect: () => newNote() },
+        { id: 'open', label: 'Open…', divider: true, onSelect: openDialogNow },
         {
           id: 'save',
           label: 'Save',
@@ -347,6 +453,9 @@ export default function NotesApp({ windowId }) {
 
       {/* Status bar */}
       <div className="status-bar shrink-0">
+        <p className="status-bar-field min-w-0 flex-1 truncate" title={title}>
+          {title}
+        </p>
         <p className="status-bar-field">
           {wordCount} {wordCount === 1 ? 'word' : 'words'} · {charCount}{' '}
           {charCount === 1 ? 'character' : 'characters'}
@@ -364,6 +473,31 @@ export default function NotesApp({ windowId }) {
           onClose={closeFind}
         />
       )}
+      {openDialogOpen && (
+        <NotesOpenDialog
+          notes={notesList}
+          currentId={noteId}
+          error={openError}
+          isOpenElsewhere={(id) => noteWindowsShowing(id, windowId).length > 0}
+          onOpen={chooseNote}
+          onDelete={requestDelete}
+          onClose={closeOpenDialog}
+        />
+      )}
+      {/* Outside the dialogs above, so Escape here does not also close them. */}
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        id="notes-delete"
+        title="Delete note"
+        message={
+          deleteTarget
+            ? `Delete “${deleteTarget.title}”? It is removed from this browser and can't be recovered.`
+            : ''
+        }
+        confirmLabel="Delete"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
       {aboutOpen && <NotesAboutDialog onClose={() => setAboutOpen(false)} />}
     </div>
   )

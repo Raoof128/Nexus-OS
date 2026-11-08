@@ -166,8 +166,14 @@ export default function Desktop() {
   const hydrateFromStorage = useWindowStore((s) => s.hydrateFromStorage)
   const { session } = useAuth()
   const userId = session?.user?.id
+  // StrictMode runs mount effects twice in development. Booting twice re-read
+  // the saved layout and dropped a window the first run had just opened (a
+  // deep link or share target), so the boot sequence runs once per mount.
+  const bootedRef = useRef(false)
 
   useEffect(() => {
+    if (bootedRef.current) return
+    bootedRef.current = true
     // Files, notes and window layout live in this browser. If another account
     // owned them, wipe them before any store hydrates (see lib/privateState).
     claimLocalState(userId)
@@ -176,7 +182,14 @@ export default function Desktop() {
     // Restore this account's notification history + Do Not Disturb preference.
     useNotificationStore.getState().hydrateNotifications(userId)
     // PWA Web Share Target: shared text/url is appended to Notes, which we open.
-    const sharedApp = consumeShareTarget()
+    const sharedApp = consumeShareTarget({
+      onError: () =>
+        useNotificationStore.getState().addNotification({
+          title: 'Shared item not saved',
+          message: 'Nexus OS could not save the shared text to Notes.',
+          type: 'error',
+        }),
+    })
     if (sharedApp) openApp(sharedApp)
     // getState() is safe here because hydrateFromStorage() is synchronous —
     // it calls set() internally and Zustand's set() updates the store synchronously,

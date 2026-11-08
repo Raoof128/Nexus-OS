@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
+import { formatDateTime } from './noteUtils'
 
 /**
  * A Win7 message window laid over the note, inside the Notes window. The
  * role="dialog" sits on a wrapper because 7.css hides `.window[role=dialog]`.
  */
-function NotesDialogFrame({ id, title, onClose, children }) {
+function NotesDialogFrame({ id, title, onClose, maxWidth = 'max-w-[340px]', children }) {
   return (
     <div
       className="absolute inset-0 z-20 flex items-center justify-center bg-black/20 p-4"
@@ -21,7 +23,7 @@ function NotesDialogFrame({ id, title, onClose, children }) {
             onClose()
           }
         }}
-        className="w-full max-w-[340px]"
+        className={`w-full ${maxWidth}`}
       >
         <div className="window active">
           <div className="title-bar">
@@ -88,6 +90,145 @@ export function NotesFindDialog({ initialQuery, message, onFindNext, onClose }) 
           </button>
         </div>
       </form>
+    </NotesDialogFrame>
+  )
+}
+
+/**
+ * File → Open…. Lists the saved notes, newest edit first. Enter or double-click
+ * opens; Delete asks the parent to confirm. Arrow keys, Home and End move the
+ * selection. A note open in another Notes window is opened there instead.
+ */
+export function NotesOpenDialog({
+  notes,
+  currentId,
+  error,
+  isOpenElsewhere,
+  onOpen,
+  onDelete,
+  onClose,
+}) {
+  const trapRef = useFocusTrap(true)
+  const optionRefs = useRef({})
+  // The selection starts on the note in this window. If that note has gone
+  // (deleted), the first note is selected instead.
+  const [selectedId, setSelectedId] = useState(currentId)
+  const effectiveId = notes.some((n) => n.id === selectedId) ? selectedId : (notes[0]?.id ?? null)
+  const selected = notes.find((n) => n.id === effectiveId) ?? null
+  const selectedElsewhere = selected ? isOpenElsewhere(selected.id) : false
+
+  const select = (index) => {
+    const note = notes[Math.min(notes.length - 1, Math.max(0, index))]
+    if (!note) return
+    setSelectedId(note.id)
+    optionRefs.current[note.id]?.focus()
+  }
+
+  const handleOptionKey = (e) => {
+    const index = Math.max(
+      0,
+      notes.findIndex((n) => n.id === effectiveId),
+    )
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        select(index + 1)
+        return
+      case 'ArrowUp':
+        e.preventDefault()
+        select(index - 1)
+        return
+      case 'Home':
+        e.preventDefault()
+        select(0)
+        return
+      case 'End':
+        e.preventDefault()
+        select(notes.length - 1)
+        return
+      case 'Enter':
+        e.preventDefault()
+        if (selected) onOpen(selected.id)
+        return
+      case 'Delete':
+        e.preventDefault()
+        if (selected && !selectedElsewhere) onDelete(selected)
+        return
+      default:
+    }
+  }
+
+  return (
+    <NotesDialogFrame id="notes-open" title="Open" maxWidth="max-w-[380px]" onClose={onClose}>
+      <div ref={trapRef} className="window-body has-space">
+        <ul
+          role="listbox"
+          aria-label="Saved notes"
+          className="h-[180px] overflow-y-auto bg-white text-[12px]"
+        >
+          {notes.map((note) => {
+            const isSelected = note.id === effectiveId
+            const elsewhere = isOpenElsewhere(note.id)
+            return (
+              <li
+                key={note.id}
+                ref={(el) => {
+                  optionRefs.current[note.id] = el
+                }}
+                role="option"
+                aria-selected={isSelected}
+                tabIndex={isSelected ? 0 : -1}
+                data-autofocus={isSelected || undefined}
+                onClick={() => setSelectedId(note.id)}
+                onDoubleClick={() => onOpen(note.id)}
+                onKeyDown={handleOptionKey}
+                className="w7-item flex min-w-0 items-baseline justify-between gap-3 px-2 py-1"
+              >
+                <span className="min-w-0 truncate">{note.title}</span>
+                <span className="shrink-0 text-[11px] text-muted-foreground">
+                  {elsewhere ? 'Open in another window · ' : ''}
+                  {formatDateTime(new Date(note.updatedAt))}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+        {notes.length === 0 && (
+          <p className="mt-2 text-[12px] text-foreground">No saved notes yet.</p>
+        )}
+        {selectedElsewhere && (
+          <p className="mt-2 text-[12px] text-foreground">
+            This note is open in another Notes window. Open switches to that window. Close it there
+            to delete the note.
+          </p>
+        )}
+        {error && (
+          <p role="alert" className="w7-error mt-2 text-[12px]">
+            {error}
+          </p>
+        )}
+        <div className="mt-3 flex justify-end gap-2">
+          <button
+            type="button"
+            className="w7-btn default"
+            disabled={!selected}
+            onClick={() => selected && onOpen(selected.id)}
+          >
+            Open
+          </button>
+          <button
+            type="button"
+            className="w7-btn"
+            disabled={!selected || selectedElsewhere}
+            onClick={() => selected && onDelete(selected)}
+          >
+            Delete
+          </button>
+          <button type="button" className="w7-btn" onClick={onClose}>
+            Cancel
+          </button>
+        </div>
+      </div>
     </NotesDialogFrame>
   )
 }

@@ -1,3 +1,5 @@
+import { createNote as createSharedNote } from '../os/apps/Notes/noteStore'
+
 /**
  * PWA entry points beyond a normal launch: the Web Share Target and the File
  * Handling API. Both let the host OS hand data/files to the installed app.
@@ -10,11 +12,12 @@
  * Consume a Web Share Target launch (`/?share-target=1&title=…&text=…&url=…`).
  *
  * The manifest registers a GET share target, so shared content arrives as query
- * params. The URL is scrubbed immediately, then the content is persisted through
- * the authenticated Notes API. Keeping it out of a global localStorage buffer
- * prevents a second account on the same browser from inheriting private shares.
+ * params. The URL is scrubbed immediately, then the content becomes a note in
+ * this browser's Notes (private to the account, see lib/privateState.js). The
+ * note is marked so the Notes window that Desktop opens shows it. `createNote`
+ * defaults to that Notes function; pass one only to override it.
  */
-export function consumeShareTarget({ createNote, onSaved, onError } = {}) {
+export function consumeShareTarget({ createNote = createSharedNote, onSaved, onError } = {}) {
   if (typeof window === 'undefined') return null
   const params = new URLSearchParams(window.location.search)
   if (!params.has('share-target')) return null
@@ -29,19 +32,19 @@ export function consumeShareTarget({ createNote, onSaved, onError } = {}) {
   stripParams(['share-target', 'title', 'text', 'url'])
 
   if (title || content) {
-    if (typeof createNote !== 'function') {
-      onError?.(new Error('The Notes service is unavailable.'))
-    } else {
-      Promise.resolve(
-        createNote({
-          title: (title || 'Shared item').slice(0, 500),
-          content: content.slice(0, 20_000),
-          type: 'text',
-        }),
-      )
-        .then((note) => onSaved?.(note))
-        .catch((error) => onError?.(error))
+    let created
+    try {
+      created = createNote({
+        title: (title || 'Shared item').slice(0, 500),
+        content: content.slice(0, 20_000),
+      })
+    } catch (error) {
+      onError?.(error)
+      return 'notes'
     }
+    Promise.resolve(created)
+      .then((note) => onSaved?.(note))
+      .catch((error) => onError?.(error))
   }
 
   return 'notes'
