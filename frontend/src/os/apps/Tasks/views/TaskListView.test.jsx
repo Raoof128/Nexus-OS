@@ -155,7 +155,12 @@ describe('TaskListView', () => {
     expect(screen.queryByText('Old title')).toBeNull()
     expect(screen.getByText('New title')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Unstar "New title"' })).not.toBeNull()
-    expect(screen.getByText('Nov 20')).not.toBeNull()
+    // TaskRow formats with the runtime locale ("Nov 20" in en-US, "20 Nov" in en-AU).
+    const dueLabel = new Date('2026-11-20T00:00:00').toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    })
+    expect(screen.getByText(dueLabel)).not.toBeNull()
     expect(container.querySelector('[data-task-id="p1"]')).toBe(before)
   })
 
