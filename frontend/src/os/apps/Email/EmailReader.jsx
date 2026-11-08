@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { DURATION } from '../../../lib/motion'
 import DOMPurify from 'dompurify'
@@ -58,39 +58,40 @@ const EmailReader = React.memo(function EmailReader({
   onTrash,
   onToggleRead,
 }) {
-  const [htmlContent, setHtmlContent] = useState(null)
-  const [htmlLoading, setHtmlLoading] = useState(false)
-  const [htmlError, setHtmlError] = useState(null)
-  const [allowImages, setAllowImages] = useState(false)
-  const lastEmailId = useRef(null)
+  const emailId = email?.id ?? null
+  // The loaded body is stored with the id it belongs to. A body only renders
+  // for the message it was fetched for, so reselecting a message never shows
+  // the snippet while its body loads, and a late response for an earlier
+  // selection never sits under the current header.
+  const [loaded, setLoaded] = useState(null) // { emailId, html, error }
+  // Remote images are allowed per message and reset when another is selected.
+  const [imagesFor, setImagesFor] = useState(null)
 
   useEffect(() => {
-    if (!email?.id) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setHtmlContent(null)
-      return
-    }
-    if (email.id === lastEmailId.current) return
-
-    lastEmailId.current = email.id
-    setAllowImages(false)
-    setHtmlError(null)
-    setHtmlContent(null)
-    setHtmlLoading(true)
-
-    apiFetch(`/api/email/${email.id}/html`)
+    if (!emailId) return undefined
+    let ignore = false
+    apiFetch(`/api/email/${emailId}/html`)
       .then((data) => {
-        setHtmlContent(data?.html ?? null)
+        if (!ignore) setLoaded({ emailId, html: data?.html ?? null, error: null })
       })
       .catch((err) => {
-        setHtmlError(err.message)
+        if (!ignore) setLoaded({ emailId, html: null, error: err.message })
       })
-      .finally(() => {
-        setHtmlLoading(false)
-      })
-  }, [email?.id])
+    return () => {
+      ignore = true
+    }
+  }, [emailId])
 
-  const toggleImages = useCallback(() => setAllowImages((v) => !v), [])
+  const current = loaded && loaded.emailId === emailId ? loaded : null
+  const htmlContent = current?.html ?? null
+  const htmlError = current?.error ?? null
+  const htmlLoading = emailId !== null && current === null
+  const allowImages = emailId !== null && imagesFor === emailId
+
+  const toggleImages = useCallback(
+    () => setImagesFor((value) => (value === emailId ? null : emailId)),
+    [emailId],
+  )
 
   // Empty state
   if (!email) {
@@ -194,10 +195,13 @@ const EmailReader = React.memo(function EmailReader({
         )}
 
         {!htmlLoading && srcdoc && (
+          // No allow-same-origin: the message HTML gets an opaque origin, so it
+          // cannot reach the app's cookies, storage or DOM. Nothing here reads
+          // the frame's document (no auto-height), so the sandbox costs nothing.
           <iframe
             key={`${email.id}-${allowImages}`}
             srcDoc={srcdoc}
-            sandbox="allow-popups allow-same-origin"
+            sandbox="allow-popups"
             title="Email body"
             className="h-full w-full border-0 bg-white"
             aria-label="Email content"

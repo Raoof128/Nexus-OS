@@ -97,6 +97,19 @@ describe('EmailList keyboard model', () => {
   })
 })
 
+describe('EmailList empty and error states', () => {
+  it('says the inbox is empty only when the load succeeded', () => {
+    renderList({ emails: [], activeFolder: 'inbox' })
+    expect(screen.getByText('Your inbox is empty.')).toBeTruthy()
+  })
+
+  it('does not claim the inbox is empty when the load failed', () => {
+    renderList({ emails: [], activeFolder: 'inbox', error: 'Mail provider timeout' })
+    expect(screen.queryByText('Your inbox is empty.')).toBeNull()
+    expect(screen.queryByText(/No messages/)).toBeNull()
+  })
+})
+
 describe('EmailList star control', () => {
   it('keeps the star button out of the option', () => {
     renderList()

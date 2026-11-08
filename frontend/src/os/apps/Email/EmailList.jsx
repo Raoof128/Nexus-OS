@@ -21,6 +21,7 @@ const EmailList = React.memo(function EmailList({
   loading = false,
   activeFolder = 'inbox',
   searchActive = false,
+  error = null,
 }) {
   const containerRef = useRef(null)
 
@@ -99,6 +100,9 @@ const EmailList = React.memo(function EmailList({
   )
 
   if (!loading && emails.length === 0) {
+    // A failed load is reported by the error banner above the list (with
+    // Try again). Saying "inbox is empty" here would be false, so stay quiet.
+    if (error) return <div aria-live="polite" className="h-full" />
     let message = 'No messages in this folder.'
     if (searchActive) message = 'No messages match your search.'
     else if (activeFolder === 'inbox') message = 'Your inbox is empty.'

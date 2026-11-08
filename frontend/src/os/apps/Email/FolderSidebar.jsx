@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useId } from 'react'
 import { Plus } from 'lucide-react'
 import { EMAIL_FOLDERS, getProviderBadge } from '../../../lib/emailConfig'
 
@@ -11,6 +11,10 @@ const FolderSidebar = React.memo(function FolderSidebar({
   onConnectAccount,
   hasUnreadInbox = false,
 }) {
+  // The sidebar renders twice (desktop column and mobile overlay), so the id
+  // must be unique per instance.
+  const accountSelectId = `email-account-select-${useId()}`
+
   const handleFolderClick = useCallback(
     (folderId) => {
       onSelectFolder?.(folderId)
@@ -29,11 +33,11 @@ const FolderSidebar = React.memo(function FolderSidebar({
     <aside className="w7-navpane flex h-full w-56 shrink-0 flex-col">
       {/* Account selector */}
       <div className="px-3 pb-2 pt-3">
-        <label htmlFor="email-account-select" className="w7-subheading mb-1 block">
+        <label htmlFor={accountSelectId} className="w7-subheading mb-1 block">
           Accounts
         </label>
         <select
-          id="email-account-select"
+          id={accountSelectId}
           value={selectedAccountId}
           onChange={handleAccountChange}
           className="w-full"
@@ -75,7 +79,7 @@ const FolderSidebar = React.memo(function FolderSidebar({
                 <button
                   type="button"
                   onClick={() => handleFolderClick(id)}
-                  className="w7-item flex w-full items-center gap-2 px-2 py-1 text-left text-[12px]"
+                  className="w7-item flex w-full items-center gap-2 px-2 py-1 text-left text-[12px] pointer-coarse:min-h-[44px]"
                   aria-current={isActive ? 'page' : undefined}
                 >
                   <Icon size={16} aria-hidden="true" className="shrink-0 text-[#3d5a80]" />
@@ -95,7 +99,11 @@ const FolderSidebar = React.memo(function FolderSidebar({
 
       {/* Connect account */}
       <div className="border-t border-border p-3">
-        <button type="button" onClick={onConnectAccount} className="w7-btn w-full gap-2">
+        <button
+          type="button"
+          onClick={onConnectAccount}
+          className="w7-btn w-full gap-2 pointer-coarse:min-h-[44px]"
+        >
           <Plus size={14} aria-hidden="true" />
           Connect account
         </button>

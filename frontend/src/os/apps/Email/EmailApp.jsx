@@ -1,16 +1,19 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { ArrowLeft, Loader2, Menu, Plus, X } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
 import { useEmailAccounts } from '../../../hooks/useEmailAccounts'
 import { useEmails } from '../../../hooks/useEmails'
 import { useEmailActions } from '../../../hooks/useEmailActions'
+import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import { DURATION } from '../../../lib/motion'
 import { EMAIL_FOLDERS } from '../../../lib/emailConfig'
 import FolderSidebar from './FolderSidebar'
 import EmailList from './EmailList'
 import EmailReader from './EmailReader'
 import ComposeModal from './ComposeModal'
+
+const SEARCH_DEBOUNCE_MS = 300
 
 export default function EmailApp() {
   const { session } = useAuth()
@@ -20,15 +23,36 @@ export default function EmailApp() {
   const [selectedEmailId, setSelectedEmailId] = useState(null)
   const [composeOpen, setComposeOpen] = useState(false)
   const [replyTo, setReplyTo] = useState(null)
+  // Message from a failed star, read, move or archive. Cleared by the next
+  // action that succeeds, or when the folder changes.
+  const [actionError, setActionError] = useState(null)
 
   // Mobile view state: 'folders' | 'list' | 'reader'
   const [mobileView, setMobileView] = useState('list')
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  // Focus is held inside the mobile folder overlay while it is open, and goes
+  // back to the folder menu button when it closes.
+  const mobileSidebarRef = useFocusTrap(mobileSidebarOpen)
 
-  // Search state
+  // Search state. The box shows what is typed; the query waits until typing
+  // pauses, so each pause sends one request. Results come from the same
+  // paginated query as the folder list.
   const [searchTerm, setSearchTerm] = useState('')
-  const [searchResults, setSearchResults] = useState([])
-  const searchDebounceRef = useRef(null)
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm.trim()), SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Clearing the box takes effect at once; only typing waits for the debounce.
+  const activeSearch = searchTerm.trim() ? debouncedSearch : ''
+  const isSearching = activeSearch !== ''
+
+  const resetSearch = useCallback(() => {
+    setSearchTerm('')
+    setDebouncedSearch('')
+  }, [])
 
   const { accounts } = useEmailAccounts(userId)
   const {
@@ -37,8 +61,7 @@ export default function EmailApp() {
     error,
     refetch,
     loadMore,
-    search,
-  } = useEmails(session, activeFolder, activeAccountId)
+  } = useEmails(session, activeFolder, activeAccountId, activeSearch)
   const actions = useEmailActions(userId, activeFolder, activeAccountId)
 
   const selectedEmail = emails.find((e) => e.id === selectedEmailId) || null
@@ -46,63 +69,72 @@ export default function EmailApp() {
   // Unread dot for inbox
   const hasUnread = activeFolder === 'inbox' && emails.some((e) => !e.is_read)
 
-  // Debounced search
+  // Runs a mutation started from the UI and reports a failure, instead of
+  // leaving the rejection unhandled.
+  const runAction = useCallback((request, failureText) => {
+    Promise.resolve(request).then(
+      () => setActionError(null),
+      (err) => setActionError(`${failureText} ${err?.message ?? ''}`.trim()),
+    )
+  }, [])
+
+  // Escape closes the mobile folder overlay.
   useEffect(() => {
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
-    if (!searchTerm.trim()) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSearchResults([])
-      return
+    if (!mobileSidebarOpen) return undefined
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setMobileSidebarOpen(false)
     }
-    searchDebounceRef.current = setTimeout(async () => {
-      try {
-        const results = await search(searchTerm)
-        setSearchResults(results)
-      } catch {
-        setSearchResults([])
-      }
-    }, 300)
-    return () => {
-      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
-    }
-  }, [searchTerm, search])
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [mobileSidebarOpen])
 
-  const isSearching = searchTerm.trim() !== ''
-  const displayedEmails = isSearching ? searchResults : emails
-  const folderLabel = EMAIL_FOLDERS.find((f) => f.id === activeFolder)?.label ?? activeFolder
-
+  // emails is the displayed list: the folder when the box is empty, otherwise
+  // the search results. Selection looks in the same list.
   const handleSelect = useCallback(
     (id) => {
       setSelectedEmailId(id)
       const email = emails.find((e) => e.id === id)
       if (email && !email.is_read) {
-        actions.markRead({ emailId: id, isRead: true })
+        runAction(
+          actions.markRead({ emailId: id, isRead: true }),
+          "Couldn't mark the message as read.",
+        )
       }
       // On mobile, switch to reader view
       setMobileView('reader')
     },
-    [emails, actions],
+    [emails, actions, runAction],
+  )
+
+  const openCompose = useCallback(
+    (reply = null) => {
+      // A failure from an earlier send belongs to that message, not this one.
+      actions.clearSendError()
+      setReplyTo(reply)
+      setComposeOpen(true)
+    },
+    [actions],
   )
 
   const handleReply = useCallback(() => {
-    if (selectedEmail) {
-      setReplyTo({ email: selectedEmail, type: 'reply' })
-      setComposeOpen(true)
-    }
-  }, [selectedEmail])
+    if (selectedEmail) openCompose({ email: selectedEmail, type: 'reply' })
+  }, [selectedEmail, openCompose])
 
   const handleConnectAccount = useCallback(() => {
     window.location.href = '/api/email/accounts/connect?provider=google'
   }, [])
 
-  const handleFolderSelect = useCallback((f) => {
-    setActiveFolder(f)
-    setSelectedEmailId(null)
-    setSearchTerm('')
-    setSearchResults([])
-    setMobileView('list')
-    setMobileSidebarOpen(false)
-  }, [])
+  const handleFolderSelect = useCallback(
+    (f) => {
+      setActiveFolder(f)
+      setSelectedEmailId(null)
+      resetSearch()
+      setActionError(null)
+      setMobileView('list')
+      setMobileSidebarOpen(false)
+    },
+    [resetSearch],
+  )
 
   const handleAccountSelect = useCallback((id) => {
     setActiveAccountId(id === 'all' ? null : id)
@@ -110,6 +142,41 @@ export default function EmailApp() {
     setMobileView('list')
     setMobileSidebarOpen(false)
   }, [])
+
+  const handleToggleStar = useCallback(
+    (args) => runAction(actions.toggleStar(args), "Couldn't update the star."),
+    [actions, runAction],
+  )
+
+  const handleArchive = useCallback(
+    () =>
+      selectedEmail &&
+      runAction(
+        actions.moveToFolder({ emailId: selectedEmail.id, targetFolder: 'archive' }),
+        "Couldn't archive the message.",
+      ),
+    [actions, runAction, selectedEmail],
+  )
+
+  const handleTrash = useCallback(
+    () =>
+      selectedEmail &&
+      runAction(
+        actions.moveToFolder({ emailId: selectedEmail.id, targetFolder: 'trash' }),
+        "Couldn't move the message to Trash.",
+      ),
+    [actions, runAction, selectedEmail],
+  )
+
+  const handleToggleRead = useCallback(
+    () =>
+      selectedEmail &&
+      runAction(
+        actions.markRead({ emailId: selectedEmail.id, isRead: !selectedEmail.is_read }),
+        "Couldn't change the read state.",
+      ),
+    [actions, runAction, selectedEmail],
+  )
 
   return (
     <Motion.div
@@ -140,7 +207,7 @@ export default function EmailApp() {
             onClick={() => setMobileSidebarOpen(false)}
             aria-hidden="true"
           />
-          <div className="relative z-10 flex h-full">
+          <div ref={mobileSidebarRef} className="relative z-10 flex h-full">
             <FolderSidebar
               accounts={accounts}
               activeFolder={activeFolder}
@@ -166,14 +233,14 @@ export default function EmailApp() {
           <button
             type="button"
             onClick={() => setMobileSidebarOpen(true)}
-            className="w7-toolbtn @md:hidden"
+            className="w7-toolbtn pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px] @md:hidden"
             aria-label="Open folder menu"
             title="Folders"
           >
             <Menu size={16} aria-hidden="true" />
           </button>
           <span className="truncate px-1 text-[12px] font-semibold text-foreground">
-            {folderLabel}
+            {folderLabel(activeFolder)}
           </span>
           {emailsLoading && (
             <Loader2 size={14} className="animate-spin text-primary" aria-hidden="true" />
@@ -181,11 +248,8 @@ export default function EmailApp() {
           <div className="ml-auto">
             <button
               type="button"
-              onClick={() => {
-                setReplyTo(null)
-                setComposeOpen(true)
-              }}
-              className="w7-btn"
+              onClick={() => openCompose(null)}
+              className="w7-btn pointer-coarse:min-h-[44px]"
               aria-label="Compose new email"
             >
               <Plus size={14} aria-hidden="true" />
@@ -194,24 +258,21 @@ export default function EmailApp() {
           </div>
         </div>
 
-        {/* Search */}
+        {/* Search. The native clear control is hidden; the X button below is the one clear control. */}
         <div className="flex items-center gap-1 border-b border-border px-2 py-1.5">
           <input
             type="search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search mail"
-            className="min-w-0 flex-1"
+            className="min-w-0 flex-1 [&::-webkit-search-cancel-button]:appearance-none"
             aria-label="Search emails"
           />
           {searchTerm && (
             <button
               type="button"
-              onClick={() => {
-                setSearchTerm('')
-                setSearchResults([])
-              }}
-              className="w7-toolbtn"
+              onClick={resetSearch}
+              className="w7-toolbtn pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px]"
               aria-label="Clear search"
               title="Clear search"
             >
@@ -233,12 +294,20 @@ export default function EmailApp() {
           </div>
         )}
 
+        {/* Action error (star, read, move, archive) */}
+        {actionError && (
+          <p role="alert" className="w7-error border-b border-border px-3 py-2 text-[12px]">
+            {actionError}
+          </p>
+        )}
+
         <EmailList
-          emails={displayedEmails}
+          emails={emails}
           selectedEmailId={selectedEmailId}
           loading={emailsLoading}
+          error={error}
           onSelectEmail={(email) => handleSelect(email.id)}
-          onToggleStar={actions.toggleStar}
+          onToggleStar={handleToggleStar}
           onLoadMore={loadMore}
           activeFolder={activeFolder}
           searchActive={isSearching}
@@ -264,27 +333,9 @@ export default function EmailApp() {
         )}
         <EmailReader
           email={selectedEmail}
-          onArchive={() =>
-            selectedEmail &&
-            actions.moveToFolder({
-              emailId: selectedEmail.id,
-              targetFolder: 'archive',
-            })
-          }
-          onTrash={() =>
-            selectedEmail &&
-            actions.moveToFolder({
-              emailId: selectedEmail.id,
-              targetFolder: 'trash',
-            })
-          }
-          onToggleRead={() =>
-            selectedEmail &&
-            actions.markRead({
-              emailId: selectedEmail.id,
-              isRead: !selectedEmail.is_read,
-            })
-          }
+          onArchive={handleArchive}
+          onTrash={handleTrash}
+          onToggleRead={handleToggleRead}
           onReply={handleReply}
         />
       </div>
@@ -307,4 +358,8 @@ export default function EmailApp() {
       />
     </Motion.div>
   )
+}
+
+function folderLabel(folderId) {
+  return EMAIL_FOLDERS.find((f) => f.id === folderId)?.label ?? folderId
 }

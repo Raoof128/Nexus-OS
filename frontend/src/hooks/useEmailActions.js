@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../lib/apiClient'
 import { mapEmailPages } from './useEmails'
@@ -48,6 +48,49 @@ export function removeEmailFromCache(data, emailId) {
   return mapEmailPages(data, (items) => items.filter((email) => email.id !== emailId))
 }
 
+/**
+ * Where one message sits in one cached email query, taken before an optimistic
+ * change. Returns null when the message is not in that query.
+ */
+export function snapshotEmailEntry(data, emailId) {
+  const pages = data?.pages ?? []
+  for (let pageIndex = 0; pageIndex < pages.length; pageIndex += 1) {
+    const items = pages[pageIndex].items ?? []
+    const index = items.findIndex((email) => email.id === emailId)
+    if (index !== -1) return { emailId, pageIndex, index, email: items[index] }
+  }
+  return null
+}
+
+/**
+ * Undo one message's optimistic change without touching anything else in the
+ * query. If the message is still listed, only the fields the mutation changed
+ * (`keys`) go back to their snapshot values. If it was removed, it is put back
+ * at its old position. Other messages, and changes from concurrent successful
+ * mutations, are left as they are.
+ */
+export function restoreEmailEntry(data, entry, keys) {
+  if (!entry || !data?.pages) return data
+  const present = data.pages.some((page) =>
+    (page.items ?? []).some((email) => email.id === entry.emailId),
+  )
+  if (present) {
+    const fields = keys
+      ? Object.fromEntries(keys.map((key) => [key, entry.email[key]]))
+      : entry.email
+    return updateEmailInCache(data, entry.emailId, (email) => ({ ...email, ...fields }))
+  }
+  return {
+    ...data,
+    pages: data.pages.map((page, pageIndex) => {
+      if (pageIndex !== entry.pageIndex) return page
+      const items = [...(page.items ?? [])]
+      items.splice(Math.min(entry.index, items.length), 0, entry.email)
+      return { ...page, items }
+    }),
+  }
+}
+
 function updateAllEmailQueries(queryClient, userId, updater) {
   const queryPattern = getEmailsQueryKeyPattern(userId)
   queryClient.getQueriesData({ queryKey: queryPattern }).forEach(([queryKey, data]) => {
@@ -55,8 +98,18 @@ function updateAllEmailQueries(queryClient, userId, updater) {
   })
 }
 
-function restoreEmailQueries(queryClient, snapshots) {
-  snapshots?.forEach(([queryKey, data]) => queryClient.setQueryData(queryKey, data))
+function captureEmailEntries(queryClient, userId, emailId) {
+  const queryPattern = getEmailsQueryKeyPattern(userId)
+  return queryClient
+    .getQueriesData({ queryKey: queryPattern })
+    .map(([queryKey, data]) => [queryKey, snapshotEmailEntry(data, emailId)])
+}
+
+function restoreEmailEntries(queryClient, snapshots, keys) {
+  snapshots?.forEach(([queryKey, entry]) => {
+    if (!entry) return
+    queryClient.setQueryData(queryKey, (data) => restoreEmailEntry(data, entry, keys))
+  })
 }
 
 export function useEmailActions(userId) {
@@ -64,6 +117,8 @@ export function useEmailActions(userId) {
   const [sendError, setSendError] = useState(null)
   const [sendOutbound] = useState(() => createOutboundEmailSender())
   const queryPattern = getEmailsQueryKeyPattern(userId)
+
+  const clearSendError = useCallback(() => setSendError(null), [])
 
   // --- Optimistic mutations ---
 
@@ -75,14 +130,14 @@ export function useEmailActions(userId) {
       }),
     onMutate: async ({ emailId, isRead }) => {
       await queryClient.cancelQueries({ queryKey: queryPattern })
-      const snapshots = queryClient.getQueriesData({ queryKey: queryPattern })
+      const snapshots = captureEmailEntries(queryClient, userId, emailId)
       updateAllEmailQueries(queryClient, userId, (data) =>
         updateEmailInCache(data, emailId, (email) => ({ ...email, is_read: isRead })),
       )
       return { snapshots }
     },
     onError: (_error, _vars, context) => {
-      restoreEmailQueries(queryClient, context?.snapshots)
+      restoreEmailEntries(queryClient, context?.snapshots, ['is_read'])
     },
     onSuccess: (serverData, { emailId }) => {
       updateAllEmailQueries(queryClient, userId, (data) =>
@@ -99,7 +154,7 @@ export function useEmailActions(userId) {
       }),
     onMutate: async ({ emailId, isStarred }) => {
       await queryClient.cancelQueries({ queryKey: queryPattern })
-      const snapshots = queryClient.getQueriesData({ queryKey: queryPattern })
+      const snapshots = captureEmailEntries(queryClient, userId, emailId)
       updateAllEmailQueries(queryClient, userId, (data, queryKey) => {
         if (queryKey[2] === 'starred' && !isStarred) {
           return removeEmailFromCache(data, emailId)
@@ -112,7 +167,7 @@ export function useEmailActions(userId) {
       return { snapshots }
     },
     onError: (_error, _vars, context) => {
-      restoreEmailQueries(queryClient, context?.snapshots)
+      restoreEmailEntries(queryClient, context?.snapshots, ['is_starred'])
     },
     onSuccess: (serverData, { emailId }) => {
       updateAllEmailQueries(queryClient, userId, (data) =>
@@ -132,12 +187,13 @@ export function useEmailActions(userId) {
       }),
     onMutate: async ({ emailId }) => {
       await queryClient.cancelQueries({ queryKey: queryPattern })
-      const snapshots = queryClient.getQueriesData({ queryKey: queryPattern })
+      const snapshots = captureEmailEntries(queryClient, userId, emailId)
       updateAllEmailQueries(queryClient, userId, (data) => removeEmailFromCache(data, emailId))
       return { snapshots }
     },
     onError: (_error, _vars, context) => {
-      restoreEmailQueries(queryClient, context?.snapshots)
+      // The message left the list, so the whole entry goes back in its place.
+      restoreEmailEntries(queryClient, context?.snapshots)
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryPattern })
@@ -148,6 +204,7 @@ export function useEmailActions(userId) {
 
   const sendEmail = useMutation({
     mutationFn: (data) => sendOutbound('send', '/api/email/send', data),
+    onMutate: () => setSendError(null),
     onError: (error) => setSendError(error.message),
     onSuccess: () => {
       setSendError(null)
@@ -158,6 +215,7 @@ export function useEmailActions(userId) {
   const replyEmail = useMutation({
     mutationFn: ({ emailId, data }) =>
       sendOutbound(`reply:${emailId}`, `/api/email/${emailId}/reply`, data),
+    onMutate: () => setSendError(null),
     onError: (error) => setSendError(error.message),
     onSuccess: () => {
       setSendError(null)
@@ -168,6 +226,7 @@ export function useEmailActions(userId) {
   const forwardEmail = useMutation({
     mutationFn: ({ emailId, data }) =>
       sendOutbound(`forward:${emailId}`, `/api/email/${emailId}/forward`, data),
+    onMutate: () => setSendError(null),
     onError: (error) => setSendError(error.message),
     onSuccess: () => {
       setSendError(null)
@@ -196,5 +255,6 @@ export function useEmailActions(userId) {
     aiSummarize: aiSummarize.mutateAsync,
     isSending,
     sendError,
+    clearSendError,
   }
 }

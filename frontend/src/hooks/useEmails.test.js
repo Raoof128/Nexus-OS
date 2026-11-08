@@ -4,7 +4,7 @@ vi.mock('../lib/apiClient', () => ({
   apiFetch: vi.fn(),
 }))
 
-import { buildEmailsPath, mapEmailPages } from './useEmails'
+import { buildEmailsPath, getEmailsQueryKey, mapEmailPages } from './useEmails'
 
 describe('email infinite-query helpers', () => {
   it('builds a cookie-authenticated path with active filters and a composite cursor', () => {
@@ -42,5 +42,16 @@ describe('email infinite-query helpers', () => {
     expect(updated.pages[1].items[0].is_read).toBe(true)
     expect(updated.pages[0].next_cursor).toEqual({ id: 'first' })
     expect(updated.pageParams).toEqual(data.pageParams)
+  })
+
+  it('keys each search as its own query, using the trimmed term', () => {
+    expect(getEmailsQueryKey('u1', 'inbox', 'all', '  Sydney ')).toEqual([
+      'emails',
+      'u1',
+      'inbox',
+      'all',
+      'Sydney',
+    ])
+    expect(getEmailsQueryKey('u1', 'inbox', 'all')).toEqual(['emails', 'u1', 'inbox', 'all', ''])
   })
 })

@@ -6,6 +6,7 @@ import { getProviderBadge } from '../../../lib/emailConfig'
 import { DURATION, SPRING, TRANSITION_FADE, TRANSITION_FAST } from '../../../lib/motion'
 import { useFocusTrap } from '../../../hooks/useFocusTrap'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
+import { lockScroll } from '../../../lib/scrollLock'
 
 const MODAL_VARIANTS = {
   hidden: { opacity: 0, y: 16, scale: 0.97 },
@@ -44,7 +45,9 @@ function ComposeModal({
   const [isDrafting, setIsDrafting] = useState(false)
   const [draftError, setDraftError] = useState(null)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const [confirmReplace, setConfirmReplace] = useState(false)
   const toRef = useRef(null)
+  const formRef = useRef(null)
   // Field values as they were when the window opened (a reply pre-fills To and
   // Subject). Anything the user has changed since then counts as unsaved.
   const baselineRef = useRef(EMPTY_FIELDS)
@@ -61,13 +64,10 @@ function ComposeModal({
   // Focus trap
   const modalRef = useFocusTrap(isOpen)
 
-  // Scroll lock
+  // Scroll lock (reference-counted, shared with the other dialogs)
   useEffect(() => {
-    if (!isOpen) return
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = ''
-    }
+    if (!isOpen) return undefined
+    return lockScroll()
   }, [isOpen])
 
   useEffect(() => {
@@ -107,7 +107,8 @@ function ComposeModal({
       e.preventDefault()
       // Don't submit without a chosen account — the button should already be
       // disabled, but guard here so a misconfigured parent can't slip through.
-      if (!selectedAccountId) return
+      // A send already in flight is never repeated.
+      if (!selectedAccountId || isSending) return
       const data = { accountId: selectedAccountId, to, cc, subject, body }
       try {
         if (isReply && replyTo?.email?.id) {
@@ -130,6 +131,7 @@ function ComposeModal({
       body,
       isReply,
       isForward,
+      isSending,
       replyTo,
       onReply,
       onForward,
@@ -138,7 +140,7 @@ function ComposeModal({
     ],
   )
 
-  const handleAiDraft = useCallback(async () => {
+  const runAiDraft = useCallback(async () => {
     setIsDrafting(true)
     setDraftError(null)
     try {
@@ -154,6 +156,25 @@ function ComposeModal({
     }
   }, [onAiDraft, replyTo])
 
+  // A draft replaces the whole body, so typed text (or edits to a forwarded
+  // body) get a confirmation first.
+  const bodyEdited = body.trim() !== '' && body !== baselineRef.current.body
+
+  const requestAiDraft = useCallback(() => {
+    if (bodyEdited) {
+      setConfirmReplace(true)
+      return
+    }
+    runAiDraft()
+  }, [bodyEdited, runAiDraft])
+
+  const confirmReplaceWithDraft = useCallback(() => {
+    setConfirmReplace(false)
+    runAiDraft()
+  }, [runAiDraft])
+
+  const cancelReplaceWithDraft = useCallback(() => setConfirmReplace(false), [])
+
   const hasUnsavedContent = [
     [to, baselineRef.current.to],
     [cc, baselineRef.current.cc],
@@ -163,8 +184,10 @@ function ComposeModal({
 
   // Escape, the caption close button, the backdrop and Discard all come here.
   // Typed content asks first (Windows message box, Cancel keeps the message).
+  // Nothing closes while a send is in flight: the outcome must stay visible.
   const requestClose = useCallback(() => {
-    if (hasUnsavedContent && !isSending) {
+    if (isSending) return
+    if (hasUnsavedContent) {
       setConfirmDiscard(true)
       return
     }
@@ -181,9 +204,14 @@ function ComposeModal({
   const handleKeyDown = useCallback(
     (e) => {
       if (e.key === 'Escape') requestClose()
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleSubmit(e)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        // Go through the form so the browser's validation (To, Subject, address
+        // format) runs, exactly as the Send button does.
+        e.preventDefault()
+        if (!isSending && !isDrafting) formRef.current?.requestSubmit()
+      }
     },
-    [requestClose, handleSubmit],
+    [requestClose, isSending, isDrafting],
   )
 
   return (
@@ -234,12 +262,14 @@ function ComposeModal({
                           className="is-close"
                           aria-label="Close"
                           onClick={requestClose}
+                          disabled={isSending}
                         />
                       </div>
                     </div>
 
                     {/* Form */}
                     <form
+                      ref={formRef}
                       onSubmit={handleSubmit}
                       className="window-body has-space flex min-h-0 flex-1 flex-col"
                     >
@@ -345,7 +375,7 @@ function ComposeModal({
                           {(isReply || isForward) && onAiDraft && (
                             <button
                               type="button"
-                              onClick={handleAiDraft}
+                              onClick={requestAiDraft}
                               disabled={isDrafting || isSending}
                               className="w7-btn"
                             >
@@ -405,6 +435,18 @@ function ComposeModal({
         variant="destructive"
         onConfirm={confirmDiscardAndClose}
         onCancel={cancelDiscard}
+      />
+
+      <ConfirmDialog
+        open={confirmReplace}
+        id="compose-replace-draft"
+        defaultAction="cancel"
+        title={title}
+        message="Replace your message with the AI draft? The text you have written will be lost."
+        confirmLabel="Replace"
+        variant="destructive"
+        onConfirm={confirmReplaceWithDraft}
+        onCancel={cancelReplaceWithDraft}
       />
     </>
   )

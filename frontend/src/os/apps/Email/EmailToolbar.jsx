@@ -15,7 +15,7 @@ const ToolbarButton = React.memo(function ToolbarButton({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className={`w7-toolbtn${danger}`}
+      className={`w7-toolbtn pointer-coarse:min-h-[44px]${danger}`}
     >
       <Icon size={16} aria-hidden="true" />
       <span className="hidden sm:inline">{label}</span>

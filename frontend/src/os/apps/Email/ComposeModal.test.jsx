@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import ComposeModal from './ComposeModal'
 
 vi.mock('../../../hooks/useFocusTrap', () => ({
@@ -122,5 +122,115 @@ describe('ComposeModal AI draft', () => {
     fireEvent.click(screen.getByRole('button', { name: 'AI draft' }))
     expect(onAiDraft).toHaveBeenCalledWith({ email_id: 'm1', instruction: '' })
     expect(await screen.findByDisplayValue('Thanks, will do.')).toBeTruthy()
+  })
+
+  it('asks before an AI draft replaces text that was typed', () => {
+    const onAiDraft = vi.fn().mockResolvedValue({ draft: 'Drafted.' })
+    renderCompose({
+      onAiDraft,
+      replyTo: {
+        type: 'reply',
+        email: { id: 'm1', from_address: 'boss@example.com', subject: 'Budget' },
+      },
+    })
+    fireEvent.change(screen.getByLabelText('Email body'), { target: { value: 'My own words' } })
+    fireEvent.click(screen.getByRole('button', { name: 'AI draft' }))
+
+    expect(
+      screen.getByText(
+        'Replace your message with the AI draft? The text you have written will be lost.',
+      ),
+    ).toBeTruthy()
+    expect(onAiDraft).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(onAiDraft).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Email body').value).toBe('My own words')
+  })
+
+  it('replaces the body with the draft once the user confirms', async () => {
+    const onAiDraft = vi.fn().mockResolvedValue({ draft: 'Drafted.' })
+    renderCompose({
+      onAiDraft,
+      replyTo: {
+        type: 'reply',
+        email: { id: 'm1', from_address: 'boss@example.com', subject: 'Budget' },
+      },
+    })
+    fireEvent.change(screen.getByLabelText('Email body'), { target: { value: 'My own words' } })
+    fireEvent.click(screen.getByRole('button', { name: 'AI draft' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Replace' }))
+
+    expect(onAiDraft).toHaveBeenCalledTimes(1)
+    expect(await screen.findByDisplayValue('Drafted.')).toBeTruthy()
+  })
+
+  it('drafts straight away when the body is still empty', async () => {
+    const onAiDraft = vi.fn().mockResolvedValue({ draft: 'Drafted.' })
+    renderCompose({
+      onAiDraft,
+      replyTo: { type: 'reply', email: { id: 'm1', from_address: 'boss@example.com' } },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'AI draft' }))
+    expect(onAiDraft).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText(/Replace your message/)).toBeNull()
+    expect(await screen.findByDisplayValue('Drafted.')).toBeTruthy()
+  })
+})
+
+describe('ComposeModal send guards', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('Ctrl+Enter does not send while To or Subject is empty', () => {
+    const onSend = vi.fn()
+    renderCompose({ onSend })
+    fireEvent.change(screen.getByLabelText('Email body'), { target: { value: 'Body only' } })
+    fireEvent.keyDown(dialog(), { key: 'Enter', ctrlKey: true })
+    expect(onSend).not.toHaveBeenCalled()
+  })
+
+  it('Ctrl+Enter sends a complete message through the form', async () => {
+    const onSend = vi.fn().mockResolvedValue(undefined)
+    const { onClose } = renderCompose({ onSend })
+    fireEvent.change(screen.getByLabelText('To', { exact: true }), {
+      target: { value: 'friend@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'Hi' } })
+    fireEvent.keyDown(dialog(), { key: 'Enter', ctrlKey: true })
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+    expect(onSend).toHaveBeenCalledTimes(1)
+    expect(onSend.mock.calls[0][0]).toMatchObject({ to: 'friend@example.com', subject: 'Hi' })
+  })
+
+  it('Ctrl+Enter does nothing while a send is in flight', () => {
+    const onSend = vi.fn()
+    renderCompose({ onSend, isSending: true })
+    fireEvent.change(screen.getByLabelText('To', { exact: true }), {
+      target: { value: 'friend@example.com' },
+    })
+    fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'Hi' } })
+    fireEvent.keyDown(dialog(), { key: 'Enter', ctrlKey: true })
+    expect(onSend).not.toHaveBeenCalled()
+  })
+
+  it('Escape and the close button do nothing while a send is in flight', () => {
+    const { onClose } = renderCompose({ isSending: true })
+    fireEvent.change(screen.getByLabelText('Subject'), { target: { value: 'Hi' } })
+    fireEvent.keyDown(dialog(), { key: 'Escape' })
+    expect(screen.queryByText('Do you want to discard this message?')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Close' }).disabled).toBe(true)
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('shows a send error only as passed in (a fresh compose has none)', () => {
+    renderCompose({ sendError: null })
+    expect(screen.queryByText(/Message not sent/)).toBeNull()
+  })
+
+  it('shows the send failure while the window is open', () => {
+    renderCompose({ sendError: 'SMTP relay refused' })
+    expect(screen.getByRole('alert').textContent).toContain('Message not sent. SMTP relay refused')
   })
 })
