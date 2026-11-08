@@ -163,9 +163,9 @@ from Sentry, no access token in response bodies, browser-local data scoped to on
 
 ## 7. Operator actions (outside the repository)
 
-1. **Client IP:** pick one of the two setups in `operations.md` (Cloudflare firewall + nginx `real_ip`
-   from `CF-Connecting-IP` with the default `leftmost`, or `CLIENT_IP_STRATEGY=rightmost` with every
-   proxy hop in `TRUSTED_PROXY_IPS`). Do not simply overwrite `X-Forwarded-For` with `$remote_addr`.
+1. **Client IP:** log the forwarding headers nginx receives (steps in `operations.md`), then close the
+   direct route to the API (preferred) or use `CLIENT_IP_STRATEGY=rightmost` with every proxy hop in
+   `TRUSTED_PROXY_IPS`. Do not overwrite `X-Forwarded-For` with `$remote_addr`.
 2. **Sentry:** purge events that predate `9c38bcd`.
 3. **CI:** watch the first run of the new `e2e` job.
 

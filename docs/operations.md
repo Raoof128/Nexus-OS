@@ -59,20 +59,26 @@ true` and does not call the provider. A retry while the first request is
   bucket for all users.
 - **Client IP for rate limits (`CLIENT_IP_STRATEGY`).** Requests reach nginx
   from Cloudflare, so nginx's `$remote_addr` is a Cloudflare edge address, not
-  the visitor. Do **not** simply overwrite `X-Forwarded-For` with
-  `$remote_addr`: every user would share Cloudflare's rate-limit buckets.
-  Either:
-  - keep the default `CLIENT_IP_STRATEGY=leftmost` and (a) firewall the droplet
-    to Cloudflare's ranges so nothing reaches nginx except through Cloudflare,
-    and (b) use nginx's `real_ip` module (`set_real_ip_from <each Cloudflare
-range>;` and `real_ip_header CF-Connecting-IP;`) so `$remote_addr` is the
-    visitor, then send `proxy_set_header X-Forwarded-For $remote_addr;`. The
-    Worker already sets `X-Forwarded-For` from `CF-Connecting-IP`; or
+  the visitor. Do **not** overwrite `X-Forwarded-For` with `$remote_addr`:
+  every user would share Cloudflare's rate-limit buckets. The default
+  `leftmost` is correct for traffic through the Worker (it sets
+  `X-Forwarded-For` from `CF-Connecting-IP`); the gap is a request sent straight
+  to `api.home-notes-app.uk` with a forged `X-Forwarded-For`.
+  - **Check first.** Log `$remote_addr`, `$http_x_forwarded_for` and
+    `$http_cf_connecting_ip` in nginx, make one request through the site and
+    one direct `curl https://api.home-notes-app.uk/healthz -H "X-Forwarded-For:
+1.2.3.4"`, and read what arrives. It is not verified what Cloudflare puts in
+    `CF-Connecting-IP` on the Worker's own subrequest, so do not switch nginx to
+    `real_ip` from `CF-Connecting-IP` until the log shows the visitor's address
+    there. Remove the logging afterwards (it records visitor IPs).
+  - **Close the direct route** (preferred, keeps `leftmost`): have the Worker
+    add a secret header that nginx requires, so only Worker traffic reaches the
+    backend; or
   - set `CLIENT_IP_STRATEGY=rightmost` and list **every** proxy hop in
-    `TRUSTED_PROXY_IPS` (all Cloudflare IPv4/IPv6 ranges and nginx). The
-    backend then takes the first untrusted hop from the right, so an appended
-    client-supplied value is never used. The backend logs a warning at startup
-    if `rightmost` is set without any public proxy ranges.
+    `TRUSTED_PROXY_IPS` (all Cloudflare IPv4/IPv6 ranges and nginx). The backend
+    then takes the first untrusted hop from the right, so an appended
+    client-supplied value is never used. It logs a warning at startup if
+    `rightmost` is set without any public proxy ranges.
 - After deploying the Sentry header scrubbing, purge older Sentry events that
   may contain `X-Recovery-Access-Token` / `X-Recovery-Refresh-Token` headers.
 - `supabase/seed.sql` refuses to run unless the server address is local
