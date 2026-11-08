@@ -1,4 +1,4 @@
-import { Fragment, useState, useCallback } from 'react'
+import { Fragment, useState, useCallback, useEffect, useRef } from 'react'
 import { ArrowLeft, Copy, MessageSquare, RefreshCw } from 'lucide-react'
 import { OT_BOOKS, NT_BOOKS, getBookBackground, getOmittedVerses } from '../lib/bibleData'
 import { useAionReader } from '../hooks/useAionReader'
@@ -113,10 +113,20 @@ function OmittedVerseNote({ bookName, chapterNum, verse }) {
 }
 
 // ── Sub-view: Chapter viewer ────────────────────────────────
+// Reading progress 0–100 for a scroll container; content that fits counts as read.
+function readScrollPct(el) {
+  const pct =
+    el.scrollHeight > el.clientHeight
+      ? Math.min(el.scrollTop / (el.scrollHeight - el.clientHeight), 1)
+      : 1
+  return Math.round(pct * 100)
+}
+
 function ChapterViewer({ book, chapter, onBack, onAskAion, onPick, onNavigateChapter }) {
   const { verses, isLoading, error, refetch } = useAionReader(book.id, chapter)
   const [activeVerse, setActiveVerse] = useState(null)
   const [scrollPct, setScrollPct] = useState(0)
+  const scrollRef = useRef(null)
 
   const chapterNum = Number(chapter)
   const omittedVerses = getOmittedVerses(book.id, chapterNum)
@@ -124,14 +134,22 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onPick, onNavigateCha
   const hasPrev = chapterNum > 1
   const hasNext = chapterNum < book.chapters
 
+  // Short chapters never fire a scroll event, so read the meter once content lands.
+  // Re-measure when content loads or the window is resized (the window animates in).
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return undefined
+    const update = () => setScrollPct(readScrollPct(el))
+    update()
+    if (typeof ResizeObserver === 'undefined') return undefined
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [verses, isLoading, error])
+
   const handleScroll = useCallback(
     (e) => {
-      const el = e.currentTarget
-      const pct =
-        el.scrollHeight > el.clientHeight
-          ? Math.min(el.scrollTop / (el.scrollHeight - el.clientHeight), 1)
-          : 1
-      setScrollPct(Math.round(pct * 100))
+      setScrollPct(readScrollPct(e.currentTarget))
       // Dismiss active verse on scroll
       if (activeVerse !== null) setActiveVerse(null)
     },
@@ -146,109 +164,130 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onPick, onNavigateCha
   return (
     <div className="flex h-full w-full flex-col bg-white">
       {/* Toolbar: back, book/chapter pickers, prev/next, text size, progress */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-[#d9d9d9] bg-w7-pane px-3 py-1.5">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Back to chapter list"
-          title="Back to chapter list"
-          className="w7-toolbtn h-6 w-6 px-0"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        </button>
+      {/* Two intentional groups: navigation (never split) and text size + progress.
+          On narrow windows (@md = < 28rem) the second group drops to its own row. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-[#d9d9d9] bg-w7-pane px-3 py-1.5">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Back to chapter list"
+            title="Back to chapter list"
+            className="w7-toolbtn h-6 w-6 shrink-0 px-0"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          </button>
 
-        <select
-          aria-label="Book"
-          value={book.id}
-          onChange={(e) => {
-            const next = [...OT_BOOKS, ...NT_BOOKS].find((b) => b.id === e.target.value)
-            if (next) onPick(next, 1)
-          }}
-          className="max-w-[12rem]"
-        >
-          <optgroup label="Old Testament">
-            {OT_BOOKS.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
+          <select
+            aria-label="Book"
+            value={book.id}
+            onChange={(e) => {
+              const next = [...OT_BOOKS, ...NT_BOOKS].find((b) => b.id === e.target.value)
+              if (next) onPick(next, 1)
+            }}
+            className="min-w-0 max-w-[12rem]"
+          >
+            <optgroup label="Old Testament">
+              {OT_BOOKS.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="New Testament">
+              {NT_BOOKS.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+          <select
+            aria-label="Chapter"
+            value={chapterNum}
+            onChange={(e) => onNavigateChapter(Number(e.target.value))}
+          >
+            {Array.from({ length: book.chapters }, (_, i) => i + 1).map((ch) => (
+              <option key={ch} value={ch}>
+                {ch}
               </option>
             ))}
-          </optgroup>
-          <optgroup label="New Testament">
-            {NT_BOOKS.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </optgroup>
-        </select>
-        <select
-          aria-label="Chapter"
-          value={chapterNum}
-          onChange={(e) => onNavigateChapter(Number(e.target.value))}
-        >
-          {Array.from({ length: book.chapters }, (_, i) => i + 1).map((ch) => (
-            <option key={ch} value={ch}>
-              {ch}
-            </option>
-          ))}
-        </select>
+          </select>
 
-        <button
-          type="button"
-          onClick={() => hasPrev && onNavigateChapter(chapterNum - 1)}
-          disabled={!hasPrev}
-          aria-label="Previous chapter"
-          title="Previous chapter"
-          className="w7-toolbtn"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" /> Previous
-        </button>
-        <button
-          type="button"
-          onClick={() => hasNext && onNavigateChapter(chapterNum + 1)}
-          disabled={!hasNext}
-          aria-label="Next chapter"
-          title="Next chapter"
-          className="w7-toolbtn"
-        >
-          Next <ArrowLeft className="h-3.5 w-3.5 rotate-180" aria-hidden="true" />
-        </button>
+          <button
+            type="button"
+            onClick={() => hasPrev && onNavigateChapter(chapterNum - 1)}
+            disabled={!hasPrev}
+            aria-label="Previous chapter"
+            title="Previous chapter"
+            className="w7-toolbtn shrink-0"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden @md:inline">Previous</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => hasNext && onNavigateChapter(chapterNum + 1)}
+            disabled={!hasNext}
+            aria-label="Next chapter"
+            title="Next chapter"
+            className="w7-toolbtn shrink-0"
+          >
+            <span className="hidden @md:inline">Next</span>
+            <ArrowLeft className="h-3.5 w-3.5 rotate-180" aria-hidden="true" />
+          </button>
+        </div>
 
         {/* Right cluster: text-size control + reading progress */}
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-[12px] text-muted-foreground">Text size</span>
-          <button
-            type="button"
-            onClick={decrease}
-            disabled={!canDecrease}
-            aria-label="Decrease text size"
-            title="Decrease text size"
-            className="w7-toolbtn"
-          >
-            A−
-          </button>
-          <span className="min-w-[2rem] text-center text-[12px] text-foreground" aria-hidden="true">
-            {level.label}
-          </span>
-          <button
-            type="button"
-            onClick={increase}
-            disabled={!canIncrease}
-            aria-label="Increase text size"
-            title="Increase text size"
-            className="w7-toolbtn"
-          >
-            A+
-          </button>
-          <div
-            role="progressbar"
-            aria-label="Reading progress"
-            aria-valuenow={scrollPct}
-            aria-valuemin="0"
-            aria-valuemax="100"
-            className="w-20"
-          >
-            <div style={{ width: `${scrollPct}%` }} />
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div role="group" aria-label="Text size" className="flex items-center gap-1.5">
+            <span className="hidden text-[12px] text-muted-foreground @md:inline">Text size</span>
+            <button
+              type="button"
+              onClick={decrease}
+              disabled={!canDecrease}
+              aria-label="Decrease text size"
+              title="Decrease text size"
+              className="w7-toolbtn"
+            >
+              A−
+            </button>
+            <span
+              className="min-w-[2rem] text-center text-[12px] text-foreground"
+              aria-hidden="true"
+            >
+              {level.label}
+            </span>
+            <button
+              type="button"
+              onClick={increase}
+              disabled={!canIncrease}
+              aria-label="Increase text size"
+              title="Increase text size"
+              className="w7-toolbtn"
+            >
+              A+
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div
+              role="progressbar"
+              aria-label="Reading progress"
+              aria-valuenow={scrollPct}
+              aria-valuetext={`${scrollPct}% read`}
+              aria-valuemin="0"
+              aria-valuemax="100"
+              title={`${scrollPct}% read`}
+              className="w-12 @md:w-20"
+            >
+              <div style={{ width: `${scrollPct}%` }} />
+            </div>
+            <span
+              className="w-9 text-right text-[12px] tabular-nums text-muted-foreground"
+              aria-hidden="true"
+            >
+              {scrollPct}%
+            </span>
           </div>
         </div>
       </div>
@@ -273,7 +312,7 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onPick, onNavigateCha
       )}
 
       {!isLoading && !error && (
-        <div className="flex-1 overflow-y-auto" onScroll={handleScroll}>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto" onScroll={handleScroll}>
           <article className="mx-auto w-full max-w-[70ch] px-5 pb-16 pt-6">
             <h2 className="w7-heading mb-5 text-[14px]">
               {book.name} {chapterNum}
@@ -332,25 +371,33 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onPick, onNavigateCha
                           lineHeight: level.lineHeight,
                         }}
                       >
-                        {/* Verse number: small superscript in the title blue */}
-                        <sup className="mr-1 select-none font-sans text-[10px] font-bold text-w7-title">
-                          {v.verse}
-                        </sup>
                         {isFirst ? (
                           <>
+                            {/* The verse number sits inside the floated drop cap so it never
+                                splits the first word ("I1n the beginning"). */}
                             <span
-                              className="float-left mr-1 font-bold leading-none text-w7-title"
+                              className="float-left font-bold leading-none text-w7-title"
                               style={{
                                 fontSize: `${level.size * 2.7}px`,
                                 lineHeight: `${level.size * 2.7}px`,
                               }}
                             >
+                              {/* Verse number: small superscript in the title blue */}
+                              <sup className="select-none align-top font-sans text-[10px] font-bold">
+                                {v.verse}
+                              </sup>
                               {dropCap}
                             </span>
                             {rest}
                           </>
                         ) : (
-                          v.content
+                          <>
+                            {/* Verse number: small superscript in the title blue */}
+                            <sup className="mr-1 select-none font-sans text-[10px] font-bold text-w7-title">
+                              {v.verse}
+                            </sup>
+                            {v.content}
+                          </>
                         )}
                       </span>
                     </button>
