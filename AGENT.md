@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-11-08 (Australia/Sydney) — Deploy: Windows 7 redesign and backend audit to production
+
+**Raouf:**
+
+- **Scope:** Commit, push and redeploy all changes (Worker, backend, frontend), using Sentinel.
+- **Summary:** Pushed `feat/windows7-aero-redesign` (1f9ce91). Deploy order: Worker first (`nexus-api-proxy`, version `9b7ca527`, now forwards `X-Requested-With`), then backend, then frontend. Backend on `portfolio-droplet` (the Nexus API droplet) via Sentinel's `portfolio-droplet-root` key with plain ssh (owner request): code staged under `/root`, a candidate image built, and the production env validated inside it against the new boot checks (`PREFLIGHT OK`) before the swap; then backup to `/root/nexus-backup-20261108`, old image tagged `nexus-api:prev`, rebuild from `/opt/nexus`, container swapped, healthy after 5 s. Only `/opt/nexus` and the `nexus-api` container were touched. Frontend built with `VITE_API_URL=https://home-notes-app.uk/api` and the public Supabase/Aion anon config read from the live bundle (role `anon` checked) into the gitignored `frontend/.env.production.local`, deployed to Pages `nexus-archive` branch `codex/bootstrap` (`CLOUDFLARE_ACCOUNT_ID` needed: two accounts).
+- **Files Changed:** `CHANGELOG.md`, `AGENT.md` (this entry). No code changes.
+- **Verification:** Sentinel before and after: nginx active, docker active, no nginx errors since the deploy, container `healthy` (new Python healthcheck). Live: `/api/healthz` 200 with `X-Request-ID`; `/auth/refresh` without the header 403, with it 201 through the Worker; `/media` unauthenticated 401; home and www 200 on the new bundle; headless browser shows the Win7 logon and `GET /api/auth/session` 200.
+- **Follow-ups:** Production pins `GEMINI_MODEL=gemini-2.5-flash` (Google routes it to `gemini-3.5-flash-lite` from 2026-12-01; env not changed). `REDIS_URL` unset, so rate limits are in memory (single worker). Email poller is disabled in production (no OAuth client IDs). Cloudflare Insights beacon is blocked by the site CSP (not from this change). Signed-in flows were not exercised live. Rollback: `docker stop nexus-api && docker rm nexus-api` then run `nexus-api:prev` with the same flags, and restore `/root/nexus-backup-20261108` to `/opt/nexus`.
+
 ### 2026-11-08 (Australia/Sydney) — Backend: line-by-line audit against 2026 docs, fixes and hardening
 
 **Raouf:**
