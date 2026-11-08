@@ -17,7 +17,9 @@ See [`docs/win7-design-system.md`](docs/win7-design-system.md) for the design co
 
 This repository includes a hardened defensive posture:
 
-- **Zero-Trust Auth**: Backend-managed `HttpOnly` cookies; no sensitive tokens in browser storage.
+- **Backend-Mediated Auth**: API credentials live exclusively in `HttpOnly`
+  cookies. Auth responses return identity metadata, not bearer tokens, and
+  private data reads go through the cookie-authenticated API.
 - **Silent Rotation**: Strict cookie refresh flow with short-lived access tokens.
 - **AI Isolation**: Prompt scrubbing, XML delimiters, and PII masking for Gemini interactions.
 - **Rate Limiting**: Shared server-side AI quotas enforced via Redis-backed sliding windows.

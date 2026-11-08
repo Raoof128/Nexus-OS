@@ -5,6 +5,16 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-11-08 (Australia/Sydney) — Merge feat/notes-app into the Windows 7 branch (Windows 7 wins conflicts)
+
+**Raouf:**
+
+- **Scope:** Safely merge the branches with the newer Windows 7 branch as the correct one.
+- **Summary:** `feat/notes-app` (12 commits, the Aug-17 production build `91eb66e`) merged into `feat/windows7-aero-redesign` on `merge/win7-with-notes-app`; backup tags `backup/{win7,notes-app,main}-pre-merge-20261108`. Owner rule: Windows 7 wins every conflict. The 69 conflicted files, plus 15 files both branches edited, take the complete Windows 7 version (a hunk-level mix produced incoherent code). Notes-app-only work comes in: the Notes API (`notes_controller/service/schemas`, registered in `app.py`, with `NOTES_RATE_LIMIT_*` settings and note encryption helpers added to the Windows 7 modules), the three migrations already applied in production (notes, task due timezone, backend integrity hardening), their tests, and Worker tests. Notes-app tests that assert notes-app behaviour of Windows 7-owned code were removed or restored to the Windows 7 version. Two deliberate exceptions, both because the code must match the production schema or the Windows 7 frontend: email accounts are written as `active` with upsert target `(user_id, provider, email_address)` (the integrity migration's constraints), and the Worker takes the notes-app version, a superset of the Windows 7 one that also routes the browser OAuth navigation `/api/email/accounts/connect` and returns provider redirects to the browser.
+- **Files Changed:** merge commit; `backend/{app,config,data_protection,rate_limit,oauth_controller,email_poller}.py`, `backend/.env.example`, `worker/index.js`, tests.
+- **Verification:** pytest **1066 passed, 1 skipped**; ruff check/format ✓; bandit ✓; Vitest **658/658**; ESLint ✓; Prettier ✓; build ✓; Playwright **39/39**; Worker **3/3**; `check.sh` ✓.
+- **Follow-ups:** The Windows 7 Notes app is local (File Manager store) and does not call the Notes API, so notes stored on the server are still not shown in the UI. Notes-app hardening lost to the Windows 7 side: no token in auth response bodies, recovery tokens in headers, email idempotency keys, per-user File Manager isolation and OPFS, EmailReader iframe policy tests, task timezone UI. Production still runs the Windows 7 deploy; redeploy after review.
+
 ### 2026-11-08 (Australia/Sydney) — Deploy: Windows 7 redesign and backend audit to production
 
 **Raouf:**

@@ -474,13 +474,13 @@ class TestOAuthController:
         store_mock.from_.assert_called_once_with("email_accounts")
         row = store_mock.from_.return_value.upsert.call_args.args[0]
         kwargs = store_mock.from_.return_value.upsert.call_args.kwargs
-        assert kwargs["on_conflict"] == "user_id,email_address"
+        assert kwargs["on_conflict"] == "user_id,provider,email_address"
         assert kwargs["returning"] == "minimal"
         assert row["user_id"] == "user-123"
         assert row["provider"] == "google"
         assert row["email_address"] == "owner@example.com"
-        # The email_inbox migration only allows 'connected' or 'disconnected'.
-        assert row["status"] == "connected"
+        # email_accounts_status_check allows only 'active' or 'disconnected'.
+        assert row["status"] == "active"
         assert row["access_token_enc"] != "access-plain"
         assert row["refresh_token_enc"] != "refresh-plain"
         assert "access-plain" not in json.dumps(row)

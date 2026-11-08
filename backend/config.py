@@ -86,6 +86,8 @@ class BackendSettings:
     auth_rate_limit_window_seconds: int = 60
     tasks_rate_limit_requests: int = 120
     tasks_rate_limit_window_seconds: int = 60
+    notes_rate_limit_requests: int = 120
+    notes_rate_limit_window_seconds: int = 60
     password_reset_redirect_url: str | None = None
     # Often embeds a password (redis://:secret@host), so it is redacted too.
     redis_url: str | None = field(default=None, repr=False)
@@ -558,6 +560,10 @@ def get_settings() -> BackendSettings:
         tasks_rate_limit_requests=_parse_int_env("TASKS_RATE_LIMIT_REQUESTS", 120),
         tasks_rate_limit_window_seconds=_parse_int_env(
             "TASKS_RATE_LIMIT_WINDOW_SECONDS", 60
+        ),
+        notes_rate_limit_requests=_parse_int_env("NOTES_RATE_LIMIT_REQUESTS", 120),
+        notes_rate_limit_window_seconds=_parse_int_env(
+            "NOTES_RATE_LIMIT_WINDOW_SECONDS", 60
         ),
         password_reset_redirect_url=_get_env("PASSWORD_RESET_REDIRECT_URL"),
         redis_url=_get_env("REDIS_URL"),

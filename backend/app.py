@@ -27,6 +27,7 @@ try:
         configure_logging,
         log_unhandled_exception,
     )
+    from .notes_controller import NotesController
     from .oauth_controller import OAuthController
     from .observability import configure_observability
     from .security import SecurityHeadersMiddleware
@@ -45,6 +46,7 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
         configure_logging,
         log_unhandled_exception,
     )
+    from notes_controller import NotesController
     from oauth_controller import OAuthController
     from observability import configure_observability
     from security import SecurityHeadersMiddleware
@@ -105,6 +107,7 @@ app = Litestar(
         AuthController,
         ChatController,
         MediaController,
+        NotesController,
         OAuthController,
         EmailController,
         TasksController,

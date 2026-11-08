@@ -926,14 +926,14 @@ async def test_cancelling_the_shutdown_hook_propagates(monkeypatch):
     poll_task.cancel()
 
 
-def test_poller_selects_schema_status_and_legacy_active():
-    """'connected' is the schema value; legacy 'active' rows keep polling."""
+def test_poller_selects_the_schema_active_status():
+    """'active' is the only connected status the integrity migration allows."""
 
     from backend.email_poller import _select_active_accounts
 
     log: list = []
-    db = _FakeDB(log, [{"id": "acc-1", "status": "connected"}])
+    db = _FakeDB(log, [{"id": "acc-1", "status": "active"}])
     rows = _select_active_accounts(db)
 
-    assert rows == [{"id": "acc-1", "status": "connected"}]
-    assert log[-1]["in"] == ("status", ["connected", "active"])
+    assert rows == [{"id": "acc-1", "status": "active"}]
+    assert log[-1]["in"] == ("status", ["active"])

@@ -388,3 +388,24 @@ def hydrate_task_record(record: dict[str, Any]) -> dict[str, Any]:
         field="notes",
     )
     return hydrated
+
+
+def protect_note_text(text: str | None) -> str | None:
+    """Encrypt note text (title, body, checklist item) like task notes."""
+
+    return protect_task_notes(text)
+
+
+def hydrate_note_record(record: dict[str, Any]) -> dict[str, Any]:
+    """Return a note record with encrypted text fields restored for the UI.
+
+    A value that cannot be decrypted becomes ``None``, as for media and tasks.
+    """
+
+    hydrated = dict(record)
+    for field in ("title_encrypted", "content_encrypted", "text_encrypted"):
+        if field in record:
+            hydrated[field] = _decrypt_for_display(
+                record.get(field), record_id=record.get("id"), field=field
+            )
+    return hydrated

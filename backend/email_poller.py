@@ -222,9 +222,9 @@ def _oauth_error_code(resp: httpx.Response) -> str | None:
 # ---------------------------------------------------------------------------
 
 
-# 'connected' is the schema value (email_inbox migration CHECK constraint).
-# 'active' was written by older code; keep polling any such rows.
-POLLABLE_ACCOUNT_STATUSES: tuple[str, ...] = ("connected", "active")
+# 'active' is the only connected state allowed by email_accounts_status_check
+# (20260817000001_backend_integrity_hardening.sql, applied in production).
+POLLABLE_ACCOUNT_STATUSES: tuple[str, ...] = ("active",)
 
 
 def _select_active_accounts(db: Any) -> list[EmailAccountRow]:

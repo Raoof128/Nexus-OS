@@ -231,6 +231,7 @@ _init_lock: Final[Lock] = Lock()
 _ai_rate_limiter: RateLimiter | None = None
 _auth_rate_limiter: RateLimiter | None = None
 _tasks_rate_limiter: RateLimiter | None = None
+_notes_rate_limiter: RateLimiter | None = None
 
 
 def _create_rate_limiter(max_requests: int, window_seconds: int) -> RateLimiter:
@@ -316,6 +317,24 @@ def _tasks_limiter() -> RateLimiter:
     return _tasks_rate_limiter
 
 
+def _notes_limiter() -> RateLimiter:
+    global _notes_rate_limiter
+    _notes_rate_limiter = _get_or_create(
+        _notes_rate_limiter,
+        lambda: _create_rate_limiter(
+            max_requests=get_settings().notes_rate_limit_requests,
+            window_seconds=get_settings().notes_rate_limit_window_seconds,
+        ),
+    )
+    return _notes_rate_limiter
+
+
+def enforce_notes_rate_limit(user_id: str) -> None:
+    """Apply the per-user limit to Notes API requests. Blocking."""
+
+    _notes_limiter().enforce(f"notes:{user_id}")
+
+
 def _enforce_ai(user_id: str, feature: str, limiter: RateLimiter) -> None:
     try:
         limiter.enforce(f"ai:{user_id}")
@@ -390,10 +409,12 @@ def reset_rate_limiters() -> None:
     """Reset cached limiter instances so each test starts from empty state."""
 
     global _ai_rate_limiter, _auth_rate_limiter, _tasks_rate_limiter
+    global _notes_rate_limiter
     with _init_lock:
         _ai_rate_limiter = None
         _auth_rate_limiter = None
         _tasks_rate_limiter = None
+        _notes_rate_limiter = None
 
 
 __all__ = [
@@ -405,6 +426,7 @@ __all__ = [
     "enforce_ai_rate_limit_async",
     "enforce_auth_rate_limit",
     "enforce_auth_rate_limit_async",
+    "enforce_notes_rate_limit",
     "enforce_tasks_rate_limit",
     "enforce_tasks_rate_limit_async",
     "reset_rate_limiters",

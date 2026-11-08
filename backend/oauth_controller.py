@@ -515,9 +515,9 @@ class OAuthController(Controller):
             "email_address": email_address,
             "access_token_enc": encrypt_oauth_token(tokens.access_token),
             "token_expires_at": token_expires_at,
-            # Must satisfy the CHECK (status IN ('connected', 'disconnected')) in
-            # supabase/migrations/20260410000001_email_inbox.sql.
-            "status": "connected",
+            # Must satisfy email_accounts_status_check ('active', 'disconnected'),
+            # set by supabase/migrations/20260817000001_backend_integrity_hardening.sql.
+            "status": "active",
         }
         # Omit the refresh-token column when the provider sent no new token, so a
         # re-consent does not overwrite a stored working refresh token with "".
@@ -528,7 +528,7 @@ class OAuthController(Controller):
             db = create_supabase_user_client(access_cookie)
             builder = db.from_("email_accounts").upsert(
                 row,
-                on_conflict="user_id,email_address",
+                on_conflict="user_id,provider,email_address",
                 returning=ReturnMethod.minimal,
             )
             await run_blocking(builder.execute)
