@@ -9,14 +9,11 @@ export const EMAIL_FOLDERS = [
   { id: 'starred', label: 'Starred', icon: Star },
 ]
 
+// Provider badges are Windows 7 status pills (`w7-badge`) drawn from the
+// design tokens in docs/win7-design-system.md §2. No hard-coded hex values.
 export const PROVIDER_CONFIG = {
-  google: { label: 'Gmail', color: '#ea4335', bgColor: 'bg-red-50', textColor: 'text-red-700' },
-  microsoft: {
-    label: 'Outlook',
-    color: '#0078d4',
-    bgColor: 'bg-blue-50',
-    textColor: 'text-blue-700',
-  },
+  google: { label: 'Gmail', bgColor: 'bg-w7-pane', textColor: 'text-w7-title' },
+  microsoft: { label: 'Outlook', bgColor: 'bg-w7-pane', textColor: 'text-w7-title' },
 }
 
 export const EMAIL_TAB_ICON = Mail

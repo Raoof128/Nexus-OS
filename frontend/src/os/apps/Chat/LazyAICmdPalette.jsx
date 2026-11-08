@@ -24,7 +24,9 @@ function LoadingDialog() {
   )
 }
 
-export default function LazyAICmdPalette({ mediaType = 'book', onAdd }) {
+// placement="floating" pins the entry point to the viewport corner (the default).
+// placement="inline" renders it in normal flow, for a host's command bar.
+export default function LazyAICmdPalette({ mediaType = 'book', onAdd, placement = 'floating' }) {
   const [open, setOpen] = useState(false)
   const [shouldLoad, setShouldLoad] = useState(false)
 
@@ -56,7 +58,11 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd }) {
       <button
         type="button"
         aria-label="Ask AI (open command palette)"
-        className="w7-btn fixed bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))] right-4 z-40 gap-1.5 px-3 sm:bottom-[4.5rem] sm:right-6 sm:z-50"
+        className={`w7-toolbtn w7-card min-h-[44px] min-w-[44px] gap-1.5 px-2 sm:min-h-[28px] sm:min-w-0 ${
+          placement === 'floating'
+            ? 'fixed bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))] right-4 z-40 sm:bottom-[4.5rem] sm:right-6 sm:z-50'
+            : ''
+        }`}
         onMouseEnter={() => {
           setShouldLoad(true)
           void loadAICmdPalette()
@@ -69,7 +75,7 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd }) {
       >
         <Zap size={14} className="text-[#3d5a80]" aria-hidden="true" />
         <span className="hidden sm:inline">Ask AI</span>
-        <kbd className="text-[11px] text-muted-foreground">
+        <kbd className="hidden text-[11px] text-muted-foreground sm:inline">
           {typeof navigator !== 'undefined' &&
           /Mac/i.test(navigator.userAgentData?.platform ?? navigator.platform)
             ? '⌘K'

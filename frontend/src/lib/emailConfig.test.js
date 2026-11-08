@@ -79,8 +79,15 @@ describe('getProviderBadge', () => {
   it('returned config has required display fields', () => {
     const badge = getProviderBadge('google')
     expect(badge).toHaveProperty('label')
-    expect(badge).toHaveProperty('color')
     expect(badge).toHaveProperty('bgColor')
     expect(badge).toHaveProperty('textColor')
+  })
+
+  it('uses Windows 7 token classes, not hard-coded hex or palette colours', () => {
+    for (const config of Object.values(PROVIDER_CONFIG)) {
+      expect(config.bgColor).toMatch(/^bg-w7-/)
+      expect(config.textColor).toMatch(/^text-w7-/)
+      expect(JSON.stringify(config)).not.toMatch(/#[0-9a-f]{3,6}|red-|blue-/i)
+    }
   })
 })

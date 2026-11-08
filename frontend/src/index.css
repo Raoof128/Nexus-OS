@@ -282,6 +282,30 @@
     --w7-frame: var(--w7-w-bg, #4580c4);
   }
 
+  /* Access-key underlines (menu mnemonics) stay hidden until the keyboard is
+     used, as Windows 7 does by default. Desktop.jsx toggles .nx-kbd-cues. */
+  .win7 .nx-accel {
+    text-decoration: none;
+  }
+  .win7.nx-kbd-cues .nx-accel {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* Control Panel → Window Color → "Enable transparency" off: opaque frames,
+     no blur behind windows, the taskbar or the Start menu (Windows 7 Basic-like
+     glass-off look). settingsStore writes data-transparency on <body>. */
+  body.win7[data-transparency='off'] {
+    --w7-glass-blur: 0px;
+  }
+  body.win7[data-transparency='off'] .window.glass::before {
+    opacity: 1;
+  }
+  body.win7[data-transparency='off'] .window.glass::after {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
   /* Inputs 7.css does not cover get the same sunken Win7 field. */
   .win7 input:is([type='date'], [type='time'], [type='datetime-local'], [type='tel']) {
     background-color: #fff;
@@ -736,6 +760,44 @@
     outline: 1px dotted #fff;
     outline-offset: -3px;
   }
+  /* Grouped windows: room for the count pill in the corner. */
+  .nx-taskbtn.is-stacked {
+    padding-right: 22px;
+  }
+  .nx-taskbtn__count {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    box-sizing: border-box;
+    border: 1px solid #7da2ce;
+    border-radius: 7px;
+    background: #e5f3ff;
+    color: #1e1e1e;
+    font-size: 10px;
+    line-height: 12px;
+    text-align: center;
+    text-shadow: none;
+  }
+  /* Attention request (a background window asked for notice). Flashes a few
+     times, then stays amber until the window is activated. Finite, so no
+     endless pulse. */
+  .nx-taskbtn.is-flashing {
+    background: linear-gradient(#ffe39a80, #ffb94d59);
+    border-color: #ffd27aa6 #7a4a00 #5c3800 #ffd27a80;
+    box-shadow: inset 0 0 0 1px #ffd27a66;
+    animation: nx-taskbtn-flash var(--w7-motion) ease-in-out 4 alternate;
+  }
+  @keyframes nx-taskbtn-flash {
+    from {
+      background-color: transparent;
+    }
+    to {
+      background-color: #ffb94d80;
+    }
+  }
 
   .nx-tray {
     display: flex;
@@ -765,20 +827,66 @@
     outline: 1px dotted #fff;
     outline-offset: -2px;
   }
+  /* Show desktop: a 4px sliver at the far right edge, with a 24px hit area
+     (44px on touch, below). The visible strip is ::before. */
   .nx-show-desktop {
-    width: 15px;
+    position: relative;
+    width: 24px;
     height: 100%;
-    margin-left: 8px;
+    margin-left: 0;
+    border: 0;
+    background: none;
+  }
+  .nx-show-desktop::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 4px;
     border-left: 1px solid #0007;
     box-shadow: inset 1px 0 0 #ffffff33;
     background: linear-gradient(to right, #ffffff14, #ffffff2e);
+    pointer-events: none;
   }
-  .nx-show-desktop:hover {
+  .nx-show-desktop:hover::before {
     background: linear-gradient(to right, #ffffff40, #ffffff73);
   }
   .nx-show-desktop:focus-visible {
     outline: 1px dotted #fff;
     outline-offset: -2px;
+  }
+
+  /* Touch: the 7.css-style 44px minimum where the 40px bar allows it. The
+     task buttons stay 36px tall, so their height is a known shortfall. */
+  @media (pointer: coarse) {
+    .nx-tray-btn {
+      min-width: 40px;
+      height: 36px;
+    }
+    .nx-show-desktop {
+      width: 44px;
+    }
+  }
+
+  /* Aero Peek: hovering Show desktop fades the windows to their outlines
+     (Taskbar.jsx sets data-aero-peek on <html> after 500ms). 7.css paints the
+     frame on .window::before and blurs through .window.glass::after, so those
+     pseudo-elements must be hidden too. The selectors carry .win7 so they tie
+     with .win7 .window.nx-window.active and win on source order. */
+  :root[data-aero-peek='true'] .win7 .nx-window {
+    background: transparent;
+    box-shadow: none;
+    outline: 1px solid #ffffffb3;
+    outline-offset: -1px;
+  }
+  :root[data-aero-peek='true'] .win7 .nx-window::before,
+  :root[data-aero-peek='true'] .win7 .nx-window::after {
+    display: none;
+  }
+  :root[data-aero-peek='true'] .win7 .nx-window > * {
+    opacity: 0.12;
+    transition: opacity var(--w7-motion-fast);
   }
 
   /* ── Start menu ───────────────────────────────────────────────────────── */
@@ -915,7 +1023,7 @@
   /* ── Flyouts (context menu, notification area, action centre) ──────────── */
   .nx-flyout {
     background: var(--w7-surface, #f0f0f0);
-    border: 1px solid #979797;
+    border: 1px solid #0006;
     box-shadow: 4px 4px 3px -2px #00000080;
     color: #1e1e1e;
     font: var(--w7-font);
@@ -923,10 +1031,11 @@
   .nx-menuitem {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
     min-height: 22px;
-    padding: 0 20px 0 6px;
+    /* 7.css menu.css: label starts 32px in (4px pad + 22px icon + 6px gap). */
+    padding: 4px 10px 4px 4px;
     border: 1px solid transparent;
     border-radius: 3px;
     color: #1e1e1e;
@@ -945,11 +1054,13 @@
     justify-content: center;
     color: #3d5a80;
   }
+  /* 7.css has-divider: a 2px etched line, starting at the label gutter. */
   .nx-menu-separator {
-    height: 1px;
-    margin: 3px 2px 3px 30px;
-    background: #e0e0e0;
-    box-shadow: 0 1px 0 #fff;
+    height: 2px;
+    margin: 3px 0 2px 28px;
+    box-shadow:
+      inset 0 1px #00000026,
+      inset 0 -1px #fff;
   }
 
   /* Aero glass panel (dark), e.g. lock screen / boot overlays. */

@@ -61,7 +61,10 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
       await onAdd(mediaData)
       handleClose()
     } catch (submitError) {
-      setError(submitError.message || 'Failed to add entry')
+      setError(
+        submitError.message ||
+          `The ${config.singular.toLowerCase()} could not be added. Check your connection, then try again.`,
+      )
     } finally {
       setSubmitting(false)
     }
@@ -77,9 +80,9 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
 
   return (
     <>
-      <button type="button" onClick={handleOpen} className="w7-toolbtn">
+      <button type="button" onClick={handleOpen} className="w7-toolbtn" aria-haspopup="dialog">
         <Plus size={14} aria-hidden="true" />
-        Add {config.singular}
+        Add {config.singular}…
       </button>
 
       {createPortal(
@@ -130,6 +133,7 @@ export default function AddMediaDialog({ mediaType, onAdd }) {
                       submitting={submitting}
                       error={error}
                       submitLabel={`Add ${config.singular}`}
+                      onCancel={handleClose}
                       idPrefix="add"
                       placeholders={placeholders}
                     />

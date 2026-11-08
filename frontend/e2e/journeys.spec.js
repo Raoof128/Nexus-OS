@@ -14,7 +14,9 @@ async function launchFromStart(page, query, appName) {
   const search = page.getByRole('searchbox', { name: 'Search programs' })
   await expect(search).toBeFocused()
   await search.fill(query)
-  await expect(page.getByRole('option', { name: new RegExp(appName) })).toBeVisible()
+  await expect(
+    page.getByTestId('app-launcher').getByRole('option', { name: new RegExp(appName) }),
+  ).toBeVisible()
   await search.press('Enter')
   await expect(page.getByTestId('app-launcher')).toBeHidden()
   await expect(win(page, appName)).toBeVisible()
@@ -123,6 +125,9 @@ test.describe('desktop shell', () => {
     let bb = await bar.boundingBox()
     await page.mouse.move(bb.x + 100, bb.y + 10)
     await page.mouse.down()
+    // Windows 7: a click does not unsnap; dragging restores the window under
+    // the pointer and keeps dragging.
+    await page.mouse.move(bb.x + 140, bb.y + 60, { steps: 6 })
     await page.mouse.up()
     // Un-snapping animates back to the restored rect (240ms); wait for it.
     await expect(w).not.toHaveClass(/is-maximized/)
@@ -165,8 +170,13 @@ test.describe('desktop shell', () => {
     await page.getByRole('button', { name: 'Show desktop' }).click()
     await page.getByRole('button', { name: 'Show desktop' }).click()
     await expect(win(page, 'Media Vault')).toBeVisible()
-    await page.mouse.click(1200, 700, { button: 'right' })
-    await page.getByRole('menuitem', { name: 'Show the desktop' }).click()
+    // "Show the desktop" lives on the taskbar menu, as on Windows 7.
+    const bar = await page.getByRole('navigation', { name: 'Taskbar' }).boundingBox()
+    await page.mouse.click(bar.x + bar.width * 0.6, bar.y + bar.height / 2, { button: 'right' })
+    await page
+      .getByRole('menu', { name: 'Taskbar context menu' })
+      .getByRole('menuitem', { name: /Show the desktop/ })
+      .click()
     await expect(win(page, 'Media Vault')).toBeHidden()
     await page.getByRole('button', { name: 'Show desktop' }).click()
     await expect(win(page, 'Media Vault')).toBeVisible()
@@ -179,8 +189,9 @@ test.describe('desktop shell', () => {
     const media = win(page, 'Media Vault')
     // Vault list rows open from the keyboard.
     await media.getByRole('button', { name: 'To Read — open vault' }).click()
-    const firstTitle = media.locator('[aria-haspopup="dialog"]').first()
-    await firstTitle.focus()
+    // Rows are a roving-tabindex table: focus the first row, Enter opens it.
+    const firstRow = media.getByRole('table').locator('[role="row"][tabindex]').first()
+    await firstRow.focus()
     await page.keyboard.press('Enter')
     const details = page.getByRole('dialog')
     await expect(details).toBeVisible()
@@ -199,7 +210,10 @@ test.describe('desktop shell', () => {
 
   test('desktop icons open apps; context menu works with the keyboard', async ({ page }) => {
     await openDesktop(page)
-    await page.getByRole('button', { name: 'Open Tasks' }).dblclick()
+    await page
+      .getByRole('listbox', { name: 'Desktop icons' })
+      .getByRole('option', { name: 'Tasks', exact: true })
+      .dblclick()
     await expect(win(page, 'Tasks')).toBeVisible()
     await page.mouse.click(1200, 700, { button: 'right' })
     const menu = page.getByRole('menu', { name: 'Desktop context menu' })
@@ -238,13 +252,20 @@ test.describe('desktop shell', () => {
   test('Lock from the Start menu shows the lock screen', async ({ page }) => {
     await openDesktop(page)
     await page.getByRole('button', { name: 'Start' }).click()
-    await page.getByRole('button', { name: 'Lock' }).click()
+    await page.getByRole('button', { name: 'Shut down options' }).click()
+    await page.getByRole('menuitem', { name: 'Lock' }).click()
     await expect(page.getByTestId('app-launcher')).toBeHidden()
     await expect(page.getByRole('navigation', { name: 'Taskbar' })).toBeVisible()
     const lock = page.getByRole('dialog', { name: /Lock screen/ })
     await expect(lock).toBeVisible()
     await page.waitForTimeout(400)
     await expect(lock).toBeVisible() // stays locked after the triggering click
+    // Any key or click no longer unlocks: Windows 7 asks for the password.
+    await page.keyboard.press('Enter')
+    await page.mouse.click(600, 300)
+    await expect(lock).toBeVisible()
+    // The mocked /auth/login accepts the password (test data only).
+    await lock.getByLabel('Password', { exact: true }).fill('e2e-password')
     await page.keyboard.press('Enter')
     await expect(lock).toBeHidden()
   })
@@ -277,7 +298,7 @@ test.describe('mobile @mobile', () => {
     expect(overflow).toBeLessThanOrEqual(0)
     await page.getByRole('button', { name: 'Start' }).click()
     await expect(page.getByTestId('app-launcher')).toBeVisible()
-    await page.getByRole('option', { name: /Notes/ }).click()
+    await page.getByTestId('app-launcher').getByRole('option', { name: /Notes/ }).click()
     // Newest window stacks on top of the full-screen Media Vault.
     await expect(page.getByRole('region', { name: 'Notes', exact: true })).toBeVisible()
   })

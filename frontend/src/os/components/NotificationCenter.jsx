@@ -2,9 +2,9 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import {
-  Bell,
   BellOff,
   BellRing,
+  Flag,
   Info,
   CheckCircle,
   AlertTriangle,
@@ -49,11 +49,9 @@ function NotificationRow({ n, onRead, onRemove }) {
       {/* Unread indicator */}
       <span className="mt-1.5 flex w-2 shrink-0 justify-center">
         {!n.read && (
-          <span
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: meta.color }}
-            aria-label="Unread"
-          />
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: meta.color }}>
+            <span className="sr-only">Unread</span>
+          </span>
         )}
       </span>
 
@@ -63,7 +61,7 @@ function NotificationRow({ n, onRead, onRemove }) {
         type="button"
         onClick={() => onRead(n.id)}
         disabled={n.read}
-        className="min-w-0 flex-1 text-left disabled:cursor-default"
+        className="min-w-0 flex-1 text-left disabled:cursor-default disabled:opacity-100"
         title={n.read ? undefined : 'Mark as read'}
       >
         <p className="truncate text-[12px] leading-snug text-foreground">{n.title}</p>
@@ -143,13 +141,13 @@ export default function NotificationCenter() {
             onMouseDown={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-label="Notification centre"
+            aria-label="Action Center"
           >
             {/* Header */}
             <div className="flex items-center gap-1 border-b border-[#c5cad3] px-3 py-2">
-              <Bell size={16} className="shrink-0 text-[#3d5a80]" aria-hidden />
+              <Flag size={16} className="shrink-0 text-[#3d5a80]" aria-hidden />
               <h2 className="w7-subheading flex flex-1 items-center gap-2 text-[12px]">
-                Notifications
+                Action Center
                 {unread > 0 && <span className="w7-badge">{unread}</span>}
               </h2>
 
@@ -171,7 +169,7 @@ export default function NotificationCenter() {
               <button
                 type="button"
                 onClick={closePanel}
-                aria-label="Close notification centre"
+                aria-label="Close Action Center"
                 title="Close"
                 className="w7-toolbtn p-1"
               >

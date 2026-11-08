@@ -1,10 +1,11 @@
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 
-// Inset a few pixels like Aero Snap's glass outline.
+// The preview covers exactly the area the window will land in (the same rect as
+// the snapped or maximised window), so what you see is where it goes.
 const STYLES = {
-  left: { left: 4, top: 4, width: 'calc(50% - 8px)', height: 'calc(100% - 8px)' },
-  right: { left: 'calc(50% + 4px)', top: 4, width: 'calc(50% - 8px)', height: 'calc(100% - 8px)' },
-  top: { left: 4, top: 4, width: 'calc(100% - 8px)', height: 'calc(100% - 8px)' },
+  left: { left: 0, top: 0, width: '50%', height: '100%' },
+  right: { left: '50%', top: 0, width: '50%', height: '100%' },
+  top: { left: 0, top: 0, width: '100%', height: '100%' },
 }
 
 export default function SnapPreview({ hint }) {

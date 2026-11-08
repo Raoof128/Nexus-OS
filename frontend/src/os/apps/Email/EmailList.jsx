@@ -6,6 +6,11 @@ import { DURATION } from '../../../lib/motion'
 
 const SCROLL_THRESHOLD = 150
 
+// Windows 7 list box: one Tab stop (roving tabindex). Up/Down, Home and End move
+// focus and selection; Enter/Space open the message; S toggles the star.
+// The star is a sibling of the option, not a child, because option children are
+// presentational in ARIA. It stays mouse-clickable and is keyboard-reachable
+// through S, so it is not a second Tab stop.
 const EmailList = React.memo(function EmailList({
   emails = [],
   selectedEmailId = null,
@@ -28,12 +33,69 @@ const EmailList = React.memo(function EmailList({
     }
   }, [onLoadMore])
 
-  const handleStarClick = useCallback(
-    (e, email) => {
-      e.stopPropagation()
+  const toggleStar = useCallback(
+    (email) => {
       onToggleStar?.({ emailId: email.id, isStarred: !email.is_starred })
     },
     [onToggleStar],
+  )
+
+  const handleStarClick = useCallback(
+    (e, email) => {
+      e.stopPropagation()
+      toggleStar(email)
+    },
+    [toggleStar],
+  )
+
+  const focusOption = useCallback(
+    (index) => {
+      const options = containerRef.current?.querySelectorAll('[role="option"]')
+      const target = options?.[index]
+      if (!target) return
+      target.focus()
+      target.scrollIntoView?.({ block: 'nearest' })
+      const email = emails[index]
+      if (email) onSelectEmail?.(email)
+    },
+    [emails, onSelectEmail],
+  )
+
+  const handleOptionKeyDown = useCallback(
+    (e, email, index) => {
+      const last = emails.length - 1
+      let target
+      switch (e.key) {
+        case 'ArrowDown':
+          target = Math.min(index + 1, last)
+          break
+        case 'ArrowUp':
+          target = Math.max(index - 1, 0)
+          break
+        case 'Home':
+          target = 0
+          break
+        case 'End':
+          target = last
+          break
+        case 'Enter':
+        case ' ':
+          e.preventDefault()
+          onSelectEmail?.(email)
+          return
+        case 's':
+        case 'S':
+          if (e.ctrlKey || e.metaKey || e.altKey) return
+          e.preventDefault()
+          toggleStar(email)
+          return
+        default:
+          return
+      }
+      e.preventDefault()
+      if (target !== index) focusOption(target)
+    },
+    [emails.length, focusOption, onSelectEmail, toggleStar],
   )
 
   if (!loading && emails.length === 0) {
@@ -51,6 +113,10 @@ const EmailList = React.memo(function EmailList({
     )
   }
 
+  // Roving tabindex: the selected message is the single Tab stop; with no
+  // selection in view, the first message is.
+  const hasSelection = emails.some((email) => email.id === selectedEmailId)
+
   return (
     <div
       ref={containerRef}
@@ -62,102 +128,119 @@ const EmailList = React.memo(function EmailList({
       <div aria-live="polite" className="p-1">
         {emails.map((email, index) => {
           const isSelected = email.id === selectedEmailId
+          const isTabStop = hasSelection ? isSelected : index === 0
           const badge = showProviderBadge ? getProviderBadge(email.provider) : null
           const isUnread = !email.is_read
+          const sender = email.from_name || email.from_address || 'Unknown'
+          const dateText = email.provider_date ? formatEmailDate(email.provider_date) : ''
+          const accessibleName = [
+            isUnread ? 'Unread' : null,
+            email.is_starred ? 'Starred' : null,
+            badge?.label,
+            sender,
+            email.subject || '(no subject)',
+            dateText,
+            email.has_attachments ? 'Has attachments' : null,
+            email.snippet || null,
+          ]
+            .filter(Boolean)
+            .join(', ')
 
           return (
-            <Motion.div
+            <div
               key={email.id}
-              layoutId={`email-${email.id}`}
-              role="option"
-              tabIndex={0}
-              onClick={() => onSelectEmail?.(email)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  onSelectEmail?.(email)
-                }
-              }}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: DURATION.base, delay: index < 20 ? index * 0.02 : 0 }}
-              className="w7-item group relative my-px flex cursor-default gap-2 px-2 py-1.5 text-[12px]"
-              aria-selected={isSelected}
+              role="presentation"
+              className="group relative my-px flex items-stretch"
             >
-              {/* Unread marker */}
-              <div className="mt-1.5 shrink-0" aria-hidden="true">
-                {isUnread ? (
-                  <span className="block h-2 w-2 rounded-full bg-primary" />
-                ) : (
-                  <span className="block h-2 w-2" />
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span
-                    className={`truncate ${isUnread ? 'font-semibold' : 'font-normal'} text-foreground`}
-                  >
-                    {email.from_name || email.from_address || 'Unknown'}
-                  </span>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    {badge && (
-                      <span
-                        className={`inline-flex items-center rounded px-1 py-px text-[10px] font-semibold ${badge.bgColor} ${badge.textColor}`}
-                      >
-                        {badge.label}
-                      </span>
-                    )}
-                    <span className="text-[11px] tabular-nums text-muted-foreground">
-                      {email.provider_date ? formatEmailDate(email.provider_date) : ''}
-                    </span>
-                  </div>
+              <Motion.div
+                layoutId={`email-${email.id}`}
+                role="option"
+                tabIndex={isTabStop ? 0 : -1}
+                aria-selected={isSelected}
+                aria-keyshortcuts="S"
+                aria-label={accessibleName}
+                onClick={() => onSelectEmail?.(email)}
+                onKeyDown={(e) => handleOptionKeyDown(e, email, index)}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: DURATION.base, delay: index < 20 ? index * 0.02 : 0 }}
+                className="w7-item flex min-w-0 flex-1 cursor-default gap-2 px-2 py-1.5 text-[12px]"
+              >
+                {/* Unread marker */}
+                <div className="mt-1.5 shrink-0" aria-hidden="true">
+                  {isUnread ? (
+                    <span className="block h-2 w-2 rounded-full bg-primary" />
+                  ) : (
+                    <span className="block h-2 w-2" />
+                  )}
                 </div>
 
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className={`truncate text-[12px] ${isUnread ? 'font-semibold' : 'font-normal'} text-foreground`}
+                {/* Content */}
+                <div className="min-w-0 flex-1" aria-hidden="true">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span
+                      className={`truncate ${isUnread ? 'font-semibold' : 'font-normal'} text-foreground`}
                     >
-                      {email.subject || '(no subject)'}
-                    </p>
-                    <p className="truncate text-[12px] text-muted-foreground">
-                      {email.snippet || ''}
-                    </p>
+                      {sender}
+                    </span>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {badge && (
+                        <span className={`w7-badge shrink-0 ${badge.bgColor} ${badge.textColor}`}>
+                          {badge.label}
+                        </span>
+                      )}
+                      <span className="text-[11px] tabular-nums text-muted-foreground">
+                        {dateText}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className={`truncate text-[12px] ${isUnread ? 'font-semibold' : 'font-normal'} text-foreground`}
+                      >
+                        {email.subject || '(no subject)'}
+                      </p>
+                      <p className="truncate text-[12px] text-muted-foreground">
+                        {email.snippet || ''}
+                      </p>
+                    </div>
+
                     {email.has_attachments && (
                       <Paperclip
                         size={12}
-                        className="text-muted-foreground"
+                        className="mt-0.5 shrink-0 text-muted-foreground"
                         aria-label="Has attachments"
                         role="img"
                       />
                     )}
-
-                    {/* Star toggle */}
-                    <button
-                      type="button"
-                      onClick={(e) => handleStarClick(e, email)}
-                      className="flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground hover:text-amber-500"
-                      aria-label={email.is_starred ? 'Unstar' : 'Star'}
-                    >
-                      <Star
-                        size={14}
-                        aria-hidden="true"
-                        className={
-                          email.is_starred
-                            ? 'fill-amber-500 text-amber-500'
-                            : 'opacity-0 transition-opacity group-hover:opacity-100'
-                        }
-                      />
-                    </button>
                   </div>
                 </div>
-              </div>
-            </Motion.div>
+              </Motion.div>
+
+              {/* Star toggle: a mouse convenience outside the option. Keyboard users press S
+                  on the focused message (announced via aria-keyshortcuts and the option name),
+                  so the button is hidden from assistive tech and is not a Tab stop. */}
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-hidden="true"
+                onClick={(e) => handleStarClick(e, email)}
+                className="flex h-6 w-6 shrink-0 items-center justify-center self-center rounded-sm text-muted-foreground hover:text-amber-600 pointer-coarse:h-11 pointer-coarse:w-11"
+                aria-label={email.is_starred ? 'Unstar' : 'Star'}
+              >
+                <Star
+                  size={14}
+                  aria-hidden="true"
+                  className={
+                    email.is_starred
+                      ? 'fill-amber-600 text-amber-600'
+                      : 'opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100'
+                  }
+                />
+              </button>
+            </div>
           )
         })}
       </div>

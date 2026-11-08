@@ -1,3 +1,4 @@
+import { useId, useState } from 'react'
 import { RECURRENCE_PRESETS, buildRRule, labelForRRule } from '../lib/recurrence'
 
 // Maps the current rrule value back to a preset key for the <select>.
@@ -8,22 +9,29 @@ function presetForValue(value) {
 }
 
 export default function RecurrencePicker({ value, onChange }) {
-  const preset = presetForValue(value)
+  const selectId = useId()
+  // Custom mode is sticky. Clearing the RRULE box sets the value to null, which
+  // would otherwise look like "Does not repeat" and unmount the field mid-typing.
+  const [customMode, setCustomMode] = useState(() => presetForValue(value) === 'custom')
+  const derived = presetForValue(value)
+  const preset = customMode || derived === 'custom' ? 'custom' : derived
 
   const handlePreset = (e) => {
     const next = e.target.value
     if (next === 'custom') {
       // Keep any existing custom rule; otherwise start an editable blank one.
-      onChange(value && presetForValue(value) === 'custom' ? value : 'FREQ=WEEKLY;BYDAY=MO')
+      setCustomMode(true)
+      onChange(value && derived === 'custom' ? value : 'FREQ=WEEKLY;BYDAY=MO')
     } else {
+      setCustomMode(false)
       onChange(buildRRule(next))
     }
   }
 
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor="task-recurrence">Repeat</label>
-      <select id="task-recurrence" value={preset} onChange={handlePreset}>
+      <label htmlFor={selectId}>Repeat</label>
+      <select id={selectId} value={preset} onChange={handlePreset}>
         {RECURRENCE_PRESETS.map((p) => (
           <option key={p.value} value={p.value}>
             {p.label}
@@ -38,11 +46,11 @@ export default function RecurrencePicker({ value, onChange }) {
           onChange={(e) => onChange(e.target.value.trim() || null)}
           placeholder="RRULE, e.g. FREQ=WEEKLY;BYDAY=MO,WE,FR"
           aria-label="Custom recurrence rule (RRULE)"
-          className="font-mono text-[11px]"
+          className="font-mono text-[12px]"
         />
       )}
 
-      {value && <span className="text-[11px] text-muted-foreground">{labelForRRule(value)}</span>}
+      {value && <span className="text-[12px] text-muted-foreground">{labelForRRule(value)}</span>}
     </div>
   )
 }

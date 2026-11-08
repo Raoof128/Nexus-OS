@@ -19,22 +19,19 @@ function formatTime(timestamp) {
   })
 }
 
+/**
+ * One Win7 balloon tip (7.css `[role=tooltip]`). The tail points down toward
+ * the clock in the notification area. Errors are wrapped in an assertive alert;
+ * everything else is announced politely by the region around the stack.
+ */
 function Toast({ notification }) {
   const dismissToast = useNotificationStore((s) => s.dismissToast)
   const config = TYPE_CONFIG[notification.type] ?? TYPE_CONFIG.info
   const Icon = config.icon
+  const isError = notification.type === 'error'
 
-  return (
-    <Motion.div
-      layout
-      initial={{ opacity: 0, x: 40 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 40 }}
-      transition={SPRING.snappy}
-      className="nx-flyout relative w-[300px] px-3 py-2"
-      role="alert"
-      aria-live={notification.type === 'error' ? 'assertive' : 'polite'}
-    >
+  const balloon = (
+    <div role="tooltip" className="is-top is-left box-border w-[300px] px-3 py-2">
       <div className="flex items-start gap-2">
         {/* Icon */}
         <Icon size={16} className="mt-px shrink-0" style={{ color: config.color }} aria-hidden />
@@ -49,7 +46,7 @@ function Toast({ notification }) {
               {notification.message}
             </p>
           )}
-          <p className="mt-0.5 text-[11px] text-muted-foreground">
+          <p className="mt-0.5 text-[12px] text-muted-foreground">
             {formatTime(notification.timestamp)}
           </p>
         </div>
@@ -65,8 +62,10 @@ function Toast({ notification }) {
           <X size={12} aria-hidden />
         </button>
       </div>
-    </Motion.div>
+    </div>
   )
+
+  return isError ? <div role="alert">{balloon}</div> : balloon
 }
 
 export default function NotificationToast() {
@@ -76,17 +75,29 @@ export default function NotificationToast() {
   // dismissed. Dismissed-but-unread items live on in the notification centre.
   const visible = notifications.filter((n) => !n.read && !n.toastDismissed).slice(0, 3)
 
+  // One polite live region for the whole stack. It is always mounted so that
+  // the first announcement is not lost. The 18px bottom padding on each item
+  // leaves room for the balloon tail.
   return (
     <div
-      className="pointer-events-none fixed bottom-12 right-3 z-[1500] flex flex-col gap-2"
+      role="region"
       aria-label="Notifications"
+      aria-live="polite"
+      className="pointer-events-none fixed bottom-12 right-3 z-[1500] flex flex-col"
     >
       <AnimatePresence mode="sync" initial={false}>
         {visible.map((n) => (
-          // Wrap each toast so pointer-events work even inside a pointer-events-none container
-          <div key={n.id} className="pointer-events-auto">
+          <Motion.div
+            key={n.id}
+            layout
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 40 }}
+            transition={SPRING.snappy}
+            className="pointer-events-auto pb-[18px]"
+          >
             <Toast notification={n} />
-          </div>
+          </Motion.div>
         ))}
       </AnimatePresence>
     </div>

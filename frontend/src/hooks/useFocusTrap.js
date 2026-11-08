@@ -58,7 +58,13 @@ export function useFocusTrap(isActive) {
       container.removeEventListener('keydown', handleKeyDown)
       // Restore focus only if the previously-focused element is still in the
       // document — the host may have unmounted it while the trap was open.
+      // Also leave focus alone if something outside the trap already took it
+      // (e.g. the Start menu launched an app and its window focused itself).
+      const current = document.activeElement
+      const focusMovedElsewhere =
+        current && current !== document.body && !container.contains(current)
       if (
+        !focusMovedElsewhere &&
         previouslyFocused &&
         typeof previouslyFocused.focus === 'function' &&
         document.contains(previouslyFocused)

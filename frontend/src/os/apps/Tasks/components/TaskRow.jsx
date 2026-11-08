@@ -1,6 +1,6 @@
-import { memo } from 'react'
+import { memo, useId } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { Check, Pencil, Repeat2, Star, Trash2 } from 'lucide-react'
+import { Pencil, Repeat2, Star, Trash2 } from 'lucide-react'
 import { DURATION } from '../../../../lib/motion'
 import { labelForRRule } from '../lib/recurrence'
 import TaskMenu from './TaskMenu'
@@ -41,13 +41,18 @@ function TaskRow({
   onStar,
   onEdit,
   onDelete,
+  asListItem = true,
 }) {
   const completed = task.status === 'completed'
   const due = formatDue(task)
   const isSub = depth === 1
+  const checkId = useId()
+  // Inside a drag-reorder item (already an <li>) the row is a <div>; the
+  // standalone rows in the Completed list are the list items themselves.
+  const Root = asListItem ? Motion.li : Motion.div
 
   return (
-    <Motion.li
+    <Root
       layout
       data-task-id={task.id}
       initial={{ opacity: 0, y: 4 }}
@@ -56,21 +61,24 @@ function TaskRow({
       transition={{ duration: DURATION.fast }}
       className={`w7-item group flex items-center gap-2 px-2 py-1 ${isSub ? 'ml-7' : ''}`}
     >
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={completed}
-        aria-label={completed ? `Mark "${task.title}" incomplete` : `Complete "${task.title}"`}
-        onClick={() => onToggle(task)}
-        className="flex h-[13px] w-[13px] shrink-0 items-center justify-center rounded-[2px] border border-[#8e8f8f] bg-white hover:border-[#3c7fb1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
-      >
-        {completed && <Check size={11} strokeWidth={3} className="text-[#003399]" />}
-      </button>
+      {/* 7.css checkbox: the input is the real control, stretched over the
+          label so touch gets a 44px hit area; the label draws the box. */}
+      <span className="relative inline-flex size-[14px] shrink-0 items-center justify-center pointer-coarse:size-11">
+        <input
+          id={checkId}
+          type="checkbox"
+          checked={completed}
+          onChange={() => onToggle(task)}
+          aria-label={`Complete "${task.title}"`}
+          className="absolute inset-0 m-0 size-full cursor-pointer"
+        />
+        <label htmlFor={checkId} className="pointer-events-none before:m-0" />
+      </span>
 
       <button
         type="button"
         onClick={() => onEdit(task)}
-        className="flex min-w-0 flex-1 flex-col items-start rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+        className="flex min-w-0 flex-1 flex-col items-start rounded text-left"
       >
         <span
           className={`max-w-full truncate text-[12px] ${
@@ -101,22 +109,22 @@ function TaskRow({
         aria-label={task.starred ? `Unstar "${task.title}"` : `Star "${task.title}"`}
         aria-pressed={task.starred}
         onClick={() => onStar(task)}
-        className={`w7-toolbtn h-6 w-6 px-0 focus-visible:opacity-100 ${
+        className={`w7-toolbtn h-6 w-6 px-0 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100 focus-visible:opacity-100 ${
           task.starred
-            ? 'text-amber-500'
+            ? 'text-amber-600'
             : 'text-muted-foreground opacity-0 group-hover:opacity-100'
         }`}
       >
-        <Star size={15} fill={task.starred ? 'currentColor' : 'none'} />
+        <Star size={15} fill={task.starred ? 'currentColor' : 'none'} aria-hidden="true" />
       </button>
 
       <button
         type="button"
         aria-label={`Edit "${task.title}"`}
         onClick={() => onEdit(task)}
-        className="w7-toolbtn h-6 w-6 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        className="w7-toolbtn h-6 w-6 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
       >
-        <Pencil size={14} />
+        <Pencil size={14} aria-hidden="true" />
       </button>
 
       {onMoveToList && lists.length > 0 && (
@@ -127,11 +135,11 @@ function TaskRow({
         type="button"
         aria-label={`Delete "${task.title}"`}
         onClick={() => onDelete(task)}
-        className="w7-toolbtn w7-toolbtn--danger h-6 w-6 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+        className="w7-toolbtn w7-toolbtn--danger h-6 w-6 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
       >
-        <Trash2 size={14} />
+        <Trash2 size={14} aria-hidden="true" />
       </button>
-    </Motion.li>
+    </Root>
   )
 }
 

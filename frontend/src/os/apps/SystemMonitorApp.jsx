@@ -1,241 +1,275 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
+import { APP_REGISTRY } from '../stores/appRegistry'
 import { useWindowStore } from '../stores/windowStore'
+import ApplicationsPanel from './SystemMonitor/ApplicationsPanel'
+import MenuBar from './SystemMonitor/MenuBar'
+import NetworkingPanel from './SystemMonitor/NetworkingPanel'
+import PerformancePanel from './SystemMonitor/PerformancePanel'
+import ProcessesPanel from './SystemMonitor/ProcessesPanel'
+import ServicesPanel from './SystemMonitor/ServicesPanel'
+import UsersPanel from './SystemMonitor/UsersPanel'
+import { DEFAULT_TAB_ID, TABS, TAB_IDS, tabButtonId, tabPanelId } from './SystemMonitor/constants'
+import { ctrlTabTarget, tabKeyTarget } from './SystemMonitor/keyboard'
+import {
+  apiServiceState,
+  formatMegabytes,
+  formatPercent,
+  realtimeServiceState,
+  sessionServiceState,
+} from './SystemMonitor/format'
+import { useApiHealth } from './SystemMonitor/useApiHealth'
+import { useOnlineStatus } from './SystemMonitor/useOnlineStatus'
+import { useSystemSamples } from './SystemMonitor/useSystemSamples'
 
-const API_URL = import.meta.env.VITE_API_URL
-
-const TABS = [
-  { id: 'performance', label: 'Performance' },
-  { id: 'services', label: 'Services' },
-  { id: 'applications', label: 'Applications' },
-]
-
-const STATUS_LABELS = {
-  online: 'Online',
-  offline: 'Offline',
-  checking: 'Checking…',
-}
-
-function StatusDot({ status }) {
-  const colors = {
-    online: 'bg-[#2e7d32]',
-    offline: 'bg-destructive',
-    checking: 'bg-warning',
-  }
+function TabPanel({ id, active, children }) {
   return (
-    <span
-      aria-hidden="true"
-      className={`inline-block h-2 w-2 rounded-full ${colors[status] || colors.checking}`}
-    />
+    <article
+      role="tabpanel"
+      id={tabPanelId(id)}
+      aria-labelledby={tabButtonId(id)}
+      hidden={!active}
+      className="min-h-0 flex-1 overflow-y-auto p-3"
+    >
+      {children}
+    </article>
   )
 }
 
-function DataRow({ label, value }) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-0.5">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right text-foreground">{value}</span>
-    </div>
-  )
-}
-
-function formatTime() {
-  return new Date().toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  })
-}
-
-export default function SystemMonitorApp() {
+export default function SystemMonitorApp({ windowId }) {
   const { session } = useAuth()
   const windows = useWindowStore((s) => s.windows)
   const zStack = useWindowStore((s) => s.zStack)
+  const closeWindow = useWindowStore((s) => s.closeWindow)
+  const focusWindow = useWindowStore((s) => s.focusWindow)
+  const toggleLauncher = useWindowStore((s) => s.toggleLauncher)
 
-  const [activeTab, setActiveTab] = useState('performance')
+  const [activeTab, setActiveTab] = useState(DEFAULT_TAB_ID)
+  const [selectedId, setSelectedId] = useState(null)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  const tabRefs = useRef({})
 
-  // API healthcheck
-  const [apiStatus, setApiStatus] = useState('checking')
-  const [apiLatency, setApiLatency] = useState(null)
-  const [lastCheck, setLastCheck] = useState(null)
+  const health = useApiHealth({ autoRefresh })
+  const samples = useSystemSamples()
+  const online = useOnlineStatus()
 
-  const checkHealth = useCallback(async () => {
-    setApiStatus('checking')
-    const start = performance.now()
-    try {
-      const res = await fetch(`${API_URL}/healthz`, { signal: AbortSignal.timeout(5000) })
-      const latency = Math.round(performance.now() - start)
-      setApiLatency(latency)
-      setApiStatus(res.ok ? 'online' : 'offline')
-      setLastCheck(formatTime())
-    } catch {
-      setApiLatency(null)
-      setApiStatus('offline')
-      setLastCheck(formatTime())
-    }
+  const windowList = useMemo(
+    () => zStack.map((id) => windows[id]).filter(Boolean),
+    [windows, zStack],
+  )
+  const selected = windowList.find((w) => w.windowId === selectedId) ?? null
+  const user = session?.user
+  const userName = user?.email || '—'
+  const provider = user?.app_metadata?.provider || 'email'
+  const connection = typeof navigator !== 'undefined' ? navigator.connection : undefined
+
+  const selectTab = useCallback((id, { focus = false } = {}) => {
+    setActiveTab(id)
+    if (focus) tabRefs.current[id]?.focus()
   }, [])
 
-  useEffect(() => {
-    queueMicrotask(checkHealth)
-    const interval = setInterval(checkHealth, 30_000)
-    return () => clearInterval(interval)
-  }, [checkHealth])
+  const handleTabKeyDown = (event) => {
+    const id = tabKeyTarget(event.key, activeTab, TAB_IDS)
+    if (!id) return
+    event.preventDefault()
+    selectTab(id, { focus: true })
+  }
 
-  // Performance metrics (Chrome only)
-  const perfMemory = performance.memory
-  const heapUsed = perfMemory ? `${Math.round(perfMemory.usedJSHeapSize / 1048576)}MB` : '—'
-  const heapLimit = perfMemory ? `${Math.round(perfMemory.jsHeapSizeLimit / 1048576)}MB` : '—'
-  const heapPercent = perfMemory
-    ? Math.min(100, Math.round((perfMemory.usedJSHeapSize / perfMemory.jsHeapSizeLimit) * 100))
-    : 0
+  const handleRootKeyDown = (event) => {
+    if (event.key === 'F5') {
+      event.preventDefault()
+      health.refresh()
+      return
+    }
+    const id = ctrlTabTarget(event, activeTab, TAB_IDS)
+    if (id) {
+      event.preventDefault()
+      selectTab(id, { focus: true })
+    }
+  }
 
-  const connection = navigator.connection
-  const networkType = connection?.effectiveType || '—'
-  const downlink = connection?.downlink ? `${connection.downlink} Mbps` : '—'
+  const endTask = () => {
+    if (!selected) return
+    const index = windowList.indexOf(selected)
+    const neighbour = windowList[index + 1] ?? windowList[index - 1] ?? null
+    closeWindow(selected.windowId)
+    setSelectedId(neighbour?.windowId ?? null)
+    // The End Task button disables when nothing is left to end, so move focus
+    // to the tab list rather than letting it fall to the document body.
+    if (!neighbour) tabRefs.current[activeTab]?.focus()
+  }
 
-  // Window stats
-  const windowCount = Object.keys(windows).length
-  const visibleCount = zStack.filter((id) => windows[id]?.state !== 'minimized').length
-  const windowList = zStack.map((id) => windows[id]).filter(Boolean)
+  const menus = [
+    {
+      id: 'file',
+      label: 'File',
+      items: [
+        { id: 'new-task', label: 'New Task…', onSelect: () => toggleLauncher() },
+        { id: 'file-sep', separator: true },
+        {
+          id: 'exit',
+          label: 'Exit',
+          onSelect: () => {
+            if (windowId) closeWindow(windowId)
+          },
+        },
+      ],
+    },
+    {
+      id: 'options',
+      label: 'Options',
+      items: [
+        {
+          id: 'auto-refresh',
+          label: 'Refresh every 30 seconds',
+          checkable: true,
+          checked: autoRefresh,
+          onSelect: () => setAutoRefresh((value) => !value),
+        },
+      ],
+    },
+    {
+      id: 'view',
+      label: 'View',
+      items: [
+        { id: 'refresh', label: 'Refresh', shortcut: 'F5', onSelect: () => health.refresh() },
+      ],
+    },
+    {
+      id: 'windows',
+      label: 'Windows',
+      items:
+        windowList.length > 0
+          ? windowList.map((w) => ({
+              id: w.windowId,
+              label: w.title,
+              onSelect: () => focusWindow(w.windowId),
+            }))
+          : [{ id: 'no-windows', label: 'No windows are open', disabled: true }],
+    },
+    {
+      id: 'help',
+      label: 'Help',
+      items: [
+        {
+          id: 'shortcuts',
+          label: 'Keyboard shortcuts',
+          onSelect: () => setShowShortcuts((value) => !value),
+        },
+      ],
+    },
+  ]
 
-  const user = session?.user
+  const apiState = apiServiceState(health.status)
+  const realtimeState = realtimeServiceState(
+    samples.realtimeState?.state ?? null,
+    samples.realtimeState?.channels ?? 0,
+  )
+  const hasSession = Boolean(session)
+
+  const heap = samples.heap
+    ? {
+        percent: samples.heap.percent,
+        used: formatMegabytes(samples.heap.usedBytes),
+        limit: formatMegabytes(samples.heap.limitBytes),
+        history: samples.heapHistory,
+      }
+    : null
+
+  const panels = {
+    applications: (
+      <ApplicationsPanel
+        windows={windowList}
+        selectedId={selected?.windowId ?? null}
+        onSelect={setSelectedId}
+        onSwitchTo={(id) => focusWindow(id)}
+        onEndTask={endTask}
+        onNewTask={() => toggleLauncher()}
+      />
+    ),
+    processes: <ProcessesPanel windows={windowList} userName={userName} />,
+    services: (
+      <ServicesPanel
+        apiState={apiState}
+        apiLatency={health.latency}
+        lastCheck={health.lastCheck}
+        apiChecking={health.status === 'checking'}
+        onCheckNow={() => health.refresh()}
+        realtimeState={realtimeState}
+        sessionState={sessionServiceState(hasSession)}
+      />
+    ),
+    performance: (
+      <PerformancePanel
+        cpu={{
+          supported: samples.cpuSupported,
+          current: samples.cpu,
+          history: samples.cpuHistory,
+        }}
+        heap={heap}
+        deviceMemoryGb={typeof navigator !== 'undefined' ? navigator.deviceMemory : undefined}
+      />
+    ),
+    networking: <NetworkingPanel online={online} connection={connection} />,
+    users: <UsersPanel userName={userName} signedIn={hasSession} provider={provider} />,
+  }
 
   return (
-    <div className="flex h-full w-full flex-col bg-background text-[12px]">
-      <menu role="tablist" aria-label="Task Manager sections" className="shrink-0">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            role="tab"
-            id={`sysmon-tab-${tab.id}`}
-            aria-controls={`sysmon-panel-${tab.id}`}
-            aria-selected={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
+    <div className="flex h-full w-full flex-col text-[12px]" onKeyDown={handleRootKeyDown}>
+      <MenuBar menus={menus} />
+
+      {showShortcuts && (
+        <p className="w7-infobar mx-3 mt-2 shrink-0" role="note">
+          Left and Right arrows change tabs. Ctrl+Tab goes to the next tab and Ctrl+Shift+Tab to the
+          previous one. F5 refreshes. Up and Down arrows select a row, and Enter switches to it.
+        </p>
+      )}
+
+      <menu
+        role="tablist"
+        aria-label="Task Manager sections"
+        className="shrink-0"
+        onKeyDown={handleTabKeyDown}
+      >
+        {TABS.map((tab) => {
+          const active = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              ref={(el) => {
+                tabRefs.current[tab.id] = el
+              }}
+              type="button"
+              role="tab"
+              id={tabButtonId(tab.id)}
+              aria-controls={tabPanelId(tab.id)}
+              aria-selected={active}
+              tabIndex={active ? 0 : -1}
+              onClick={() => selectTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
       </menu>
 
-      {activeTab === 'performance' && (
-        <article
-          role="tabpanel"
-          id="sysmon-panel-performance"
-          aria-labelledby="sysmon-tab-performance"
-          className="flex-1 space-y-3 overflow-y-auto p-3"
-        >
-          <fieldset>
-            <legend>Memory</legend>
-            {perfMemory ? (
-              <div
-                role="progressbar"
-                aria-label="JS heap usage"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={heapPercent}
-                className="mb-2"
-              >
-                <div style={{ width: `${heapPercent}%` }} />
-              </div>
-            ) : null}
-            <DataRow label="JS heap used" value={heapUsed} />
-            <DataRow label="Heap limit" value={heapLimit} />
-          </fieldset>
-
-          <fieldset>
-            <legend>Network</legend>
-            <DataRow label="Connection" value={networkType} />
-            <DataRow label="Downlink" value={downlink} />
-          </fieldset>
-        </article>
-      )}
-
-      {activeTab === 'services' && (
-        <article
-          role="tabpanel"
-          id="sysmon-panel-services"
-          aria-labelledby="sysmon-tab-services"
-          className="flex-1 space-y-3 overflow-y-auto p-3"
-        >
-          <fieldset>
-            <legend>API</legend>
-            <div className="flex items-center justify-between gap-4 py-0.5">
-              <span className="text-muted-foreground">Status</span>
-              <span className="flex items-center gap-2 text-foreground">
-                <StatusDot status={apiStatus} />
-                {STATUS_LABELS[apiStatus] || STATUS_LABELS.checking}
-              </span>
-            </div>
-            <DataRow label="Latency" value={apiLatency != null ? `${apiLatency}ms` : '—'} />
-            <DataRow label="Endpoint" value="/healthz" />
-            <DataRow label="Last check" value={lastCheck || '—'} />
-          </fieldset>
-
-          <fieldset>
-            <legend>Realtime</legend>
-            {/* NOTE: Supabase Realtime does not expose channel connection state easily;
-                showing Subscribed (subscription registered) rather than Connected. */}
-            <div className="flex items-center justify-between gap-4 py-0.5">
-              <span className="text-muted-foreground">Status</span>
-              <span className="flex items-center gap-2 text-foreground">
-                <StatusDot status="online" />
-                Subscribed
-              </span>
-            </div>
-            <DataRow label="Protocol" value="WebSocket" />
-            <DataRow label="Provider" value="Supabase" />
-          </fieldset>
-
-          <fieldset>
-            <legend>Session</legend>
-            <DataRow label="User" value={user?.email || '—'} />
-            <DataRow label="Provider" value={user?.app_metadata?.provider || 'email'} />
-            <DataRow label="Windows" value={`${visibleCount} visible / ${windowCount} total`} />
-          </fieldset>
-        </article>
-      )}
-
-      {activeTab === 'applications' && (
-        <article
-          role="tabpanel"
-          id="sysmon-panel-applications"
-          aria-labelledby="sysmon-tab-applications"
-          className="flex-1 overflow-y-auto p-3"
-        >
-          <table>
-            <thead>
-              <tr>
-                <th>Task</th>
-                <th>Status</th>
-                <th>Program</th>
-              </tr>
-            </thead>
-            <tbody>
-              {windowList.length > 0 ? (
-                windowList.map((w) => (
-                  <tr key={w.windowId}>
-                    <td>{w.title}</td>
-                    <td>{w.state === 'minimized' ? 'Minimized' : 'Running'}</td>
-                    <td>{w.appId}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={3}>No windows open</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </article>
-      )}
+      {TABS.map((tab) => (
+        <TabPanel key={tab.id} id={tab.id} active={activeTab === tab.id}>
+          {panels[tab.id]}
+        </TabPanel>
+      ))}
 
       <div className="status-bar shrink-0">
-        <p className="status-bar-field">Windows: {windowCount}</p>
-        <p className="status-bar-field">Visible: {visibleCount}</p>
-        <p className="status-bar-field">
-          API: {STATUS_LABELS[apiStatus] || STATUS_LABELS.checking}
+        <p className="status-bar-field">Processes: {windowList.length}</p>
+        <p
+          className="status-bar-field"
+          title="Estimated from this page's main thread, not the whole computer"
+        >
+          CPU Usage: {formatPercent(samples.cpu)}
+        </p>
+        <p className="status-bar-field" title="JavaScript heap of this page, Chrome only">
+          JS heap: {heap ? formatPercent(heap.percent) : '—'}
         </p>
       </div>
     </div>

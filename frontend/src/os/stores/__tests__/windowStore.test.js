@@ -116,4 +116,29 @@ describe('windowStore', () => {
     // Nothing remembered any more.
     expect(useWindowStore.getState().restoreDesktop()).toBe(false)
   })
+
+  it('setWindowTitle retitles an open window and ignores blank titles', () => {
+    const { openApp, setWindowTitle } = useWindowStore.getState()
+    openApp('files')
+    const id = Object.keys(useWindowStore.getState().windows)[0]
+
+    setWindowTitle(id, '  Documents  ')
+    expect(useWindowStore.getState().windows[id].title).toBe('Documents')
+
+    setWindowTitle(id, '   ')
+    expect(useWindowStore.getState().windows[id].title).toBe('Documents')
+
+    // Unknown windows are a no-op.
+    setWindowTitle('missing', 'Nope')
+    expect(useWindowStore.getState().windows.missing).toBeUndefined()
+  })
+
+  it('never opens a window below the app minimum, even on a narrow viewport', () => {
+    vi.stubGlobal('innerWidth', 700)
+    const { openApp } = useWindowStore.getState()
+    openApp('media') // defaultSize 1000x700, minSize 600x400
+    const win = Object.values(useWindowStore.getState().windows)[0]
+    expect(win.size.width).toBe(600)
+    expect(win.size.height).toBeGreaterThanOrEqual(400)
+  })
 })

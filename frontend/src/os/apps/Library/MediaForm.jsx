@@ -13,6 +13,7 @@ export default function MediaForm({
   error,
   submitLabel,
   submittingLabel = 'Saving…',
+  onCancel,
   idPrefix = 'media',
   placeholders = {},
 }) {
@@ -196,7 +197,8 @@ export default function MediaForm({
         />
       </fieldset>
 
-      <div className="mt-4 flex justify-end">
+      {/* Command area: default action first, then Cancel (Windows 7 order). */}
+      <div className="mt-4 flex flex-wrap justify-end gap-2">
         <button type="submit" disabled={submitting} className="w7-btn default">
           {submitting ? (
             <span className="flex items-center justify-center gap-2">
@@ -207,6 +209,11 @@ export default function MediaForm({
             submitLabel
           )}
         </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel} disabled={submitting} className="w7-btn">
+            Cancel
+          </button>
+        )}
       </div>
     </form>
   )

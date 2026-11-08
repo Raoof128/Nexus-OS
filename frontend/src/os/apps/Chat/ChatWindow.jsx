@@ -109,7 +109,7 @@ export default function ChatWindow({ sessionId, userId }) {
               </div>
               <div
                 className={`max-w-[85%] whitespace-pre-wrap break-words px-3 py-2 text-[13px] leading-relaxed text-foreground sm:max-w-[78%] ${
-                  isUser ? 'rounded-[4px] border border-[#a8cbf0] bg-[#dcebfc]' : 'w7-card'
+                  isUser ? 'rounded-[3px] border border-w7-select-border bg-w7-select' : 'w7-card'
                 }`}
               >
                 {msg.content}

@@ -8,10 +8,13 @@ const STORAGE_KEY = 'nexus-os:window-layout'
 const SCHEMA_VERSION = 1
 const SAVE_DEBOUNCE_MS = 500
 
-function boundedSize(defaultSize) {
+// Viewport-bounded default size. Never below the app's declared minimum: Win7
+// does not open a window smaller than its minimum track size, even on a narrow
+// screen (the window may then overflow the viewport instead).
+function boundedSize(defaultSize, minSize) {
   return {
-    width: Math.min(defaultSize.width, window.innerWidth * 0.8),
-    height: Math.min(defaultSize.height, window.innerHeight * 0.8),
+    width: Math.max(minSize.width, Math.min(defaultSize.width, window.innerWidth * 0.8)),
+    height: Math.max(minSize.height, Math.min(defaultSize.height, window.innerHeight * 0.8)),
   }
 }
 
@@ -59,6 +62,8 @@ export const useWindowStore = create((set, get) => ({
   isMobile: false,
   launcherOpen: false,
   desktopShown: null,
+  // Windows whose taskbar button flashes for attention (Win7 FlashWindow).
+  attentionIds: [],
 
   openApp: (appId) => {
     const manifest = APP_REGISTRY[appId]
@@ -76,7 +81,8 @@ export const useWindowStore = create((set, get) => ({
     }
 
     const windowId = manifest.singleton ? appId : `${appId}-${nanoid(6)}`
-    const size = boundedSize(manifest.defaultSize)
+    const minSize = manifest.minSize ?? { width: 0, height: 0 }
+    const size = boundedSize(manifest.defaultSize, minSize)
     const position = cascadePosition(zStack, size)
 
     set((state) => ({
@@ -88,7 +94,7 @@ export const useWindowStore = create((set, get) => ({
           title: manifest.title,
           position,
           size,
-          minSize: { ...manifest.minSize },
+          minSize: { ...minSize },
           state: 'normal',
           restoredRect: { ...position, ...size },
         },
@@ -111,6 +117,36 @@ export const useWindowStore = create((set, get) => ({
         windows: rest,
         zStack: newZStack,
         activeWindowId: newActive,
+        attentionIds: state.attentionIds.filter((id) => id !== windowId),
+      }
+    })
+  },
+
+  // Flash the taskbar button of every window of `appId` that is not the
+  // active window. Focusing or closing the window clears it.
+  requestAttention: (appId) => {
+    set((state) => {
+      const ids = Object.values(state.windows)
+        .filter((w) => w.appId === appId && w.windowId !== state.activeWindowId)
+        .map((w) => w.windowId)
+        .filter((id) => !state.attentionIds.includes(id))
+      if (ids.length === 0) return state
+      return { attentionIds: [...state.attentionIds, ...ids] }
+    })
+  },
+
+  // Apps may retitle their own window (e.g. File Manager shows the folder name).
+  // Blank titles are ignored so a window never ends up with no name.
+  setWindowTitle: (windowId, title) => {
+    set((state) => {
+      const win = state.windows[windowId]
+      const next = typeof title === 'string' ? title.trim().slice(0, 200) : ''
+      if (!win || !next || win.title === next) return state
+      return {
+        windows: {
+          ...state.windows,
+          [windowId]: { ...win, title: next },
+        },
       }
     })
   },
@@ -137,12 +173,14 @@ export const useWindowStore = create((set, get) => ({
           },
           zStack: newZStack,
           activeWindowId: windowId,
+          attentionIds: state.attentionIds.filter((id) => id !== windowId),
         }
       }
 
       return {
         zStack: newZStack,
         activeWindowId: windowId,
+        attentionIds: state.attentionIds.filter((id) => id !== windowId),
       }
     })
   },
@@ -316,15 +354,19 @@ export const useWindowStore = create((set, get) => ({
         const newId = manifest.singleton ? win.appId : oldId
         idMap[oldId] = newId
 
+        const minSize = manifest.minSize ?? { width: 0, height: 0 }
         const x = Math.max(0, Math.min(win.position?.x ?? 0, window.innerWidth - 100))
         const y = Math.max(
           0,
           Math.min(win.position?.y ?? 0, window.innerHeight - TASKBAR_HEIGHT - 40),
         )
-        const width = Math.min(win.size?.width ?? 600, window.innerWidth * 0.95)
-        const height = Math.min(
-          win.size?.height ?? 400,
-          (window.innerHeight - TASKBAR_HEIGHT) * 0.95,
+        const width = Math.max(
+          minSize.width,
+          Math.min(win.size?.width ?? 600, window.innerWidth * 0.95),
+        )
+        const height = Math.max(
+          minSize.height,
+          Math.min(win.size?.height ?? 400, (window.innerHeight - TASKBAR_HEIGHT) * 0.95),
         )
 
         const state = win.state === 'minimized' ? 'normal' : win.state || 'normal'
@@ -335,7 +377,7 @@ export const useWindowStore = create((set, get) => ({
           title: manifest.title,
           position: { x, y },
           size: { width, height },
-          minSize: { ...manifest.minSize },
+          minSize: { ...minSize },
           state,
           restoredRect: { x, y, width, height },
         }

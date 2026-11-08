@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
@@ -6,6 +6,7 @@ import { useMedia } from '../../../hooks/useMedia'
 import { MEDIA_TYPES, MEDIA_CONFIG, TYPE_ICONS } from '../../../lib/mediaConfig'
 import { DURATION } from '../../../lib/motion'
 import KanbanBoard from './KanbanBoard'
+import { getTabKeyTarget } from './tablistKeys'
 import MediaVault from './MediaVault'
 import AddMediaDialog from './AddMediaDialog'
 import LazyAICmdPalette from '../Chat/LazyAICmdPalette'
@@ -44,6 +45,7 @@ export default function LibraryApp() {
   const [selectedItemId, setSelectedItemId] = useState(null)
   const [editItem, setEditItem] = useState(null)
   const [vaultState, setVaultState] = useState(null)
+  const tabRefs = useRef([])
 
   const selectedItem = useMemo(
     () => (selectedItemId ? (items.find((i) => i.id === selectedItemId) ?? null) : null),
@@ -58,6 +60,11 @@ export default function LibraryApp() {
   const handleSelect = useCallback((item) => setSelectedItemId(item.id), [])
   const handleCloseDetail = useCallback(() => setSelectedItemId(null), [])
   const handleCloseEdit = useCallback(() => setEditItem(null), [])
+
+  const selectType = useCallback((type) => {
+    setActiveType(type)
+    setVaultState(null)
+  }, [])
 
   const handleAddRequest = useCallback((status) => {
     window.dispatchEvent(new CustomEvent('nexus:open-add-media', { detail: { status } }))
@@ -75,20 +82,34 @@ export default function LibraryApp() {
           aria-label="Media types"
           className="flex items-end gap-0.5 overflow-x-auto"
         >
-          {MEDIA_TYPES.map((type) => {
+          {MEDIA_TYPES.map((type, index) => {
             const Icon = TYPE_ICONS[type]
             const isActive = activeType === type
             return (
               <button
                 key={type}
+                ref={(element) => {
+                  tabRefs.current[index] = element
+                }}
                 id={`library-tab-${type}`}
                 role="tab"
                 aria-selected={isActive}
                 aria-controls="library-tabpanel"
+                tabIndex={isActive ? 0 : -1}
                 type="button"
-                onClick={() => {
-                  setActiveType(type)
-                  setVaultState(null)
+                onClick={() => selectType(type)}
+                onKeyDown={(event) => {
+                  const target = getTabKeyTarget({
+                    key: event.key,
+                    index,
+                    count: MEDIA_TYPES.length,
+                    ctrlKey: event.ctrlKey,
+                    shiftKey: event.shiftKey,
+                  })
+                  if (target === null) return
+                  event.preventDefault()
+                  selectType(MEDIA_TYPES[target])
+                  tabRefs.current[target]?.focus()
                 }}
                 className="flex shrink-0 items-center gap-1.5 whitespace-nowrap"
               >
@@ -103,6 +124,7 @@ export default function LibraryApp() {
       {/* Command bar */}
       <div className="w7-commandbar shrink-0">
         <AddMediaDialog mediaType={activeType} onAdd={addMedia} />
+        <LazyAICmdPalette mediaType={activeType} onAdd={addMedia} placement="inline" />
       </div>
 
       {/* Content */}
@@ -123,7 +145,9 @@ export default function LibraryApp() {
           </div>
         ) : error ? (
           <div role="alert" className="flex flex-col items-center gap-3 p-6 text-center">
-            <p className="w7-error">Your media couldn&rsquo;t be loaded. {error}</p>
+            <p className="w7-error">
+              Your media couldn&rsquo;t be loaded. {error} Check your connection, then select Retry.
+            </p>
             <button type="button" onClick={() => window.location.reload()} className="w7-btn">
               Retry
             </button>
@@ -142,6 +166,7 @@ export default function LibraryApp() {
                   items={items}
                   mediaType={activeType}
                   filterStatus={vaultState.status}
+                  selectedId={selectedItemId}
                   onBack={() => setVaultState(null)}
                   onUpdate={updateMedia}
                   onDelete={deleteMedia}
@@ -187,7 +212,6 @@ export default function LibraryApp() {
       <Suspense fallback={null}>
         <EditMediaDialog item={editItem} onUpdate={updateMedia} onClose={handleCloseEdit} />
       </Suspense>
-      <LazyAICmdPalette mediaType={activeType} onAdd={addMedia} />
     </div>
   )
 }

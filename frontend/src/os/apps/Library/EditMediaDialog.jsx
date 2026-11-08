@@ -40,7 +40,10 @@ export default function EditMediaDialog({ item, onUpdate, onClose }) {
       await onUpdate({ mediaId: item.id, data: updatedData })
       onClose()
     } catch (submitError) {
-      setError(submitError.message || 'Failed to update entry')
+      setError(
+        submitError.message ||
+          'The changes could not be saved. Check your connection, then try again.',
+      )
     } finally {
       setSubmitting(false)
     }
@@ -97,6 +100,7 @@ export default function EditMediaDialog({ item, onUpdate, onClose }) {
                   submitting={submitting}
                   error={error}
                   submitLabel="Save changes"
+                  onCancel={onClose}
                   idPrefix="edit"
                 />
               </div>

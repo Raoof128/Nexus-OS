@@ -78,6 +78,7 @@ export const APP_REGISTRY = {
     id: 'files',
     tint: ['#ffe28a', '#e0a526'],
     description: 'Browse your files',
+    // Default title; the app can retitle its window to the folder with setWindowTitle.
     title: 'File Manager',
     icon: FolderOpen,
     singleton: true,
@@ -89,7 +90,8 @@ export const APP_REGISTRY = {
     id: 'settings',
     tint: ['#9fb6cf', '#4d6784'],
     description: 'Personalise Nexus OS',
-    title: 'Settings',
+    // Win7 names this window "Control Panel", matching the Start menu entry.
+    title: 'Control Panel',
     icon: Settings,
     singleton: true,
     defaultSize: { width: 600, height: 500 },

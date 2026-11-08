@@ -20,6 +20,17 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
   const config = MEDIA_CONFIG[mediaType]
   const { suggest, suggestError, suggesting, resetSuggest } = useSuggest(mediaType)
 
+  // Single close path: Escape, the caption close button and the backdrop all
+  // reset the prior suggestion state before the parent hears about it.
+  const handleOpenChange = (v) => {
+    if (!v) {
+      setResult(null)
+      resetSuggest()
+      setAddedIndices(new Set())
+    }
+    onOpenChange(v)
+  }
+
   const handleAddToArchive = async (suggestion, status, index) => {
     if (!onAdd || addedIndices.has(index)) return
     try {
@@ -48,15 +59,8 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
   return createPortal(
     <Command.Dialog
       open={open}
-      onOpenChange={(v) => {
-        if (!v) {
-          setResult(null)
-          resetSuggest()
-          setAddedIndices(new Set())
-        }
-        onOpenChange(v)
-      }}
-      label="Global AI Command Menu"
+      onOpenChange={handleOpenChange}
+      label="Ask AI"
       contentClassName="fixed inset-0 z-[1001] flex items-center justify-center p-3 sm:p-4"
       className="window active flex w-full max-w-lg sm:max-w-xl md:max-w-2xl max-h-[85dvh] flex-col overflow-hidden"
       overlayClassName="fixed inset-0 z-[1000] bg-black/20"
@@ -66,8 +70,16 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
       </span>
       <p className="sr-only">Search commands or request AI-powered media suggestions.</p>
 
-      <div className="title-bar" aria-hidden="true">
+      <div className="title-bar">
         <div className="title-bar-text">Ask AI</div>
+        <div className="title-bar-controls">
+          <button
+            type="button"
+            className="is-close"
+            aria-label="Close"
+            onClick={() => handleOpenChange(false)}
+          />
+        </div>
       </div>
 
       {/* Search row */}
@@ -187,7 +199,7 @@ export default function AICmdPalette({ open, onOpenChange, mediaType = 'book', o
                             key={status}
                             type="button"
                             onClick={() => handleAddToArchive(s, status, i)}
-                            className="w7-btn gap-1 px-2 text-[12px]"
+                            className="w7-btn gap-1 text-[12px]"
                           >
                             <Plus size={10} aria-hidden="true" />
                             {status}

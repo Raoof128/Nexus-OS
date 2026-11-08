@@ -11,7 +11,7 @@ function StartOrb({ open, onClick }) {
       type="button"
       onClick={onClick}
       aria-label="Start"
-      aria-haspopup="menu"
+      aria-haspopup="dialog"
       aria-expanded={Boolean(open)}
       title="Start"
       className="nx-start-orb"

@@ -224,7 +224,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                   )}
                 </div>
 
-                <footer className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}
@@ -242,7 +242,10 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                   >
                     Edit
                   </button>
-                </footer>
+                  <button type="button" onClick={onClose} className="w7-btn">
+                    Close
+                  </button>
+                </div>
               </div>
             </Motion.div>
           </Motion.div>

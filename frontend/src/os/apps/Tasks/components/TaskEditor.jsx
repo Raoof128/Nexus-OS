@@ -63,12 +63,12 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
         <span className="w7-subheading">{initial ? 'Edit task' : 'New task'}</span>
         <button
           type="button"
-          aria-label="Cancel"
-          title="Cancel"
+          aria-label="Close"
+          title="Close"
           onClick={onCancel}
-          className="w7-toolbtn h-6 w-6 px-0"
+          className="w7-toolbtn h-6 w-6 px-0 pointer-coarse:h-11 pointer-coarse:w-11"
         >
-          <X size={14} />
+          <X size={14} aria-hidden="true" />
         </button>
       </div>
 
@@ -128,11 +128,11 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
       </div>
 
       <div className="flex justify-end gap-2 border-t border-border bg-muted px-3 py-2">
-        <button type="button" onClick={onCancel} className="w7-btn">
-          Cancel
-        </button>
         <button type="button" onClick={save} disabled={!title.trim()} className="w7-btn default">
           {initial ? 'Save' : 'Add task'}
+        </button>
+        <button type="button" onClick={onCancel} className="w7-btn">
+          Cancel
         </button>
       </div>
     </Motion.div>

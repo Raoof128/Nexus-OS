@@ -1,7 +1,8 @@
 // Shared class strings for the Windows 7 logon screen (sign in, register, reset password).
 // Fields keep 7.css's sunken input look: layout utilities only, no background/border/text colour.
+// Height is left to 7.css (23px, the Win7 text box metric), so no h-* class here.
 
-export const fieldClass = 'h-[26px] w-full text-[12px]'
+export const fieldClass = 'w-full text-[12px]'
 
 export const labelClass = 'mb-1 block text-[12px] text-white [text-shadow:0_1px_3px_#000a]'
 

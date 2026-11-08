@@ -13,7 +13,11 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   confirmLabel = 'Delete',
+  cancelLabel = 'Cancel',
   variant = 'destructive',
+  // Which button is the default (Enter, initial focus). Windows 7 makes the
+  // safe choice the default when the action loses work (discard, close all).
+  defaultAction = 'confirm',
 }) {
   const trapRef = useFocusTrap(open)
 
@@ -82,11 +86,19 @@ export default function ConfirmDialog({
               </div>
             </div>
             <footer className="flex items-center justify-end gap-2">
-              <button type="button" onClick={onConfirm} className="w7-btn default">
+              <button
+                type="button"
+                onClick={onConfirm}
+                className={`w7-btn${defaultAction === 'confirm' ? ' default' : ''}`}
+              >
                 {confirmLabel}
               </button>
-              <button type="button" onClick={onCancel} className="w7-btn">
-                Cancel
+              <button
+                type="button"
+                onClick={onCancel}
+                className={`w7-btn${defaultAction === 'cancel' ? ' default' : ''}`}
+              >
+                {cancelLabel}
               </button>
             </footer>
           </Motion.div>

@@ -6,6 +6,7 @@ import {
   promptInstall,
   isStandalone,
 } from '../../lib/registerServiceWorker'
+import { useNotificationStore } from '../stores/notificationStore'
 
 const DISMISS_KEY = 'nexus-os:install-dismissed'
 
@@ -16,6 +17,11 @@ const DISMISS_KEY = 'nexus-os:install-dismissed'
  */
 export default function InstallPrompt() {
   const [available, setAvailable] = useState(false)
+  // Toasts share the bottom-right corner. Wait until they clear so the
+  // balloon never covers them. The install prompt is kept, not dropped.
+  const toastsVisible = useNotificationStore((s) =>
+    s.notifications.some((n) => !n.read && !n.toastDismissed),
+  )
   const [dismissed, setDismissed] = useState(() => {
     try {
       return localStorage.getItem(DISMISS_KEY) === '1'
@@ -28,7 +34,7 @@ export default function InstallPrompt() {
     return onInstallAvailabilityChange((prompt) => setAvailable(Boolean(prompt)))
   }, [])
 
-  if (dismissed || isStandalone() || !available) return null
+  if (dismissed || isStandalone() || !available || toastsVisible) return null
 
   const handleInstall = async () => {
     const outcome = await promptInstall()
@@ -51,7 +57,7 @@ export default function InstallPrompt() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 12 }}
         transition={{ duration: 0.2 }}
-        className="nx-flyout fixed bottom-12 right-3 z-[9000] w-[min(300px,calc(100vw-1.5rem))] px-3 py-2"
+        className="nx-flyout fixed bottom-12 right-3 z-[1400] w-[min(300px,calc(100vw-1.5rem))] px-3 py-2"
         role="dialog"
         aria-label="Install Nexus OS"
       >

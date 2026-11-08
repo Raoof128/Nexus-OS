@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import {
@@ -25,20 +25,61 @@ import {
   promptInstall,
   onInstallAvailabilityChange,
 } from '../../lib/registerServiceWorker'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
+
+// Mouse presses inside the list must not move focus off the search box; the
+// highlighted row is announced through aria-activedescendant instead.
+const keepFocus = (e) => e.preventDefault()
+
+function CommandOption({ id, idx, active, item, onHover, onRun }) {
+  const Icon = item.icon
+  return (
+    <div
+      id={id}
+      role="option"
+      aria-selected={active}
+      data-idx={idx}
+      onMouseMove={onHover}
+      onMouseDown={keepFocus}
+      onClick={onRun}
+      className={`w7-item mx-1 flex min-h-6 cursor-default items-center gap-2 px-2 py-1 text-[12px] pointer-coarse:min-h-11 ${
+        active ? 'is-selected' : ''
+      }`}
+    >
+      {Icon ? (
+        <Icon size={16} className="shrink-0 text-[#3d5a80]" aria-hidden="true" />
+      ) : (
+        <span className="w-4 shrink-0" aria-hidden="true" />
+      )}
+      <span className="truncate">{item.label}</span>
+      {active && (
+        <CornerDownLeft size={14} className="ml-auto shrink-0 text-muted-foreground" aria-hidden />
+      )}
+    </div>
+  )
+}
 
 /**
  * Universal command centre (Cmd/Ctrl+K). The OS "brainstem": fuzzy-search every
  * app plus a set of system commands and run them by keyboard. Mounted once,
- * globally; renders into #modal-root. Self-contained — all actions go through
- * the zustand stores, so no parent wiring is required.
+ * globally; renders into #modal-root as a Win7 dialog (title bar, close
+ * button, focus trapped). Self-contained — all actions go through the zustand
+ * stores, so no parent wiring is required.
  */
 export default function CommandPalette() {
   const [open, setOpen] = useState(false)
+  const [confirmCloseAll, setConfirmCloseAll] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIdx, setActiveIdx] = useState(0)
   const [installable, setInstallable] = useState(false)
+  const baseId = useId()
+  const titleId = `${baseId}-title`
+  const listId = `${baseId}-commands`
+  const optionId = (idx) => `${baseId}-option-${idx}`
   const inputRef = useRef(null)
   const listRef = useRef(null)
+  const trapRef = useFocusTrap(open)
 
   const openApp = useWindowStore((s) => s.openApp)
   const toggleLauncher = useWindowStore((s) => s.toggleLauncher)
@@ -82,14 +123,6 @@ export default function CommandPalette() {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, close])
 
-  // Focus the input when the palette opens (DOM side-effect only — no setState).
-  useEffect(() => {
-    if (open) {
-      // next frame so the portal node exists
-      requestAnimationFrame(() => inputRef.current?.focus())
-    }
-  }, [open])
-
   const run = useCallback(
     (action) => {
       close()
@@ -122,8 +155,8 @@ export default function CommandPalette() {
       {
         id: 'sys:launcher',
         group: 'System',
-        label: 'Open App Launcher',
-        keywords: 'launcher apps grid all',
+        label: 'Open Start menu',
+        keywords: 'start menu launcher apps grid all programs',
         icon: LayoutGrid,
         action: () => toggleLauncher(),
       },
@@ -146,23 +179,24 @@ export default function CommandPalette() {
       {
         id: 'sys:close-all',
         group: 'System',
-        label: 'Close all windows',
+        label: 'Close all windows…',
         keywords: 'close quit all windows',
         icon: XIcon,
-        action: () => closeAll(),
+        // Destructive: confirm first, with Cancel as the default button.
+        action: () => setConfirmCloseAll(true),
       },
       {
         id: 'sys:notifications',
         group: 'System',
-        label: 'Open notification centre',
-        keywords: 'notifications centre center alerts bell history',
+        label: 'Open Action Center',
+        keywords: 'action center notification centre notifications alerts bell history',
         icon: Bell,
         action: () => openNotifications(),
       },
       {
         id: 'sys:dnd',
         group: 'System',
-        label: 'Toggle Do Not Disturb',
+        label: 'Toggle do not disturb',
         keywords: 'do not disturb dnd silence mute notifications focus',
         icon: BellOff,
         action: () => toggleDoNotDisturb(),
@@ -226,7 +260,6 @@ export default function CommandPalette() {
     toggleLauncher,
     minimizeAll,
     cascadeWindows,
-    closeAll,
     setWallpaper,
     setAccentColor,
     currentWallpaper,
@@ -246,6 +279,17 @@ export default function CommandPalette() {
     })
   }, [commands, query])
 
+  // Group the (already group-ordered) results for the listbox headers.
+  const groups = useMemo(() => {
+    const out = []
+    filtered.forEach((item, idx) => {
+      const last = out[out.length - 1]
+      if (last && last.name === item.group) last.items.push({ item, idx })
+      else out.push({ name: item.group, items: [{ item, idx }] })
+    })
+    return out
+  }, [filtered])
+
   // Clamp at read-time rather than storing a corrected index in an effect, so
   // the active row stays in range as the filter narrows without setState-in-effect.
   const safeIdx = filtered.length === 0 ? 0 : Math.min(activeIdx, filtered.length - 1)
@@ -254,7 +298,7 @@ export default function CommandPalette() {
   useEffect(() => {
     if (!open) return
     const node = listRef.current?.querySelector(`[data-idx="${safeIdx}"]`)
-    node?.scrollIntoView({ block: 'nearest' })
+    node?.scrollIntoView?.({ block: 'nearest' })
   }, [safeIdx, open])
 
   const onInputKeyDown = (e) => {
@@ -278,99 +322,123 @@ export default function CommandPalette() {
   if (!modalRoot) return null
 
   return createPortal(
-    <AnimatePresence>
-      {open && (
-        <Motion.div
-          className="fixed inset-0 z-[9500] flex items-start justify-center px-4 pt-[12vh]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.12 }}
-          onMouseDown={close}
-          role="presentation"
-        >
-          <div className="absolute inset-0 bg-black/20" />
+    <>
+      <ConfirmDialog
+        open={confirmCloseAll}
+        id="palette-close-all"
+        title="Close all windows"
+        message="Close every open window? Unsaved work in them will be lost."
+        confirmLabel="Close all"
+        defaultAction="cancel"
+        onConfirm={() => {
+          setConfirmCloseAll(false)
+          closeAll()
+        }}
+        onCancel={() => setConfirmCloseAll(false)}
+      />
+      <AnimatePresence>
+        {open && (
           <Motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
+            className="fixed inset-0 z-[9500] flex items-start justify-center px-4 pt-[12vh]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
-            className="nx-flyout relative w-full max-w-[560px] overflow-hidden"
-            onMouseDown={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-label="Command palette"
-            aria-modal="true"
+            onMouseDown={close}
           >
-            <div className="flex items-center gap-2 border-b border-[#c5cad3] bg-background px-3 py-2">
-              <Search size={16} className="shrink-0 text-[#3d5a80]" aria-hidden />
-              <input
-                ref={inputRef}
-                type="search"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value)
-                  setActiveIdx(0)
-                }}
-                onKeyDown={onInputKeyDown}
-                placeholder="Search apps and commands"
-                className="min-w-0 flex-1"
-                aria-label="Search apps and commands"
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <kbd className="hidden shrink-0 items-center gap-1 border border-[#c5cad3] bg-white px-1.5 py-px text-[11px] text-muted-foreground sm:flex">
-                Ctrl+K
-              </kbd>
-            </div>
+            <div className="absolute inset-0 bg-black/20" aria-hidden="true" />
+            <Motion.div
+              ref={trapRef}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.12 }}
+              className="relative w-full max-w-[560px]"
+              onMouseDown={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-labelledby={titleId}
+              aria-modal="true"
+              data-testid="command-palette"
+            >
+              <div className="window active w-full">
+                <div className="title-bar">
+                  <div className="title-bar-text" id={titleId}>
+                    Command palette
+                  </div>
+                  <div className="title-bar-controls">
+                    <button type="button" aria-label="Close" className="is-close" onClick={close} />
+                  </div>
+                </div>
+                <div className="window-body m-0">
+                  <div className="flex items-center gap-2 border-b border-border bg-muted px-2 py-2">
+                    <Search size={16} className="shrink-0 text-[#3d5a80]" aria-hidden="true" />
+                    <input
+                      ref={inputRef}
+                      type="search"
+                      value={query}
+                      onChange={(e) => {
+                        setQuery(e.target.value)
+                        setActiveIdx(0)
+                      }}
+                      onKeyDown={onInputKeyDown}
+                      placeholder="Search apps and commands"
+                      className="min-w-0 flex-1"
+                      aria-label="Search apps and commands"
+                      aria-controls={listId}
+                      aria-activedescendant={filtered.length > 0 ? optionId(safeIdx) : undefined}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    <kbd className="hidden shrink-0 items-center gap-1 border border-border bg-white px-1.5 py-px text-[11px] text-muted-foreground sm:flex">
+                      Ctrl+K
+                    </kbd>
+                  </div>
 
-            <div ref={listRef} className="max-h-[50vh] overflow-y-auto bg-background py-1">
-              {filtered.length === 0 ? (
-                <p className="px-4 py-6 text-center text-[12px] text-muted-foreground">
-                  No matching commands.
-                </p>
-              ) : (
-                filtered.map((item, idx) => {
-                  const Icon = item.icon
-                  const active = idx === safeIdx
-                  const prevGroup = idx > 0 ? filtered[idx - 1].group : null
-                  const showHeader = item.group !== prevGroup
-                  return (
-                    <div key={item.id}>
-                      {showHeader && (
-                        <p className="px-3 pb-0.5 pt-2 text-[11px] text-w7-title">{item.group}</p>
-                      )}
-                      <button
-                        type="button"
-                        data-idx={idx}
-                        onMouseMove={() => setActiveIdx(idx)}
-                        onClick={() => run(item.action)}
-                        className={`w7-item mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 px-2 py-1 text-left text-[12px] ${
-                          active ? 'is-selected' : ''
-                        }`}
-                      >
-                        {Icon ? (
-                          <Icon size={16} className="shrink-0 text-[#3d5a80]" aria-hidden />
-                        ) : (
-                          <span className="w-4 shrink-0" />
-                        )}
-                        <span className="truncate">{item.label}</span>
-                        {active && (
-                          <CornerDownLeft
-                            size={14}
-                            className="ml-auto shrink-0 text-muted-foreground"
-                            aria-hidden
+                  <div
+                    id={listId}
+                    ref={listRef}
+                    role="listbox"
+                    aria-label="Commands"
+                    onMouseDown={keepFocus}
+                    className="max-h-[50vh] overflow-y-auto bg-background py-1"
+                  >
+                    {groups.map((group) => (
+                      <div key={group.name} role="group" aria-label={group.name}>
+                        <p
+                          aria-hidden="true"
+                          className="px-3 pb-0.5 pt-2 text-[11px] text-w7-title"
+                        >
+                          {group.name}
+                        </p>
+                        {group.items.map(({ item, idx }) => (
+                          <CommandOption
+                            key={item.id}
+                            id={optionId(idx)}
+                            idx={idx}
+                            active={idx === safeIdx}
+                            item={item}
+                            onHover={() => setActiveIdx(idx)}
+                            onRun={() => run(item.action)}
                           />
-                        )}
-                      </button>
-                    </div>
-                  )
-                })
-              )}
-            </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  {filtered.length === 0 && (
+                    <p
+                      role="status"
+                      className="px-4 py-6 text-center text-[12px] text-muted-foreground"
+                    >
+                      No matching commands.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Motion.div>
           </Motion.div>
-        </Motion.div>
-      )}
-    </AnimatePresence>,
+        )}
+      </AnimatePresence>
+    </>,
     modalRoot,
   )
 }

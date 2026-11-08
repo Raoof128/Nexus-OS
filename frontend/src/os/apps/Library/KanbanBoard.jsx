@@ -1,4 +1,7 @@
 import { memo, useCallback, useState } from 'react'
+// Keyboard reorder: the focusable node must carry dnd-kit's attributes AND
+// listeners (KeyboardSensor only starts a drag when keydown targets the
+// activator node), so both are spread on the same element below.
 import {
   DndContext,
   DragOverlay,
@@ -24,10 +27,28 @@ import { MEDIA_CONFIG } from '../../../lib/mediaConfig'
 const MAX_PREVIEW = 5
 
 function SortableCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: item.id,
     data: { status: item.status },
   })
+
+  // One element is both the sortable node and the activator, so Space/Enter on
+  // the focused card picks it up and arrow keys move it.
+  const setCardRef = useCallback(
+    (element) => {
+      setNodeRef(element)
+      setActivatorNodeRef(element)
+    },
+    [setNodeRef, setActivatorNodeRef],
+  )
 
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -37,16 +58,25 @@ function SortableCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
-      <div {...listeners} className="cursor-grab active:cursor-grabbing">
-        <CyberCard
-          item={item}
-          onUpdate={onUpdate}
-          onDelete={onDelete}
-          onSelect={onSelect}
-          onEdit={onEdit}
-        />
-      </div>
+    // dnd-kit gives this node role=button and aria-pressed. That would make the
+    // card's own Edit/Delete buttons children of a button, so expose it as a
+    // group with the same sortable description instead.
+    <div
+      ref={setCardRef}
+      style={style}
+      {...attributes}
+      role="group"
+      aria-pressed={undefined}
+      {...listeners}
+      className="cursor-grab active:cursor-grabbing"
+    >
+      <CyberCard
+        item={item}
+        onUpdate={onUpdate}
+        onDelete={onDelete}
+        onSelect={onSelect}
+        onEdit={onEdit}
+      />
     </div>
   )
 }
@@ -193,15 +223,17 @@ function DroppableColumn({
         isOver ? 'border-w7-select-border bg-w7-select' : 'border-border bg-w7-pane'
       }`}
     >
-      <button
-        type="button"
-        onClick={() => onHeaderClick?.(status, mediaType)}
-        aria-label={`${status} — open vault`}
-        className="flex items-center justify-between gap-2 px-1 text-left hover:opacity-80"
-      >
-        <h2 className="w7-subheading truncate">{status}</h2>
-        <span className="w7-badge tabular-nums">{total}</span>
-      </button>
+      <h2 className="w7-subheading min-w-0">
+        <button
+          type="button"
+          onClick={() => onHeaderClick?.(status, mediaType)}
+          aria-label={`${status} — open vault`}
+          className="flex w-full items-center justify-between gap-2 px-1 text-left hover:opacity-80"
+        >
+          <span className="truncate">{status}</span>
+          <span className="w7-badge tabular-nums">{total}</span>
+        </button>
+      </h2>
 
       <SortableContext items={columnItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
         <div className="flex-1 space-y-2 overflow-y-auto pr-1 @sm:space-y-3">
@@ -217,12 +249,14 @@ function DroppableColumn({
           ))}
           {columnItems.length === 0 && (
             <div className="flex h-28 flex-col items-center justify-center gap-2 rounded-[3px] border border-dashed border-[#c5cad3] bg-white p-4 text-center @sm:h-40 @sm:p-6">
-              <p className="text-[12px] text-muted-foreground">No {plural} here yet.</p>
+              <p className="text-[12px] text-muted-foreground">
+                No {plural} here yet. Add one, or drag one here from another column.
+              </p>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {onAddRequest && (
                   <button type="button" onClick={() => onAddRequest(status)} className="w7-btn">
                     <Plus size={12} aria-hidden="true" />
-                    Add {singular}
+                    Add {singular}…
                   </button>
                 )}
                 {onAiSuggest && (

@@ -6,6 +6,8 @@ import { useAuth } from '../../../hooks/useAuth'
 import PasswordInput from '../../../components/ui/PasswordInput'
 import { ArrowSubmitButton, FormBalloon } from './LogonParts'
 import { fieldClass, headingClass, labelClass, linkClass, panelClass } from './logonStyles'
+import { friendlySignInError } from './signInErrors'
+import { PASSWORDS_MISMATCH } from './copy'
 
 export default function AuthPanel() {
   const { signIn } = useAuth()
@@ -51,7 +53,7 @@ export default function AuthPanel() {
     setSubmitting(true)
     try {
       const { error: signInError } = await signIn(loginEmail, loginPassword)
-      if (signInError) setError(signInError.message)
+      if (signInError) setError(friendlySignInError(signInError.message))
     } finally {
       setSubmitting(false)
       submittingRef.current = false
@@ -69,7 +71,7 @@ export default function AuthPanel() {
       return
     }
     if (regPassword !== regConfirm) {
-      setError('Passwords do not match')
+      setError(PASSWORDS_MISMATCH)
       submittingRef.current = false
       return
     }

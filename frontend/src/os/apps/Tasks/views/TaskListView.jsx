@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, Reorder } from 'framer-motion'
-import { ChevronDown, ChevronRight, ListChecks, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, ListChecks } from 'lucide-react'
 import { useTaskItems, useTaskMutations } from '../hooks/useTasks'
 import { useTaskReminders } from '../hooks/useTaskReminders'
 import { between } from '../lib/position'
@@ -94,12 +94,20 @@ export default function TaskListView({
   useEffect(() => {
     const el = rootRef?.current
     if (!el) return undefined
+    // Keys pressed inside an open row menu belong to the menu, not the list.
     const isTyping = (t) =>
-      t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
+      t &&
+      (t.tagName === 'INPUT' ||
+        t.tagName === 'TEXTAREA' ||
+        t.isContentEditable ||
+        Boolean(t.closest?.('[role="menu"]')))
+    // Space on a focused button (edit, star, delete, the row menu) activates that
+    // button; it must not also toggle the task. The checkbox handles Space natively.
+    const isActivatable = (t) => Boolean(t?.closest?.('button, a[href], select'))
     const find = (id) => items.find((t) => t.id === id)
     const onKey = (e) => {
       const task = focusedTaskId ? find(focusedTaskId) : null
-      if (e.key === ' ' && !isTyping(e.target) && task) {
+      if (e.key === ' ' && !isTyping(e.target) && !isActivatable(e.target) && task) {
         e.preventDefault()
         updateTask.mutate({
           id: task.id,
@@ -175,11 +183,13 @@ export default function TaskListView({
     setEditing(null)
   }
 
-  const renderRow = (task, depth) => (
+  // `inReorder` rows sit inside a drag-reorder <li>, so they render as <div>.
+  const renderRow = (task, depth, inReorder = false) => (
     <TaskRow
       key={task.id}
       task={task}
       depth={depth}
+      asListItem={!inReorder}
       lists={lists}
       onMoveToList={(targetListId) =>
         moveTask.mutate({ id: task.id, body: { list_id: targetListId } })
@@ -230,9 +240,14 @@ export default function TaskListView({
         </AnimatePresence>
 
         {isLoading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-muted-foreground">
-            <Loader2 size={16} className="animate-spin text-primary" aria-hidden="true" />
-            <span>Loading tasks…</span>
+          <div
+            role="status"
+            className="flex flex-col items-center gap-2 py-8 text-muted-foreground"
+          >
+            <div className="flex w-48 flex-col gap-2">
+              <div role="progressbar" aria-label="Loading tasks" className="marquee" />
+              <p className="text-center text-[12px]">Loading tasks…</p>
+            </div>
           </div>
         ) : parents.length === 0 && completed.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
@@ -251,12 +266,17 @@ export default function TaskListView({
             <ReorderableTasks
               key={parents.map((p) => p.id).join(',')}
               tasks={parents}
-              renderRow={(t) => (
-                <>
-                  {renderRow(t, 0)}
-                  {(childrenByParent[t.id] || []).map((c) => renderRow(c, 1))}
-                </>
-              )}
+              renderRow={(t) => {
+                const children = childrenByParent[t.id] || []
+                return (
+                  <>
+                    {renderRow(t, 0, true)}
+                    {children.length > 0 && (
+                      <ul role="list">{children.map((c) => renderRow(c, 1))}</ul>
+                    )}
+                  </>
+                )
+              }}
               onPersist={(id, position) => moveTask.mutate({ id, body: { position } })}
             />
           </div>

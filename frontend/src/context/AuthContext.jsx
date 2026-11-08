@@ -4,6 +4,10 @@ import { queryClient } from '../lib/queryClient'
 import { realtimeClient } from '../lib/realtimeClient'
 import { AuthContext } from './auth-context'
 
+// Backend detail for a rejected login (auth_controller.py). Matched exactly so
+// that only a credential rejection, not a network failure, reads as "wrong password".
+const INVALID_CREDENTIALS_MESSAGE = 'Invalid credentials'
+
 async function loadCurrentSession() {
   // /auth/session returns:
   //   { user, expires_at, ... }  → valid session
@@ -76,6 +80,26 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Re-checks the password of the signed-in user (lock screen unlock). Uses the
+  // same login endpoint, but keeps the cached query data: the user is not
+  // changing, so the cache must survive. Resolves false only when the backend
+  // rejects the credentials; other failures (network, timeout) throw.
+  const verifyPassword = async (password) => {
+    const email = session?.user?.email
+    if (!email || !password) return false
+    try {
+      const authenticatedSession = await authFetch('/auth/login', {
+        method: 'POST',
+        body: { email, password },
+      })
+      setSession(authenticatedSession)
+      return true
+    } catch (error) {
+      if (error?.message === INVALID_CREDENTIALS_MESSAGE) return false
+      throw error
+    }
+  }
+
   const signOut = async () => {
     try {
       await authFetch('/auth/logout', { method: 'POST' })
@@ -97,6 +121,7 @@ export function AuthProvider({ children }) {
     loading,
     signIn,
     signOut,
+    verifyPassword,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

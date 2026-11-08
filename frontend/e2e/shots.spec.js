@@ -9,7 +9,7 @@ const APPS = [
   ['chat', 'AI Chat'],
   ['terminal', 'Terminal'],
   ['files', 'File Manager'],
-  ['settings', 'Settings'],
+  ['settings', 'Control Panel'],
   ['sysmon', 'System Monitor'],
   ['notes', 'Notes'],
   ['tasks', 'Tasks'],
@@ -29,7 +29,7 @@ test('desktop and Start menu', async ({ page }) => {
   await page.waitForTimeout(200)
   await page.screenshot({ path: `${DIR}/context-menu.png` })
   await page.keyboard.press('Escape')
-  await page.getByRole('button', { name: /^Notifications/ }).click()
+  await page.getByRole('button', { name: /^Action Center/ }).click()
   await page.waitForTimeout(300)
   await page.screenshot({ path: `${DIR}/notification-center.png` })
 })
@@ -56,7 +56,8 @@ test('lock screen', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('region', { name: 'Media Vault' }).waitFor()
   await page.getByRole('button', { name: 'Start' }).click()
-  await page.getByRole('button', { name: 'Lock' }).click()
+  await page.getByRole('button', { name: 'Shut down options' }).click()
+  await page.getByRole('menuitem', { name: 'Lock' }).click()
   await page.waitForTimeout(600)
   await page.screenshot({ path: `${DIR}/lock-screen.png` })
 })

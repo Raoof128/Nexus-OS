@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 
 let mockWindows = {}
 let mockZStack = []
@@ -37,6 +37,7 @@ vi.mock('../../stores/settingsStore', () => ({
   ACCENT_PRESETS: {
     sky: { frame: '#4580c4', label: 'Sky' },
   },
+  wallpaperBackgroundStyle: () => ({ backgroundSize: 'cover' }),
 }))
 
 vi.mock('../../stores/notificationStore', () => {
@@ -85,7 +86,11 @@ vi.mock('../Window', () => ({
 }))
 
 vi.mock('../Taskbar', () => ({
-  default: () => <div data-testid="taskbar">Taskbar</div>,
+  default: () => (
+    <div data-testid="taskbar" className="nx-taskbar">
+      Taskbar
+    </div>
+  ),
 }))
 
 vi.mock('../AppLauncher', () => ({
@@ -101,7 +106,7 @@ vi.mock('../DesktopIcons', () => ({
 }))
 
 vi.mock('../ContextMenu', () => ({
-  default: () => null,
+  default: ({ label }) => <div data-testid="context-menu" role="menu" aria-label={label} />,
 }))
 
 vi.mock('../BootSequence', () => ({
@@ -217,5 +222,39 @@ describe('Desktop', () => {
     mockLauncherOpen = false
     render(<Desktop />)
     expect(screen.queryByTestId('app-launcher')).toBeNull()
+  })
+
+  it('right-click on the desktop opens the desktop menu', () => {
+    render(<Desktop />)
+    fireEvent.contextMenu(screen.getByTestId('desktop'))
+    expect(screen.getByTestId('context-menu').getAttribute('aria-label')).toBe(
+      'Desktop context menu',
+    )
+  })
+
+  it('right-click on the taskbar opens the taskbar menu, not the desktop menu', () => {
+    render(<Desktop />)
+    fireEvent.contextMenu(screen.getByTestId('taskbar'))
+    expect(screen.getByTestId('context-menu').getAttribute('aria-label')).toBe(
+      'Taskbar context menu',
+    )
+  })
+
+  it('nexus:lock locks the desktop', () => {
+    render(<Desktop />)
+    expect(screen.queryByTestId('lock-screen')).toBeNull()
+    act(() => {
+      window.dispatchEvent(new Event('nexus:lock'))
+    })
+    expect(screen.getByTestId('lock-screen')).toBeTruthy()
+  })
+
+  it('does not open a menu on the desktop while it is locked', () => {
+    render(<Desktop />)
+    act(() => {
+      window.dispatchEvent(new Event('nexus:lock'))
+    })
+    fireEvent.contextMenu(screen.getByTestId('desktop'))
+    expect(screen.queryByTestId('context-menu')).toBeNull()
   })
 })

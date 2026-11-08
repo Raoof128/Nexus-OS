@@ -52,7 +52,7 @@ export function FormBalloon({ id, tone = 'error', children }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
-      className={`mb-3 flex items-start gap-2 rounded-[3px] border bg-white px-2.5 py-2 text-[12px] text-[#1e1e1e] shadow-[0_2px_6px_#0005] ${
+      className={`mb-3 flex items-start gap-2 rounded-[3px] border bg-white px-2.5 py-2 text-[12px] text-foreground shadow-[0_2px_6px_#0005] ${
         isError ? 'border-[#c9a227]' : 'border-[#8bbf8e]'
       }`}
     >

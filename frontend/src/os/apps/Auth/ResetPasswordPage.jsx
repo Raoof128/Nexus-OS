@@ -6,13 +6,13 @@ import { realtimeClient } from '../../../lib/realtimeClient'
 import Navbar from '../../../components/layout/Navbar'
 import PasswordInput from '../../../components/ui/PasswordInput'
 import { FormBalloon, UserTile } from './LogonParts'
+import { PASSWORDS_MISMATCH } from './copy'
 import {
   bodyTextClass,
   brandClass,
   fieldClass,
   headingClass,
   labelClass,
-  linkClass,
   panelClass,
 } from './logonStyles'
 
@@ -115,7 +115,7 @@ export default function ResetPasswordPage({
     setError(null)
 
     if (password !== confirm) {
-      setError('Passwords do not match')
+      setError(PASSWORDS_MISMATCH)
       return
     }
 
@@ -191,12 +191,13 @@ export default function ResetPasswordPage({
                 required
               />
             </div>
-            <div className="flex items-center justify-between pt-1">
-              <button type="button" onClick={onComplete} className={linkClass}>
-                Cancel (Esc)
-              </button>
+            {/* Windows order: default action first, then Cancel. Esc also cancels. */}
+            <div className="flex items-center justify-end gap-2 pt-1">
               <button type="submit" disabled={submitting} className="w7-btn default">
                 {submitting ? 'Saving…' : 'Set new password'}
+              </button>
+              <button type="button" onClick={onComplete} className="w7-btn">
+                Cancel
               </button>
             </div>
           </form>
