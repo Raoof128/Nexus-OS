@@ -96,16 +96,17 @@ export default function FlyoutMenu({ label, x, y, items, anchorEl, onSelect, onD
         aria-checked={radio ? item.checked : undefined}
         disabled={item.disabled}
         onClick={() => onSelect(item)}
-        className={`nx-menuitem justify-between pointer-coarse:min-h-11 disabled:text-[#8d8d8d] ${
+        className={`nx-menuitem pointer-coarse:min-h-11 disabled:text-[#8d8d8d] ${
           item.danger ? 'text-destructive' : ''
         }`}
       >
-        {radio && (
-          <span className="inline-flex w-3 shrink-0 justify-center" aria-hidden="true">
-            {item.checked && <Check size={12} />}
-          </span>
-        )}
-        <span className="flex-1">{item.label}</span>
+        {/* Every row reserves the 7.css icon column, so labels start past the
+            menu gutter line (as in the desktop and Start menus). Radio items
+            show their check mark there. */}
+        <span className="nx-menuitem__icon" aria-hidden="true">
+          {radio && item.checked && <Check size={12} />}
+        </span>
+        <span className="flex-1 text-left">{item.label}</span>
         {item.shortcut && (
           <span className="pl-6 text-[11px] text-muted-foreground">{item.shortcut}</span>
         )}
@@ -130,7 +131,7 @@ export default function FlyoutMenu({ label, x, y, items, anchorEl, onSelect, onD
           <div key={`group-${i}`} role="group" aria-label={item.group}>
             <div
               role="presentation"
-              className="px-[10px] pt-[2px] text-[11px] text-muted-foreground"
+              className="pt-[2px] pr-[10px] pl-8 text-[11px] text-muted-foreground"
             >
               {item.group}
             </div>
