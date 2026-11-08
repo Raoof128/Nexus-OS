@@ -67,6 +67,10 @@ Changes made after the workflow, because a unit could not see the whole system:
 
 Nothing was deployed. Before deploying this backend:
 
+_Update 2026-11-09:_ deployed to production on 2026-11-08 (Windows 7 branch) and again on 2026-11-09
+(`claude/funny-hamilton-kasc78` at `098fddd`), following this checklist; the records are in
+`CHANGELOG.md`.
+
 1. **Deploy the Worker first** (`cd worker && wrangler deploy`). Without it every cookie mutation and
    the token refresh return 403.
 2. **Check production env against the new boot checks.** In non-development environments the app
