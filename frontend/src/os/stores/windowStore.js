@@ -2,11 +2,17 @@ import { create } from 'zustand'
 import { nanoid } from 'nanoid'
 import { APP_REGISTRY } from './appRegistry'
 import { ownsLocalState } from '../../lib/localOwner'
-import { TASKBAR_HEIGHT, readTaskbarHeight } from './taskbarHeight'
+import {
+  TASKBAR_HEIGHT,
+  TITLEBAR_HEIGHT,
+  readTaskbarHeight,
+  readTitlebarHeight,
+} from './taskbarHeight'
 
 // Live taskbar height is --w7-taskbar-h (48px on pointer:coarse); Desktop calls
-// setTaskbarHeight(readTaskbarHeight()). Re-exported for callers and tests.
-export { TASKBAR_HEIGHT, readTaskbarHeight }
+// setTaskbarHeight(readTaskbarHeight()). The title bar height is --w7-titlebar-h,
+// read live by clampPosition. Re-exported for callers and tests.
+export { TASKBAR_HEIGHT, TITLEBAR_HEIGHT, readTaskbarHeight, readTitlebarHeight }
 
 const STORAGE_KEY = 'nexus-os:window-layout'
 const SCHEMA_VERSION = 1
@@ -41,6 +47,21 @@ function fitRect(rect, minSize, taskbarH) {
   return { x, y, width, height }
 }
 
+// Cascade moves a frame; it never resizes it. The size is the user's own and is
+// left alone. A frame that fits is kept wholly inside the work area. A frame
+// wider or taller than the work area keeps its size and is placed so the title
+// bar and caption buttons stay reachable: the right edge is aligned to the screen
+// edge (as fitRect does) and the top edge to the top of the work area.
+function placeFrame(pos, size, taskbarH) {
+  const wa = workArea(taskbarH)
+  const x =
+    size.width <= wa.width
+      ? Math.max(0, Math.min(pos.x, wa.width - size.width))
+      : wa.width - size.width
+  const y = size.height <= wa.height ? Math.max(0, Math.min(pos.y, wa.height - size.height)) : 0
+  return { x, y }
+}
+
 function cascadePosition(zStack, _size, taskbarH) {
   // Simple cascading: each new window is offset by 30px
   const offset = (zStack.length % 10) * 30
@@ -56,15 +77,16 @@ function clampPosition(pos, size, taskbarH) {
   // screen so the titlebar controls remain reachable. The close/min/max buttons
   // occupy roughly the rightmost 80px, so 80px is the minimum useful threshold.
   // Top is clamped to 0 (titlebar must not go above the viewport).
-  // Bottom is clamped so the full titlebar height stays above the taskbar.
-  const TITLEBAR_H = 30
+  // Bottom is clamped so the full titlebar height stays above the taskbar. The
+  // title bar height is live (--w7-titlebar-h: 30px, 44px on touch).
+  const titlebarH = readTitlebarHeight()
   const MIN_ACCESSIBLE = 80
   return {
     x: Math.max(
       -(size.width - MIN_ACCESSIBLE),
       Math.min(pos.x, window.innerWidth - MIN_ACCESSIBLE),
     ),
-    y: Math.max(0, Math.min(pos.y, window.innerHeight - taskbarH - TITLEBAR_H)),
+    y: Math.max(0, Math.min(pos.y, window.innerHeight - taskbarH - titlebarH)),
   }
 }
 
@@ -502,17 +524,17 @@ export const useWindowStore = create((set, get) => ({
       for (const id of state.zStack) {
         const win = newWindows[id]
         if (win && win.state !== 'minimized') {
-          // Keep every cascaded frame inside the work area (SHELL-09).
-          const fitted = fitRect(
-            { x: 60 + offset, y: 40 + offset, width: win.size.width, height: win.size.height },
-            win.minSize,
+          // Reposition only: the size is never written back (SHELL-09 keeps the frame
+          // on screen, but the user's own size survives the cascade).
+          const placed = placeFrame(
+            { x: 60 + offset, y: 40 + offset },
+            win.size,
             state.taskbarHeight,
           )
           newWindows[id] = {
             ...win,
             state: 'normal',
-            position: { x: fitted.x, y: fitted.y },
-            size: { width: fitted.width, height: fitted.height },
+            position: placed,
           }
           offset += 30
         }

@@ -624,11 +624,37 @@
     outline: 1px dotted #000;
     outline-offset: -3px;
   }
-  /* Touch: caption buttons are 44px wide (height stays 24px inside the 30px bar,
-     so the window chrome does not grow). Fine pointers keep the 7.css 29px. */
+  /* Title bar height is --w7-titlebar-h (:root above, 30px). Touch: 44px, so the
+     caption buttons below can be 44px tall hit targets. */
   @media (pointer: coarse) {
-    .win7 .nx-window .title-bar-controls button {
+    :root {
+      --w7-titlebar-h: 44px;
+    }
+  }
+  /* Caption buttons: 24px tall on a fine pointer (7.css sets 19px; the inline
+     24px this replaces is kept), 7.css widths (29px, close 48px). */
+  .win7 .nx-window .title-bar-controls button {
+    min-height: 24px;
+  }
+  /* Touch: the title bar grows to --w7-titlebar-h (44px, set in the
+     (pointer: coarse) :root block below) and the caption buttons fill it, so a
+     44x44 box is the hit target. The bar keeps no bottom padding and the caption
+     group no bottom border, so the bar height is exactly the token. Glyphs are
+     centred in the taller box. Phone windows (.nx-window--phone) keep their own
+     44px frame and are not touched here. */
+  @media (pointer: coarse) {
+    .win7 .nx-window:not(.nx-window--phone) > .title-bar {
+      padding-bottom: 0;
+    }
+    .win7 .nx-window:not(.nx-window--phone) .title-bar-controls {
+      border-bottom: 0;
+    }
+    .win7 .nx-window:not(.nx-window--phone) .title-bar-controls button {
       min-width: 44px;
+      min-height: 44px;
+    }
+    .win7 .nx-window:not(.nx-window--phone) .title-bar-controls button:before {
+      background-position: center;
     }
   }
 
@@ -877,9 +903,10 @@
   }
 
   /* Touch: the taskbar grows to 48px so task buttons (calc(var(--w7-taskbar-h)
-     - 4px)) and tray buttons reach the 44px touch minimum. Fine pointers keep
-     the 40px bar. windowStore reads this token via readTaskbarHeight(), so
-     JS-side clamping follows the same value. */
+     - 4px)) and tray buttons reach the 44px touch minimum, and window title
+     bars grow to 44px (see the title bar section). Fine pointers keep the 40px
+     bar. windowStore reads these tokens via readTaskbarHeight() and
+     readTitlebarHeight(), so JS-side clamping follows the same values. */
   @media (pointer: coarse) {
     :root {
       --w7-taskbar-h: 48px;

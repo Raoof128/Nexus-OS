@@ -1,11 +1,12 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { useWindowStore } from '../stores/windowStore'
-import { TASKBAR_HEIGHT } from '../stores/taskbarHeight'
+import { TASKBAR_HEIGHT, readTitlebarHeight } from '../stores/taskbarHeight'
 import AppIcon from './AppIcon'
 import SystemMenu from './SystemMenu'
 
-const TITLEBAR_HEIGHT = 30 // keep in sync with --w7-titlebar-h in index.css
+// Title bar height is --w7-titlebar-h (index.css): 30px, 44px on touch. It is
+// read live from the DOM wherever it is needed, so nothing here duplicates it.
 const RESIZE_EDGE_SIZE = 6
 const RESIZE_CORNER_SIZE = 14
 // Aero Snap and top-edge maximise fire when the POINTER reaches the screen edge.
@@ -38,7 +39,7 @@ function snapZoneAt(x, y) {
 }
 
 // Keeps a keyboard move/size preview inside the same bounds the store enforces.
-function clampKeyRect(rect, kind, minSize, taskbarH) {
+function clampKeyRect(rect, kind, minSize, taskbarH, titlebarH) {
   if (kind === 'size') {
     // Same work-area rule as windowStore.updateWindowRect: the right and bottom
     // edges stop at the screen edge and the taskbar.
@@ -57,7 +58,7 @@ function clampKeyRect(rect, kind, minSize, taskbarH) {
       -(rect.width - MIN_ACCESSIBLE_PX),
       Math.min(rect.x, window.innerWidth - MIN_ACCESSIBLE_PX),
     ),
-    y: Math.max(0, Math.min(rect.y, window.innerHeight - taskbarH - TITLEBAR_HEIGHT)),
+    y: Math.max(0, Math.min(rect.y, window.innerHeight - taskbarH - titlebarH)),
   }
 }
 
@@ -388,7 +389,7 @@ function Window({
       }
       e.preventDefault()
       e.stopPropagation()
-      const clamped = clampKeyRect(next, keyMode, minSize, taskbarHeight)
+      const clamped = clampKeyRect(next, keyMode, minSize, taskbarHeight, readTitlebarHeight())
       keyRectRef.current = clamped
       setKeyRect(clamped)
     }
@@ -418,6 +419,7 @@ function Window({
         width: size.width,
         height: size.height,
       }
+      const titlebarH = readTitlebarHeight()
       let started = !isLocked
 
       const beginDrag = (origin) => {
@@ -454,7 +456,7 @@ function Window({
           if (Math.hypot(dx, dy) < RESTORE_DRAG_PX) return
           // Restore under the pointer, then carry on dragging from there.
           const nextX = moveEvent.clientX - grabRatio * restored.width
-          const nextY = Math.max(0, moveEvent.clientY - TITLEBAR_HEIGHT / 2)
+          const nextY = Math.max(0, moveEvent.clientY - titlebarH / 2)
           restoreWindow(windowId)
           moveWindow(windowId, { x: nextX, y: nextY })
           beginDrag({
@@ -547,7 +549,7 @@ function Window({
       <div
         ref={frameRef}
         tabIndex={-1}
-        className="window glass nx-window active is-maximized fixed inset-x-0 top-0 z-[100]"
+        className="window glass nx-window nx-window--phone active is-maximized fixed inset-x-0 top-0 z-[100]"
         data-testid="mobile-window"
         role="region"
         aria-roledescription="window"
@@ -724,7 +726,6 @@ function Window({
             onClick={() => minimizeWindow(windowId)}
             aria-label="Minimize window"
             title="Minimize"
-            style={{ minHeight: 24 }}
           />
           <button
             type="button"
@@ -732,7 +733,6 @@ function Window({
             onClick={toggleMaximize}
             aria-label={isMaximized ? 'Restore window' : 'Maximize window'}
             title={isMaximized ? 'Restore Down' : 'Maximize'}
-            style={{ minHeight: 24 }}
           />
           <button
             type="button"
@@ -740,7 +740,6 @@ function Window({
             onClick={() => closeWindow(windowId)}
             aria-label="Close window"
             title="Close"
-            style={{ minHeight: 24 }}
           />
         </div>
       </div>
@@ -751,7 +750,12 @@ function Window({
           onSelect={handleSystemMenuSelect}
           onClose={closeMenu}
           anchorRef={menuAnchorRef}
-          style={{ position: 'absolute', left: 4, top: TITLEBAR_HEIGHT + 2, zIndex: 20 }}
+          style={{
+            position: 'absolute',
+            left: 4,
+            top: 'calc(var(--w7-titlebar-h) + 2px)',
+            zIndex: 20,
+          }}
         />
       )}
 

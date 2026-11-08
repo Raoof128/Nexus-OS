@@ -231,6 +231,34 @@ describe('Window', () => {
     expect(mockMoveWindow).toHaveBeenCalledWith('test-win', { x: 110, y: 60 })
   })
 
+  it('clamps a keyboard move to the title bar height read from --w7-titlebar-h', () => {
+    // innerHeight 768 (jsdom), taskbar fallback 40px. The 30px fallback title bar
+    // gives a bottom limit of 698; a live 44px token gives 694.
+    const press = (keys) => {
+      keys.forEach((key) => fireEvent.keyDown(window, { key }))
+      fireEvent.keyDown(window, { key: 'Enter' })
+    }
+    const moveBottom = () => {
+      fireEvent.click(screen.getByLabelText('Window menu'))
+      fireEvent.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Move' }))
+      press(Array(100).fill('ArrowDown'))
+      return mockMoveWindow.mock.calls.at(-1)[1].y
+    }
+    try {
+      document.documentElement.style.removeProperty('--w7-titlebar-h')
+      const { unmount } = render(<Window {...defaultProps} />)
+      expect(moveBottom()).toBe(768 - 40 - 30)
+      unmount()
+
+      vi.clearAllMocks()
+      document.documentElement.style.setProperty('--w7-titlebar-h', '44px')
+      render(<Window {...defaultProps} />)
+      expect(moveBottom()).toBe(768 - 40 - 44)
+    } finally {
+      document.documentElement.style.removeProperty('--w7-titlebar-h')
+    }
+  })
+
   it('cancels a keyboard move on Escape and leaves the window where it was', () => {
     render(<Window {...defaultProps} />)
     fireEvent.click(screen.getByLabelText('Window menu'))

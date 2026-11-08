@@ -6,6 +6,10 @@ vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon-key')
 vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 import App from './App'
 
+// The desktop-level task reminder service polls with React Query; App is rendered
+// here without a QueryClientProvider (main.jsx provides it), so stub the service.
+vi.mock('./os/apps/Tasks/components/TaskReminders', () => ({ default: () => null }))
+
 vi.mock('./hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
     session: null,

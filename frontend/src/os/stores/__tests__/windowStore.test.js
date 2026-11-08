@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { useWindowStore, TASKBAR_HEIGHT, readTaskbarHeight } from '../windowStore'
+import {
+  useWindowStore,
+  TASKBAR_HEIGHT,
+  TITLEBAR_HEIGHT,
+  readTaskbarHeight,
+  readTitlebarHeight,
+} from '../windowStore'
 
 describe('windowStore', () => {
   beforeEach(() => {
@@ -386,5 +392,163 @@ describe('window work area', () => {
     window.dispatchEvent(new Event('pagehide'))
     const saved = JSON.parse(localStorage.getItem('nexus-os:window-layout'))
     expect(saved.windows[id].position).toEqual({ x: 333, y: 150 })
+  })
+})
+
+describe('cascadeWindows keeps the user size', () => {
+  const TB = TASKBAR_HEIGHT
+  const frameOf = (id) => useWindowStore.getState().windows[id]
+
+  beforeEach(() => {
+    useWindowStore.setState({
+      windows: {},
+      zStack: [],
+      activeWindowId: null,
+      attentionIds: [],
+      desktopShown: null,
+      taskbarHeight: TB,
+    })
+    vi.stubGlobal('innerWidth', 1200)
+    vi.stubGlobal('innerHeight', 800)
+    localStorage.clear()
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    document.documentElement.style.removeProperty('--w7-titlebar-h')
+  })
+
+  it('repositions a user-sized window without writing a fitted size back', () => {
+    const { openApp, resizeWindow, cascadeWindows } = useWindowStore.getState()
+    openApp('terminal')
+    openApp('notes')
+    const [a, b] = useWindowStore.getState().zStack
+    resizeWindow(a, { width: 700, height: 500 })
+    resizeWindow(b, { width: 650, height: 450 })
+
+    cascadeWindows()
+
+    expect(frameOf(a).size).toEqual({ width: 700, height: 500 })
+    expect(frameOf(b).size).toEqual({ width: 650, height: 450 })
+    expect(frameOf(a).position).toEqual({ x: 60, y: 40 })
+    expect(frameOf(b).position).toEqual({ x: 90, y: 70 })
+  })
+
+  it('keeps the size through repeated cascades', () => {
+    const { openApp, resizeWindow, cascadeWindows } = useWindowStore.getState()
+    openApp('terminal')
+    const id = useWindowStore.getState().zStack[0]
+    resizeWindow(id, { width: 720, height: 540 })
+
+    cascadeWindows()
+    cascadeWindows()
+
+    expect(frameOf(id).size).toEqual({ width: 720, height: 540 })
+  })
+
+  it('keeps the size of a window larger than the work area and its caption buttons on screen', () => {
+    vi.stubGlobal('innerWidth', 640)
+    vi.stubGlobal('innerHeight', 480)
+    const { openApp, cascadeWindows } = useWindowStore.getState()
+    openApp('terminal')
+    const id = useWindowStore.getState().zStack[0]
+    useWindowStore.setState((s) => ({
+      windows: { ...s.windows, [id]: { ...s.windows[id], size: { width: 900, height: 700 } } },
+    }))
+
+    cascadeWindows()
+
+    const win = frameOf(id)
+    expect(win.size).toEqual({ width: 900, height: 700 })
+    // Right edge on the screen edge (the caption buttons are the rightmost controls)
+    // and the title bar at the top of the work area.
+    expect(win.position.x + win.size.width).toBe(640)
+    expect(win.position.y).toBe(0)
+  })
+
+  it('keeps the top of a frame taller than the work area on screen', () => {
+    const { openApp, cascadeWindows } = useWindowStore.getState()
+    openApp('terminal')
+    const id = useWindowStore.getState().zStack[0]
+    useWindowStore.setState((s) => ({
+      windows: { ...s.windows, [id]: { ...s.windows[id], size: { width: 300, height: 900 } } },
+    }))
+
+    cascadeWindows()
+
+    expect(frameOf(id).size).toEqual({ width: 300, height: 900 })
+    expect(frameOf(id).position.y).toBe(0)
+    expect(frameOf(id).position.x).toBe(60)
+  })
+
+  it('leaves minimised windows alone and does not touch their size', () => {
+    const { openApp, minimizeWindow, resizeWindow, cascadeWindows } = useWindowStore.getState()
+    openApp('terminal')
+    const id = useWindowStore.getState().zStack[0]
+    resizeWindow(id, { width: 700, height: 500 })
+    minimizeWindow(id)
+    const before = frameOf(id)
+
+    cascadeWindows()
+
+    expect(frameOf(id)).toEqual(before)
+  })
+})
+
+describe('title bar height token', () => {
+  beforeEach(() => {
+    useWindowStore.setState({
+      windows: {},
+      zStack: [],
+      activeWindowId: null,
+      attentionIds: [],
+      desktopShown: null,
+      taskbarHeight: TASKBAR_HEIGHT,
+    })
+    vi.stubGlobal('innerWidth', 1200)
+    vi.stubGlobal('innerHeight', 800)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    document.documentElement.style.removeProperty('--w7-titlebar-h')
+    localStorage.clear()
+  })
+
+  it('readTitlebarHeight falls back to 30 when the token is missing (jsdom)', () => {
+    document.documentElement.style.removeProperty('--w7-titlebar-h')
+    expect(readTitlebarHeight()).toBe(30)
+    expect(TITLEBAR_HEIGHT).toBe(30)
+  })
+
+  it('readTitlebarHeight reads the live --w7-titlebar-h value', () => {
+    document.documentElement.style.setProperty('--w7-titlebar-h', '44px')
+    expect(readTitlebarHeight()).toBe(44)
+  })
+
+  it('moveWindow clamps the bottom edge with the live title bar height', () => {
+    const { openApp, moveWindow } = useWindowStore.getState()
+    openApp('terminal')
+    const id = Object.keys(useWindowStore.getState().windows)[0]
+
+    document.documentElement.style.setProperty('--w7-titlebar-h', '44px')
+    moveWindow(id, { x: 100, y: 1000 })
+    expect(useWindowStore.getState().windows[id].position.y).toBe(800 - TASKBAR_HEIGHT - 44)
+
+    document.documentElement.style.removeProperty('--w7-titlebar-h')
+    moveWindow(id, { x: 100, y: 1000 })
+    expect(useWindowStore.getState().windows[id].position.y).toBe(800 - TASKBAR_HEIGHT - 30)
+  })
+
+  it('a touch title bar keeps the whole bar above the taskbar on restore', () => {
+    const { openApp, moveWindow, maximizeWindow, restoreWindow } = useWindowStore.getState()
+    openApp('terminal')
+    const id = Object.keys(useWindowStore.getState().windows)[0]
+    document.documentElement.style.setProperty('--w7-titlebar-h', '44px')
+    moveWindow(id, { x: 100, y: 1000 })
+    maximizeWindow(id)
+    restoreWindow(id)
+    const win = useWindowStore.getState().windows[id]
+    expect(win.position.y + 44).toBeLessThanOrEqual(800 - TASKBAR_HEIGHT)
   })
 })
