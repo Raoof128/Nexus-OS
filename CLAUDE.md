@@ -174,7 +174,7 @@ Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`, `VITE_AION_SUPABA
 
 - **Frontend:** ESLint with react-hooks plugin. No TypeScript. JSX. Tailwind utility classes. Framer Motion for animation. `import { motion as Motion }` convention.
 - **Backend:** Ruff (line-length 88, select E/F/I/B). Double quotes. Python 3.12+. Pydantic v2 models with `ConfigDict(str_strip_whitespace=True)`.
-- **Design:** Windows 7 Aero is mandatory — follow `docs/win7-design-system.md` (7.css controls, light window bodies, Segoe UI, sentence case). No neon, glow, scanlines, uppercase/letter-spaced labels or Orbitron/Oxanium fonts. Never ship Microsoft logos, wallpapers, icons or font files; all artwork is original.
+- **Design:** Windows 7 Aero is mandatory — follow `docs/win7-design-system.md` (7.css controls, light window bodies, Segoe UI, sentence case). No neon, glow, scanlines, uppercase/letter-spaced labels or Orbitron/Oxanium fonts. Never ship Microsoft logos, wallpapers, icons or font files. UI artwork (icons, orb, the default `aero.svg` wallpaper) is original. The optional photo wallpapers `frontend/public/wallpapers/W1`–`W8` are owner-supplied artwork used with the owner's confirmed rights (2026-11-08); don't add other third-party artwork without the owner confirming rights.
 
 ## Testing
 
