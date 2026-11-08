@@ -30,7 +30,6 @@ vi.mock('./hooks/useTasks', () => ({
   useTaskItems: (listId) => ({ data: m.itemsByList[listId] ?? [], isLoading: false }),
   useTaskMutations: () => mutations(),
 }))
-vi.mock('./hooks/useTaskReminders', () => ({ useTaskReminders: () => {} }))
 
 import TasksApp from './TasksApp'
 

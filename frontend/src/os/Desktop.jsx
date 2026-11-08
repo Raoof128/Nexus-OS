@@ -19,6 +19,7 @@ import NotificationToast from './components/NotificationToast'
 import NotificationCenter from './components/NotificationCenter'
 import DesktopIcons from './components/DesktopIcons'
 import ContextMenu from './components/ContextMenu'
+import TaskReminders from './apps/Tasks/components/TaskReminders'
 import {
   hideDesktopIcon,
   isIdleLockEnabled,
@@ -429,6 +430,8 @@ export default function Desktop() {
       {!locked && <CommandPalette />}
       {!locked && <NotificationCenter />}
       {!locked && <InstallPrompt />}
+      {/* Task due reminders for every list; renders nothing */}
+      {!locked && <TaskReminders />}
     </>
   )
 }

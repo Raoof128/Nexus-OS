@@ -2,31 +2,47 @@ import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, Reorder } from 'framer-motion'
 import { ChevronDown, ChevronRight, ListChecks } from 'lucide-react'
 import { useTaskItems, useTaskMutations } from '../hooks/useTasks'
-import { useTaskReminders } from '../hooks/useTaskReminders'
 import { between } from '../lib/position'
 import TaskRow from '../components/TaskRow'
 import TaskEditor from '../components/TaskEditor'
 import QuickAddBar from '../components/QuickAddBar'
 import ConfirmDialog from '../../../../components/ui/ConfirmDialog'
 
-// Drag-reorderable top-level task group. Only the id sequence is local state, and
-// only while dragging. Row data always comes from the current `tasks` prop, so a
-// title, star or due edit shows at once without remounting the row. The `key`
-// the caller sets from the id sequence still re-initialises the order when the
-// server order changes.
+// Drag-reorderable top-level task group. Row data always comes from the current
+// `tasks` prop, so a title, star or due edit shows at once without remounting the row.
+// The local id order only matters while dragging. It is adopted from the server
+// order whenever that order changes while idle, including a reorder made in another
+// tab or on another device with the same ids. A server change that lands mid-drag
+// waits until the drop, so the dragged row does not jump.
 function ReorderableTasks({ tasks, renderRow, onPersist }) {
-  const [orderIds, setOrderIds] = useState(() => tasks.map((t) => t.id))
+  const serverIds = tasks.map((t) => t.id)
+  const serverKey = serverIds.join(',')
+  const [sync, setSync] = useState(() => ({
+    seen: serverKey,
+    orderIds: serverIds,
+    dragging: false,
+  }))
+
+  // Adopt the server order during render (React's "adjust state when a prop
+  // changes" pattern), so the first paint already shows the new order.
+  let current = sync
+  if (sync.seen !== serverKey && !sync.dragging) {
+    current = { seen: serverKey, orderIds: serverIds, dragging: false }
+    setSync(current)
+  }
 
   const byId = new Map(tasks.map((t) => [t.id, t]))
-  const known = new Set(orderIds)
+  const known = new Set(current.orderIds)
   const order = [
-    ...orderIds.filter((id) => byId.has(id)).map((id) => byId.get(id)),
+    ...current.orderIds.filter((id) => byId.has(id)).map((id) => byId.get(id)),
     ...tasks.filter((t) => !known.has(t.id)),
   ]
 
-  const handleReorder = (next) => setOrderIds(next.map((t) => t.id))
+  const handleDragStart = () => setSync((s) => ({ ...s, dragging: true }))
+  const handleReorder = (next) => setSync((s) => ({ ...s, orderIds: next.map((t) => t.id) }))
 
   const handleDragEnd = (task) => {
+    setSync((s) => ({ ...s, dragging: false }))
     const idx = order.findIndex((t) => t.id === task.id)
     if (idx === -1) return
     const prev = order[idx - 1]?.position ?? null
@@ -37,7 +53,12 @@ function ReorderableTasks({ tasks, renderRow, onPersist }) {
   return (
     <Reorder.Group axis="y" values={order} onReorder={handleReorder} as="ul" role="list">
       {order.map((task) => (
-        <Reorder.Item key={task.id} value={task} onDragEnd={() => handleDragEnd(task)}>
+        <Reorder.Item
+          key={task.id}
+          value={task}
+          onDragStart={handleDragStart}
+          onDragEnd={() => handleDragEnd(task)}
+        >
           {renderRow(task, 0)}
         </Reorder.Item>
       ))}
@@ -95,8 +116,6 @@ export default function TaskListView({
   const saveError = [createTask, updateTask, moveTask, deleteTask, clearCompleted].find(
     (mutation) => mutation?.isError,
   )?.error?.message
-
-  useTaskReminders(items)
 
   const visible = useMemo(
     () => (starredActive ? items.filter((t) => t.starred) : items),
@@ -320,7 +339,6 @@ export default function TaskListView({
             }}
           >
             <ReorderableTasks
-              key={parents.map((p) => p.id).join(',')}
               tasks={parents}
               renderRow={(t) => {
                 const children = childrenByParent[t.id] || []

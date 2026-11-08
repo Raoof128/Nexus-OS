@@ -4,10 +4,18 @@ import { apiFetch } from '../../../../lib/apiClient'
 const listsKey = ['tasks', 'lists']
 const itemsKey = (listId, showCompleted) => ['tasks', 'items', listId, showCompleted]
 
+// Shared with the desktop-level reminder service (hooks/useTaskReminders.js), which
+// observes the same cache entries so reminders never fetch a list twice.
+export const taskListsKey = listsKey
+export const taskItemsKey = itemsKey
+export const fetchTaskLists = () => apiFetch('/api/tasks/lists')
+export const fetchTaskItems = (listId, showCompleted = true) =>
+  apiFetch(`/api/tasks/lists/${listId}/items?showCompleted=${showCompleted}`)
+
 export function useTaskLists() {
   return useQuery({
     queryKey: listsKey,
-    queryFn: () => apiFetch('/api/tasks/lists'),
+    queryFn: fetchTaskLists,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   })
@@ -17,7 +25,7 @@ export function useTaskItems(listId, showCompleted = true) {
   return useQuery({
     queryKey: itemsKey(listId, showCompleted),
     enabled: Boolean(listId),
-    queryFn: () => apiFetch(`/api/tasks/lists/${listId}/items?showCompleted=${showCompleted}`),
+    queryFn: () => fetchTaskItems(listId, showCompleted),
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   })

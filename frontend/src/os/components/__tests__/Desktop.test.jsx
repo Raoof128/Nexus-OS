@@ -17,6 +17,10 @@ vi.mock('../../../lib/privateState', () => ({
   claimLocalState: (...args) => mockClaimLocalState(...args),
 }))
 
+// The desktop-level task reminder service polls with React Query; these tests
+// render Desktop without a QueryClientProvider, so stub the null-rendering service.
+vi.mock('../../apps/Tasks/components/TaskReminders', () => ({ default: () => null }))
+
 vi.mock('../../stores/windowStore', () => {
   const useWindowStore = (selector) => {
     const state = {

@@ -28,7 +28,6 @@ vi.mock('../hooks/useTasks', () => ({
     clearCompleted: { mutate: vi.fn() },
   }),
 }))
-vi.mock('../hooks/useTaskReminders', () => ({ useTaskReminders: () => {} }))
 vi.mock('../components/QuickAddBar', () => ({ default: () => null }))
 
 import TaskListView from './TaskListView'
@@ -186,6 +185,30 @@ describe('TaskListView', () => {
     expect(
       [...container.querySelectorAll('[data-task-id]')].map((li) => li.dataset.taskId),
     ).toEqual(['p1', 'p2'])
+  })
+
+  it('adopts a reorder made in another tab or device when the ids are unchanged', () => {
+    m.items = [
+      { ...base, id: 'p1', title: 'First', status: 'needsAction', parent_id: null, position: 1 },
+      { ...base, id: 'p2', title: 'Second', status: 'needsAction', parent_id: null, position: 2 },
+      { ...base, id: 'p3', title: 'Third', status: 'needsAction', parent_id: null, position: 3 },
+    ]
+    const { container, rerender } = render(<Harness />)
+    const order = () =>
+      [...container.querySelectorAll('[data-task-id]')].map((li) => li.dataset.taskId)
+    expect(order()).toEqual(['p1', 'p2', 'p3'])
+    const firstRow = container.querySelector('[data-task-id="p1"]')
+
+    // Same three ids, server now has p3, p1, p2.
+    m.items = [
+      { ...base, id: 'p1', title: 'First', status: 'needsAction', parent_id: null, position: 2 },
+      { ...base, id: 'p2', title: 'Second', status: 'needsAction', parent_id: null, position: 3 },
+      { ...base, id: 'p3', title: 'Third', status: 'needsAction', parent_id: null, position: 1 },
+    ]
+    rerender(<Harness />)
+    expect(order()).toEqual(['p3', 'p1', 'p2'])
+    // The row moved; it was not torn down and rebuilt.
+    expect(container.querySelector('[data-task-id="p1"]')).toBe(firstRow)
   })
 
   it('shows a load error with Try again instead of the empty copy', () => {
