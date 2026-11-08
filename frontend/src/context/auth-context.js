@@ -11,3 +11,7 @@ export function useAuthContext() {
 
   return context
 }
+
+// A blip at boot is retried quietly (after these delays) before the user is
+// told the server is unreachable. Mutable so tests can shorten it.
+export const BOOT_RETRY_DELAYS_MS = [1000, 3000]

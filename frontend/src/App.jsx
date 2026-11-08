@@ -26,10 +26,30 @@ function LoadingScreen() {
   )
 }
 
+// Shown when the server could not be reached at boot after quiet retries. Not a
+// sign-out: the session cookies are untouched, so Try again can restore it.
+function UnreachableScreen({ onRetry }) {
+  return (
+    <div className="nx-wallpaper-aero relative flex min-h-screen items-center justify-center px-4">
+      <div
+        role="alert"
+        className={`flex max-w-sm flex-col items-center gap-3 text-center ${scrimClass}`}
+      >
+        <p className={bodyTextClass}>
+          Nexus OS can&apos;t reach the server right now. Check your connection, then try again.
+        </p>
+        <button type="button" className="w7-btn default" onClick={onRetry}>
+          Try again
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Main app ─────────────────────────────────────────────────────────────────
 
 function App() {
-  const { session, loading: authLoading } = useAuth()
+  const { session, loading: authLoading, unreachable, retrySession } = useAuth()
   const [recoveryTokens, dismissTokens] = useRecoveryTokens()
 
   if (recoveryTokens) {
@@ -45,6 +65,10 @@ function App() {
 
   if (authLoading) {
     return <LoadingScreen />
+  }
+
+  if (!session && unreachable) {
+    return <UnreachableScreen onRetry={retrySession} />
   }
 
   if (!session) {

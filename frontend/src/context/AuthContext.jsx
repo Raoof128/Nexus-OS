@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react'
 import { authFetch, refreshSession, setAuthExpiredCallback } from '../lib/apiClient'
 import { queryClient } from '../lib/queryClient'
-import { AuthContext } from './auth-context'
+import { AuthContext, BOOT_RETRY_DELAYS_MS } from './auth-context'
 
 // Backend detail for a rejected login (auth_controller.py). Matched exactly so
 // that only a credential rejection, not a network failure, reads as "wrong password".
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid credentials'
 
 // Only the server rejecting the session (401/403) means it is expired. A network
-// error or 5xx at boot is not a sign-out: the cookies are untouched, so the
-// next load can pick the session up again.
+// error, 5xx or 429 at boot is not a sign-out: the cookies are untouched. Boot
+// retries, then reports the server as unreachable instead of showing sign-in.
 function isSessionRejection(error) {
   return error?.status === 401 || error?.status === 403
 }
 
+// Resolves to { session } (null when signed out) or { unreachable: true } when
+// the server could not answer for reasons other than rejecting the session.
 async function loadCurrentSession() {
   // /auth/session returns:
   //   { user, expires_at, ... }  → valid session
@@ -23,22 +25,34 @@ async function loadCurrentSession() {
   try {
     sessionResult = await authFetch('/auth/session')
   } catch (sessionError) {
-    if (!isSessionRejection(sessionError)) return null
+    if (!isSessionRejection(sessionError)) return { unreachable: true }
     // Access cookie IS present but expired — attempt silent refresh
     try {
       const refreshResult = await refreshSession()
       // Refresh also returned no-cookie sentinel → nothing to do
-      if (!refreshResult?.user) return null
-      return await authFetch('/auth/session')
-    } catch {
-      return null
+      if (!refreshResult?.user) return { session: null }
+      return { session: await authFetch('/auth/session') }
+    } catch (refreshError) {
+      return isSessionRejection(refreshError) ? { session: null } : { unreachable: true }
     }
   }
 
   // 200 with authenticated:false means the browser has no cookies at all.
   // Skip the refresh round-trip entirely — there is nothing to refresh.
-  if (!sessionResult?.user) return null
-  return sessionResult
+  if (!sessionResult?.user) return { session: null }
+  return { session: sessionResult }
+}
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+async function loadSessionWithRetry(isActive) {
+  let result = await loadCurrentSession()
+  for (const delay of BOOT_RETRY_DELAYS_MS) {
+    if (!result.unreachable || !isActive()) break
+    await wait(delay)
+    result = await loadCurrentSession()
+  }
+  return result
 }
 
 export function AuthProvider({ children }) {
@@ -54,28 +68,38 @@ export function AuthProvider({ children }) {
     return () => setAuthExpiredCallback(null)
   }, [])
 
+  // True when the server could not be reached at boot (not a sign-out: the
+  // cookies are untouched). App shows a "can't reach the server" message.
+  const [unreachable, setUnreachable] = useState(false)
+  const [bootAttempt, setBootAttempt] = useState(0)
+
   useEffect(() => {
     let active = true
 
-    loadCurrentSession()
-      .then((currentSession) => {
-        if (active) {
-          if (!currentSession) {
-            queryClient.clear()
-          }
-          setSession(currentSession)
+    loadSessionWithRetry(() => active)
+      .then((result) => {
+        if (!active) return
+        if (result.unreachable) {
+          setUnreachable(true)
+          return
         }
+        setUnreachable(false)
+        if (!result.session) queryClient.clear()
+        setSession(result.session)
       })
       .finally(() => {
-        if (active) {
-          setLoading(false)
-        }
+        if (active) setLoading(false)
       })
 
     return () => {
       active = false
     }
-  }, [])
+  }, [bootAttempt])
+
+  const retrySession = () => {
+    setLoading(true)
+    setBootAttempt((n) => n + 1)
+  }
 
   const signIn = async (email, password) => {
     try {
@@ -126,6 +150,8 @@ export function AuthProvider({ children }) {
   const value = {
     session,
     loading,
+    unreachable,
+    retrySession,
     signIn,
     signOut,
     verifyPassword,

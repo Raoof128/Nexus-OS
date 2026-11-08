@@ -300,6 +300,20 @@ describe('window work area', () => {
     expect(win.position.y + win.size.height).toBeLessThanOrEqual(600 - TB)
   })
 
+  it('restores a window exactly where the user left it, even partly under the taskbar', () => {
+    // Review F3: restore used to pull a deliberately low window fully on screen.
+    vi.stubGlobal('innerWidth', 1440)
+    vi.stubGlobal('innerHeight', 900)
+    const { openApp, moveWindow, maximizeWindow, restoreWindow } = useWindowStore.getState()
+    openApp('terminal')
+    const id = onlyId()
+    moveWindow(id, { x: 200, y: 600 })
+    const before = frameOf(id).position
+    maximizeWindow(id)
+    restoreWindow(id)
+    expect(frameOf(id).position).toEqual(before)
+  })
+
   it('stops a bottom-edge resize at the taskbar', () => {
     const { openApp, updateWindowRect } = useWindowStore.getState()
     openApp('terminal')

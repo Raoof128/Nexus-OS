@@ -89,6 +89,13 @@ async function request(path, { method = 'GET', body, headers = {} } = {}, retry 
       return request(path, { method, body, headers }, false)
     }
 
+    // A 401 on the retry right after a successful refresh means even the new
+    // session is rejected. Expire instead of leaving the UI signed in with a
+    // session that fails (and refreshes) on every request.
+    if (response.status === 401 && !retry && !path.startsWith('/auth/')) {
+      throw expireSession()
+    }
+
     if (!response.ok) {
       throw await httpError(response)
     }

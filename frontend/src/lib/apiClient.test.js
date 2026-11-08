@@ -273,6 +273,24 @@ describe('session expiry', () => {
     expect(onExpired).not.toHaveBeenCalled()
   })
 
+  it('expires when the retried request is still 401 after a successful refresh', async () => {
+    // Review F8: the UI stayed signed in, refreshing on every request.
+    const { apiFetch, setAuthExpiredCallback } = await freshModule()
+    const onExpired = vi.fn()
+    setAuthExpiredCallback(onExpired)
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse(401, { detail: 'Unauthorized' }))
+        .mockResolvedValueOnce(jsonResponse(200, { user: { id: 'u1' } }))
+        .mockResolvedValueOnce(jsonResponse(401, { detail: 'Unauthorized' })),
+    )
+
+    await expect(apiFetch('/media')).rejects.toThrow('session has expired')
+    expect(onExpired).toHaveBeenCalledTimes(1)
+  })
+
   it('expires the session when /auth/refresh rejects it with 403', async () => {
     const { apiFetch, setAuthExpiredCallback } = await freshModule()
     const onExpired = vi.fn()

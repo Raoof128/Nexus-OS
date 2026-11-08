@@ -16,7 +16,8 @@ export function useAionChat(session) {
       if (!text.trim()) return
 
       if (abortRef.current) abortRef.current.abort()
-      abortRef.current = new AbortController()
+      const controller = new AbortController()
+      abortRef.current = controller
 
       const uid = Date.now()
       const userMsg = { id: `u-${uid}`, role: 'user', content: text, verses: [] }
@@ -40,7 +41,7 @@ export function useAionChat(session) {
             message: text.trim(),
             conversation_id: convId ?? conversationId,
           }),
-          signal: abortRef.current.signal,
+          signal: controller.signal,
         })
 
         if (!response.ok) {
@@ -100,7 +101,9 @@ export function useAionChat(session) {
           setError(err.message)
         }
       } finally {
-        setIsStreaming(false)
+        // An aborted earlier send finishes after a newer one has started; only
+        // the current send may clear the streaming flag.
+        if (abortRef.current === controller) setIsStreaming(false)
       }
     },
     [session, conversationId],

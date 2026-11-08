@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { clearLegacyRealtimeAuthStorage } from './legacyAuthStorage'
 
-// This module pulls in the whole Supabase client. It is only reached from lazy
-// paths: the SystemMonitor chunk (sync connection readout) and the recovery
-// exchange (dynamic import in ResetPasswordPage). It must not be statically
-// imported by the eager shell, or Supabase lands in the main bundle again.
+// This module pulls in the whole Supabase client. Its only importer is the
+// recovery exchange (dynamic import in ResetPasswordPage); the app opens no
+// Realtime channels. It must not be statically imported by the eager shell,
+// or Supabase lands in the main bundle again.
 
 export { clearLegacyRealtimeAuthStorage }
 

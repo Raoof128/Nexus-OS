@@ -270,9 +270,18 @@ export const useWindowStore = create((set, get) => ({
       const win = state.windows[windowId]
       if (!win) return state
 
-      // The saved rect may come from a bigger screen: fit it to the current work area.
+      // Windows 7 puts a restored window back exactly where it was, even partly
+      // below the taskbar. Only a saved rect that is no longer valid on this
+      // screen (it came from a bigger display) is refitted to the work area.
       const rect = win.restoredRect ?? { ...win.position, ...win.size }
-      const fitted = fitRect(rect, win.minSize, state.taskbarHeight)
+      const size = { width: rect.width, height: rect.height }
+      const clamped = clampPosition({ x: rect.x, y: rect.y }, size, state.taskbarHeight)
+      const stillValid =
+        clamped.x === rect.x &&
+        clamped.y === rect.y &&
+        rect.width <= window.innerWidth &&
+        rect.height <= window.innerHeight - state.taskbarHeight
+      const fitted = stillValid ? rect : fitRect(rect, win.minSize, state.taskbarHeight)
       return {
         windows: {
           ...state.windows,

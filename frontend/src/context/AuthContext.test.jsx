@@ -13,6 +13,7 @@ const clear = vi.fn()
 vi.mock('../lib/queryClient', () => ({ queryClient: { clear: () => clear() } }))
 
 import { AuthProvider } from './AuthContext'
+import { BOOT_RETRY_DELAYS_MS } from './auth-context'
 import { useAuth } from '../hooks/useAuth'
 import { setAuthExpiredCallback } from '../lib/apiClient'
 
@@ -22,6 +23,13 @@ function Probe() {
   useEffect(() => {
     api = auth
   })
+  if (auth.unreachable && !auth.session) {
+    return (
+      <button type="button" onClick={auth.retrySession}>
+        unreachable
+      </button>
+    )
+  }
   return <span>{auth.session ? 'signed-in' : 'signed-out'}</span>
 }
 
@@ -35,7 +43,9 @@ async function mountSignedIn() {
       <Probe />
     </AuthProvider>,
   )
-  await screen.findByText('signed-in')
+  // Generous timeout: boot is a short async chain and the full suite runs
+  // under heavy CPU load (the default 1s flaked once).
+  await screen.findByText('signed-in', {}, { timeout: 5000 })
 }
 
 describe('AuthContext.verifyPassword', () => {
@@ -110,17 +120,51 @@ describe('AuthContext session expiry and sign-out', () => {
     expect(clear).toHaveBeenCalledTimes(1)
   })
 
-  it('does not treat a transient /auth/session failure at boot as a session rejection', async () => {
-    authFetch.mockRejectedValueOnce(
-      Object.assign(new Error('Service unavailable'), { status: 503 }),
-    )
+  it('retries a boot-time blip quietly and signs in when the server answers', async () => {
+    BOOT_RETRY_DELAYS_MS.splice(0, BOOT_RETRY_DELAYS_MS.length, 0, 0)
+    authFetch
+      .mockRejectedValueOnce(Object.assign(new Error('Service unavailable'), { status: 503 }))
+      .mockResolvedValueOnce({ user: { email: 'runner@nexus.net' } })
     render(
       <AuthProvider>
         <Probe />
       </AuthProvider>,
     )
-    await screen.findByText('signed-out')
+    await screen.findByText('signed-in')
     expect(refreshSession).not.toHaveBeenCalled()
+  })
+
+  it('reports the server as unreachable at boot instead of signing out, and Try again recovers', async () => {
+    // Review M4: a 503 at boot used to land on the sign-in screen.
+    BOOT_RETRY_DELAYS_MS.splice(0, BOOT_RETRY_DELAYS_MS.length, 0, 0)
+    const down = () => Object.assign(new Error('Service unavailable'), { status: 503 })
+    authFetch
+      .mockRejectedValueOnce(down())
+      .mockRejectedValueOnce(down())
+      .mockRejectedValueOnce(down())
+      .mockResolvedValueOnce({ user: { email: 'runner@nexus.net' } })
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
+    const retry = await screen.findByText('unreachable')
+    expect(screen.queryByText('signed-out')).toBeNull()
+    expect(refreshSession).not.toHaveBeenCalled()
+    act(() => retry.click())
+    await screen.findByText('signed-in')
+  })
+
+  it('treats a transient refresh failure at boot as unreachable, not as expiry', async () => {
+    BOOT_RETRY_DELAYS_MS.splice(0, BOOT_RETRY_DELAYS_MS.length)
+    authFetch.mockRejectedValueOnce(Object.assign(new Error('Unauthorized'), { status: 401 }))
+    refreshSession.mockRejectedValueOnce(Object.assign(new Error('Busy'), { status: 429 }))
+    render(
+      <AuthProvider>
+        <Probe />
+      </AuthProvider>,
+    )
+    await screen.findByText('unreachable')
   })
 
   it('refreshes an expired access cookie at boot and signs in with the new session', async () => {
