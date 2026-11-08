@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- Dev-only harness for e2e/parity.spec.js: renders 7.css reference markup
+     inside the full Nexus CSS stack (Tailwind Preflight + win7-reset + nexus
+     adapter). Not part of the production build (Vite only bundles index.html). -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Win7 parity harness</title>
+    <!-- The reference page's own documentation stylesheet (prose, code,
+         "Show code" toggles). Loaded on both sides so only 7.css differs. -->
+    <link rel="stylesheet" href="https://khang-nd.github.io/7.css/docs.css" />
+    <style>
+      /* Tailwind Preflight zeroes browser defaults for prose elements, which
+         7.css never sets. Restore them for the documentation prose only, in
+         the base layer so every 7.css rule (win7 layer) still wins. */
+      @layer base {
+        .example :is(h1, h2, h3, h4, h5, h6, p, blockquote, pre, ul, ol, dl, figure, hr) {
+          margin: revert;
+          padding: revert;
+          font-size: revert;
+          font-weight: revert;
+          list-style: revert;
+        }
+        .example :is(code, kbd, samp, pre) {
+          font-family: revert;
+          font-size: revert;
+        }
+        .example img {
+          display: revert;
+        }
+      }
+    </style>
+  </head>
+  <body class="win7" style="margin: 0; background: #f0f0f0">
+    <div id="stage"></div>
+    <script type="module">
+      import './src/index.css'
+      window.__parityReady = true
+    </script>
+  </body>
+</html>

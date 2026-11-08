@@ -136,10 +136,14 @@
      has hundreds of icon, list-row and tile buttons that carry their own
      classes, so a *classed* button is reset to bare and keeps its Tailwind
      styling. Get the Win7 push button by using a bare <button> or adding
-     `.w7-btn`. 7.css's own composite controls are excluded from the reset. */
+     `.w7-btn`. 7.css's own composite controls and its state classes
+     (.default / .focused / .active) are excluded from the reset. */
   .win7
     :is(button, [role='button'])[class]:not(
       .w7-btn,
+      .default,
+      .focused,
+      .active,
       .title-bar-controls *,
       [role='tab'],
       .combobox *,
@@ -162,6 +166,9 @@
   .win7
     :is(button, [role='button'])[class]:not(
       .w7-btn,
+      .default,
+      .focused,
+      .active,
       .title-bar-controls *,
       [role='tab'],
       .combobox *,
@@ -171,6 +178,9 @@
   .win7
     :is(button, [role='button'])[class]:not(
       .w7-btn,
+      .default,
+      .focused,
+      .active,
       .title-bar-controls *,
       [role='tab'],
       .combobox *,
@@ -189,15 +199,45 @@
      and paints every [role=option][aria-selected] — including "false" — solid
      blue. A *classed* listbox is a custom Nexus list: drop the frame and the
      blanket highlight so `.w7-item` (or Tailwind) decides selection. */
-  .win7 [role='listbox'][class] {
+  .win7 [role='listbox'][class]:not(.has-shadow, .has-hover) {
     background: transparent;
     border: 0;
     overflow-y: visible;
     font: inherit;
   }
-  .win7 [role='listbox'][class] [role='option'][class]:is(:focus, [aria-selected]) {
+  .win7
+    [role='listbox'][class]:not(.has-shadow, .has-hover)
+    [role='option'][class]:is(:focus, [aria-selected]) {
     background-color: transparent;
     color: inherit;
+  }
+
+  /* Tailwind Preflight makes every element border-box; 7.css sizes these as
+     content-box (a `width: 300px` .window is 302px wide with its borders).
+     Restore it so stand-alone 7.css components measure exactly like the
+     reference. Nexus's own shell window (.nx-window) stays border-box because
+     the drag/snap maths sizes it that way. */
+  .win7
+    :is(
+      .window:not(.nx-window),
+      ul[role='menu'],
+      ul[role='menubar'],
+      [role='tooltip'],
+      .status-bar,
+      .status-bar-field,
+      [role='progressbar'],
+      [role='listbox']:is(:not([class]), .has-shadow, .has-hover)
+    ) {
+    box-sizing: content-box;
+  }
+  /* Preflight makes form controls inherit text colour; Win7 control text is
+     black (7.css assumes the UA default). Tailwind text-* still overrides. */
+  .win7 :is(input, textarea) {
+    color: #000;
+  }
+  /* Preflight zeroes the 2px UA margin 7.css's slider layout relies on. */
+  .win7 input[type='range'] {
+    margin: 2px;
   }
 
   /* 7.css hides the real checkbox/radio and draws one on `+ label`. Inputs
@@ -222,15 +262,7 @@
   }
 
   /* Inputs 7.css does not cover get the same sunken Win7 field. */
-  .win7
-    input:is(
-      [type='search']:not(.searchbox *),
-      [type='date'],
-      [type='time'],
-      [type='datetime-local'],
-      [type='tel']
-    ),
-  .win7 select[multiple] {
+  .win7 input:is([type='date'], [type='time'], [type='datetime-local'], [type='tel']) {
     background-color: #fff;
     border: 1px solid;
     border-color: #abadb3 #dbdfe6 #e3e9ef #e2e3ea;
@@ -243,10 +275,6 @@
   .win7 input[type='tel']:focus {
     border-color: #3d7bad #a4c9e3 #b7d9ed #b5cfe7;
     outline: none;
-  }
-  .win7 :is(input, textarea)::placeholder {
-    color: #6d6d6d;
-    font-style: italic;
   }
 
   /* ── Push buttons ─────────────────────────────────────────────────────── */
