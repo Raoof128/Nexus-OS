@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { nanoid } from 'nanoid'
 import { APP_REGISTRY } from './appRegistry'
 
-export const TASKBAR_HEIGHT = 48
+export const TASKBAR_HEIGHT = 40 // keep in sync with --w7-taskbar-h (index.css)
 
 const STORAGE_KEY = 'nexus-os:window-layout'
 const SCHEMA_VERSION = 1
@@ -30,7 +30,7 @@ function clampPosition(pos, size) {
   // occupy roughly the rightmost 80px, so 80px is the minimum useful threshold.
   // Top is clamped to 0 (titlebar must not go above the viewport).
   // Bottom is clamped so the full titlebar height stays above the taskbar.
-  const TITLEBAR_H = 36
+  const TITLEBAR_H = 30
   const MIN_ACCESSIBLE = 80
   return {
     x: Math.max(

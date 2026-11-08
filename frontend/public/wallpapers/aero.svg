@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1200" preserveAspectRatio="xMidYMid slice">
+  <!-- Nexus OS "Aero" wallpaper. Original artwork for this project (not derived
+       from any Microsoft asset): a deep-blue field with soft light ribbons. -->
+  <defs>
+    <radialGradient id="sky" cx="58%" cy="46%" r="78%">
+      <stop offset="0" stop-color="#5fb4f0"/>
+      <stop offset="0.28" stop-color="#2a7ccc"/>
+      <stop offset="0.62" stop-color="#11498f"/>
+      <stop offset="1" stop-color="#061f45"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="60%" cy="44%" r="32%">
+      <stop offset="0" stop-color="#d9f3ff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#d9f3ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ribbonA" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.45" stop-color="#e8fbff" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#9be3ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ribbonB" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7fd0ff" stop-opacity="0"/>
+      <stop offset="0.55" stop-color="#b8ecff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="ribbonC" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#a6f0d8" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#c9fff0" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#a6f0d8" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <filter id="softer" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="38"/>
+    </filter>
+    <filter id="crisp" x="-10%" y="-50%" width="120%" height="200%">
+      <feGaussianBlur stdDeviation="2.5"/>
+    </filter>
+  </defs>
+  <rect width="1920" height="1200" fill="url(#sky)"/>
+  <ellipse cx="1150" cy="530" rx="760" ry="420" fill="url(#glow)"/>
+  <g fill="none" stroke-linecap="round">
+    <path d="M-120 860 C 380 640, 780 980, 1240 620 S 1880 300, 2080 380" stroke="url(#ribbonB)" stroke-width="150" filter="url(#softer)"/>
+    <path d="M-80 900 C 420 700, 820 1010, 1260 660 S 1900 360, 2060 420" stroke="url(#ribbonA)" stroke-width="46" filter="url(#soft)"/>
+    <path d="M-60 920 C 440 720, 840 1020, 1270 680 S 1910 380, 2040 440" stroke="url(#ribbonA)" stroke-width="5" filter="url(#crisp)"/>
+    <path d="M-100 1010 C 360 860, 860 1120, 1320 790 S 1860 520, 2060 560" stroke="url(#ribbonC)" stroke-width="70" filter="url(#soft)"/>
+    <path d="M-40 1040 C 400 890, 880 1140, 1330 815 S 1870 545, 2040 585" stroke="url(#ribbonC)" stroke-width="3" filter="url(#crisp)"/>
+    <path d="M200 260 C 620 420, 980 160, 1420 330 S 1880 520, 2060 470" stroke="url(#ribbonB)" stroke-width="90" filter="url(#softer)" opacity="0.7"/>
+    <path d="M240 280 C 640 430, 1000 180, 1430 345 S 1890 530, 2040 485" stroke="url(#ribbonB)" stroke-width="3" filter="url(#crisp)" opacity="0.8"/>
+  </g>
+  <rect width="1920" height="1200" fill="#000" opacity="0.06"/>
+</svg>

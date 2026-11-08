@@ -2,19 +2,37 @@ import { create } from 'zustand'
 
 const STORAGE_KEY = 'nexus-os:settings'
 
+/**
+ * Window colours (Personalise → Window Color in Windows 7).
+ * `frame` is written to `--w7-w-bg` on <body>, which 7.css uses for every
+ * window frame and title bar; the taskbar and Start menu mix it into their
+ * glass. Content colours (links, selection) stay Win7 blue regardless.
+ * The store keeps the historical `accentColor` name so persisted settings and
+ * callers keep working.
+ */
 export const ACCENT_PRESETS = {
-  yellow: { primary: '56 100% 48%', neon: '56 100% 48%', label: 'Neon Yellow' },
-  cyan: { primary: '180 100% 50%', neon: '180 100% 50%', label: 'Cyber Cyan' },
-  magenta: { primary: '300 100% 50%', neon: '300 100% 50%', label: 'Hot Magenta' },
-  green: { primary: '120 100% 40%', neon: '120 100% 40%', label: 'Matrix Green' },
-  orange: { primary: '30 100% 50%', neon: '30 100% 50%', label: 'Blaze Orange' },
+  sky: { frame: '#4580c4', label: 'Sky' },
+  twilight: { frame: '#1f4f8f', label: 'Twilight' },
+  sea: { frame: '#2f8f8a', label: 'Sea' },
+  leaf: { frame: '#4c8f3a', label: 'Leaf' },
+  lime: { frame: '#8bb236', label: 'Lime' },
+  sun: { frame: '#d9a521', label: 'Sun' },
+  pumpkin: { frame: '#d9701e', label: 'Pumpkin' },
+  blush: { frame: '#c74c6e', label: 'Blush' },
+  violet: { frame: '#7a4bb0', label: 'Violet' },
+  slate: { frame: '#5e6b7a', label: 'Slate' },
+  frost: { frame: '#9fb5c9', label: 'Frost' },
 }
 
+export const DEFAULT_ACCENT = 'sky'
+export const DEFAULT_WALLPAPER = 'aero'
+
 // IDs that were removed so stale localStorage values fall back gracefully.
-const _REMOVED_WALLPAPER_IDS = new Set(['grid', 'dots', 'solid', 'stars'])
+// `mesh` was the cyberpunk CSS pattern from before the Windows 7 redesign.
+const _REMOVED_WALLPAPER_IDS = new Set(['grid', 'dots', 'solid', 'stars', 'mesh'])
 
 export const WALLPAPER_PRESETS = {
-  mesh: { id: 'mesh', label: 'Neural Mesh' },
+  aero: { id: 'aero', label: 'Aero', image: '/wallpapers/aero.svg' },
   w1: { id: 'w1', label: 'Wallpaper 1', image: '/wallpapers/W1.png' },
   w2: { id: 'w2', label: 'Wallpaper 2', image: '/wallpapers/W2.jpg' },
   w3: { id: 'w3', label: 'Wallpaper 3', image: '/wallpapers/W3.jpg' },
@@ -25,6 +43,14 @@ export const WALLPAPER_PRESETS = {
   w8: { id: 'w8', label: 'Wallpaper 8', image: '/wallpapers/W8.jpg' },
 }
 
+function normaliseAccent(key) {
+  return key && ACCENT_PRESETS[key] ? key : DEFAULT_ACCENT
+}
+
+function normaliseWallpaper(key) {
+  return key && !_REMOVED_WALLPAPER_IDS.has(key) && WALLPAPER_PRESETS[key] ? key : DEFAULT_WALLPAPER
+}
+
 function saveToStorage(state) {
   try {
     localStorage.setItem(
@@ -33,8 +59,6 @@ function saveToStorage(state) {
         accentColor: state.accentColor,
         wallpaper: state.wallpaper,
         uiScale: state.uiScale,
-        scanlinesEnabled: state.scanlinesEnabled,
-        orbsEnabled: state.orbsEnabled,
       }),
     )
   } catch {
@@ -44,12 +68,8 @@ function saveToStorage(state) {
 
 function applyAccentToDOM(colorKey) {
   const preset = ACCENT_PRESETS[colorKey]
-  if (!preset) return
-  const root = document.documentElement
-  root.style.setProperty('--primary', preset.primary)
-  root.style.setProperty('--neon-yellow', preset.neon)
-  root.style.setProperty('--accent', preset.primary)
-  root.style.setProperty('--ring', preset.primary)
+  if (!preset || typeof document === 'undefined' || !document.body) return
+  document.body.style.setProperty('--w7-w-bg', preset.frame)
 }
 
 function applyUiScaleToDOM(scale) {
@@ -57,12 +77,8 @@ function applyUiScaleToDOM(scale) {
 }
 
 // ── Synchronous boot hydration ────────────────────────────────────────────────
-// Read persisted settings from localStorage NOW, at module evaluation time.
-// ESM scripts run after DOMContentLoaded so document.documentElement is ready.
-// This eliminates the flash of default wallpaper / accent on every page load
-// (the previous approach called hydrateSettings() inside a useEffect, which
-// fires AFTER the first paint and caused a visible switch from 'grid' to the
-// saved wallpaper on every reload).
+// Read persisted settings from localStorage NOW, at module evaluation time, so
+// the saved window colour and wallpaper are applied before the first paint.
 function readPersistedSettings() {
   if (typeof localStorage === 'undefined') return {}
   try {
@@ -75,48 +91,36 @@ function readPersistedSettings() {
 }
 
 const _boot = readPersistedSettings()
+const _bootAccent = normaliseAccent(_boot.accentColor)
 
-// Apply saved accent color immediately so CSS custom properties are correct
-// before React renders any component.
-if (_boot.accentColor) {
-  applyAccentToDOM(_boot.accentColor)
-}
-
-// Apply saved UI scale immediately to avoid layout shift on load.
+applyAccentToDOM(_bootAccent)
 applyUiScaleToDOM(_boot.uiScale ?? 'default')
-
-// Guard stale wallpaper values — if the user had a removed preset ('grid',
-// 'dots', 'solid', 'stars') saved in localStorage, fall back to 'mesh'.
-const _savedWallpaper =
-  _boot.wallpaper && !_REMOVED_WALLPAPER_IDS.has(_boot.wallpaper) ? _boot.wallpaper : 'mesh'
 
 // ── Store ─────────────────────────────────────────────────────────────────────
 export const useSettingsStore = create((set, get) => ({
-  accentColor: _boot.accentColor ?? 'yellow',
-  wallpaper: _savedWallpaper,
+  accentColor: _bootAccent,
+  wallpaper: normaliseWallpaper(_boot.wallpaper),
   uiScale: _boot.uiScale ?? 'default',
-  scanlinesEnabled: _boot.scanlinesEnabled ?? true,
-  orbsEnabled: _boot.orbsEnabled ?? true,
 
   setWallpaper: (wallpaper) => {
-    // Use View Transitions API when available for a smooth wallpaper switch.
-    // saveToStorage is called INSIDE the callback so get() captures the new
-    // value (the callback is called synchronously by the browser after it
-    // captures the "before" screenshot).
+    const next = normaliseWallpaper(wallpaper)
+    // View Transitions give the wallpaper switch a cross-fade where supported.
+    // saveToStorage runs inside the callback so get() sees the new value.
     if (document.startViewTransition) {
       document.startViewTransition(() => {
-        set({ wallpaper })
+        set({ wallpaper: next })
         saveToStorage(get())
       })
     } else {
-      set({ wallpaper })
+      set({ wallpaper: next })
       saveToStorage(get())
     }
   },
 
   setAccentColor: (color) => {
-    set({ accentColor: color })
-    applyAccentToDOM(color)
+    const next = normaliseAccent(color)
+    set({ accentColor: next })
+    applyAccentToDOM(next)
     saveToStorage(get())
   },
 
@@ -126,36 +130,20 @@ export const useSettingsStore = create((set, get) => ({
     saveToStorage(get())
   },
 
-  toggleScanlines: () => {
-    set((s) => ({ scanlinesEnabled: !s.scanlinesEnabled }))
-    saveToStorage(get())
-  },
-
-  toggleOrbs: () => {
-    set((s) => ({ orbsEnabled: !s.orbsEnabled }))
-    saveToStorage(get())
-  },
-
-  // hydrateSettings is kept for backward compatibility (tests call it directly).
-  // In practice it is a no-op on a fresh load because the store already
-  // initialized from localStorage above. It remains useful if another browser
-  // tab writes new settings to localStorage mid-session.
+  // Re-read settings another tab may have written. Also called by tests.
   hydrateSettings: () => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (!raw) return
       const saved = JSON.parse(raw)
-      if (!saved?.accentColor) return
-      const restoredWallpaper =
-        saved.wallpaper && !_REMOVED_WALLPAPER_IDS.has(saved.wallpaper) ? saved.wallpaper : 'mesh'
+      if (!saved || typeof saved !== 'object') return
+      const accentColor = normaliseAccent(saved.accentColor)
       set({
-        accentColor: saved.accentColor,
-        wallpaper: restoredWallpaper,
+        accentColor,
+        wallpaper: normaliseWallpaper(saved.wallpaper),
         uiScale: saved.uiScale || 'default',
-        scanlinesEnabled: saved.scanlinesEnabled ?? true,
-        orbsEnabled: saved.orbsEnabled ?? true,
       })
-      applyAccentToDOM(saved.accentColor)
+      applyAccentToDOM(accentColor)
     } catch {
       // Corrupt data
     }

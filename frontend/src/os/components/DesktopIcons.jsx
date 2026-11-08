@@ -1,11 +1,14 @@
 import { memo, useState, useCallback } from 'react'
 import { useWindowStore } from '../stores/windowStore'
 import { APP_REGISTRY, APP_ORDER } from '../stores/appRegistry'
+import AppIcon from './AppIcon'
 
-const GRID_CELL = 88
-const COLS = 2
-const ICON_START_X = 16
-const ICON_START_Y = 24
+// Windows 7 "Medium icons" desktop grid: 48px icons, 75×86 cells, filled
+// top-to-bottom then left-to-right.
+const CELL_W = 78
+const CELL_H = 88
+const START_X = 6
+const START_Y = 6
 
 function DesktopIcons() {
   const openApp = useWindowStore((s) => s.openApp)
@@ -15,11 +18,8 @@ function DesktopIcons() {
   const handleClick = useCallback(
     (e, appId) => {
       e.stopPropagation()
-      if (isMobile) {
-        openApp(appId)
-      } else {
-        setSelectedId(appId)
-      }
+      if (isMobile) openApp(appId)
+      else setSelectedId(appId)
     },
     [isMobile, openApp],
   )
@@ -33,23 +33,41 @@ function DesktopIcons() {
     [openApp],
   )
 
-  // Deselect when clicking desktop background (bubbled up, but we stop propagation on icons)
-  // Selection is cleared by Desktop.jsx onClick
+  // Arrow keys move between icons in the column-major grid, like Explorer.
+  const handleKeyDown = (e, index, appId, rows) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      openApp(appId)
+      return
+    }
+    const delta = { ArrowDown: 1, ArrowUp: -1, ArrowRight: rows, ArrowLeft: -rows }[e.key]
+    if (delta === undefined) return
+    e.preventDefault()
+    const next = index + delta
+    if (next < 0 || next >= APP_ORDER.length) return
+    const el = e.currentTarget.parentElement?.children[next]
+    el?.focus()
+    setSelectedId(APP_ORDER[next])
+  }
+
+  // Rows that fit above the taskbar; at least 1.
+  const rows =
+    typeof window === 'undefined'
+      ? 8
+      : Math.max(1, Math.floor((window.innerHeight - 40 - START_Y) / CELL_H))
 
   return (
     <div
       role="group"
       className="pointer-events-none absolute inset-0 z-[2]"
       aria-label="Desktop icons"
+      onClick={() => setSelectedId(null)}
     >
       {APP_ORDER.map((appId, index) => {
         const manifest = APP_REGISTRY[appId]
         if (!manifest) return null
-        const Icon = manifest.icon
-        const col = index % COLS
-        const row = Math.floor(index / COLS)
-        const x = ICON_START_X + col * GRID_CELL
-        const y = ICON_START_Y + row * GRID_CELL
+        const col = Math.floor(index / rows)
+        const row = index % rows
         const isSelected = selectedId === appId
 
         return (
@@ -58,49 +76,19 @@ function DesktopIcons() {
             role="button"
             tabIndex={0}
             aria-label={`Open ${manifest.title}`}
+            aria-pressed={isSelected}
+            title={manifest.description}
             onClick={(e) => handleClick(e, appId)}
             onDoubleClick={(e) => handleDoubleClick(e, appId)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                openApp(appId)
-              }
-            }}
-            className={`pointer-events-auto absolute flex flex-col items-center gap-1 rounded-lg p-1 cursor-default select-none transition-all duration-150 ${
-              isSelected ? 'ring-1 ring-primary/40 bg-primary/[0.06]' : ''
+            onKeyDown={(e) => handleKeyDown(e, index, appId, rows)}
+            onFocus={() => setSelectedId(appId)}
+            className={`nx-desktop-icon pointer-events-auto absolute flex cursor-default select-none flex-col items-center gap-[3px] px-[2px] pb-[3px] pt-[4px] ${
+              isSelected ? 'is-selected' : ''
             }`}
-            style={{
-              left: x,
-              top: y,
-              width: 72,
-            }}
+            style={{ left: START_X + col * CELL_W, top: START_Y + row * CELL_H, width: 74 }}
           >
-            {/* Icon container */}
-            <div
-              className={`flex h-14 w-14 items-center justify-center rounded-xl bg-white/[0.02] ring-1 ring-white/[0.04] transition-all duration-150 relative overflow-hidden ${
-                isSelected
-                  ? 'bg-primary/[0.08] ring-primary/30 shadow-[0_0_20px_rgba(0,255,255,0.15)]'
-                  : 'hover:bg-white/[0.04] hover:ring-white/[0.1] hover:shadow-[0_0_12px_rgba(0,255,255,0.08)]'
-              }`}
-            >
-              {isSelected && <div className="absolute inset-0 bg-primary/5 animate-pulse" />}
-              <Icon
-                size={32}
-                className={`transition-colors duration-150 relative z-10 ${
-                  isSelected
-                    ? 'text-primary drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]'
-                    : 'text-white/60'
-                }`}
-              />
-            </div>
-
-            {/* Label — line-clamp-2 so two-word titles wrap rather than truncate.
-                 textShadow provides a dark backdrop that keeps text readable
-                 on bright image wallpapers while being invisible on dark ones. */}
-            <span
-              className="heading-ui w-full break-words line-clamp-2 text-center text-[11px] text-white/80 leading-tight"
-              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)' }}
-            >
+            <AppIcon appId={appId} size={48} />
+            <span className="nx-desktop-icon__label line-clamp-2 w-full break-words text-center text-[9pt] leading-[1.2]">
               {manifest.title}
             </span>
           </div>

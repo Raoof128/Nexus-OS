@@ -28,17 +28,14 @@ vi.mock('../../stores/windowStore', () => {
 vi.mock('../../stores/settingsStore', () => ({
   useSettingsStore: (selector) =>
     selector({
-      scanlinesEnabled: true,
-      orbsEnabled: true,
-      wallpaper: 'grid',
+      wallpaper: 'aero',
       hydrateSettings: vi.fn(),
     }),
   WALLPAPER_PRESETS: {
-    grid: { id: 'grid', label: 'Matrix Grid' },
+    aero: { id: 'aero', label: 'Aero', image: '/wallpapers/aero.svg' },
   },
   ACCENT_PRESETS: {
-    cyan: { primary: '#00f5ff', neon: '#00f5ff', label: 'Neon Cyan' },
-    magenta: { primary: '#ff00ff', neon: '#ff00ff', label: 'Neon Magenta' },
+    sky: { frame: '#4580c4', label: 'Sky' },
   },
 }))
 

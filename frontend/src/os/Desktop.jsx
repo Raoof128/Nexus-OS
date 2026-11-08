@@ -90,10 +90,8 @@ export default function Desktop() {
     return () => mql.removeEventListener('change', handler)
   }, [setMobile])
 
-  const scanlinesEnabled = useSettingsStore((s) => s.scanlinesEnabled)
-  const orbsEnabled = useSettingsStore((s) => s.orbsEnabled)
   const wallpaperKey = useSettingsStore((s) => s.wallpaper)
-  const wallpaperPreset = WALLPAPER_PRESETS[wallpaperKey] || { id: wallpaperKey }
+  const wallpaperPreset = WALLPAPER_PRESETS[wallpaperKey] || WALLPAPER_PRESETS.aero
   const hydrateSettings = useSettingsStore((s) => s.hydrateSettings)
 
   const hydrateFromStorage = useWindowStore((s) => s.hydrateFromStorage)
@@ -131,7 +129,7 @@ export default function Desktop() {
     if (firstBoot && sessionStorage.getItem(BOOT_SESSION_KEY) !== '1') {
       useNotificationStore.getState().addNotification({
         title: 'System Ready',
-        message: `Nexus OS initialized successfully. ${APP_ORDER.length} apps operational.`,
+        message: `Welcome to Nexus OS. ${APP_ORDER.length} programs are ready to use.`,
         type: 'success',
       })
     }
@@ -144,6 +142,8 @@ export default function Desktop() {
   }, [])
 
   useGlobalShortcuts()
+
+  const handleLock = useCallback(() => setLocked(true), [])
 
   const handleSnapHint = useCallback((hint) => {
     setSnapPreview(hint)
@@ -167,34 +167,21 @@ export default function Desktop() {
 
       {/* Desktop shell — flex column: work area fills space, taskbar at bottom */}
       <div
-        className="fixed inset-0 flex flex-col overflow-hidden bg-background"
+        className="fixed inset-0 flex flex-col overflow-hidden bg-[#1c3f6e]"
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >
-        {/* Wallpaper layers ─────────────────────────────────────────
-             Stacking order (all z-index: -1, DOM order = bottom→top):
-               1. wallpaper  — base texture / image (rendered first = lowest)
-               2. orbs       — neon glow on top of wallpaper
-               3. scanlines  — CRT overlay on top of everything
-             Image wallpapers use `background-size: cover` which fills the
-             full viewport on every device and orientation. */}
+        {/* Wallpaper — every preset is an image; the CSS class supplies the
+             Aero fallback colour while the image loads. */}
         <div
-          className={`pointer-events-none absolute inset-0 -z-1 ${
-            wallpaperPreset.image ? '' : `wallpaper-${wallpaperKey}`
-          }`}
-          style={
-            wallpaperPreset.image
-              ? {
-                  backgroundImage: `url(${wallpaperPreset.image})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                }
-              : {}
-          }
+          className="nx-wallpaper-aero pointer-events-none absolute inset-0 -z-1"
+          style={{
+            backgroundImage: `url(${wallpaperPreset.image})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
         />
-        {orbsEnabled && <div className="ambient-orbs" />}
-        {scanlinesEnabled && <div className="scanlines" />}
 
         {/* Work area — takes all space above the taskbar */}
         <div ref={desktopRef} data-testid="desktop" className="relative flex-1 overflow-hidden">
@@ -246,7 +233,7 @@ export default function Desktop() {
         {/* Overlays — these use fixed/absolute positioning above everything */}
         {!locked && <NotificationToast />}
 
-        <AnimatePresence>{launcherOpen && <AppLauncher />}</AnimatePresence>
+        <AnimatePresence>{launcherOpen && <AppLauncher onLock={handleLock} />}</AnimatePresence>
 
         <AnimatePresence>
           {contextMenu && (

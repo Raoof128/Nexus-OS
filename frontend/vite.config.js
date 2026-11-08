@@ -12,7 +12,12 @@ export default defineConfig({
     // EmailInbox.test.jsx requires >4GB heap due to lucide-react (45MB) + jsdom.
     // Run it separately: NODE_OPTIONS='--max-old-space-size=8192' npm test -- --run EmailInbox
     setupFiles: ['./vitest.setup.js'],
-    exclude: ['**/node_modules/**', '**/dist/**', 'src/components/features/EmailInbox.test.jsx'],
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      'e2e/**',
+      'src/components/features/EmailInbox.test.jsx',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'json-summary'],

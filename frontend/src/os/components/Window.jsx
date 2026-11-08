@@ -1,11 +1,9 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { Minus, Square, X } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
-import { APP_REGISTRY } from '../stores/appRegistry'
+import AppIcon from './AppIcon'
 
-const TITLEBAR_HEIGHT = 36
-const TASKBAR_HEIGHT = 48
+const TASKBAR_HEIGHT = 40 // keep in sync with --w7-taskbar-h in index.css
 const RESIZE_EDGE_SIZE = 6
 const RESIZE_CORNER_SIZE = 14
 const SNAP_THRESHOLD = 20
@@ -176,7 +174,6 @@ function Window({
   const isSnapped = windowState === 'snapped-left' || windowState === 'snapped-right'
   const isSnappedLeft = windowState === 'snapped-left'
   const isLocked = isMaximized || isSnapped
-  const AppIcon = APP_REGISTRY[appId]?.icon
 
   // ── Pointer-event drag ────────────────────────────────────
   // dragDelta null = not dragging; {x,y} = current offset from drag start.
@@ -306,30 +303,36 @@ function Window({
   )
 
   // ── Mobile layout ─────────────────────────────────────────
+  // Phones get a full-screen maximised Win7 window above the taskbar: same
+  // frame and title bar, no drag/resize, and a 44px-tall close target.
   if (isMobile) {
     return (
       <div
-        className="fixed inset-0 z-[100] flex flex-col bg-background"
+        className="window glass nx-window active is-maximized fixed inset-x-0 top-0 z-[100]"
         data-testid="mobile-window"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: TASKBAR_HEIGHT + 8 }}
+        role="region"
+        aria-label={title}
+        style={{
+          bottom: `calc(${TASKBAR_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+        }}
       >
-        <div className="glass-panel flex h-11 items-center justify-between border-b border-cyan-500/10 px-3">
-          <div className="flex items-center gap-2">
-            {AppIcon && <AppIcon size={14} className="text-primary" />}
-            <span className="heading-ui text-[12px] font-semibold text-white/80 truncate">
-              {title}
-            </span>
+        <div className="title-bar" style={{ minHeight: 44 }}>
+          <div className="title-bar-text">
+            <AppIcon appId={appId} size={16} />
+            <span>{title}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => closeWindow(windowId)}
-            aria-label="Close window"
-            className="flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-red-500/20 hover:text-red-400"
-          >
-            <X size={18} />
-          </button>
+          <div className="title-bar-controls">
+            <button
+              type="button"
+              className="is-close"
+              onClick={() => closeWindow(windowId)}
+              aria-label="Close window"
+              style={{ minHeight: 30, minWidth: 56 }}
+            />
+          </div>
         </div>
-        <div className="flex-1 overflow-hidden" style={{ containerType: 'inline-size' }}>
+        <div className="window-body" style={{ containerType: 'inline-size' }}>
           {children}
         </div>
       </div>
@@ -375,21 +378,18 @@ function Window({
 
   return (
     <Motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
+      initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96, transition: { duration: 0.12 } }}
-      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12 } }}
+      transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
       style={{ ...displayStyle, transition: positionTransition }}
       onPointerDownCapture={() => focusWindow(windowId)}
       onContextMenu={(e) => e.stopPropagation()}
-      className={`flex flex-col glass-panel shadow-2xl ${isFocused ? 'window-active' : 'window-inactive'} ${isMaximized ? 'rounded-none border-none' : 'rounded-lg'}`}
+      role="region"
+      aria-label={title}
+      className={`window glass nx-window ${isFocused ? 'active' : ''} ${isMaximized ? 'is-maximized' : ''}`}
     >
-      {/* Focused border glow — inner overlay so resize handles aren't clipped */}
-      <div
-        className={`pointer-events-none absolute inset-0 rounded-lg border transition-all duration-200 ${isFocused ? 'border-cyan-500/20 shadow-[0_0_20px_rgba(0,255,255,0.1)]' : 'border-white/[0.06]'}`}
-      />
-
-      {/* Title bar */}
+      {/* Title bar — 7.css .title-bar with Aero glass streaks */}
       <div
         data-testid="titlebar"
         onPointerDown={handleTitleBarPointerDown}
@@ -397,54 +397,39 @@ function Window({
           if (e.target.closest('button')) return
           toggleMaximize()
         }}
-        className={`glass-panel flex h-9 shrink-0 items-center justify-between border-b rounded-t-lg px-3 select-none ${dragDelta !== null ? 'cursor-grabbing' : isLocked ? 'cursor-default' : 'cursor-grab'} ${isFocused ? 'border-b-cyan-500/15' : 'border-b-white/[0.04] bg-white/[0.01]'}`}
-        style={{
-          borderImage: isFocused
-            ? 'linear-gradient(to right, rgba(0,255,255,0.3), transparent 40%, transparent 60%, rgba(243,230,0,0.2)) 1'
-            : undefined,
-        }}
+        className="title-bar"
       >
-        <div className="flex items-center gap-2 overflow-hidden">
-          {AppIcon && <AppIcon size={12} className="shrink-0 text-primary" />}
-          <span
-            className={`heading-ui truncate text-[11px] font-semibold ${isFocused ? 'text-white/80' : 'text-white/50'}`}
-          >
-            {title}
-          </span>
+        <div className="title-bar-text">
+          <AppIcon appId={appId} size={16} />
+          <span>{title}</span>
         </div>
-        <div className="flex items-center gap-0.5">
+        <div className="title-bar-controls">
           <button
             type="button"
+            className="is-minimize"
             onClick={() => minimizeWindow(windowId)}
             aria-label="Minimize window"
-            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-cyan-500/15 hover:text-cyan-400"
-          >
-            <Minus size={10} />
-          </button>
+            title="Minimize"
+          />
           <button
             type="button"
+            className={isMaximized ? 'is-restore' : 'is-maximize'}
             onClick={toggleMaximize}
             aria-label={isMaximized ? 'Restore window' : 'Maximize window'}
-            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-cyan-500/15 hover:text-cyan-400"
-          >
-            <Square size={10} />
-          </button>
+            title={isMaximized ? 'Restore Down' : 'Maximize'}
+          />
           <button
             type="button"
+            className="is-close"
             onClick={() => closeWindow(windowId)}
             aria-label="Close window"
-            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-red-500/20 hover:text-red-400"
-          >
-            <X size={10} />
-          </button>
+            title="Close"
+          />
         </div>
       </div>
 
-      {/* Content area — rounded-b-lg so bottom corners stay clipped */}
-      <div
-        className="flex-1 overflow-hidden rounded-b-lg bg-background"
-        style={{ containerType: 'inline-size' }}
-      >
+      {/* Client area — white, like every Win7 application window */}
+      <div className="window-body" style={{ containerType: 'inline-size' }}>
         {children}
       </div>
 

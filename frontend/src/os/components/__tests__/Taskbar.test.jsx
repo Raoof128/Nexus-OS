@@ -50,7 +50,7 @@ describe('Taskbar', () => {
 
   it('renders launcher button', () => {
     render(<Taskbar />)
-    expect(screen.getByLabelText('Open app launcher')).toBeDefined()
+    expect(screen.getByLabelText('Start')).toBeDefined()
   })
 
   it('renders tabs for each open window', () => {
@@ -67,7 +67,7 @@ describe('Taskbar', () => {
 
   it('calls toggleLauncher when launcher button clicked', () => {
     render(<Taskbar />)
-    fireEvent.click(screen.getByLabelText('Open app launcher'))
+    fireEvent.click(screen.getByLabelText('Start'))
     expect(mockToggleLauncher).toHaveBeenCalled()
   })
 

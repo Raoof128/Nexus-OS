@@ -1,12 +1,11 @@
 import { memo, useCallback, useEffect, useRef } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { DURATION, EASE } from '../../lib/motion'
-import { AppWindow, Layers, Minus, X, ScanLine, Sparkles, Settings } from 'lucide-react'
+import { AppWindow, Layers, Minus, X, Monitor } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
-import { useSettingsStore } from '../stores/settingsStore'
 
 function Separator() {
-  return <div role="separator" className="mx-2 my-1 h-px bg-white/[0.06]" />
+  return <div role="separator" className="nx-menu-separator" />
 }
 
 function MenuItem({ icon: Icon, label, onClick, danger }) {
@@ -15,14 +14,10 @@ function MenuItem({ icon: Icon, label, onClick, danger }) {
       type="button"
       role="menuitem"
       onClick={onClick}
-      className={`flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left transition-colors duration-100 ${
-        danger
-          ? 'text-red-400/70 hover:bg-red-500/10 hover:text-red-400'
-          : 'text-white/60 hover:bg-primary/10 hover:text-primary'
-      }`}
+      className={`nx-menuitem ${danger ? 'text-[#a8261b]' : ''}`}
     >
-      {Icon && <Icon size={12} className="shrink-0 opacity-70" />}
-      <span className="heading-ui text-[10px]">{label}</span>
+      <span className="nx-menuitem__icon">{Icon && <Icon size={14} aria-hidden="true" />}</span>
+      <span>{label}</span>
     </button>
   )
 }
@@ -34,12 +29,10 @@ function ContextMenu({ x, y, onClose }) {
   const cascadeWindows = useWindowStore((s) => s.cascadeWindows)
   const minimizeAll = useWindowStore((s) => s.minimizeAll)
   const closeAll = useWindowStore((s) => s.closeAll)
-  const toggleScanlines = useSettingsStore((s) => s.toggleScanlines)
-  const toggleOrbs = useSettingsStore((s) => s.toggleOrbs)
 
   // Clamp position so the menu doesn't overflow off-screen
-  const MENU_WIDTH = 192
-  const MENU_HEIGHT_EST = 280
+  const MENU_WIDTH = 200
+  const MENU_HEIGHT_EST = 180
   const clampedX = Math.min(x, window.innerWidth - MENU_WIDTH - 8)
   const clampedY = Math.min(y, window.innerHeight - MENU_HEIGHT_EST - 8)
 
@@ -112,29 +105,21 @@ function ContextMenu({ x, y, onClose }) {
       }}
       role="menu"
       aria-label="Desktop context menu"
-      className="neon-border glass-panel rounded-lg py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.6)]"
+      className="nx-flyout p-[2px]"
       onContextMenu={(e) => e.preventDefault()}
       onKeyDown={handleMenuKeyDown}
     >
-      {/* Accent line at top */}
-      <div className="absolute inset-x-0 top-0 h-px rounded-t-lg bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-
-      <MenuItem icon={AppWindow} label="Open App Launcher" onClick={() => run(toggleLauncher)} />
+      <MenuItem icon={AppWindow} label="Open Start menu" onClick={() => run(toggleLauncher)} />
 
       <Separator />
 
-      <MenuItem icon={Layers} label="Arrange Windows" onClick={() => run(cascadeWindows)} />
-      <MenuItem icon={Minus} label="Minimize All" onClick={() => run(minimizeAll)} />
-      <MenuItem icon={X} label="Close All" onClick={() => run(closeAll)} danger />
+      <MenuItem icon={Layers} label="Cascade windows" onClick={() => run(cascadeWindows)} />
+      <MenuItem icon={Minus} label="Show the desktop" onClick={() => run(minimizeAll)} />
+      <MenuItem icon={X} label="Close all windows" onClick={() => run(closeAll)} danger />
 
       <Separator />
 
-      <MenuItem icon={ScanLine} label="Toggle Scanlines" onClick={() => run(toggleScanlines)} />
-      <MenuItem icon={Sparkles} label="Toggle Orbs" onClick={() => run(toggleOrbs)} />
-
-      <Separator />
-
-      <MenuItem icon={Settings} label="Settings" onClick={() => run(() => openApp('settings'))} />
+      <MenuItem icon={Monitor} label="Personalize" onClick={() => run(() => openApp('settings'))} />
     </Motion.div>
   )
 }

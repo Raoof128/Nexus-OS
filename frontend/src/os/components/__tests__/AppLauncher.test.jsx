@@ -61,7 +61,7 @@ describe('AppLauncher', () => {
 
   it('filters apps by search query', () => {
     render(<AppLauncher />)
-    const input = screen.getByPlaceholderText('search::applications...')
+    const input = screen.getByPlaceholderText('Search programs')
     fireEvent.change(input, { target: { value: 'med' } })
     expect(screen.getByText('Media Vault')).toBeDefined()
     expect(screen.queryByText('AI Chat')).toBeNull()
@@ -69,7 +69,7 @@ describe('AppLauncher', () => {
 
   it('launches first result on Enter', () => {
     render(<AppLauncher />)
-    const input = screen.getByPlaceholderText('search::applications...')
+    const input = screen.getByPlaceholderText('Search programs')
     fireEvent.change(input, { target: { value: 'med' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(mockOpenApp).toHaveBeenCalledWith('media')
@@ -84,8 +84,36 @@ describe('AppLauncher', () => {
 
   it('shows no matches message when nothing matches', () => {
     render(<AppLauncher />)
-    const input = screen.getByPlaceholderText('search::applications...')
+    const input = screen.getByPlaceholderText('Search programs')
     fireEvent.change(input, { target: { value: 'zzzzz' } })
-    expect(screen.getByText('NO_MATCHES_FOUND')).toBeDefined()
+    expect(screen.getByText('No items match your search.')).toBeDefined()
+  })
+
+  it('moves the selection with ArrowDown and launches it with Enter', () => {
+    render(<AppLauncher />)
+    const input = screen.getByPlaceholderText('Search programs')
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    expect(screen.getByRole('option', { name: /AI Chat/ }).getAttribute('aria-selected')).toBe(
+      'true',
+    )
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(mockOpenApp).toHaveBeenCalledWith('chat')
+  })
+
+  it('offers Lock only when the desktop provides a lock handler', () => {
+    const onLock = vi.fn()
+    const { unmount } = render(<AppLauncher />)
+    expect(screen.queryByText('Lock')).toBeNull()
+    unmount()
+    render(<AppLauncher onLock={onLock} />)
+    fireEvent.click(screen.getByText('Lock'))
+    expect(mockToggleLauncher).toHaveBeenCalled()
+    expect(onLock).toHaveBeenCalled()
+  })
+
+  it('closes on Escape', () => {
+    render(<AppLauncher />)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(mockToggleLauncher).toHaveBeenCalled()
   })
 })

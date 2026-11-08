@@ -1,27 +1,55 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useContext, useEffect, useRef, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { Search, SearchX } from 'lucide-react'
+import { Lock, LogOut } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
 import { APP_REGISTRY, APP_ORDER } from '../stores/appRegistry'
-import { SPRING } from '../../lib/motion'
 import { useFocusTrap } from '../../hooks/useFocusTrap'
+import { AuthContext } from '../../context/auth-context'
+import AppIcon from './AppIcon'
 
-function AppLauncher() {
+// Right-column shortcuts, Win7 style ("Documents", "Control Panel", …). Each
+// opens a real Nexus app; entries for apps that aren't registered are dropped.
+const PLACES = [
+  { appId: 'files', label: 'Documents' },
+  { appId: 'notes', label: 'Notes' },
+  { appId: 'tasks', label: 'Tasks' },
+  { appId: 'email', label: 'Mail' },
+  { divider: true },
+  { appId: 'settings', label: 'Control Panel' },
+  { appId: 'sysmon', label: 'System Monitor' },
+]
+
+function matches(appId, q) {
+  const m = APP_REGISTRY[appId]
+  if (!m) return false
+  const hay = `${m.title} ${m.description ?? ''}`.toLowerCase()
+  return hay.includes(q)
+}
+
+/**
+ * Windows 7 Start menu. Left: white programs list + "Search programs and
+ * files" box. Right: Aero-glass column with the user tile, place shortcuts and
+ * the session buttons this browser app can actually honour (Lock, Log off).
+ */
+function AppLauncher({ onLock }) {
   const openApp = useWindowStore((s) => s.openApp)
   const toggleLauncher = useWindowStore((s) => s.toggleLauncher)
   const isMobile = useWindowStore((s) => s.isMobile)
+  const auth = useContext(AuthContext)
+  const user = auth?.session?.user
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split('@')[0] ||
+    'User'
+
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef(null)
   const trapRef = useFocusTrap(true)
 
-  // Filter apps by query
-  const filtered = query.trim()
-    ? APP_ORDER.filter((appId) => {
-        const manifest = APP_REGISTRY[appId]
-        return manifest?.title.toLowerCase().includes(query.toLowerCase())
-      })
-    : APP_ORDER
+  const q = query.trim().toLowerCase()
+  const filtered = q ? APP_ORDER.filter((id) => matches(id, q)) : APP_ORDER
 
   const [prevLength, setPrevLength] = useState(filtered.length)
   if (filtered.length !== prevLength) {
@@ -29,15 +57,11 @@ function AppLauncher() {
     setSelectedIndex(0)
   }
 
-  // Auto-focus on desktop only
+  // Typing straight into the Start menu searches, as on Windows 7.
   useEffect(() => {
-    if (!isMobile && inputRef.current) {
-      inputRef.current.focus()
-    }
+    if (!isMobile) inputRef.current?.focus()
   }, [isMobile])
 
-  // Escape closes the launcher — matches ContextMenu / LockScreen dismissal so
-  // keyboard users can back out without reaching for the mouse or the backdrop.
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
@@ -60,105 +84,164 @@ function AppLauncher() {
       handleLaunch(filtered[selectedIndex])
       return
     }
-    // No results → nothing to navigate; bail before any modulo-by-zero math.
     if (filtered.length === 0) return
-    if (e.key === 'ArrowRight') {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
       setSelectedIndex((prev) => (prev + 1) % filtered.length)
-    } else if (e.key === 'ArrowLeft') {
-      setSelectedIndex((prev) => (prev - 1 + filtered.length) % filtered.length)
-    } else if (e.key === 'ArrowDown') {
-      const cols = isMobile ? 3 : 4
-      if (selectedIndex + cols < filtered.length) {
-        setSelectedIndex((prev) => prev + cols)
-      }
     } else if (e.key === 'ArrowUp') {
-      const cols = isMobile ? 3 : 4
-      if (selectedIndex - cols >= 0) {
-        setSelectedIndex((prev) => prev - cols)
-      }
+      e.preventDefault()
+      setSelectedIndex((prev) => (prev - 1 + filtered.length) % filtered.length)
     }
   }
+
+  const places = PLACES.filter((p) => p.divider || APP_REGISTRY[p.appId])
 
   return (
     <>
       <div
         data-testid="launcher-backdrop"
-        className="fixed inset-0 z-[599] bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 z-[599]"
         onClick={toggleLauncher}
+        aria-hidden="true"
       />
 
       <Motion.div
         ref={trapRef}
-        initial={{ opacity: 0, y: 40 }}
+        data-testid="app-launcher"
+        role="dialog"
+        aria-label="Start menu"
+        aria-modal="true"
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 40 }}
-        transition={SPRING.snappy}
-        className="neon-border glass-panel fixed bottom-14 left-1/2 z-[600] w-[90vw] max-w-md -translate-x-1/2 rounded-2xl p-4 shadow-[0_0_60px_rgba(0,255,255,0.05)] sm:bottom-16 sm:p-6"
+        exit={{ opacity: 0, y: 8, transition: { duration: 0.1 } }}
+        transition={{ duration: 0.16, ease: [0.2, 0, 0, 1] }}
+        className="nx-startmenu z-[600]"
+        style={isMobile ? { width: '100vw', borderRadius: 0 } : undefined}
       >
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        {/* ── Left: programs + search ───────────────────────────── */}
+        <div className="nx-startmenu__left">
+          <div className="min-h-0 flex-1 overflow-y-auto p-[5px]">
+            {q && (
+              <p className="px-2 pb-1 pt-1 text-[9pt] text-w7-title" aria-live="polite">
+                Programs ({filtered.length})
+              </p>
+            )}
+            {filtered.length === 0 ? (
+              <p className="px-3 py-4 text-[9pt] text-muted-foreground" role="status">
+                No items match your search.
+              </p>
+            ) : (
+              <ul
+                role="listbox"
+                aria-label="Programs"
+                className="flex flex-col gap-px border-0 bg-transparent p-0 shadow-none"
+              >
+                {filtered.map((appId, index) => {
+                  const manifest = APP_REGISTRY[appId]
+                  if (!manifest) return null
+                  const isSelected = index === selectedIndex
+                  return (
+                    <li key={appId} role="presentation">
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => handleLaunch(appId)}
+                        onMouseEnter={() => setSelectedIndex(index)}
+                        title={manifest.description}
+                        className={`nx-startmenu__program ${isSelected ? 'is-selected' : ''}`}
+                      >
+                        <AppIcon appId={appId} size={32} />
+                        <span className="truncate">{manifest.title}</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
 
-        <p className="mb-3 heading-display text-[10px] tracking-[0.3em] text-primary/50">
-          // Applications
-        </p>
-
-        {/* Search input */}
-        <div className="mb-3 flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 focus-within:border-primary/30 focus-within:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.08)]">
-          <Search size={11} className="shrink-0 text-primary/40" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="search::applications..."
-            aria-label="Search applications"
-            className="flex-1 bg-transparent font-mono text-[11px] text-white/70 placeholder-muted-foreground/30 focus:outline-none"
-          />
+          <div className="nx-startmenu__search">
+            <div className="searchbox w-full">
+              <input
+                ref={inputRef}
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Search programs"
+                aria-label="Search programs"
+                className="w-full"
+              />
+              <button aria-label="search" type="button" onClick={() => inputRef.current?.focus()} />
+            </div>
+          </div>
         </div>
 
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-6">
-            <SearchX size={24} className="text-muted-foreground/30" />
-            <p className="font-mono text-[10px] text-muted-foreground/50">NO_MATCHES_FOUND</p>
+        {/* ── Right: Aero glass column ──────────────────────────── */}
+        <div className="nx-startmenu__right">
+          <div className="flex justify-center pb-2 pt-1">
+            <div className="nx-user-tile" aria-hidden="true">
+              <div className="flex h-full w-full items-center justify-center rounded-[3px] bg-gradient-to-b from-[#7ab8ee] to-[#2a6db5] text-[26px] font-light text-white">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+            </div>
           </div>
-        ) : (
-          // md: (768px) matches the isMobile breakpoint used by the arrow-key column
-          // math above, so keyboard navigation always moves the way the grid looks.
-          <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3">
-            {filtered.map((appId, index) => {
-              const manifest = APP_REGISTRY[appId]
-              if (!manifest) return null
-              const Icon = manifest.icon
-              const isSelected = index === selectedIndex
-              return (
+          <p
+            className="truncate px-[10px] pb-1 text-[9pt] font-semibold text-white"
+            style={{ textShadow: '0 0 8px #000, 0 1px 1px #000a' }}
+            title={user?.email}
+          >
+            {displayName}
+          </p>
+          <nav aria-label="Places" className="flex flex-col">
+            {places.map((place, i) =>
+              place.divider ? (
+                <div key={`d${i}`} className="nx-startmenu__divider" role="separator" />
+              ) : (
                 <button
-                  key={appId}
+                  key={place.appId}
                   type="button"
-                  onClick={() => handleLaunch(appId)}
-                  aria-label={manifest.title}
-                  onMouseEnter={() => setSelectedIndex(index)}
-                  className={`group flex flex-col items-center gap-2 rounded-xl p-3 transition-all hover:bg-white/[0.04] hover:shadow-[0_0_15px_rgba(0,255,255,0.05)] sm:p-4 ${
-                    isSelected ? 'ring-1 ring-primary/40 bg-primary/[0.04]' : ''
-                  }`}
+                  onClick={() => handleLaunch(place.appId)}
+                  className="nx-startmenu__link"
                 >
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl bg-white/[0.03] ring-1 ring-white/[0.06] transition-all group-hover:bg-primary/10 group-hover:ring-primary/20 group-hover:shadow-[0_0_10px_hsl(var(--neon-yellow)/0.15)] ${
-                      isSelected ? 'bg-primary/10 ring-primary/20' : ''
-                    }`}
-                  >
-                    <Icon
-                      size={20}
-                      className={`text-muted-foreground transition-colors group-hover:text-primary ${isSelected ? 'text-primary' : ''}`}
-                    />
-                  </div>
-                  <span className="heading-ui text-[11px] font-semibold text-muted-foreground transition-colors group-hover:text-white">
-                    {manifest.title}
-                  </span>
+                  {place.label}
                 </button>
-              )
-            })}
+              ),
+            )}
+          </nav>
+
+          <div className="mt-auto flex flex-wrap items-center justify-end gap-1 pb-1 pr-1">
+            {onLock && (
+              <button
+                type="button"
+                className="nx-startmenu__power"
+                onClick={() => {
+                  toggleLauncher()
+                  onLock()
+                }}
+                title="Lock this session"
+              >
+                <Lock size={12} aria-hidden="true" />
+                Lock
+              </button>
+            )}
+            {auth?.signOut && (
+              <button
+                type="button"
+                className="nx-startmenu__power"
+                onClick={() => {
+                  toggleLauncher()
+                  auth.signOut()
+                }}
+                title="Sign out of Nexus OS"
+              >
+                <LogOut size={12} aria-hidden="true" />
+                Log off
+              </button>
+            )}
           </div>
-        )}
+        </div>
       </Motion.div>
     </>
   )

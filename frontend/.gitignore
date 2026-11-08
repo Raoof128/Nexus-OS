@@ -25,3 +25,7 @@ dist-ssr
 
 # Test coverage output
 coverage/
+
+# Playwright
+e2e/.results/
+playwright-report/

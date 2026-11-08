@@ -45,7 +45,7 @@ describe('windowStore', () => {
     expect(useWindowStore.getState().windows[winId].position.y).toBe(0)
 
     // Try to move too far down (should keep titlebar visible)
-    const titlebarHeight = 36
+    const titlebarHeight = 30
     moveWindow(winId, { x: 100, y: 800 + 100 })
     expect(useWindowStore.getState().windows[winId].position.y).toBe(
       800 - TASKBAR_HEIGHT - titlebarHeight,
