@@ -24,7 +24,7 @@ describe('TerminalApp', () => {
 
   it('renders input prompt', () => {
     render(<TerminalApp windowId="term-1" />)
-    expect(screen.getByPlaceholderText('type a command...')).toBeDefined()
+    expect(screen.getByPlaceholderText('Type a command, or help')).toBeDefined()
   })
 
   it('shows welcome message on mount', () => {
@@ -34,7 +34,7 @@ describe('TerminalApp', () => {
 
   it('executes help command', () => {
     render(<TerminalApp windowId="term-1" />)
-    const input = screen.getByPlaceholderText('type a command...')
+    const input = screen.getByPlaceholderText('Type a command, or help')
     fireEvent.change(input, { target: { value: 'help' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(screen.getByText(/Available commands/)).toBeDefined()
@@ -42,7 +42,7 @@ describe('TerminalApp', () => {
 
   it('executes whoami command', () => {
     render(<TerminalApp windowId="term-1" />)
-    const input = screen.getByPlaceholderText('type a command...')
+    const input = screen.getByPlaceholderText('Type a command, or help')
     fireEvent.change(input, { target: { value: 'whoami' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(screen.getByText(/dev@example.com/)).toBeDefined()
@@ -50,7 +50,7 @@ describe('TerminalApp', () => {
 
   it('executes clear command', () => {
     render(<TerminalApp windowId="term-1" />)
-    const input = screen.getByPlaceholderText('type a command...')
+    const input = screen.getByPlaceholderText('Type a command, or help')
     // Run a command first
     fireEvent.change(input, { target: { value: 'whoami' } })
     fireEvent.keyDown(input, { key: 'Enter' })
@@ -63,7 +63,7 @@ describe('TerminalApp', () => {
 
   it('shows error for unknown command', () => {
     render(<TerminalApp windowId="term-1" />)
-    const input = screen.getByPlaceholderText('type a command...')
+    const input = screen.getByPlaceholderText('Type a command, or help')
     fireEvent.change(input, { target: { value: 'foobar' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(screen.getByText(/command not found: foobar/)).toBeDefined()
@@ -71,7 +71,7 @@ describe('TerminalApp', () => {
 
   it('navigates command history with arrow keys', () => {
     render(<TerminalApp windowId="term-1" />)
-    const input = screen.getByPlaceholderText('type a command...')
+    const input = screen.getByPlaceholderText('Type a command, or help')
     fireEvent.change(input, { target: { value: 'whoami' } })
     fireEvent.keyDown(input, { key: 'Enter' })
     fireEvent.change(input, { target: { value: 'help' } })

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import {
-  Command,
   LayoutGrid,
   Minus,
   Copy,
@@ -320,7 +319,7 @@ export default function CommandPalette() {
                 spellCheck={false}
               />
               <kbd className="hidden shrink-0 items-center gap-1 border border-[#c5cad3] bg-white px-1.5 py-px text-[11px] text-muted-foreground sm:flex">
-                <Command size={10} aria-hidden /> K
+                Ctrl+K
               </kbd>
             </div>
 

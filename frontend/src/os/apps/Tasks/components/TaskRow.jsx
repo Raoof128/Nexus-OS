@@ -64,7 +64,7 @@ function TaskRow({
         onClick={() => onToggle(task)}
         className="flex h-[13px] w-[13px] shrink-0 items-center justify-center rounded-[2px] border border-[#8e8f8f] bg-white hover:border-[#3c7fb1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
       >
-        {completed && <Check size={11} strokeWidth={3} className="text-[#1e3287]" />}
+        {completed && <Check size={11} strokeWidth={3} className="text-[#003399]" />}
       </button>
 
       <button

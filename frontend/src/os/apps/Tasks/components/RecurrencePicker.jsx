@@ -23,7 +23,7 @@ export default function RecurrencePicker({ value, onChange }) {
   return (
     <div className="flex flex-col gap-1">
       <label htmlFor="task-recurrence">Repeat</label>
-      <select id="task-recurrence" value={preset} onChange={handlePreset} aria-label="Recurrence">
+      <select id="task-recurrence" value={preset} onChange={handlePreset}>
         {RECURRENCE_PRESETS.map((p) => (
           <option key={p.value} value={p.value}>
             {p.label}

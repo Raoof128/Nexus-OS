@@ -69,7 +69,8 @@ export default function InstallPrompt() {
           <div className="min-w-0">
             <p className="text-[12px] font-bold leading-snug text-foreground">Install Nexus OS</p>
             <p className="mt-0.5 text-[12px] leading-snug text-foreground">
-              Launch it like a native app — full-screen, offline-ready, from your dock.
+              Open it like a desktop program: full-screen, works offline, opened from your taskbar
+              or home screen.
             </p>
             <div className="mt-2 flex justify-end gap-2">
               <button type="button" onClick={handleInstall} className="w7-btn default min-w-[75px]">

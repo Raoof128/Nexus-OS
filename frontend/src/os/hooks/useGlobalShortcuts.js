@@ -2,6 +2,16 @@ import { useEffect } from 'react'
 import { useWindowStore } from '../stores/windowStore'
 import { APP_ORDER } from '../stores/appRegistry'
 
+const CODE_KEYS = { BracketLeft: '[', BracketRight: ']' }
+
+function keyFromCode(code) {
+  if (!code) return null
+  if (code.startsWith('Key')) return code.slice(3).toLowerCase()
+  if (code.startsWith('Digit')) return code.slice(5)
+  if (code.startsWith('Arrow')) return code.toLowerCase()
+  return CODE_KEYS[code] ?? null
+}
+
 export default function useGlobalShortcuts() {
   const activeWindowId = useWindowStore((s) => s.activeWindowId)
   const windows = useWindowStore((s) => s.windows)
@@ -28,7 +38,9 @@ export default function useGlobalShortcuts() {
         return
       }
 
-      const key = e.key.toLowerCase()
+      // On macOS, Option composes characters (Option+L is "¬"), so read the
+      // physical key from e.code and fall back to e.key where code is absent.
+      const key = keyFromCode(e.code) ?? e.key.toLowerCase()
       const activeWin = activeWindowId ? windows[activeWindowId] : null
 
       switch (key) {

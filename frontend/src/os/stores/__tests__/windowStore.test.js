@@ -7,6 +7,7 @@ describe('windowStore', () => {
       windows: {},
       zStack: [],
       activeWindowId: null,
+      desktopShown: null,
     })
     // Mock window dimensions
     vi.stubGlobal('innerWidth', 1200)
@@ -76,5 +77,43 @@ describe('windowStore', () => {
     const state = useWindowStore.getState()
     expect(state.activeWindowId).toBe(termId)
     expect(state.zStack[state.zStack.length - 1]).toBe(termId)
+  })
+  it('restores a minimised window to the state it was minimised from', () => {
+    const { openApp, maximizeWindow, minimizeWindow, focusWindow, snapWindow } =
+      useWindowStore.getState()
+    openApp('terminal')
+    const id = Object.keys(useWindowStore.getState().windows)[0]
+
+    maximizeWindow(id)
+    minimizeWindow(id)
+    expect(useWindowStore.getState().windows[id].state).toBe('minimized')
+    focusWindow(id)
+    expect(useWindowStore.getState().windows[id].state).toBe('maximized')
+
+    snapWindow(id, 'left')
+    minimizeWindow(id)
+    focusWindow(id)
+    expect(useWindowStore.getState().windows[id].state).toBe('snapped-left')
+  })
+
+  it('restoreDesktop brings back what minimizeAll hid, whichever control hid it', () => {
+    const { openApp, minimizeAll, restoreDesktop, maximizeWindow } = useWindowStore.getState()
+    openApp('terminal')
+    openApp('notes')
+    const ids = Object.keys(useWindowStore.getState().windows)
+    maximizeWindow(ids[0])
+
+    minimizeAll()
+    expect(
+      Object.values(useWindowStore.getState().windows).every((w) => w.state === 'minimized'),
+    ).toBe(true)
+    expect(restoreDesktop()).toBe(true)
+    const wins = useWindowStore.getState().windows
+    expect(wins[ids[0]].state).toBe('maximized')
+    expect(wins[ids[1]].state).toBe('normal')
+    // Stacking order is preserved: the top window before is the top window after.
+    expect(useWindowStore.getState().activeWindowId).toBe(ids[1])
+    // Nothing remembered any more.
+    expect(useWindowStore.getState().restoreDesktop()).toBe(false)
   })
 })

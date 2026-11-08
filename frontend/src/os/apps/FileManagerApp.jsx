@@ -173,7 +173,10 @@ function FileViewer({ file, onClose }) {
 
       {state.status === 'loading' && (
         <div className="flex flex-1 items-center justify-center">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
+          <span className="sr-only" role="status">
+            Loading…
+          </span>
         </div>
       )}
 
@@ -320,6 +323,18 @@ export default function FileManagerApp() {
   }, [currentPath, renamingEntry, renameValue, renameEntry])
 
   const buildEntryPath = (name) => (currentPath === '/' ? `/${name}` : `${currentPath}/${name}`)
+
+  // Open a folder (navigate) or a file (viewer), as Explorer's double-click does.
+  const openEntry = (name) => {
+    const entryPath = buildEntryPath(name)
+    const entry = files[entryPath]
+    if (!entry) return
+    if (entry.type === 'folder') goTo(entryPath)
+    else {
+      setSelectedName(name)
+      setViewingFile(entryPath)
+    }
+  }
 
   const handleImport = useCallback(
     async (e) => {
@@ -563,13 +578,21 @@ export default function FileManagerApp() {
                           ) : (
                             <button
                               type="button"
-                              onClick={() => {
-                                if (isFolder) goTo(entryPath)
-                                else {
-                                  setSelectedName(name)
-                                  setViewingFile(entryPath)
+                              // Explorer model: click selects, double-click or
+                              // Enter opens. Touch has no double-click, so a tap
+                              // still opens there.
+                              onClick={(e) => {
+                                setSelectedName(name)
+                                if (e.nativeEvent?.pointerType === 'touch') openEntry(name)
+                              }}
+                              onDoubleClick={() => openEntry(name)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  openEntry(name)
                                 }
                               }}
+                              aria-label={`${name}, ${isFolder ? 'folder' : 'file'}`}
                               className="flex w-full min-w-0 items-center gap-2 text-left"
                             >
                               <Icon

@@ -121,4 +121,17 @@ describe('useGlobalShortcuts', () => {
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', altKey: false, bubbles: true }))
     expect(mockCloseWindow).not.toHaveBeenCalled()
   })
+  it('reads the physical key on macOS, where Option+W types a composed character', () => {
+    renderHook(() => useGlobalShortcuts())
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: '∑',
+        code: 'KeyW',
+        altKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    expect(mockCloseWindow).toHaveBeenCalledWith('test-win')
+  })
 })

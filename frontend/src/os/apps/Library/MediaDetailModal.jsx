@@ -29,14 +29,15 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
     if (!item) return
     const unlock = lockScroll()
     const handleEsc = (e) => {
-      if (e.key === 'Escape') onClose()
+      // Escape belongs to the nested Delete confirmation while it is open.
+      if (e.key === 'Escape' && !confirmDelete) onClose()
     }
     document.addEventListener('keydown', handleEsc)
     return () => {
       unlock()
       document.removeEventListener('keydown', handleEsc)
     }
-  }, [item, onClose])
+  }, [item, onClose, confirmDelete])
 
   const handleStatusChange = (newStatus) => {
     if (!newStatus || !onUpdate || !item || newStatus === item.status) return

@@ -6,20 +6,14 @@ const API_URL = import.meta.env.VITE_API_URL
 
 const WELCOME = [
   { type: 'system', text: '╔══════════════════════════════════════╗' },
-  { type: 'system', text: '║  Nexus Terminal v1.0                 ║' },
+  { type: 'system', text: '║  Nexus Terminal v2.1.0               ║' },
   { type: 'system', text: '║  Type "help" for available commands  ║' },
   { type: 'system', text: '╚══════════════════════════════════════╝' },
   { type: 'info', text: '' },
 ]
 
-function formatTimestamp() {
-  return new Date().toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  })
-}
+// Command Prompt style prompt, shown before the input and every echoed command.
+const PROMPT = 'C:\\Users\\nexus>'
 
 function buildCommands({ session, windows, zStack }) {
   const user = session?.user
@@ -214,7 +208,7 @@ export default function TerminalApp({ windowId: _windowId }) {
         {lines.map((line, i) => (
           <div key={i} className="flex">
             {line.type === 'command' && (
-              <span className="mr-2 text-[#c0c0c0] select-none">{formatTimestamp()} $</span>
+              <span className="text-[#c0c0c0] select-none">{PROMPT}</span>
             )}
             <pre
               className={`whitespace-pre-wrap break-all font-mono ${lineColors[line.type] || 'text-[#c0c0c0]'}`}
@@ -226,15 +220,15 @@ export default function TerminalApp({ windowId: _windowId }) {
       </div>
 
       {/* Input */}
-      <div className="flex shrink-0 items-center gap-2 bg-black px-2 py-1">
-        <span className="text-[#c0c0c0] select-none">$</span>
+      <div className="flex shrink-0 items-center bg-black px-2 py-1">
+        <span className="text-[#c0c0c0] select-none">{PROMPT}</span>
         <input
           ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="type a command..."
+          placeholder="Type a command, or help"
           aria-label="Terminal command input"
           autoFocus
           className="h-auto flex-1 rounded-none border-0 bg-transparent p-0 font-mono text-[14px] text-[#c0c0c0] placeholder:text-[#6b6b6b] caret-[#c0c0c0] focus:outline-none"

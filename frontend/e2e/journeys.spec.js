@@ -149,6 +149,54 @@ test.describe('desktop shell', () => {
     await expect(win(page, 'Media Vault')).toBeVisible()
   })
 
+  test('Show desktop undoes the desktop menu "Show the desktop" and keeps maximised state', async ({
+    page,
+  }) => {
+    await openDesktop(page)
+    await win(page, 'Media Vault').getByRole('button', { name: 'Maximize window' }).click()
+    await page.getByRole('button', { name: 'Show desktop' }).click()
+    await expect(win(page, 'Media Vault')).toBeHidden()
+    await page.getByRole('button', { name: 'Show desktop' }).click()
+    await expect(win(page, 'Media Vault')).toHaveClass(/is-maximized/)
+    // Same again, but hidden from the desktop context menu this time.
+    await page.getByRole('button', { name: 'Show desktop' }).click()
+    await page.getByRole('button', { name: 'Show desktop' }).click()
+    await win(page, 'Media Vault').getByRole('button', { name: 'Restore window' }).click()
+    await page.getByRole('button', { name: 'Show desktop' }).click()
+    await page.getByRole('button', { name: 'Show desktop' }).click()
+    await expect(win(page, 'Media Vault')).toBeVisible()
+    await page.mouse.click(1200, 700, { button: 'right' })
+    await page.getByRole('menuitem', { name: 'Show the desktop' }).click()
+    await expect(win(page, 'Media Vault')).toBeHidden()
+    await page.getByRole('button', { name: 'Show desktop' }).click()
+    await expect(win(page, 'Media Vault')).toBeVisible()
+  })
+
+  test('dialogs: default button takes focus; Escape closes only the top dialog', async ({
+    page,
+  }) => {
+    await openDesktop(page)
+    const media = win(page, 'Media Vault')
+    // Vault list rows open from the keyboard.
+    await media.getByRole('button', { name: 'To Read — open vault' }).click()
+    const firstTitle = media.locator('[aria-haspopup="dialog"]').first()
+    await firstTitle.focus()
+    await page.keyboard.press('Enter')
+    const details = page.getByRole('dialog')
+    await expect(details).toBeVisible()
+    // Book details has no text field, so its default button takes focus.
+    await expect(details.locator('button.default')).toBeFocused()
+    await details.getByRole('button', { name: 'Delete', exact: true }).click()
+    const confirm = page.getByRole('alertdialog')
+    await expect(confirm).toBeVisible()
+    // Default button has focus, not the caption close button.
+    await expect(confirm.locator('button.default')).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(confirm).toBeHidden()
+    // The Book details dialog underneath stays open.
+    await expect(details).toBeVisible()
+  })
+
   test('desktop icons open apps; context menu works with the keyboard', async ({ page }) => {
     await openDesktop(page)
     await page.getByRole('button', { name: 'Open Tasks' }).dblclick()

@@ -76,7 +76,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
         <div className="mt-auto flex flex-wrap items-center gap-1 border-t border-border pt-2">
           {mediaType !== 'job' && item.genre && <span className="w7-badge">{item.genre}</span>}
           {mediaType !== 'job' && item.rating != null && item.rating > 0 && (
-            <span className="text-[12px] text-amber-500">★ {item.rating}/5</span>
+            <span className="text-[12px] text-[#8a5a00]">★ {item.rating}/5</span>
           )}
 
           <div className="ml-auto flex gap-0.5">

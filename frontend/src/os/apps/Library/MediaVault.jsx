@@ -136,10 +136,15 @@ function MediaVault({
               onClick={() => onSelect?.(item)}
               className={`w7-item group cursor-pointer px-2 py-1.5 @sm:grid @sm:items-center ${rowGrid}`}
             >
-              {/* Title */}
-              <div className="mb-0.5 truncate font-semibold text-foreground @sm:mb-0 @sm:pr-3">
+              {/* Title — a real button so the row opens from the keyboard too
+                  (Enter/Space click bubbles to the row's onClick). */}
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                className="mb-0.5 block w-full min-w-0 truncate text-left font-semibold text-foreground @sm:mb-0 @sm:pr-3"
+              >
                 {item.title}
-              </div>
+              </button>
 
               {/* Creator */}
               <div className="mb-0.5 truncate text-muted-foreground @sm:mb-0 @sm:pr-3">
@@ -188,7 +193,7 @@ function MediaVault({
 
               {/* Rating */}
               {!isJob && (
-                <div className="mb-0.5 text-[12px] text-amber-500 @sm:mb-0">
+                <div className="mb-0.5 text-[12px] text-[#8a5a00] @sm:mb-0">
                   <span className="mr-1 text-[11px] text-muted-foreground @sm:hidden">Rating:</span>
                   {item.rating != null && item.rating > 0 ? `★ ${item.rating}` : ''}
                 </div>

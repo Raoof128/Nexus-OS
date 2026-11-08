@@ -3,7 +3,7 @@ import { useWindowStore } from '../stores/windowStore'
 import { APP_REGISTRY, APP_ORDER } from '../stores/appRegistry'
 import AppIcon from './AppIcon'
 
-// Windows 7 "Medium icons" desktop grid: 48px icons, 75×86 cells, filled
+// Windows 7 "Medium icons" desktop grid: 48px icons, 78×88 cells, filled
 // top-to-bottom then left-to-right.
 const CELL_W = 78
 const CELL_H = 88

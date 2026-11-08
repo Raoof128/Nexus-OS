@@ -58,6 +58,7 @@ export const useWindowStore = create((set, get) => ({
   activeWindowId: null,
   isMobile: false,
   launcherOpen: false,
+  desktopShown: null,
 
   openApp: (appId) => {
     const manifest = APP_REGISTRY[appId]
@@ -122,14 +123,16 @@ export const useWindowStore = create((set, get) => ({
       const newZStack = [...state.zStack.filter((id) => id !== windowId), windowId]
 
       if (win.state === 'minimized') {
+        // Come back in the state the window was minimised from (maximised and
+        // snapped windows stay maximised/snapped, as on Windows 7). Position
+        // and size are untouched while minimised, so they are still correct.
         return {
           windows: {
             ...state.windows,
             [windowId]: {
               ...win,
-              state: 'normal',
-              position: { ...win.restoredRect },
-              size: { width: win.restoredRect.width, height: win.restoredRect.height },
+              state: win.preMinimizeState || 'normal',
+              preMinimizeState: undefined,
             },
           },
           zStack: newZStack,
@@ -151,7 +154,11 @@ export const useWindowStore = create((set, get) => ({
 
       const newWindows = {
         ...state.windows,
-        [windowId]: { ...win, state: 'minimized' },
+        [windowId]: {
+          ...win,
+          state: 'minimized',
+          preMinimizeState: win.state === 'minimized' ? win.preMinimizeState : win.state,
+        },
       }
 
       const newActive =
@@ -397,11 +404,31 @@ export const useWindowStore = create((set, get) => ({
   minimizeAll: () => {
     set((state) => {
       const newWindows = { ...state.windows }
+      // Remember what was on screen (bottom to top) so Show desktop can bring
+      // it back whichever control hid it (taskbar strip or desktop menu).
+      const shown = state.zStack.filter(
+        (id) => newWindows[id] && newWindows[id].state !== 'minimized',
+      )
       for (const id of Object.keys(newWindows)) {
-        newWindows[id] = { ...newWindows[id], state: 'minimized' }
+        const win = newWindows[id]
+        if (win.state === 'minimized') continue
+        newWindows[id] = { ...win, state: 'minimized', preMinimizeState: win.state }
       }
-      return { windows: newWindows, activeWindowId: null }
+      return {
+        windows: newWindows,
+        activeWindowId: null,
+        desktopShown: shown.length > 0 ? shown : state.desktopShown,
+      }
     })
+  },
+
+  // Second press of Show desktop: bring back the windows minimizeAll hid, in
+  // their previous stacking order, if nothing has been opened since.
+  restoreDesktop: () => {
+    const ids = (get().desktopShown || []).filter((id) => get().windows[id]?.state === 'minimized')
+    set({ desktopShown: null })
+    ids.forEach((id) => get().focusWindow(id))
+    return ids.length > 0
   },
 
   closeAll: () => {
@@ -421,7 +448,8 @@ useWindowStore.subscribe((state) => {
       // Convert minimized windows to normal before saving — hydration ignores minimized state anyway
       const windowsToSave = {}
       for (const [id, win] of Object.entries(windows)) {
-        windowsToSave[id] = win.state === 'minimized' ? { ...win, state: 'normal' } : win
+        windowsToSave[id] =
+          win.state === 'minimized' ? { ...win, state: win.preMinimizeState || 'normal' } : win
       }
       const snapshot = {
         schemaVersion: SCHEMA_VERSION,

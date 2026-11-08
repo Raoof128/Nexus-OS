@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useState } from 'react'
 import { Bell, BellDot } from 'lucide-react'
 import { useWindowStore } from '../stores/windowStore'
 import { useNotificationStore } from '../stores/notificationStore'
@@ -102,17 +102,14 @@ function Taskbar() {
   )
 
   // Show desktop toggles: first click minimises everything, second click
-  // restores the windows it hid (in their previous stacking order).
-  const peekRef = useRef(null)
+  // restores the windows it hid (in their previous stacking order). The store
+  // remembers them, so this also undoes the desktop menu's "Show the desktop".
+  const restoreDesktop = useWindowStore((s) => s.restoreDesktop)
   const handleShowDesktop = useCallback(() => {
-    if (peekRef.current && peekRef.current.length > 0) {
-      peekRef.current.forEach((id) => focusWindow(id))
-      peekRef.current = null
-      return
-    }
-    peekRef.current = zStack.filter((id) => windows[id] && windows[id].state !== 'minimized')
+    const anyVisible = zStack.some((id) => windows[id] && windows[id].state !== 'minimized')
+    if (!anyVisible && restoreDesktop?.()) return
     minimizeAll?.()
-  }, [zStack, windows, focusWindow, minimizeAll])
+  }, [zStack, windows, minimizeAll, restoreDesktop])
 
   return (
     <nav

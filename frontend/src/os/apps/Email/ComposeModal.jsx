@@ -299,7 +299,7 @@ function ComposeModal({
                   )}
 
                   {/* Command area */}
-                  <footer className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       {(isReply || isForward) && onAiDraft && (
                         <button
@@ -342,7 +342,7 @@ function ComposeModal({
                         Discard
                       </button>
                     </div>
-                  </footer>
+                  </div>
                 </form>
               </div>
             </Motion.div>
