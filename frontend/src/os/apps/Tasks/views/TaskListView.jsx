@@ -57,6 +57,7 @@ export default function TaskListView({
   onSortModeChange,
   starredActive,
   rootRef,
+  leading = null,
 }) {
   const { data: items = [], isLoading } = useTaskItems(listId, true)
   const { createTask, updateTask, moveTask, deleteTask, clearCompleted } = useTaskMutations(
@@ -209,10 +210,13 @@ export default function TaskListView({
 
   return (
     <section className="flex min-w-0 flex-1 flex-col bg-white">
-      <header className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
-        <h2 className="w7-heading min-w-0 truncate">
-          {starredActive ? 'Starred' : listName || 'Tasks'}
-        </h2>
+      <header className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 pt-3 pb-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {leading}
+          <h2 className="w7-heading min-w-0 truncate">
+            {starredActive ? 'Starred' : listName || 'Tasks'}
+          </h2>
+        </div>
         <label className="flex shrink-0 items-center gap-2 text-muted-foreground">
           Sort by
           <select
@@ -295,7 +299,7 @@ export default function TaskListView({
 
         {completed.length > 0 && (
           <div className="mt-4">
-            <div className="flex items-center gap-2 border-b border-border pb-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border pb-1">
               <button
                 type="button"
                 onClick={() => setShowCompleted((v) => !v)}

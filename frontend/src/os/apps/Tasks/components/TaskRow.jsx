@@ -60,7 +60,9 @@ function TaskRow({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -8 }}
       transition={{ duration: DURATION.fast }}
-      className={`w7-item group flex items-center gap-2 px-2 py-1 ${isSub ? 'ml-7' : ''}`}
+      className={`w7-item group flex min-w-0 items-center gap-1 px-2 py-1 @md:gap-2 ${
+        isSub ? 'ml-7' : ''
+      }`}
     >
       {/* 7.css checkbox: the input is the real control, stretched over the
           label so touch gets a 44px hit area; the label draws the box. */}
@@ -79,7 +81,7 @@ function TaskRow({
       <button
         type="button"
         onClick={() => onEdit(task)}
-        className="flex min-w-0 flex-1 flex-col items-start rounded text-left"
+        className="flex min-w-0 flex-1 flex-col items-start overflow-hidden rounded text-left"
       >
         <span
           className={`max-w-full truncate text-[12px] ${
@@ -89,16 +91,18 @@ function TaskRow({
           {task.title}
         </span>
         {(due || task.recurrence) && (
-          <span className="mt-0.5 flex flex-wrap items-center gap-1">
+          <span className="mt-0.5 flex max-w-full min-w-0 flex-wrap items-center gap-1">
             {due && (
-              <span className={`w7-badge ${due.overdue && !completed ? 'text-destructive' : ''}`}>
-                {due.label}
+              <span
+                className={`w7-badge max-w-full min-w-0 ${due.overdue && !completed ? 'text-destructive' : ''}`}
+              >
+                <span className="min-w-0 truncate">{due.label}</span>
               </span>
             )}
             {task.recurrence && (
-              <span className="w7-badge">
+              <span className="w7-badge max-w-full min-w-0">
                 <Repeat2 size={11} aria-hidden="true" />
-                {labelForRRule(task.recurrence)}
+                <span className="min-w-0 truncate">{labelForRRule(task.recurrence)}</span>
               </span>
             )}
           </span>
@@ -110,7 +114,7 @@ function TaskRow({
         aria-label={task.starred ? `Unstar "${task.title}"` : `Star "${task.title}"`}
         aria-pressed={task.starred}
         onClick={() => onStar(task)}
-        className={`w7-toolbtn h-6 w-6 px-0 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100 focus-visible:opacity-100 ${
+        className={`w7-toolbtn h-6 w-6 shrink-0 px-0 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100 focus-visible:opacity-100 ${
           task.starred
             ? 'text-amber-600'
             : 'text-muted-foreground opacity-0 group-hover:opacity-100'
@@ -123,7 +127,7 @@ function TaskRow({
         type="button"
         aria-label={`Edit "${task.title}"`}
         onClick={() => onEdit(task)}
-        className="w7-toolbtn h-6 w-6 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
+        className="w7-toolbtn hidden h-6 w-6 shrink-0 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 @md:inline-flex pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
       >
         <Pencil size={14} aria-hidden="true" />
       </button>
@@ -136,7 +140,7 @@ function TaskRow({
         type="button"
         aria-label={`Delete "${task.title}"`}
         onClick={() => onDelete(task)}
-        className="w7-toolbtn w7-toolbtn--danger h-6 w-6 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
+        className="w7-toolbtn w7-toolbtn--danger h-6 w-6 shrink-0 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
       >
         <Trash2 size={14} aria-hidden="true" />
       </button>

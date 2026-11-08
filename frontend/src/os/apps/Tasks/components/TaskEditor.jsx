@@ -132,7 +132,7 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 border-t border-border bg-muted px-3 py-2">
+      <div className="flex flex-wrap justify-end gap-2 border-t border-border bg-muted px-3 py-2">
         <button type="button" onClick={save} disabled={!title.trim()} className="w7-btn default">
           {initial ? 'Save' : 'Add task'}
         </button>
