@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { LogOut } from 'lucide-react'
 import { useAuth } from '../../../hooks/useAuth'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
+import { clearAllBlobs } from '../../../lib/opfsDrive'
 import SettingsGroup from './SettingsGroup'
 import { isIdleLockEnabled, setIdleLockEnabled } from '../../components/DesktopMenus/desktopPrefs'
 
@@ -10,7 +11,11 @@ export default function AccountsPanel() {
   const user = session?.user
   const [showResetConfirm, setShowResetConfirm] = useState(false)
 
-  const handleReset = () => {
+  // Reset removes every browser-local Nexus OS item: settings, notes, the Nexus Drive
+  // file tree and its OPFS blobs, and the window layout. The server account is untouched.
+  // Blobs are awaited first, because reloading would abort the deletion.
+  const handleReset = async () => {
+    await clearAllBlobs()
     localStorage.clear()
     window.location.reload()
   }
@@ -61,8 +66,9 @@ export default function AccountsPanel() {
       <ConfirmDialog
         open={showResetConfirm}
         title="Factory reset"
-        message="This clears all local settings and saved notes in this browser. You can't undo this."
+        message="This removes your settings, notes, files on Nexus Drive and window layout from this browser. Your account on the server is not changed. You can't undo this."
         confirmLabel="Reset"
+        defaultAction="cancel"
         onConfirm={handleReset}
         onCancel={() => setShowResetConfirm(false)}
         variant="destructive"

@@ -322,6 +322,9 @@ function ChapterViewer({ book, chapter, onBack, onAskAion, onPick, onNavigateCha
             <h2 className="w7-heading mb-5 text-[14px]">
               {book.name} {chapterNum}
             </h2>
+            {verses.length === 0 && (
+              <p className="text-muted-foreground">This chapter has no verses to show.</p>
+            )}
 
             {/* Verses */}
             {verses.map((v, i) => {
@@ -502,6 +505,8 @@ export default function AionReader({ view, onNavigate }) {
   if (readerView.type === 'chapter') {
     return (
       <ChapterViewer
+        // Keyed by chapter so verse selection and scroll state reset on every chapter change.
+        key={`${readerView.book.id}:${readerView.chapter}`}
         book={readerView.book}
         chapter={readerView.chapter}
         onBack={() => setReaderView({ type: 'chapters', book: readerView.book })}

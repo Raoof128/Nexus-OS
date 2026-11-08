@@ -7,7 +7,6 @@ export default function ServicesPanel({
   lastCheck,
   apiChecking,
   onCheckNow,
-  realtimeState,
   sessionState,
 }) {
   return (
@@ -26,13 +25,6 @@ export default function ServicesPanel({
             <td>Health check of the API endpoint</td>
             <td>
               <ServiceStatus state={apiState} />
-            </td>
-          </tr>
-          <tr>
-            <td>Realtime sync</td>
-            <td>Live updates over a WebSocket, idle until a list subscribes</td>
-            <td>
-              <ServiceStatus state={realtimeState} />
             </td>
           </tr>
           <tr>
@@ -60,12 +52,6 @@ export default function ServicesPanel({
             Check now
           </button>
         </div>
-      </fieldset>
-
-      <fieldset className="mt-3">
-        <legend>Realtime</legend>
-        <DataRow label="Protocol" value="WebSocket" />
-        <DataRow label="Provider" value="Supabase" />
       </fieldset>
     </>
   )

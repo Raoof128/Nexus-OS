@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Loader2, Home, MessageSquare, BookOpen } from 'lucide-react'
 import { useWindowStore } from '../../stores/windowStore'
 import { useAionAuth } from './hooks/useAionAuth'
+import { useAionChat } from './hooks/useAionChat'
 import AionHome from './views/AionHome'
 import AionChat from './views/AionChat'
 import AionReader from './views/AionReader'
@@ -12,7 +13,7 @@ const NAV_ITEMS = [
   { type: 'reader', label: 'Reader', Icon: BookOpen },
 ]
 
-// Shown when the Aion Supabase env vars are missing; the auth error alone does not say what to set.
+// Shown when the Aion Supabase env vars are missing. The variable names are developer detail, so they only appear in dev builds.
 const CONFIG_MISSING = !(
   import.meta.env.VITE_AION_SUPABASE_URL && import.meta.env.VITE_AION_SUPABASE_ANON_KEY
 )
@@ -20,6 +21,9 @@ const CONFIG_MISSING = !(
 export default function AionApp({ windowId }) {
   const [view, setView] = useState({ type: 'home' })
   const { session, isLoading, error, retry } = useAionAuth()
+  // The chat lives here, not in AionChat, so the transcript and any reply in progress
+  // survive switching to Home or Reader. It aborts only when this window closes.
+  const chat = useAionChat(session)
   const activeWindowId = useWindowStore((s) => s.activeWindowId)
 
   // Stamp each chat navigation with a unique key so AionChat's auto-submit can
@@ -57,8 +61,9 @@ export default function AionApp({ windowId }) {
       <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-white p-6">
         {CONFIG_MISSING ? (
           <p role="alert" className="w7-error max-w-[420px] text-center text-[12px]">
-            Aion is not set up on this computer. Add VITE_AION_SUPABASE_URL and
-            VITE_AION_SUPABASE_ANON_KEY to frontend/.env, then restart the app.
+            Aion isn&apos;t set up on this computer yet. Ask whoever runs Nexus OS to finish setup.
+            {import.meta.env.DEV &&
+              ' Developer: add VITE_AION_SUPABASE_URL and VITE_AION_SUPABASE_ANON_KEY to frontend/.env, then restart the app.'}
           </p>
         ) : (
           <p role="alert" className="w7-error max-w-[420px] text-center text-[12px]">
@@ -74,7 +79,7 @@ export default function AionApp({ windowId }) {
 
   let content
   if (view.type === 'chat') {
-    content = <AionChat view={view} onNavigate={navigate} session={session} />
+    content = <AionChat view={view} onNavigate={navigate} session={session} chat={chat} />
   } else if (view.type === 'reader') {
     content = <AionReader view={view} onNavigate={navigate} />
   } else {

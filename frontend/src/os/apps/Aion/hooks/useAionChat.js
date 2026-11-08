@@ -106,6 +106,16 @@ export function useAionChat(session) {
     [session, conversationId],
   )
 
+  // Retry after a failed reply: drop the failed turn first so the question is not
+  // shown twice, then send it again.
+  const retryLast = useCallback(() => {
+    const lastUserIndex = messages.findLastIndex((m) => m.role === 'user')
+    if (lastUserIndex === -1) return
+    const text = messages[lastUserIndex].content
+    setMessages((prev) => prev.slice(0, lastUserIndex))
+    sendMessage(text, null)
+  }, [messages, sendMessage])
+
   const reset = useCallback(() => {
     if (abortRef.current) abortRef.current.abort()
     setMessages([])
@@ -121,5 +131,5 @@ export function useAionChat(session) {
     }
   }, [])
 
-  return { messages, sendMessage, isStreaming, error, conversationId, reset }
+  return { messages, sendMessage, isStreaming, error, conversationId, reset, retryLast }
 }

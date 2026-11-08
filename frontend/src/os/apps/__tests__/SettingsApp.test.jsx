@@ -12,11 +12,13 @@ vi.mock('../../../hooks/useAuth', () => ({
 
 vi.mock('../../../lib/opfsDrive', () => ({
   isOpfsSupported: () => false,
-  estimateStorage: () => Promise.resolve({ usage: 0, quota: 0 }),
+  estimateStorage: vi.fn(() => Promise.resolve({ usage: 0, quota: 0 })),
   requestPersistentStorage: () => Promise.resolve(false),
+  clearAllBlobs: () => Promise.resolve(0),
   formatBytes: (n) => `${n} B`,
 }))
 
+import { estimateStorage } from '../../../lib/opfsDrive'
 import SettingsApp from '../SettingsApp'
 import { useSettingsStore, ACCENT_PRESETS } from '../../stores/settingsStore'
 
@@ -178,9 +180,16 @@ describe('SettingsApp', () => {
       fireEvent.click(reset)
       expect(
         screen.getByText(
-          "This clears all local settings and saved notes in this browser. You can't undo this.",
+          "This removes your settings, notes, files on Nexus Drive and window layout from this browser. Your account on the server is not changed. You can't undo this.",
         ),
       ).toBeDefined()
+    })
+
+    it('Factory reset… puts focus on Cancel, the safe default', () => {
+      render(<SettingsApp />)
+      openCategory('User accounts')
+      fireEvent.click(screen.getByRole('button', { name: 'Factory reset…' }))
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' }))
     })
 
     it('Factory reset… is separated from Sign out', () => {
@@ -195,6 +204,24 @@ describe('SettingsApp', () => {
       openCategory('User accounts')
       fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
       expect(signOut).toHaveBeenCalled()
+    })
+  })
+
+  describe('Nexus Drive storage', () => {
+    it('says it is measuring while the estimate is pending, not that it is unavailable', async () => {
+      render(<SettingsApp />)
+      openCategory('Nexus Drive')
+      expect(screen.getByText('Measuring storage…')).toBeDefined()
+      expect(screen.queryByText('Storage estimate unavailable.')).toBeNull()
+      expect(await screen.findByRole('progressbar', { name: 'Storage used' })).toBeDefined()
+      expect(screen.queryByText('Measuring storage…')).toBeNull()
+    })
+
+    it('reports unavailable only when the browser gives no estimate', async () => {
+      estimateStorage.mockResolvedValueOnce(null)
+      render(<SettingsApp />)
+      openCategory('Nexus Drive')
+      expect(await screen.findByText('Storage estimate unavailable.')).toBeDefined()
     })
   })
 })

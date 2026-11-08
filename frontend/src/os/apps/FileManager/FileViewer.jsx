@@ -104,11 +104,12 @@ export default function FileViewer({ file, onClose }) {
       </div>
 
       {state.status === 'loading' && (
-        <div className="flex flex-1 items-center justify-center">
+        <div
+          role="status"
+          className="flex flex-1 items-center justify-center gap-2 text-muted-foreground"
+        >
           <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden="true" />
-          <span className="sr-only" role="status">
-            Loading…
-          </span>
+          <span>Loading…</span>
         </div>
       )}
 

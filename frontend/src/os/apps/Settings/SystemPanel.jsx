@@ -31,16 +31,7 @@ export default function SystemPanel() {
             {SHORTCUTS.map((s) => (
               <tr key={s.keys}>
                 <td>
-                  <kbd
-                    className="rounded-[3px] border border-border bg-w7-surface px-1.5 py-px text-[12px]"
-                    aria-label={s.keys
-                      .replace(/\+/g, ' plus ')
-                      .replace(/↑/g, 'Up Arrow')
-                      .replace(/←/g, 'Left Arrow')
-                      .replace(/→/g, 'Right Arrow')
-                      .replace(/\s+/g, ' ')
-                      .trim()}
-                  >
+                  <kbd className="rounded-[3px] border border-border bg-w7-surface px-1.5 py-px text-[12px]">
                     {s.keys}
                   </kbd>
                 </td>

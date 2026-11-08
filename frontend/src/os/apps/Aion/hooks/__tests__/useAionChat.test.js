@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { useAionChat } from '../useAionChat'
 
 const mockSession = { access_token: 'tok_abc' }
@@ -137,6 +137,34 @@ describe('useAionChat', () => {
 
     act(() => result.current.reset())
     expect(result.current.messages).toEqual([])
+    expect(result.current.error).toBeNull()
+  })
+
+  it('retry after a failed reply sends the question once, not twice', async () => {
+    const failing = vi
+      .fn()
+      .mockResolvedValue({ ok: false, json: () => Promise.resolve({ error: 'down' }) })
+    vi.stubGlobal('fetch', failing)
+
+    const { result } = renderHook(() => useAionChat(mockSession))
+    await act(async () => {
+      await result.current.sendMessage('Hello', null)
+    })
+    expect(result.current.messages).toHaveLength(2)
+
+    const stream = makeSseStream([
+      { event: 'text', data: { content: 'Hi!' } },
+      { event: 'done', data: {} },
+    ])
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body: stream }))
+    await act(async () => {
+      result.current.retryLast()
+    })
+    await waitFor(() => expect(result.current.isStreaming).toBe(false))
+
+    const userTurns = result.current.messages.filter((m) => m.role === 'user')
+    expect(userTurns.map((m) => m.content)).toEqual(['Hello'])
+    expect(result.current.messages.at(-1)).toMatchObject({ role: 'assistant', content: 'Hi!' })
     expect(result.current.error).toBeNull()
   })
 })

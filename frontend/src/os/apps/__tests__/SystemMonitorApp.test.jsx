@@ -1,23 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 
-const realtime = vi.hoisted(() => ({ state: 'open', channels: [{}] }))
-
 vi.mock('../../../hooks/useAuth', () => ({
   useAuth: () => ({
     session: {
       user: { email: 'dev@example.com', id: 'user-123', app_metadata: { provider: 'google' } },
     },
   }),
-}))
-
-vi.mock('../../../lib/realtimeClient', () => ({
-  realtimeClient: {
-    realtime: {
-      connectionState: () => realtime.state,
-      getChannels: () => realtime.channels,
-    },
-  },
 }))
 
 import SystemMonitorApp from '../SystemMonitorApp'
@@ -51,9 +40,14 @@ function tab(name) {
 
 describe('SystemMonitorApp', () => {
   beforeEach(() => {
-    realtime.state = 'open'
-    realtime.channels = [{}]
     globalThis.fetch = vi.fn(() => Promise.resolve({ ok: true }))
+    // The shared ResizeObserver stub loses its methods after restoreAllMocks, so
+    // give this file a plain no-op observer for the tab strip's overflow cue.
+    globalThis.ResizeObserver = class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
     seedStore()
   })
 
@@ -262,36 +256,12 @@ describe('SystemMonitorApp', () => {
       })
     })
 
-    it('reports Realtime as Idle while no channel needs the socket', async () => {
-      realtime.state = 'closed'
-      realtime.channels = []
+    it('lists only services the app really uses, with no Realtime row', async () => {
       await renderApp()
       fireEvent.click(tab('Services'))
       const table = screen.getByRole('table', { name: 'Services' })
-      expect(within(table).getByRole('row', { name: /Realtime sync/ }).textContent).toContain(
-        'Idle',
-      )
-    })
-
-    it('reports Realtime as Stopped when a channel exists but the socket is closed', async () => {
-      realtime.state = 'closed'
-      realtime.channels = [{}]
-      await renderApp()
-      fireEvent.click(tab('Services'))
-      const table = screen.getByRole('table', { name: 'Services' })
-      expect(within(table).getByRole('row', { name: /Realtime sync/ }).textContent).toContain(
-        'Stopped',
-      )
-    })
-
-    it('shows Running for Realtime while the socket is open', async () => {
-      realtime.state = 'open'
-      await renderApp()
-      fireEvent.click(tab('Services'))
-      const table = screen.getByRole('table', { name: 'Services' })
-      expect(within(table).getByRole('row', { name: /Realtime sync/ }).textContent).toContain(
-        'Running',
-      )
+      expect(within(table).queryByRole('row', { name: /Realtime/ })).toBeNull()
+      expect(screen.queryByRole('group', { name: 'Realtime' })).toBeNull()
     })
 
     it('runs a health check when Check now is pressed', async () => {
@@ -310,7 +280,7 @@ describe('SystemMonitorApp', () => {
       fireEvent.click(tab('Performance'))
       expect(screen.getByRole('group', { name: 'Physical memory' })).toBeDefined()
       expect(screen.getByRole('group', { name: 'Browser memory (Chrome only)' })).toBeDefined()
-      expect(screen.getByRole('group', { name: 'CPU usage' })).toBeDefined()
+      expect(screen.getByRole('group', { name: 'Page CPU (est.)' })).toBeDefined()
     })
 
     it('does not claim a physical memory percentage the browser cannot report', async () => {
@@ -433,11 +403,12 @@ describe('SystemMonitorApp', () => {
   })
 
   describe('status bar', () => {
-    it('shows Processes, CPU Usage and JS heap fields', async () => {
+    it('labels the CPU figure as a page estimate, never as system CPU', async () => {
       await renderApp()
       const bar = document.querySelector('.status-bar')
       expect(bar.textContent).toContain('Processes: 3')
-      expect(bar.textContent).toContain('CPU Usage:')
+      expect(bar.textContent).toContain('Page CPU (est.):')
+      expect(bar.textContent).not.toContain('CPU Usage')
       expect(bar.textContent).toContain('JS heap:')
       expect(bar.textContent).not.toContain('API:')
     })

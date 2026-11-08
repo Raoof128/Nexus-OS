@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { APP_REGISTRY } from '../stores/appRegistry'
 import { useWindowStore } from '../stores/windowStore'
@@ -15,7 +15,6 @@ import {
   apiServiceState,
   formatMegabytes,
   formatPercent,
-  realtimeServiceState,
   sessionServiceState,
 } from './SystemMonitor/format'
 import { useApiHealth } from './SystemMonitor/useApiHealth'
@@ -49,6 +48,8 @@ export default function SystemMonitorApp({ windowId }) {
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [showShortcuts, setShowShortcuts] = useState(false)
   const tabRefs = useRef({})
+  const tablistRef = useRef(null)
+  const [tabOverflow, setTabOverflow] = useState({ start: false, end: false })
 
   const health = useApiHealth({ autoRefresh })
   const samples = useSystemSamples()
@@ -64,10 +65,44 @@ export default function SystemMonitorApp({ windowId }) {
   const provider = user?.app_metadata?.provider || 'email'
   const connection = typeof navigator !== 'undefined' ? navigator.connection : undefined
 
-  const selectTab = useCallback((id, { focus = false } = {}) => {
-    setActiveTab(id)
-    if (focus) tabRefs.current[id]?.focus()
+  // The tab strip scrolls sideways when the window is narrow. These edges
+  // drive the fade cues that show more tabs exist beyond either side.
+  const updateTabOverflow = useCallback(() => {
+    const el = tablistRef.current
+    if (!el) return
+    const remaining = el.scrollWidth - el.clientWidth - el.scrollLeft
+    setTabOverflow({ start: el.scrollLeft > 1, end: remaining > 1 })
   }, [])
+
+  // ResizeObserver fires once on observe, which covers the first measurement.
+  useEffect(() => {
+    const el = tablistRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return undefined
+    const observer = new ResizeObserver(updateTabOverflow)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [updateTabOverflow])
+
+  // Scroll only the tab strip so the chosen tab is fully visible. focus() alone
+  // does not reliably do this for a tab clipped at the strip edge.
+  const revealTab = useCallback((id) => {
+    const list = tablistRef.current
+    const tab = tabRefs.current[id]
+    if (!list || !tab) return
+    const left = tab.offsetLeft
+    const right = left + tab.offsetWidth
+    if (left < list.scrollLeft) list.scrollLeft = left
+    else if (right > list.scrollLeft + list.clientWidth) list.scrollLeft = right - list.clientWidth
+  }, [])
+
+  const selectTab = useCallback(
+    (id, { focus = false } = {}) => {
+      setActiveTab(id)
+      revealTab(id)
+      if (focus) tabRefs.current[id]?.focus()
+    },
+    [revealTab],
+  )
 
   const handleTabKeyDown = (event) => {
     const id = tabKeyTarget(event.key, activeTab, TAB_IDS)
@@ -162,10 +197,6 @@ export default function SystemMonitorApp({ windowId }) {
   ]
 
   const apiState = apiServiceState(health.status)
-  const realtimeState = realtimeServiceState(
-    samples.realtimeState?.state ?? null,
-    samples.realtimeState?.channels ?? 0,
-  )
   const hasSession = Boolean(session)
 
   const heap = samples.heap
@@ -196,7 +227,6 @@ export default function SystemMonitorApp({ windowId }) {
         lastCheck={health.lastCheck}
         apiChecking={health.status === 'checking'}
         onCheckNow={() => health.refresh()}
-        realtimeState={realtimeState}
         sessionState={sessionServiceState(hasSession)}
       />
     ),
@@ -226,33 +256,54 @@ export default function SystemMonitorApp({ windowId }) {
         </p>
       )}
 
-      <menu
-        role="tablist"
-        aria-label="Task Manager sections"
-        className="shrink-0"
-        onKeyDown={handleTabKeyDown}
-      >
-        {TABS.map((tab) => {
-          const active = activeTab === tab.id
-          return (
-            <button
-              key={tab.id}
-              ref={(el) => {
-                tabRefs.current[tab.id] = el
-              }}
-              type="button"
-              role="tab"
-              id={tabButtonId(tab.id)}
-              aria-controls={tabPanelId(tab.id)}
-              aria-selected={active}
-              tabIndex={active ? 0 : -1}
-              onClick={() => selectTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          )
-        })}
-      </menu>
+      {/* The strip scrolls sideways instead of clipping; top padding keeps the raised selected tab inside it. */}
+      <div className="relative shrink-0">
+        <menu
+          ref={tablistRef}
+          role="tablist"
+          aria-label="Task Manager sections"
+          className="flex overflow-x-auto overflow-y-hidden pt-[2px] [&>button]:shrink-0"
+          onKeyDown={handleTabKeyDown}
+          onScroll={updateTabOverflow}
+        >
+          {TABS.map((tab) => {
+            const active = activeTab === tab.id
+            return (
+              <button
+                key={tab.id}
+                ref={(el) => {
+                  tabRefs.current[tab.id] = el
+                }}
+                type="button"
+                role="tab"
+                id={tabButtonId(tab.id)}
+                aria-controls={tabPanelId(tab.id)}
+                aria-selected={active}
+                tabIndex={active ? 0 : -1}
+                onClick={() => selectTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </menu>
+        {tabOverflow.start && (
+          <div
+            aria-hidden="true"
+            data-testid="sysmon-tabs-fade-start"
+            className="pointer-events-none absolute inset-y-0 left-0 w-6"
+            style={{ background: 'linear-gradient(to left, rgba(255,255,255,0), #fff)' }}
+          />
+        )}
+        {tabOverflow.end && (
+          <div
+            aria-hidden="true"
+            data-testid="sysmon-tabs-fade-end"
+            className="pointer-events-none absolute inset-y-0 right-0 w-6"
+            style={{ background: 'linear-gradient(to right, rgba(255,255,255,0), #fff)' }}
+          />
+        )}
+      </div>
 
       {TABS.map((tab) => (
         <TabPanel key={tab.id} id={tab.id} active={activeTab === tab.id}>
@@ -266,7 +317,7 @@ export default function SystemMonitorApp({ windowId }) {
           className="status-bar-field"
           title="Estimated from this page's main thread, not the whole computer"
         >
-          CPU Usage: {formatPercent(samples.cpu)}
+          Page CPU (est.): {formatPercent(samples.cpu)}
         </p>
         <p className="status-bar-field" title="JavaScript heap of this page, Chrome only">
           JS heap: {heap ? formatPercent(heap.percent) : '—'}

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 
 // Use vi.hoisted so the variable is available when vi.mock is hoisted to the top
 const { mockUseAionAuth } = vi.hoisted(() => {
@@ -30,9 +30,11 @@ vi.mock('../views/AionHome', () => ({
 }))
 
 vi.mock('../views/AionChat', () => ({
-  default: ({ onNavigate }) => (
+  default: ({ onNavigate, chat }) => (
     <div data-testid="aion-chat">
       <button onClick={() => onNavigate({ type: 'home' })}>back</button>
+      <button onClick={() => chat.sendMessage('Hi Aion', null)}>send hi</button>
+      <p data-testid="transcript">{chat.messages.map((m) => m.content).join('|')}</p>
     </div>
   ),
 }))
@@ -84,5 +86,38 @@ describe('AionApp', () => {
     fireEvent.click(screen.getByText('go chat'))
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(screen.getByTestId('aion-home')).toBeDefined()
+  })
+
+  it('keeps the chat transcript when switching to Home and back', async () => {
+    const body = {
+      getReader: () => {
+        const chunks = [
+          new TextEncoder().encode('event: text\ndata: {"content":"Hello there."}\n\n'),
+        ]
+        return {
+          read: vi.fn(() =>
+            Promise.resolve(
+              chunks.length ? { done: false, value: chunks.shift() } : { done: true },
+            ),
+          ),
+        }
+      },
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body }))
+
+    render(<AionApp windowId="aion" />)
+    fireEvent.click(screen.getByText('go chat'))
+    await act(async () => {
+      fireEvent.click(screen.getByText('send hi'))
+    })
+    await waitFor(() =>
+      expect(screen.getByTestId('transcript').textContent).toBe('Hi Aion|Hello there.'),
+    )
+
+    fireEvent.click(screen.getByText('back'))
+    expect(screen.getByTestId('aion-home')).toBeDefined()
+    fireEvent.click(screen.getByText('go chat'))
+    expect(screen.getByTestId('transcript').textContent).toBe('Hi Aion|Hello there.')
+    vi.unstubAllGlobals()
   })
 })

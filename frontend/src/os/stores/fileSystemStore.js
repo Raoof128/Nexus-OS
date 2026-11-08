@@ -6,10 +6,31 @@ const STORAGE_KEY = 'nexus-os:filesystem'
 const SCHEMA_VERSION = 1
 const SAVE_DEBOUNCE_MS = 500
 
+// Seeded folders carry a timestamp so Explorer's "Date modified" is never blank.
+const SEED_AT = Date.now()
+
 const DEFAULT_FILES = {
-  '/': { type: 'folder', name: '/', children: ['documents', 'downloads'] },
-  '/documents': { type: 'folder', name: 'documents', children: [] },
-  '/downloads': { type: 'folder', name: 'downloads', children: [] },
+  '/': {
+    type: 'folder',
+    name: '/',
+    children: ['documents', 'downloads'],
+    createdAt: SEED_AT,
+    updatedAt: SEED_AT,
+  },
+  '/documents': {
+    type: 'folder',
+    name: 'documents',
+    children: [],
+    createdAt: SEED_AT,
+    updatedAt: SEED_AT,
+  },
+  '/downloads': {
+    type: 'folder',
+    name: 'downloads',
+    children: [],
+    createdAt: SEED_AT,
+    updatedAt: SEED_AT,
+  },
 }
 
 function buildPath(parentPath, name) {

@@ -97,7 +97,7 @@ export default function FlyoutMenu({ label, x, y, items, anchorEl, onSelect, onD
         disabled={item.disabled}
         onClick={() => onSelect(item)}
         className={`nx-menuitem justify-between pointer-coarse:min-h-11 disabled:text-[#8d8d8d] ${
-          item.danger ? 'text-[#a8261b]' : ''
+          item.danger ? 'text-destructive' : ''
         }`}
       >
         {radio && (

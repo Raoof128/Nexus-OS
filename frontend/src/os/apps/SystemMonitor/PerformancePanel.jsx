@@ -7,18 +7,18 @@ export default function PerformancePanel({ cpu, heap, deviceMemoryGb }) {
   return (
     <div className="space-y-3">
       <fieldset>
-        <legend>CPU usage</legend>
+        <legend>Page CPU (est.)</legend>
         {cpu.supported ? (
           <>
             <p className="text-[22px] leading-none text-foreground">{formatPercent(cpu.current)}</p>
             <p className="mt-1 text-muted-foreground">
               Estimated from this page&apos;s main thread, not the whole computer.
             </p>
-            <Gauge label="CPU usage" value={cpu.current} />
-            <HistoryGraph label="CPU usage history" values={cpu.history} />
+            <Gauge label="Page CPU (est.)" value={cpu.current} />
+            <HistoryGraph label="Page CPU (est.) history" values={cpu.history} />
           </>
         ) : (
-          <p className="text-muted-foreground">CPU usage is not available in this browser.</p>
+          <p className="text-muted-foreground">Page CPU is not available in this browser.</p>
         )}
       </fieldset>
 

@@ -1,8 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
-
-vi.mock('../../../lib/realtimeClient', () => ({
-  realtimeClient: { realtime: { connectionState: () => 'closed', getChannels: () => [] } },
-}))
+import { describe, it, expect } from 'vitest'
 
 import { busyPercent, heapStats, pushHistory } from '../SystemMonitor/useSystemSamples'
 import { ctrlTabTarget, listKeyTarget, tabKeyTarget, wrapIndex } from '../SystemMonitor/keyboard'
@@ -10,7 +6,6 @@ import {
   apiServiceState,
   formatDeviceMemory,
   formatMegabytes,
-  realtimeServiceState,
   sessionServiceState,
 } from '../SystemMonitor/format'
 import { TABS, TAB_IDS, tabButtonId, tabPanelId } from '../SystemMonitor/constants'
@@ -123,16 +118,6 @@ describe('service state vocabulary', () => {
     expect(apiServiceState('offline')).toBe('stopped')
     expect(apiServiceState('checking')).toBe('starting')
     expect(apiServiceState('anything else')).toBe('unknown')
-  })
-
-  it('maps Realtime socket states to Windows service states', () => {
-    expect(realtimeServiceState('open')).toBe('running')
-    expect(realtimeServiceState('connecting')).toBe('starting')
-    expect(realtimeServiceState('closing', 1)).toBe('stopped')
-    expect(realtimeServiceState('closed', 1)).toBe('stopped')
-    expect(realtimeServiceState('closed', 0)).toBe('idle')
-    expect(realtimeServiceState('closed')).toBe('idle')
-    expect(realtimeServiceState(null)).toBe('unknown')
   })
 
   it('maps the sign-in session to running or stopped', () => {

@@ -39,23 +39,6 @@ export function apiServiceState(status) {
   return 'unknown'
 }
 
-// Supabase Realtime socket states (CONNECTION_STATE in @supabase/realtime-js).
-// The socket only opens once a channel subscribes, so a closed socket with no
-// channels is idle rather than stopped.
-export function realtimeServiceState(connectionState, channelCount = 0) {
-  switch (connectionState) {
-    case 'open':
-      return 'running'
-    case 'connecting':
-      return 'starting'
-    case 'closing':
-    case 'closed':
-      return channelCount > 0 ? 'stopped' : 'idle'
-    default:
-      return 'unknown'
-  }
-}
-
 export function sessionServiceState(hasSession) {
   return hasSession ? 'running' : 'stopped'
 }

@@ -9,6 +9,8 @@ import SettingsGroup from './SettingsGroup'
 
 export default function StoragePanel() {
   const [est, setEst] = useState(null)
+  // `pending` keeps "still measuring" apart from "the browser gave no estimate".
+  const [pending, setPending] = useState(true)
   const [persistResult, setPersistResult] = useState(null)
   const [busy, setBusy] = useState(false)
   const supported = isOpfsSupported()
@@ -17,13 +19,19 @@ export default function StoragePanel() {
   // synchronously in the effect body), which keeps react-hooks/set-state-in-effect
   // happy and mirrors the StorageMeter pattern in FileManagerApp.
   const refresh = useCallback(() => {
-    estimateStorage().then((e) => setEst(e))
+    setPending(true)
+    estimateStorage().then((e) => {
+      setEst(e)
+      setPending(false)
+    })
   }, [])
 
   useEffect(() => {
     let active = true
     estimateStorage().then((e) => {
-      if (active) setEst(e)
+      if (!active) return
+      setEst(e)
+      setPending(false)
     })
     return () => {
       active = false
@@ -51,7 +59,12 @@ export default function StoragePanel() {
               survive a reload.
             </p>
           )}
-          {est ? (
+          {pending ? (
+            <>
+              <div role="progressbar" className="marquee" aria-label="Measuring storage" />
+              <p className="text-muted-foreground">Measuring storage…</p>
+            </>
+          ) : est ? (
             <>
               <div
                 role="progressbar"

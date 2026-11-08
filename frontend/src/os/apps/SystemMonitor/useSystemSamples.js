@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { realtimeClient } from '../../../lib/realtimeClient'
 import { HISTORY_LENGTH, SAMPLE_INTERVAL_MS } from './constants'
 
 // Long tasks older than this can no longer affect the current one-second window.
@@ -47,18 +46,6 @@ export function supportsLongTasks() {
   }
 }
 
-// Reads the real Supabase Realtime socket state and how many channels use it.
-export function readRealtimeState() {
-  try {
-    return {
-      state: realtimeClient.realtime.connectionState(),
-      channels: realtimeClient.realtime.getChannels().length,
-    }
-  } catch {
-    return null
-  }
-}
-
 export function readHeap() {
   return typeof performance !== 'undefined' ? heapStats(performance.memory) : null
 }
@@ -70,7 +57,6 @@ export function useSystemSamples({ intervalMs = SAMPLE_INTERVAL_MS } = {}) {
     cpuHistory: [],
     heap: readHeap(),
     heapHistory: [],
-    realtimeState: readRealtimeState(),
   }))
 
   useEffect(() => {
@@ -95,14 +81,12 @@ export function useSystemSamples({ intervalMs = SAMPLE_INTERVAL_MS } = {}) {
       longTasks = longTasks.filter((t) => t.startTime + t.duration >= now - LONG_TASK_RETENTION_MS)
       const cpu = observer ? busyPercent(longTasks, now, intervalMs) : null
       const heap = readHeap()
-      const realtimeState = readRealtimeState()
 
       setSamples((prev) => ({
         cpu,
         cpuHistory: cpu == null ? prev.cpuHistory : pushHistory(prev.cpuHistory, cpu),
         heap,
         heapHistory: heap ? pushHistory(prev.heapHistory, heap.percent) : prev.heapHistory,
-        realtimeState,
       }))
     }
 

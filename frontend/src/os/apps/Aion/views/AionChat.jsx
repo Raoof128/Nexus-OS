@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, MessageSquare } from 'lucide-react'
-import { useAionChat } from '../hooks/useAionChat'
 import VerseCard from '../components/VerseCard'
 
 // Module-level Set survives React Strict Mode's simulated unmount/remount.
@@ -8,8 +7,9 @@ import VerseCard from '../components/VerseCard'
 // double-send across the two Strict Mode effect invocations.
 const sentChatKeys = new Set()
 
-export default function AionChat({ view, onNavigate, session }) {
-  const { messages, sendMessage, isStreaming, error } = useAionChat(session)
+// The chat state comes from AionApp so it survives view changes (see useAionChat).
+export default function AionChat({ view, onNavigate, session, chat }) {
+  const { messages, sendMessage, isStreaming, error, retryLast } = chat
   const [inputValue, setInputValue] = useState(view.initialMessage ?? '')
   const scrollRef = useRef(null)
 
@@ -120,13 +120,7 @@ export default function AionChat({ view, onNavigate, session }) {
             <p role="alert" className="w7-error text-[12px]">
               {error}
             </p>
-            <button
-              type="button"
-              onClick={() =>
-                sendMessage(messages.findLast((m) => m.role === 'user')?.content ?? '', null)
-              }
-              className="w7-btn"
-            >
+            <button type="button" onClick={retryLast} className="w7-btn">
               Try again
             </button>
           </div>

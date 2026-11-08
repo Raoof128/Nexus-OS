@@ -39,7 +39,8 @@ export default function AionHome({ onNavigate }) {
   return (
     <div className="flex h-full w-full flex-col bg-white">
       {/* Modest banner image; fades to white so the text column stays light */}
-      <div className="relative h-28 w-full shrink-0 overflow-hidden border-b border-[#d9d9d9]">
+      {/* The banner gives way first when the window is short, so the composer below never clips. */}
+      <div className="relative h-28 w-full min-h-0 shrink overflow-hidden border-b border-[#d9d9d9]">
         <div
           className="absolute inset-0"
           style={{
@@ -112,7 +113,7 @@ export default function AionHome({ onNavigate }) {
       </div>
 
       {/* Chat input, pinned bottom */}
-      <div className="flex items-center gap-2 border-t border-[#d9d9d9] bg-w7-surface px-4 py-2.5">
+      <div className="flex shrink-0 items-center gap-2 border-t border-[#d9d9d9] bg-w7-surface px-4 py-2.5">
         <input
           type="text"
           value={inputValue}

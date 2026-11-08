@@ -94,6 +94,7 @@ export default function AddressStrip({
         })}
       </nav>
 
+      {/* The field is narrow at phone width, so the placeholder stays short. The aria-label keeps the full name. */}
       <div className="w-24 shrink-0 @lg:w-[150px] @xl:w-[200px]">
         <input
           type="search"
@@ -106,7 +107,7 @@ export default function AddressStrip({
               onQueryChange('')
             }
           }}
-          placeholder={`Search ${folderLabel || APP_TITLE}`}
+          placeholder="Search"
           aria-label={`Search ${folderLabel || APP_TITLE}`}
           className="w-full min-w-0 pointer-coarse:h-11"
         />
