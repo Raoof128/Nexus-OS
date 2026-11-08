@@ -1,5 +1,15 @@
 # Change Log
 
+### 2026-11-09 (Australia/Sydney) — Deploy: `claude/funny-hamilton-kasc78` (final audit fixes) to production
+
+**Raouf:**
+
+- **Scope:** Commit, push and redeploy all new changes (Worker, backend, frontend).
+- **Summary:** Deployed `claude/funny-hamilton-kasc78` at `098fddd` (43 commits past the 2026-11-08 deploy, including the notes-app merge, idempotent email send, failure-only login budget, desktop-wide task reminders, 44px touch caption buttons and Vitest 4). Production schema was probed read-only first: `nexus_notes`, `nexus_note_label_links.user_id`, `nexus_tasks.due_timezone`, `nexus_tasks.generated_from_task_id` and `email_drafts` all already exist, so no migration was run. Worker first (`nexus-api-proxy`, version `3cf20e8c`: forwards `Idempotency-Key` and the recovery-token headers, `redirect: manual`, normalises `/api/email/accounts`). Backend on `portfolio-droplet` with Sentinel's `portfolio-droplet-root` key: `git archive` staged under `/root`, candidate image built and preflighted against `/opt/nexus/.env.production` (`PREFLIGHT OK`), backup at `/root/nexus-backup-20261109`, the 2026-11-08 image tagged `nexus-api:prev` and `nexus-api:rollback-20261108`, rebuilt from `/opt/nexus`, swapped, `/healthz` 200 after 4 s. Frontend built with `VITE_API_URL=https://home-notes-app.uk/api` and deployed to Pages `nexus-archive` branch `codex/bootstrap` (`f93dce1e`). Only `/opt/nexus` and the `nexus-api` container were touched; the staging folder and candidate image were removed.
+- **Files Changed:** `frontend/src/os/apps/Tasks/views/TaskListView.test.jsx` (due-label assertion was en-US only and failed on an en-AU machine), `CHANGELOG.md`, `AGENT.md`.
+- **Verification:** Before deploy: ruff check and format, pytest 1149 passed / 2 skipped, ESLint, Vitest 885/885, Worker `node --test` 0 failed. Live: home and www 200 on the new bundle; `/api/healthz` 200; `/auth/refresh` 403 without `X-Requested-With`, 201 with it; `/media`, `/notes`, `/email/accounts` unauthenticated 401; `/auth/session` 200; CSP and `X-Frame-Options: DENY` served. Sentinel: nginx and docker active, container `healthy`, no nginx errors since the deploy.
+- **Follow-ups:** Signed-in flows not exercised live. Same open items as 2026-11-08 (`GEMINI_MODEL=gemini-2.5-flash` pin, no `REDIS_URL`, email poller disabled), plus the header check before any nginx `real_ip` change (`docs/operations.md`). Rollback: `docker stop nexus-api && docker rm nexus-api`, run `nexus-api:prev` with the same flags, restore `/root/nexus-backup-20261109` to `/opt/nexus`.
+
 ### 2026-11-08 (Australia/Sydney) — Merge feat/notes-app into the Windows 7 branch (Windows 7 wins conflicts)
 
 **Raouf:**
