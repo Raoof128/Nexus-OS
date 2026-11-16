@@ -68,14 +68,14 @@ export default function MediaForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
+    <form className="@container" onSubmit={handleSubmit} onClick={(e) => e.stopPropagation()}>
       {error && (
-        <p id={`${idPrefix}-form-error`} role="alert" className="w7-error mb-3">
+        <p id={`${idPrefix}-form-error`} role="alert" className="w7-error mb-3 wrap-anywhere">
           {error}
         </p>
       )}
 
-      <fieldset className="space-y-3">
+      <fieldset className="min-w-0 gap-3">
         <legend>Details</legend>
 
         <div>
@@ -151,7 +151,7 @@ export default function MediaForm({
             </select>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 @min-[20rem]:grid-cols-2">
             <div>
               <label htmlFor={`${idPrefix}-genre`} className={labelClass}>
                 Genre
@@ -186,7 +186,7 @@ export default function MediaForm({
           </div>
         )}
 
-        <div className={isJob ? '' : 'grid grid-cols-1 gap-3 min-[400px]:grid-cols-2'}>
+        <div className={isJob ? '' : 'grid grid-cols-1 gap-3 @min-[20rem]:grid-cols-2'}>
           {!isJob && (
             <div>
               <label htmlFor={`${idPrefix}-rating`} className={labelClass}>

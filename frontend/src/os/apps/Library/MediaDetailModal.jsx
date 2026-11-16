@@ -99,16 +99,16 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
 
                 <div className="window-body has-space min-h-0 flex-1 overflow-y-auto">
                   {/* Heading */}
-                  <div className="flex items-start gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[3px] border border-border bg-w7-pane">
                       <Icon className="h-5 w-5 text-[#3d5a80]" aria-hidden="true" />
                     </div>
                     <div className="min-w-0">
-                      <h2 id="detail-modal-title" className="w7-heading break-words">
+                      <h2 id="detail-modal-title" className="w7-heading wrap-anywhere">
                         {item.title}
                       </h2>
                       {item.creator && item.creator !== '—' && (
-                        <p className="text-[12px] text-muted-foreground">
+                        <p className="mt-1 wrap-anywhere text-[12px] text-muted-foreground">
                           {config?.creatorLabel}: {item.creator}
                         </p>
                       )}
@@ -119,51 +119,37 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                   {statusNav && (
                     <fieldset className="mt-3">
                       <legend>Status</legend>
-                      <div className="flex items-center overflow-x-auto py-1">
+                      <div className="grid grid-cols-3 gap-1 py-1">
                         {statusNav.flow.map((stepStatus, index) => {
                           const isCurrent = index === statusNav.currentIndex
                           const isPast = index < statusNav.currentIndex
 
                           return (
-                            <div
+                            <button
                               key={stepStatus}
-                              className="flex flex-1 items-center last:flex-none"
+                              type="button"
+                              onClick={() => handleStatusChange(stepStatus)}
+                              disabled={isCurrent}
+                              aria-current={isCurrent ? 'step' : undefined}
+                              aria-label={
+                                isCurrent
+                                  ? `Current status: ${stepStatus}`
+                                  : `Change status to ${stepStatus}`
+                              }
+                              className="w7-toolbtn min-h-6 min-w-0 gap-1 px-1 text-center wrap-anywhere whitespace-normal pointer-coarse:min-h-11 aria-[current=step]:border-w7-select-border aria-[current=step]:bg-w7-select aria-[current=step]:font-semibold aria-[current=step]:text-w7-title aria-[current=step]:opacity-100"
                             >
-                              <button
-                                type="button"
-                                onClick={() => handleStatusChange(stepStatus)}
-                                disabled={isCurrent}
-                                aria-current={isCurrent ? 'step' : undefined}
-                                aria-label={
+                              <span
+                                aria-hidden="true"
+                                className={`size-2 shrink-0 rounded-full border ${
                                   isCurrent
-                                    ? `Current status: ${stepStatus}`
-                                    : `Change status to ${stepStatus}`
-                                }
-                                className="w7-toolbtn shrink-0 gap-1.5 px-1.5 pointer-coarse:min-h-11 disabled:text-w7-title disabled:opacity-100"
-                              >
-                                <span
-                                  aria-hidden="true"
-                                  className={`h-2.5 w-2.5 rounded-full border ${
-                                    isCurrent
-                                      ? 'border-w7-title bg-w7-title'
-                                      : isPast
-                                        ? 'border-w7-select-border bg-w7-select-border'
-                                        : 'border-[#828790] bg-white'
-                                  }`}
-                                />
-                                <span className={isCurrent ? 'font-semibold' : undefined}>
-                                  {stepStatus}
-                                </span>
-                              </button>
-                              {index < statusNav.flow.length - 1 && (
-                                <span
-                                  aria-hidden="true"
-                                  className={`mx-1 h-px min-w-3 flex-1 ${
-                                    isPast ? 'bg-w7-select-border' : 'bg-border'
-                                  }`}
-                                />
-                              )}
-                            </div>
+                                    ? 'border-w7-title bg-w7-title'
+                                    : isPast
+                                      ? 'border-w7-select-border bg-w7-select-border'
+                                      : 'border-[#828790] bg-white'
+                                }`}
+                              />
+                              <span className="min-w-0">{stepStatus}</span>
+                            </button>
                           )
                         })}
                       </div>
@@ -174,11 +160,11 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                   {showDetails && (
                     <fieldset className="mt-3">
                       <legend>Details</legend>
-                      <dl className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2 text-[12px]">
+                      <dl className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-2 text-[12px]">
                         {showGenre && (
                           <>
                             <dt className="text-muted-foreground">Genre</dt>
-                            <dd className="text-foreground">{item.genre}</dd>
+                            <dd className="wrap-anywhere text-foreground">{item.genre}</dd>
                           </>
                         )}
                         {showRating && (
@@ -204,7 +190,7 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                             <dt className="text-muted-foreground">
                               {config?.subInfoLabel || 'Info'}
                             </dt>
-                            <dd className="truncate text-foreground">{item.sub_info}</dd>
+                            <dd className="wrap-anywhere text-foreground">{item.sub_info}</dd>
                           </>
                         )}
                       </dl>
@@ -215,14 +201,14 @@ export default function MediaDetailModal({ item, onClose, onUpdate, onDelete, on
                   {item.takeaway && (
                     <fieldset className="mt-3">
                       <legend>Takeaway</legend>
-                      <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
+                      <p className="text-[13px] leading-relaxed wrap-anywhere whitespace-pre-wrap text-foreground">
                         {item.takeaway}
                       </p>
                     </fieldset>
                   )}
                 </div>
 
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}

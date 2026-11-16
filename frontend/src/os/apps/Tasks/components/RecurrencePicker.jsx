@@ -8,7 +8,7 @@ function presetForValue(value) {
   return match ? match.value : 'custom'
 }
 
-export default function RecurrencePicker({ value, onChange }) {
+export default function RecurrencePicker({ value, onChange, disabled = false }) {
   const selectId = useId()
   // Custom mode is sticky. Clearing the RRULE box sets the value to null, which
   // would otherwise look like "Does not repeat" and unmount the field mid-typing.
@@ -29,9 +29,15 @@ export default function RecurrencePicker({ value, onChange }) {
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-1">
       <label htmlFor={selectId}>Repeat</label>
-      <select id={selectId} value={preset} onChange={handlePreset}>
+      <select
+        id={selectId}
+        value={preset}
+        onChange={handlePreset}
+        disabled={disabled}
+        className="pointer-coarse:min-h-11"
+      >
         {RECURRENCE_PRESETS.map((p) => (
           <option key={p.value} value={p.value}>
             {p.label}
@@ -39,14 +45,14 @@ export default function RecurrencePicker({ value, onChange }) {
         ))}
       </select>
 
-      {preset === 'custom' && (
+      {preset === 'custom' && !disabled && (
         <input
           type="text"
           value={value || ''}
           onChange={(e) => onChange(e.target.value.trim() || null)}
           placeholder="RRULE, e.g. FREQ=WEEKLY;BYDAY=MO,WE,FR"
           aria-label="Custom recurrence rule (RRULE)"
-          className="font-mono text-[12px]"
+          className="min-w-0 font-mono text-[12px] pointer-coarse:min-h-11"
         />
       )}
 

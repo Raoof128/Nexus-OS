@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { Zap } from 'lucide-react'
 
 const loadAICmdPalette = () => import('./AICmdPalette')
@@ -34,6 +34,25 @@ function LoadingDialog() {
 // placement="inline" renders it in normal flow, for a host's command bar.
 export default function LazyAICmdPalette({ mediaType = 'book', onAdd, placement = 'floating' }) {
   const [open, setOpen] = useState(false)
+  const triggerRef = useRef(null)
+  const returnFocusRef = useRef(null)
+
+  const openDialog = useCallback(
+    (target = document.activeElement) => {
+      if (open) return
+      returnFocusRef.current =
+        target instanceof HTMLElement && target !== document.body ? target : triggerRef.current
+      setOpen(true)
+    },
+    [open],
+  )
+
+  const restoreFocus = (event) => {
+    event.preventDefault()
+    const target = returnFocusRef.current
+    const focusTarget = target?.isConnected ? target : triggerRef.current
+    focusTarget?.focus({ preventScroll: true })
+  }
 
   useEffect(() => {
     const handleShortcut = (event) => {
@@ -43,9 +62,9 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd, placement 
       // One palette at a time: the OS command palette is already open.
       if (document.querySelector('[data-testid="command-palette"]')) return
       event.preventDefault()
-      setOpen(true)
+      openDialog()
     }
-    const handleExternalOpen = () => setOpen(true)
+    const handleExternalOpen = () => openDialog()
 
     document.addEventListener('keydown', handleShortcut)
     window.addEventListener('nexus:open-ai-cmd', handleExternalOpen)
@@ -53,7 +72,7 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd, placement 
       document.removeEventListener('keydown', handleShortcut)
       window.removeEventListener('nexus:open-ai-cmd', handleExternalOpen)
     }
-  }, [])
+  }, [openDialog])
 
   // Hover and focus only warm the chunk. Mounting waits for an actual open,
   // so a cold click never races a half-mounted palette.
@@ -65,7 +84,9 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd, placement 
     <>
       <button
         type="button"
+        ref={triggerRef}
         aria-label="Ask AI (open command palette)"
+        aria-haspopup="dialog"
         aria-keyshortcuts="Alt+A"
         title={`Ask AI (${SHORTCUT_LABEL})`}
         className={`w7-toolbtn w7-card min-h-[44px] min-w-[44px] gap-1.5 px-2 sm:pointer-fine:min-h-[28px] sm:pointer-fine:min-w-0 ${
@@ -75,7 +96,7 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd, placement 
         }`}
         onMouseEnter={prefetch}
         onFocus={prefetch}
-        onClick={() => setOpen(true)}
+        onClick={(event) => openDialog(event.currentTarget)}
       >
         <Zap size={14} className="text-[#3d5a80]" aria-hidden="true" />
         <span>Ask AI</span>
@@ -84,7 +105,13 @@ export default function LazyAICmdPalette({ mediaType = 'book', onAdd, placement 
 
       {open ? (
         <Suspense fallback={<LoadingDialog />}>
-          <AICmdPalette open={open} onOpenChange={setOpen} mediaType={mediaType} onAdd={onAdd} />
+          <AICmdPalette
+            open={open}
+            onOpenChange={setOpen}
+            onCloseAutoFocus={restoreFocus}
+            mediaType={mediaType}
+            onAdd={onAdd}
+          />
         </Suspense>
       ) : null}
     </>

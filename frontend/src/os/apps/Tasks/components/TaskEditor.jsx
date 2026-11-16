@@ -1,22 +1,32 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { motion as Motion } from 'framer-motion'
 import { X } from 'lucide-react'
-import { DURATION } from '../../../../lib/motion'
 import RecurrencePicker from './RecurrencePicker'
+import {
+  formatLocalDate,
+  formatLocalDateTimeWithOffset,
+  formatLocalTime,
+  getTaskDueDate,
+  hasTimedDueDate,
+  localDateTimeFromParts,
+} from '../lib/taskDateTime'
 
 // Inline create/edit form. `initial` is a task object (edit) or null (create).
 // Emits a payload shaped for CreateTaskRequest / UpdateTaskRequest.
-export default function TaskEditor({ initial, onSave, onCancel }) {
+export default function TaskEditor({ initial, parentTitle, saving = false, onSave, onCancel }) {
   const [title, setTitle] = useState(initial?.title || '')
   const initialNotes = initial?.notes_encrypted || initial?.notes || ''
   const [notes, setNotes] = useState(initialNotes)
-  const [due, setDue] = useState(initial?.due || '')
-  const [time, setTime] = useState(
-    initial?.due_at && !initial?.all_day ? new Date(initial.due_at).toTimeString().slice(0, 5) : '',
-  )
+  const initialInstant = initial && hasTimedDueDate(initial) ? getTaskDueDate(initial) : null
+  const initialDate = initialInstant ? formatLocalDate(initialInstant) : initial?.due || ''
+  const initialTime = initialInstant ? formatLocalTime(initialInstant) : ''
+  const [due, setDue] = useState(initialDate)
+  const [time, setTime] = useState(initialTime)
   const [recurrence, setRecurrence] = useState(initial?.recurrence || null)
   const titleRef = useRef(null)
   const uid = useId()
+  const localDue = localDateTimeFromParts(due, time)
+  const invalidTime =
+    localDue && (formatLocalDate(localDue) !== due || formatLocalTime(localDue) !== time)
 
   useEffect(() => {
     titleRef.current?.focus()
@@ -24,16 +34,18 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
 
   const buildPayload = () => {
     const trimmed = title.trim()
-    if (!trimmed) return null
-    const allDay = !time
-    const dueAt = due && time ? `${due}T${time}:00` : null
+    if (!trimmed || invalidTime) return null
     const payload = {
       title: trimmed,
       notes: notes.trim() || null,
-      due: due || null,
-      due_at: dueAt,
-      all_day: allDay,
       recurrence: recurrence || null,
+    }
+    // Preserve the original instant when editing an unrelated field, including
+    // tasks created in a different time zone and ambiguous times when clocks roll back.
+    if (!initial || due !== initialDate || time !== initialTime) {
+      payload.due = due || null
+      payload.due_at = localDue ? formatLocalDateTimeWithOffset(localDue) : null
+      payload.all_day = !localDue
     }
     // Leave untouched notes out of an edit. The API returns null for a note it
     // cannot decrypt, so re-sending the blank field would erase the stored one.
@@ -43,7 +55,7 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
 
   const save = () => {
     const payload = buildPayload()
-    if (payload) onSave(payload)
+    if (payload && !saving) onSave(payload)
   }
 
   const onTitleKeyDown = (e) => {
@@ -57,15 +69,11 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
   }
 
   return (
-    <Motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: 'auto' }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: DURATION.fast }}
-      className="w7-card overflow-hidden"
-    >
+    <div className="w7-card">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
-        <span className="w7-subheading">{initial ? 'Edit task' : 'New task'}</span>
+        <span className="w7-subheading min-w-0 wrap-anywhere">
+          {initial ? 'Edit task' : parentTitle ? 'New subtask' : 'New task'}
+        </span>
         <button
           type="button"
           aria-label="Close"
@@ -78,6 +86,7 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
       </div>
 
       <div className="flex flex-col gap-3 px-3 py-3">
+        {parentTitle && <p className="wrap-anywhere text-muted-foreground">Under {parentTitle}</p>}
         <div className="flex flex-col gap-1">
           <label htmlFor={`${uid}-title`}>Title</label>
           <input
@@ -89,6 +98,8 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
             onKeyDown={onTitleKeyDown}
             placeholder="Task title"
             aria-label="Task title"
+            maxLength={500}
+            className="pointer-coarse:min-h-11"
           />
         </div>
 
@@ -101,6 +112,7 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
             placeholder="Details"
             aria-label="Details"
             rows={2}
+            maxLength={20000}
             className="resize-none"
           />
         </div>
@@ -112,8 +124,15 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
               id={`${uid}-due`}
               type="date"
               value={due}
-              onChange={(e) => setDue(e.target.value)}
+              onChange={(e) => {
+                setDue(e.target.value)
+                if (!e.target.value) {
+                  setTime('')
+                  setRecurrence(null)
+                }
+              }}
               aria-label="Due date"
+              className="max-w-full pointer-coarse:min-h-11"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -125,21 +144,41 @@ export default function TaskEditor({ initial, onSave, onCancel }) {
               onChange={(e) => setTime(e.target.value)}
               disabled={!due}
               aria-label="Due time"
+              aria-invalid={invalidTime || undefined}
+              className="max-w-full pointer-coarse:min-h-11"
               title={due ? 'Set a due time' : 'Pick a due date first'}
             />
           </div>
-          <RecurrencePicker value={recurrence} onChange={setRecurrence} />
+          <RecurrencePicker value={recurrence} onChange={setRecurrence} disabled={!due} />
         </div>
+        {invalidTime ? (
+          <p role="alert" className="w7-error">
+            That time doesn’t exist on this date. Choose another time.
+          </p>
+        ) : (
+          due && (
+            <p className="text-muted-foreground">
+              {time
+                ? 'The time uses this device’s time zone.'
+                : 'Date-only reminders appear at 9:00 AM local time.'}
+            </p>
+          )
+        )}
       </div>
 
       <div className="flex flex-wrap justify-end gap-2 border-t border-border bg-muted px-3 py-2">
-        <button type="button" onClick={save} disabled={!title.trim()} className="w7-btn default">
-          {initial ? 'Save' : 'Add task'}
+        <button
+          type="button"
+          onClick={save}
+          disabled={!title.trim() || invalidTime || saving}
+          className="w7-btn default pointer-coarse:min-h-11"
+        >
+          {saving ? 'Saving…' : initial ? 'Save' : parentTitle ? 'Add subtask' : 'Add task'}
         </button>
-        <button type="button" onClick={onCancel} className="w7-btn">
+        <button type="button" onClick={onCancel} className="w7-btn pointer-coarse:min-h-11">
           Cancel
         </button>
       </div>
-    </Motion.div>
+    </div>
   )
 }

@@ -84,10 +84,8 @@ describe('TaskRow', () => {
     const star = screen.getByRole('button', { name: 'Star "Water plants"' })
     const edit = screen.getByRole('button', { name: 'Edit "Water plants"' })
     const del = screen.getByRole('button', { name: 'Delete "Water plants"' })
-    for (const btn of [star, edit, del]) {
-      expect(btn.className).toContain('pointer-coarse:h-11')
-      expect(btn.className).toContain('pointer-coarse:opacity-100')
-      expect(btn.className).not.toContain('focus-visible:outline-none')
-    }
+    expect(star.className).toContain('pointer-coarse:size-11')
+    expect(star.className).not.toContain('opacity-0')
+    for (const btn of [edit, del]) expect(btn.className).toContain('@md:pointer-fine:inline-flex')
   })
 })

@@ -661,7 +661,6 @@
   /* ── Desktop ──────────────────────────────────────────────────────────── */
   .nx-wallpaper-aero {
     background-color: #1a4f8a;
-    background-image: url('/wallpapers/aero.svg');
     background-size: cover;
     background-position: center;
   }
@@ -696,10 +695,9 @@
   .nx-taskbar {
     position: relative;
     height: var(--w7-taskbar-h);
-    background:
-      linear-gradient(#ffffff33, #ffffff0d 45%, #0000 46%, #ffffff0d),
-      color-mix(in srgb, var(--w7-frame) 30%, #0b1a2c 70%);
+    background-image: linear-gradient(#ffffff33, #ffffff0d 45%, #0000 46%, #ffffff0d);
     background-color: #102538cc;
+    background-color: color-mix(in srgb, var(--w7-frame) 40%, #0b1a2c);
     border-top: 1px solid #ffffff59;
     box-shadow:
       0 -1px 0 #0000008c,
@@ -707,11 +705,6 @@
     backdrop-filter: blur(var(--w7-glass-blur)) saturate(140%);
     -webkit-backdrop-filter: blur(var(--w7-glass-blur)) saturate(140%);
     color: #fff;
-  }
-  @supports not (backdrop-filter: blur(1px)) {
-    .nx-taskbar {
-      background-color: #13304b;
-    }
   }
 
   .nx-start-orb {
@@ -951,10 +944,9 @@
     padding: 7px;
     border: 1px solid #0009;
     border-radius: 7px 7px 0 0;
-    background:
-      linear-gradient(#ffffff40, #ffffff0d 40%, #0000001a),
-      color-mix(in srgb, var(--w7-frame) 55%, #0c2238 45%);
+    background-image: linear-gradient(#ffffff40, #ffffff0d 40%, #0000001a);
     background-color: #284d72d9;
+    background-color: color-mix(in srgb, var(--w7-frame) 55%, #0c2238);
     box-shadow:
       inset 0 0 0 1px #ffffff59,
       2px -2px 12px #0009;

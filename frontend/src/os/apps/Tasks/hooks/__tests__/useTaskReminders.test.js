@@ -43,6 +43,17 @@ describe('dueTasksToNotify', () => {
     const tasks = [{ id: 'a', title: 'No date', status: 'needsAction' }]
     expect(dueTasksToNotify(tasks, now, {})).toEqual([])
   })
+
+  it('fires date-only tasks at 9 AM in the current time zone', () => {
+    const tasks = [{ id: 'a', status: 'needsAction', due: '2026-06-15', all_day: true }]
+    expect(dueTasksToNotify(tasks, new Date('2026-06-15T08:59:59'), {})).toEqual([])
+    expect(dueTasksToNotify(tasks, new Date('2026-06-15T09:00:00'), {})).toEqual(tasks)
+  })
+
+  it('ignores a schedule change until it has been saved', () => {
+    const tasks = [{ id: 'a', status: 'needsAction', due: '2026-06-14', pendingSchedule: true }]
+    expect(dueTasksToNotify(tasks, now, {})).toEqual([])
+  })
 })
 
 // ── Desktop-level service ─────────────────────────────────────────────────────
@@ -77,12 +88,11 @@ function makeWrapper() {
   return ({ children }) => createElement(QueryClientProvider, { client }, children)
 }
 
-// Let React Query's batched notifications and the pending fetch promises settle.
-// Each round lets one query stage finish (lists, then items), so run a few.
+// Flush React Query's batched notifications for the list query and its items.
 async function settle() {
   for (let i = 0; i < 5; i++) {
     await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0))
+      await vi.advanceTimersByTimeAsync(1)
     })
   }
 }
@@ -101,10 +111,8 @@ function mountService() {
 
 describe('useTaskReminders (desktop service)', () => {
   beforeEach(() => {
-    // Only the interval timer and Date are faked. React Query and React schedule their
-    // work with real setTimeout/setImmediate, which fake timers would stall.
     vi.useFakeTimers({
-      toFake: ['setInterval', 'clearInterval', 'Date'],
+      toFake: ['setInterval', 'clearInterval', 'setTimeout', 'clearTimeout', 'Date'],
       now: new Date('2026-06-15T10:00:00'),
     })
     localStorage.clear()

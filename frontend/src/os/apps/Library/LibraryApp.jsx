@@ -97,11 +97,7 @@ export default function LibraryApp() {
     <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
       {/* Media type tabs (Windows 7 tab control) */}
       <div className="shrink-0 px-2 pt-2">
-        <menu
-          role="tablist"
-          aria-label="Media types"
-          className="flex items-end gap-0.5 overflow-x-auto"
-        >
+        <menu role="tablist" aria-label="Media types" className="flex flex-wrap items-end gap-0.5">
           {MEDIA_TYPES.map((type, index) => {
             const Icon = TYPE_ICONS[type]
             const isActive = activeType === type
@@ -142,7 +138,7 @@ export default function LibraryApp() {
       </div>
 
       {/* Command bar */}
-      <div className="w7-commandbar shrink-0">
+      <div className="w7-commandbar shrink-0 flex-wrap">
         <AddMediaDialog mediaType={activeType} onAdd={addMedia} />
         <LazyAICmdPalette mediaType={activeType} onAdd={addMedia} placement="inline" />
       </div>
@@ -152,7 +148,7 @@ export default function LibraryApp() {
         id="library-tabpanel"
         role="tabpanel"
         aria-labelledby={`library-tab-${activeType}`}
-        className="min-h-0 flex-1 overflow-y-auto bg-background"
+        className="mb-0 flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain border-0 bg-background p-0"
       >
         {dataLoading && items.length === 0 ? (
           <div
@@ -182,7 +178,7 @@ export default function LibraryApp() {
             {error && (
               <div
                 role="alert"
-                className="flex flex-wrap items-center gap-2 border-b border-border bg-w7-pane px-3 py-2"
+                className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-w7-pane px-3 py-2"
               >
                 <p className="w7-error min-w-0 flex-1 text-[12px]">
                   Couldn&rsquo;t refresh your media. Showing the last list that loaded.
@@ -200,7 +196,7 @@ export default function LibraryApp() {
             {actionError && (
               <div
                 role="alert"
-                className="flex flex-wrap items-center gap-2 border-b border-border bg-w7-pane px-3 py-2"
+                className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border bg-w7-pane px-3 py-2"
               >
                 <p className="w7-error min-w-0 flex-1 text-[12px]">{actionError}</p>
                 <button
@@ -216,10 +212,11 @@ export default function LibraryApp() {
               {vaultState ? (
                 <Motion.div
                   key="vault"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: DURATION.slow }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: DURATION.fast }}
+                  className="flex min-h-52 flex-1 flex-col"
                 >
                   <MediaVault
                     items={items}
@@ -236,11 +233,11 @@ export default function LibraryApp() {
               ) : (
                 <Motion.div
                   key="overview"
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: DURATION.slow }}
-                  className="p-3 sm:p-4"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: DURATION.fast }}
+                  className="flex min-w-0 flex-col p-2 @min-[42rem]:min-h-66 @min-[42rem]:flex-1 @min-[42rem]:p-3"
                 >
                   <KanbanBoard
                     items={items}

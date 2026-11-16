@@ -184,8 +184,10 @@ export default function Desktop() {
     return () => coarse?.removeEventListener?.('change', sync)
   }, [setTaskbarHeight])
 
-  const wallpaperKey = useSettingsStore((s) => s.wallpaper)
-  const wallpaperPosition = useSettingsStore((s) => s.wallpaperPosition)
+  const wallpaperKey = useSettingsStore((s) => s.wallpaperPreview?.wallpaper ?? s.wallpaper)
+  const wallpaperPosition = useSettingsStore(
+    (s) => s.wallpaperPreview?.position ?? s.wallpaperPosition,
+  )
   const attentionIds = useWindowStore((s) => s.attentionIds)
   const wallpaperPreset = WALLPAPER_PRESETS[wallpaperKey] || WALLPAPER_PRESETS.aero
   const hydrateSettings = useSettingsStore((s) => s.hydrateSettings)
@@ -338,7 +340,7 @@ export default function Desktop() {
 
       {/* Desktop shell — flex column: work area fills space, taskbar at bottom */}
       <div
-        className="fixed inset-0 flex flex-col overflow-hidden bg-[#1c3f6e]"
+        className="fixed inset-0 isolate flex flex-col overflow-hidden bg-[#1c3f6e]"
         onContextMenu={handleContextMenu}
         onClick={closeContextMenu}
       >

@@ -22,17 +22,23 @@ export default function QuickAddBar({ onAdd, disabled }) {
   }
 
   return (
-    <form onSubmit={submit} className="flex items-center gap-2">
+    <form onSubmit={submit} className="flex min-w-0 flex-[1_1_230px] items-center gap-2">
       <input
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         disabled={disabled}
         aria-label="Add a task"
-        placeholder="Add a task, e.g. “Pay rent tomorrow”"
-        className="min-w-0 flex-1"
+        placeholder="Add a task"
+        title="Try “Pay rent tomorrow” or “Call Alex at 5pm”"
+        maxLength={500}
+        className="min-w-0 flex-1 pointer-coarse:min-h-11"
       />
-      <button type="submit" disabled={disabled || !value.trim()} className="w7-btn">
+      <button
+        type="submit"
+        disabled={disabled || !value.trim()}
+        className="w7-btn pointer-coarse:min-h-11"
+      >
         Add
       </button>
     </form>

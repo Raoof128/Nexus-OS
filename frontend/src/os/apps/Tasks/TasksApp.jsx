@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { ListChecks } from 'lucide-react'
-import { useTaskItems, useTaskLists, useTaskMutations } from './hooks/useTasks'
+import { useAllTaskItems, useTaskItems, useTaskLists, useTaskMutations } from './hooks/useTasks'
 import ListSidebar from './components/ListSidebar'
 import TaskListView from './views/TaskListView'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
@@ -16,6 +16,11 @@ function deleteListMessage(list, items) {
   return `Delete the list ${name} and its ${n} ${n === 1 ? 'task' : 'tasks'}?`
 }
 
+function StarredTasksView(props) {
+  const collectionQuery = useAllTaskItems(props.lists)
+  return <TaskListView {...props} starredActive collectionQuery={collectionQuery} />
+}
+
 export default function TasksApp() {
   const {
     data: lists = [],
@@ -29,7 +34,7 @@ export default function TasksApp() {
   const pendingItems = useTaskItems(pendingDeleteList?.id, true)
   const [selectedListId, setSelectedListId] = useState(null)
   const [starredActive, setStarredActive] = useState(false)
-  const [sortMode, setSortMode] = useState('myorder')
+  const [sortByList, setSortByList] = useState({})
   // Below the window's @md container breakpoint the list rail becomes a modal
   // overlay opened from the header "Lists" button (desktop widths keep the rail
   // inline). The trap is only active while the overlay is open.
@@ -117,12 +122,14 @@ export default function TasksApp() {
       onClick={() => setNavOpen((v) => !v)}
       aria-expanded={navOpen}
       aria-controls={navId}
-      className="w7-toolbtn shrink-0 @md:hidden"
+      className="w7-toolbtn shrink-0 @md:hidden pointer-coarse:min-h-11"
     >
       <ListChecks size={14} aria-hidden="true" />
       <span>Lists</span>
     </button>
   )
+  const sortKey = starredActive ? 'starred' : activeListId
+  const TaskView = starredActive ? StarredTasksView : TaskListView
 
   return (
     <div
@@ -196,14 +203,15 @@ export default function TasksApp() {
           </button>
         </div>
       ) : (
-        <TaskListView
+        <TaskView
           key={`${activeListId}:${starredActive}`}
           listId={activeListId}
           listName={activeList?.name}
           lists={lists}
-          sortMode={sortMode}
-          onSortModeChange={setSortMode}
-          starredActive={starredActive}
+          sortMode={sortByList[sortKey] ?? (starredActive ? 'date' : 'myorder')}
+          onSortModeChange={(mode) =>
+            setSortByList((previous) => ({ ...previous, [sortKey]: mode }))
+          }
           rootRef={rootRef}
           leading={navToggle}
         />

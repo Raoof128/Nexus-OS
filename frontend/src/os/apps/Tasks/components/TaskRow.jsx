@@ -1,15 +1,15 @@
 import { memo, useId } from 'react'
 import { motion as Motion } from 'framer-motion'
-import { Pencil, Repeat2, Star, Trash2 } from 'lucide-react'
+import { CalendarDays, Pencil, Repeat2, Star, Trash2 } from 'lucide-react'
 import { DURATION } from '../../../../lib/motion'
 import { labelForRRule } from '../lib/recurrence'
+import { getTaskDueDate, hasTimedDueDate } from '../lib/taskDateTime'
 import TaskMenu from './TaskMenu'
 
 function formatDue(task) {
-  const raw = task.due_at || task.due
-  if (!raw) return null
-  const when = task.due_at ? new Date(task.due_at) : new Date(`${task.due}T00:00:00`)
-  if (Number.isNaN(when.getTime())) return null
+  const when = getTaskDueDate(task)
+  if (!when) return null
+  const timed = hasTimedDueDate(task)
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -23,25 +23,27 @@ function formatDue(task) {
   else if (diffDays === -1) label = 'Yesterday'
   else label = when.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 
-  if (task.due_at && !task.all_day) {
+  if (timed) {
     label += ` · ${when.toLocaleTimeString(undefined, {
       hour: 'numeric',
       minute: '2-digit',
     })}`
   }
-  return { label, overdue: diffDays < 0 }
+  return { label, overdue: timed ? when.getTime() < Date.now() : diffDays < 0 }
 }
 
 function TaskRow({
   task,
   depth = 0,
   lists = [],
+  listLabel,
   onMoveToList,
   hasSubtasks = false,
   onToggle,
   onStar,
   onEdit,
   onDelete,
+  onAddSubtask,
   asListItem = true,
 }) {
   const completed = task.status === 'completed'
@@ -60,13 +62,13 @@ function TaskRow({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, x: -8 }}
       transition={{ duration: DURATION.fast }}
-      className={`w7-item group flex min-w-0 items-center gap-1 px-2 py-1 @md:gap-2 ${
-        isSub ? 'ml-7' : ''
+      className={`w7-item group flex min-w-0 items-start gap-1 px-1.5 py-2 @md:gap-2 ${
+        isSub ? 'ml-4 border-l-border @md:ml-6' : ''
       }`}
     >
       {/* 7.css checkbox: the input is the real control, stretched over the
           label so touch gets a 44px hit area; the label draws the box. */}
-      <span className="relative inline-flex size-[14px] shrink-0 items-center justify-center pointer-coarse:size-11">
+      <span className="relative inline-flex size-6 shrink-0 items-center justify-center pointer-coarse:size-11">
         <input
           id={checkId}
           type="checkbox"
@@ -85,29 +87,33 @@ function TaskRow({
         onClick={() => onEdit(task)}
         title="Edit task"
         aria-description="Opens the task editor"
-        className="flex min-w-0 flex-1 flex-col items-start overflow-hidden rounded text-left"
+        className="flex min-h-6 min-w-0 flex-1 flex-col items-start justify-center gap-1 rounded py-1 text-left pointer-coarse:min-h-11"
       >
         <span
-          className={`max-w-full truncate text-[12px] ${
+          className={`line-clamp-2 max-w-full text-[12px] wrap-anywhere ${
             completed ? 'text-muted-foreground line-through' : 'text-foreground'
           }`}
         >
           {task.title}
         </span>
-        {(due || task.recurrence) && (
-          <span className="mt-0.5 flex max-w-full min-w-0 flex-wrap items-center gap-1">
+        {(due || task.recurrence || listLabel) && (
+          <span className="flex max-w-full min-w-0 flex-wrap items-center gap-1">
             {due && (
               <span
                 className={`w7-badge max-w-full min-w-0 ${due.overdue && !completed ? 'text-destructive' : ''}`}
               >
+                <CalendarDays size={11} className="shrink-0" aria-hidden="true" />
                 <span className="min-w-0 truncate">{due.label}</span>
               </span>
             )}
             {task.recurrence && (
               <span className="w7-badge max-w-full min-w-0">
-                <Repeat2 size={11} aria-hidden="true" />
+                <Repeat2 size={11} className="shrink-0" aria-hidden="true" />
                 <span className="min-w-0 truncate">{labelForRRule(task.recurrence)}</span>
               </span>
+            )}
+            {listLabel && (
+              <span className="max-w-full truncate text-muted-foreground">{listLabel}</span>
             )}
           </span>
         )}
@@ -118,10 +124,8 @@ function TaskRow({
         aria-label={task.starred ? `Unstar "${task.title}"` : `Star "${task.title}"`}
         aria-pressed={task.starred}
         onClick={() => onStar(task)}
-        className={`w7-toolbtn h-6 w-6 shrink-0 px-0 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100 focus-visible:opacity-100 ${
-          task.starred
-            ? 'text-amber-600'
-            : 'text-muted-foreground opacity-0 group-hover:opacity-100'
+        className={`w7-toolbtn size-6 shrink-0 px-0 pointer-coarse:size-11 ${
+          task.starred ? 'text-amber-600' : 'text-muted-foreground'
         }`}
       >
         <Star size={15} fill={task.starred ? 'currentColor' : 'none'} aria-hidden="true" />
@@ -131,20 +135,27 @@ function TaskRow({
         type="button"
         aria-label={`Edit "${task.title}"`}
         onClick={() => onEdit(task)}
-        className="w7-toolbtn hidden h-6 w-6 shrink-0 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 @md:inline-flex pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
+        className="w7-toolbtn hidden size-6 shrink-0 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 @md:pointer-fine:inline-flex"
       >
         <Pencil size={14} aria-hidden="true" />
       </button>
 
       {onMoveToList && lists.length > 0 && (
-        <TaskMenu task={task} lists={lists} onMoveToList={onMoveToList} hasSubtasks={hasSubtasks} />
+        <TaskMenu
+          task={task}
+          lists={lists}
+          onMoveToList={onMoveToList}
+          onAddSubtask={onAddSubtask}
+          onDelete={() => onDelete(task)}
+          hasSubtasks={hasSubtasks}
+        />
       )}
 
       <button
         type="button"
         aria-label={`Delete "${task.title}"`}
         onClick={() => onDelete(task)}
-        className="w7-toolbtn w7-toolbtn--danger h-6 w-6 shrink-0 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
+        className="w7-toolbtn w7-toolbtn--danger hidden size-6 shrink-0 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 @md:pointer-fine:inline-flex"
       >
         <Trash2 size={14} aria-hidden="true" />
       </button>

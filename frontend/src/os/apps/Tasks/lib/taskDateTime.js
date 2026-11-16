@@ -41,12 +41,33 @@ function offsetMinutesForTimeZone(date, timeZone) {
   return Math.round((asUTC - date.getTime()) / 60_000)
 }
 
-export function formatLocalDateTimeWithOffset(date) {
+export function formatLocalDate(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
     date.getDate(),
-  ).padStart(2, '0')}T${String(date.getHours()).padStart(2, '0')}:${String(
-    date.getMinutes(),
-  ).padStart(2, '0')}:00${offsetSuffix(date)}`
+  ).padStart(2, '0')}`
+}
+
+export function formatLocalTime(date) {
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+export function formatLocalDateTimeWithOffset(date) {
+  return `${formatLocalDate(date)}T${formatLocalTime(date)}:00${offsetSuffix(date)}`
+}
+
+export function hasTimedDueDate(task) {
+  return Boolean(task.due_at && (task.all_day !== true || !task.due))
+}
+
+export function getTaskDueDate(task) {
+  const when = hasTimedDueDate(task) ? new Date(task.due_at) : new Date(`${task.due}T00:00:00`)
+  return Number.isFinite(when.getTime()) ? when : null
+}
+
+export function getTaskReminderTime(task) {
+  const when = getTaskDueDate(task)
+  if (when && !hasTimedDueDate(task)) when.setHours(9, 0, 0, 0)
+  return when?.getTime() ?? null
 }
 
 export function getBrowserTimeZone() {

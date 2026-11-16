@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ACCENT_PRESETS,
   WALLPAPER_POSITIONS,
@@ -10,9 +10,11 @@ import { UI_SCALES } from './constants'
 
 function WindowColorGroup() {
   const accentColor = useSettingsStore((s) => s.accentColor)
+  const customFrame = useSettingsStore((s) => s.customFrame)
   const colorIntensity = useSettingsStore((s) => s.colorIntensity)
   const transparencyEnabled = useSettingsStore((s) => s.transparencyEnabled)
   const setAccentColor = useSettingsStore((s) => s.setAccentColor)
+  const setCustomFrame = useSettingsStore((s) => s.setCustomFrame)
   const setColorIntensity = useSettingsStore((s) => s.setColorIntensity)
   const setTransparencyEnabled = useSettingsStore((s) => s.setTransparencyEnabled)
 
@@ -20,7 +22,7 @@ function WindowColorGroup() {
     <SettingsGroup legend="Window color">
       <div className="flex flex-wrap gap-3 pt-2">
         {Object.entries(ACCENT_PRESETS).map(([key, preset]) => {
-          const isActive = accentColor === key
+          const isActive = !customFrame && accentColor === key
           return (
             <div key={key} className="flex w-[60px] flex-col items-center gap-1">
               <button
@@ -43,6 +45,15 @@ function WindowColorGroup() {
       </div>
 
       <div className="mt-3 flex flex-col gap-2">
+        <label className="flex w-fit items-center gap-2">
+          <input
+            type="color"
+            value={customFrame || ACCENT_PRESETS[accentColor].frame}
+            onChange={(e) => setCustomFrame(e.target.value)}
+            className="h-7 w-10 cursor-pointer pointer-coarse:size-11"
+          />
+          Custom color
+        </label>
         <div className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -77,14 +88,13 @@ function WindowColorGroup() {
 }
 
 /**
- * Desktop Background stages changes like Windows 7: picking a picture or a
- * position only changes the draft, and Save changes applies both.
+ * Preview changes on the desktop without replacing the saved selection.
  */
 function DesktopBackgroundGroup() {
   const wallpaper = useSettingsStore((s) => s.wallpaper)
   const wallpaperPosition = useSettingsStore((s) => s.wallpaperPosition)
-  const setWallpaper = useSettingsStore((s) => s.setWallpaper)
-  const setWallpaperPosition = useSettingsStore((s) => s.setWallpaperPosition)
+  const setDesktopBackground = useSettingsStore((s) => s.setDesktopBackground)
+  const setWallpaperPreview = useSettingsStore((s) => s.setWallpaperPreview)
 
   const [draftWallpaper, setDraftWallpaper] = useState(wallpaper)
   const [draftPosition, setDraftPosition] = useState(wallpaperPosition)
@@ -98,11 +108,13 @@ function DesktopBackgroundGroup() {
   }
   const dirty = draftWallpaper !== wallpaper || draftPosition !== wallpaperPosition
 
-  const save = () => {
-    setWallpaper(draftWallpaper)
-    setWallpaperPosition(draftPosition)
-  }
+  useEffect(() => {
+    if (!dirty) return
+    setWallpaperPreview({ wallpaper: draftWallpaper, position: draftPosition })
+    return () => setWallpaperPreview(null)
+  }, [dirty, draftWallpaper, draftPosition, setWallpaperPreview])
 
+  const save = () => setDesktopBackground(draftWallpaper, draftPosition)
   const cancel = () => {
     setDraftWallpaper(wallpaper)
     setDraftPosition(wallpaperPosition)
@@ -110,7 +122,7 @@ function DesktopBackgroundGroup() {
 
   return (
     <SettingsGroup legend="Desktop background">
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(132px,132px))] gap-2 pt-2">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,112px),1fr))] gap-2 pt-2">
         {Object.entries(WALLPAPER_PRESETS).map(([key, preset]) => {
           const isSelected = draftWallpaper === key
           return (
@@ -130,7 +142,7 @@ function DesktopBackgroundGroup() {
                 width={120}
                 height={75}
                 loading="lazy"
-                className="h-[75px] w-[120px] max-w-full border border-[#828790] object-cover"
+                className="aspect-[8/5] h-auto w-full border border-[#828790] object-cover"
               />
               <span className="w-full truncate text-center">{preset.label}</span>
             </button>
@@ -155,11 +167,24 @@ function DesktopBackgroundGroup() {
         </select>
       </div>
 
-      <div className="mt-3 flex justify-end gap-2">
-        <button type="button" onClick={save} disabled={!dirty} className="w7-btn default">
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        {dirty && (
+          <span className="mr-auto self-center text-muted-foreground">Previewing on desktop</span>
+        )}
+        <button
+          type="button"
+          onClick={save}
+          disabled={!dirty}
+          className="w7-btn default pointer-coarse:min-h-11"
+        >
           Save changes
         </button>
-        <button type="button" onClick={cancel} disabled={!dirty} className="w7-btn">
+        <button
+          type="button"
+          onClick={cancel}
+          disabled={!dirty}
+          className="w7-btn pointer-coarse:min-h-11"
+        >
           Cancel
         </button>
       </div>

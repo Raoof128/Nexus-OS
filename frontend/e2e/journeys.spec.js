@@ -9,6 +9,82 @@ async function openDesktop(page) {
   await expect(win(page, 'Media Vault')).toBeVisible()
 }
 
+const LONG_MOVIE_TITLE = 'An uninterrupted long title: ' + 'Extraordinary'.repeat(10)
+
+async function openLongMovieCollection(page) {
+  await page.route('http://127.0.0.1:8799/media?type=movie', (route) =>
+    route.fulfill({
+      json: Array.from({ length: 8 }, (_, index) => ({
+        id: `long-movie-${index}`,
+        type: 'movie',
+        status: 'Finished',
+        title: index === 0 ? LONG_MOVIE_TITLE : `Film ${index + 1}`,
+        creator: 'ProductionCompany'.repeat(6),
+        genre: 'Folk Horror / Supernatural Thriller / ' + 'LongGenre'.repeat(7),
+        rating: 5,
+        takeaway: `https://example.test/${'long-note'.repeat(35)}`,
+      })),
+    }),
+  )
+  await page.goto('/?type=movie')
+  const panel = win(page, 'Media Vault').getByRole('tabpanel')
+  await expect(panel.getByRole('heading', { name: LONG_MOVIE_TITLE })).toBeVisible()
+  return panel
+}
+
+async function expectNoHorizontalScroll(locator) {
+  await expect
+    .poll(() =>
+      locator.evaluate((node) =>
+        [node, ...node.querySelectorAll('*')].every(
+          (element) =>
+            !/auto|scroll/.test(getComputedStyle(element).overflowX) ||
+            element.scrollWidth <= element.clientWidth + 1,
+        ),
+      ),
+    )
+    .toBe(true)
+}
+
+test('long Media Vault cards keep list actions in view after a window resize', async ({ page }) => {
+  const panel = await openLongMovieCollection(page)
+  const media = win(page, 'Media Vault')
+  const w = await media.boundingBox()
+  await page.mouse.move(w.x + w.width - 3, w.y + w.height - 3)
+  await page.mouse.down()
+  await page.mouse.move(w.x + 743, w.y + 407, { steps: 6 })
+  await page.mouse.up()
+  await expect.poll(async () => (await media.boundingBox()).width).toBeLessThan(800)
+  await waitForStillBox(media)
+
+  await expectNoHorizontalScroll(panel)
+  const showMore = panel.getByRole('button', { name: 'Show 3 more' })
+  await expect(showMore).toBeInViewport({ ratio: 1 })
+  await showMore.click()
+  await expect(panel.getByRole('heading', { name: 'Finished — Movies' })).toBeVisible()
+  await expectNoHorizontalScroll(panel.getByRole('table').locator('..'))
+  const search = panel.getByRole('searchbox', { name: 'Search vault' })
+  await search.fill('  Film 8  ')
+  await expect(panel.locator('[data-vault-row]')).toHaveCount(1)
+  await expect(panel.getByRole('button', { name: 'Film 8' })).toBeVisible()
+})
+
+test('long Media Vault entries fit the touch board and details @mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 780 })
+  const panel = await openLongMovieCollection(page)
+  await expectNoHorizontalScroll(panel)
+
+  const title = panel.getByRole('button', { name: LONG_MOVIE_TITLE })
+  await title.focus()
+  await title.press('Enter')
+  const details = page.getByRole('dialog', { name: LONG_MOVIE_TITLE })
+  await expect(details).toBeVisible()
+  await expectNoHorizontalScroll(details)
+  await details.getByRole('button', { name: 'Close', exact: true }).last().click()
+  await expect(details).toBeHidden()
+  await expect(title).toBeFocused()
+})
+
 /** Resolves once the box has the same geometry on two reads 100ms apart (animation finished). */
 async function waitForStillBox(locator) {
   let previous = null
@@ -52,6 +128,137 @@ async function launchFromStart(page, query, appName) {
   await expect(win(page, appName)).toBeVisible()
 }
 
+test.describe('desktop personalization', () => {
+  test('changes the desktop tint and previews, cancels and saves wallpapers', async ({ page }) => {
+    await page.goto('/?app=settings')
+    const settings = win(page, 'Control Panel')
+    const frame = settings.locator('.title-bar')
+    const taskbar = page.getByRole('navigation', { name: 'Taskbar' })
+    const wallpaper = page.locator('.nx-wallpaper-aero')
+    const initialTaskbar = await taskbar.evaluate((el) => getComputedStyle(el).backgroundColor)
+
+    await settings.getByRole('button', { name: 'Leaf', exact: true }).click()
+    await expect
+      .poll(() =>
+        frame.evaluate((el) => getComputedStyle(el.parentElement, '::before').backgroundColor),
+      )
+      .toBe('rgb(76, 143, 58)')
+    await expect(taskbar).not.toHaveCSS('background-color', initialTaskbar)
+    await settings.getByLabel('Custom color').fill('#9452a3')
+    await expect
+      .poll(() =>
+        frame.evaluate((el) => getComputedStyle(el.parentElement, '::before').backgroundColor),
+      )
+      .toBe('rgb(148, 82, 163)')
+
+    await settings.getByRole('button', { name: 'Wallpaper 3', exact: true }).click()
+    await expect(wallpaper).toHaveCSS('background-image', /W3\.jpg/)
+    await settings.getByRole('combobox', { name: 'Picture position' }).selectOption('fit')
+    await expect(wallpaper).toHaveCSS('background-size', 'contain')
+    await settings.getByRole('button', { name: 'Cancel', exact: true }).click()
+    await expect(wallpaper).toHaveCSS('background-image', /aero\.svg/)
+
+    await settings.getByRole('button', { name: 'Wallpaper 3', exact: true }).click()
+    await settings.getByRole('combobox', { name: 'Picture position' }).selectOption('fit')
+    await settings.getByRole('button', { name: 'Save changes', exact: true }).click()
+    await page.reload()
+    await expect(wallpaper).toHaveCSS('background-image', /W3\.jpg/)
+    await expect(wallpaper).toHaveCSS('background-size', 'contain')
+    await expect(settings.getByLabel('Custom color')).toHaveValue('#9452a3')
+  })
+})
+
+test.describe('scheduled tasks', () => {
+  test.use({ timezoneId: 'Australia/Sydney' })
+
+  test('saves a local due time and reminds again after the same task is rescheduled', async ({
+    page,
+  }) => {
+    await page.clock.install({ time: new Date('2026-11-08T10:00:00+11:00') })
+    let scheduled
+    const lists = [
+      { id: 'home', name: 'Home' },
+      { id: 'work', name: 'Work' },
+    ]
+    await page.route('http://127.0.0.1:8799/api/tasks/**', (route) => {
+      const request = route.request()
+      const path = new URL(request.url()).pathname
+      const method = request.method()
+      if (path.endsWith('/lists')) return route.fulfill({ json: lists })
+      if (path.endsWith('/work/items')) {
+        return route.fulfill({
+          json: [
+            { id: 'p1', list_id: 'work', status: 'needsAction', title: 'Parent task' },
+            {
+              id: 's1',
+              list_id: 'work',
+              parent_id: 'p1',
+              status: 'needsAction',
+              title: 'Starred subtask',
+              starred: true,
+            },
+          ],
+        })
+      }
+      if (method === 'POST' || method === 'PATCH') {
+        scheduled = {
+          id: 't1',
+          list_id: 'home',
+          status: 'needsAction',
+          ...scheduled,
+          ...request.postDataJSON(),
+        }
+        // PostgREST returns a timestamptz in UTC.
+        return route.fulfill({
+          json: { ...scheduled, due_at: new Date(scheduled.due_at).toISOString() },
+        })
+      }
+      return route.fulfill({
+        json: scheduled ? [{ ...scheduled, due_at: new Date(scheduled.due_at).toISOString() }] : [],
+      })
+    })
+
+    await page.goto('/?app=tasks')
+    const tasks = win(page, 'Tasks')
+    await tasks.getByRole('button', { name: 'Starred', exact: true }).click()
+    await expect(tasks.getByText('Starred subtask')).toBeVisible()
+    await tasks.getByRole('button', { name: 'Home', exact: true }).click()
+    await tasks.getByRole('button', { name: 'Add with details' }).click()
+    await tasks.getByLabel('Task title').fill('Call the studio')
+    await tasks.getByLabel('Due date').fill('2026-11-08')
+    await tasks.getByLabel('Due time').fill('10:02')
+    await tasks.getByRole('button', { name: 'Add task', exact: true }).click()
+    await expect(tasks.getByLabel('Task title')).toBeHidden()
+    expect(scheduled.due_at).toBe('2026-11-08T10:02:00+11:00')
+
+    await tasks.getByRole('button', { name: 'Minimize window' }).click()
+    await page.clock.fastForward(2 * 60_000)
+    const reminderToast = page.getByRole('tooltip').filter({ hasText: 'Call the studio' })
+    await expect(reminderToast).toHaveCount(1)
+    const actionCenter = page.getByRole('button', { name: /^Action Center/ })
+    await expect(actionCenter).toHaveAccessibleName('Action Center, 1 unread')
+
+    await page
+      .getByRole('navigation', { name: 'Taskbar' })
+      .getByRole('button', { name: 'Tasks', exact: true })
+      .click()
+    await tasks.getByRole('button', { name: /Call the studio Today/ }).click()
+    await expect(tasks.getByLabel('Due time')).toHaveValue('10:02')
+    await tasks.getByLabel('Due time').fill('10:04')
+    await tasks.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(tasks.getByLabel('Task title')).toBeHidden()
+    expect(scheduled.due_at).toBe('2026-11-08T10:04:00+11:00')
+
+    await tasks.getByRole('button', { name: 'Close window' }).click()
+    await page.clock.fastForward(2 * 60_000)
+    await expect(actionCenter).toHaveAccessibleName('Action Center, 2 unread')
+    await actionCenter.click()
+    await expect(
+      page.getByRole('dialog', { name: 'Action Center' }).getByText('Call the studio'),
+    ).toHaveCount(2)
+  })
+})
+
 test.describe('desktop shell', () => {
   test('fine-pointer taskbar stays 40px (48px is touch-only)', async ({ page }) => {
     await openDesktop(page)
@@ -87,6 +294,10 @@ test.describe('desktop shell', () => {
   })
 
   test('drag, resize, maximise, restore and minimise a window', async ({ page }) => {
+    // A reminder toast can cover the resize corner after dragging down and right.
+    await page.route('http://127.0.0.1:8799/api/tasks/lists', (route) =>
+      route.fulfill({ json: [] }),
+    )
     await openDesktop(page)
     const w = win(page, 'Media Vault')
     const before = await w.boundingBox()
@@ -103,6 +314,7 @@ test.describe('desktop shell', () => {
       .toBeGreaterThan(60)
 
     // Resize from the bottom-right corner
+    await waitForStillBox(w)
     const moved = await w.boundingBox()
     await page.mouse.move(moved.x + moved.width - 3, moved.y + moved.height - 3)
     await page.mouse.down()

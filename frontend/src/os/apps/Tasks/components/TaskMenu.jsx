@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { List, MoreVertical } from 'lucide-react'
+import { List, MoreVertical, Plus, Trash2 } from 'lucide-react'
 
 const ENABLED_ITEM = '[role="menuitem"]:not([aria-disabled="true"])'
 
@@ -7,8 +7,16 @@ const ENABLED_ITEM = '[role="menuitem"]:not([aria-disabled="true"])'
 // tasks that have subtasks can't change list (the API answers 409). Follows the Win32 menu model: focus moves to the first item on open,
 // Up/Down/Home/End move between items, Escape or Tab dismiss, and focus returns
 // to the trigger.
-export default function TaskMenu({ task, lists, onMoveToList, hasSubtasks = false }) {
-  const [open, setOpen] = useState(false)
+export default function TaskMenu({
+  task,
+  lists,
+  onMoveToList,
+  onAddSubtask,
+  onDelete,
+  hasSubtasks = false,
+}) {
+  const [placement, setPlacement] = useState(null)
+  const open = Boolean(placement)
   const rootRef = useRef(null)
   const triggerRef = useRef(null)
   const menuRef = useRef(null)
@@ -16,7 +24,7 @@ export default function TaskMenu({ task, lists, onMoveToList, hasSubtasks = fals
   const menuId = useId()
 
   const close = (restoreFocus) => {
-    setOpen(false)
+    setPlacement(null)
     if (restoreFocus) triggerRef.current?.focus()
   }
 
@@ -24,7 +32,7 @@ export default function TaskMenu({ task, lists, onMoveToList, hasSubtasks = fals
     if (!open) return undefined
     menuRef.current?.querySelector(ENABLED_ITEM)?.focus()
     const onPointerDown = (e) => {
-      if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false)
+      if (rootRef.current && !rootRef.current.contains(e.target)) setPlacement(null)
     }
     const onEsc = (e) => {
       if (e.key === 'Escape') {
@@ -32,13 +40,26 @@ export default function TaskMenu({ task, lists, onMoveToList, hasSubtasks = fals
         close(true)
       }
     }
-    document.addEventListener('mousedown', onPointerDown)
+    document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onEsc)
     return () => {
-      document.removeEventListener('mousedown', onPointerDown)
+      document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onEsc)
     }
   }, [open])
+
+  const toggle = () => {
+    if (open) {
+      close(true)
+      return
+    }
+    const trigger = triggerRef.current.getBoundingClientRect()
+    const viewport = rootRef.current.closest('[data-task-scroll]')?.getBoundingClientRect()
+    const below = (viewport?.bottom ?? window.innerHeight) - trigger.bottom
+    const above = trigger.top - (viewport?.top ?? 0)
+    const opensAbove = below < 180 && above > below
+    setPlacement({ above: opensAbove, maxHeight: Math.max(24, (opensAbove ? above : below) - 6) })
+  }
 
   const onMenuKeyDown = (e) => {
     if (e.key === 'Tab') {
@@ -78,8 +99,8 @@ export default function TaskMenu({ task, lists, onMoveToList, hasSubtasks = fals
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        onClick={() => setOpen((v) => !v)}
-        className="w7-toolbtn h-6 w-6 px-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:h-11 pointer-coarse:w-11 pointer-coarse:opacity-100"
+        onClick={toggle}
+        className="w7-toolbtn size-6 px-0 pointer-coarse:size-11"
       >
         <MoreVertical size={14} aria-hidden="true" />
       </button>
@@ -90,8 +111,26 @@ export default function TaskMenu({ task, lists, onMoveToList, hasSubtasks = fals
           role="menu"
           aria-label={`Actions for "${task.title}"`}
           onKeyDown={onMenuKeyDown}
-          className="nx-flyout absolute right-0 z-20 mt-1 w-56 p-[2px]"
+          className={`nx-flyout absolute right-0 z-20 w-52 overflow-y-auto p-[2px] ${placement.above ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+          style={{ maxHeight: placement.maxHeight }}
         >
+          {onAddSubtask && (
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              className="nx-menuitem pointer-coarse:min-h-11"
+              onClick={() => {
+                close(false)
+                onAddSubtask()
+              }}
+            >
+              <span className="nx-menuitem__icon" aria-hidden="true">
+                <Plus size={14} />
+              </span>
+              Add subtask
+            </button>
+          )}
           <div role="group" aria-labelledby={headingId}>
             <p id={headingId} className="px-2 pt-1 pb-1 text-[12px] text-muted-foreground">
               Move to list
@@ -109,7 +148,7 @@ export default function TaskMenu({ task, lists, onMoveToList, hasSubtasks = fals
                     onMoveToList(l.id)
                     close(true)
                   }}
-                  className="nx-menuitem"
+                  className="nx-menuitem pointer-coarse:min-h-11"
                 >
                   <span className="nx-menuitem__icon" aria-hidden="true">
                     <List size={14} />
@@ -118,6 +157,23 @@ export default function TaskMenu({ task, lists, onMoveToList, hasSubtasks = fals
                 </button>
               ))}
           </div>
+          {onDelete && (
+            <button
+              type="button"
+              role="menuitem"
+              tabIndex={-1}
+              className="nx-menuitem pointer-coarse:min-h-11"
+              onClick={() => {
+                close(true)
+                onDelete()
+              }}
+            >
+              <span className="nx-menuitem__icon" aria-hidden="true">
+                <Trash2 size={14} />
+              </span>
+              Delete task
+            </button>
+          )}
         </div>
       )}
     </div>

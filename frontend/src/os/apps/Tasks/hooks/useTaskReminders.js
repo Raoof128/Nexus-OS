@@ -3,6 +3,7 @@ import { useQuery, useQueries } from '@tanstack/react-query'
 import { useNotificationStore } from '../../../stores/notificationStore'
 import { useWindowStore } from '../../../stores/windowStore'
 import { fetchTaskItems, fetchTaskLists, taskItemsKey, taskListsKey } from './useTasks'
+import { getTaskReminderTime } from '../lib/taskDateTime'
 
 const FIRED_KEY = 'nexus-os:tasks:reminders-fired'
 const CHECK_INTERVAL_MS = 60 * 1000
@@ -10,10 +11,12 @@ const CHECK_INTERVAL_MS = 60 * 1000
 const POLL_INTERVAL_MS = 60 * 1000
 const STALE_MS = 30 * 1000
 const NO_LISTS = []
+const combineItems = (results) => results.flatMap((result) => result.data ?? [])
 
 function loadFired() {
   try {
-    return JSON.parse(localStorage.getItem(FIRED_KEY) || '{}')
+    const fired = JSON.parse(localStorage.getItem(FIRED_KEY) || '{}')
+    return fired && typeof fired === 'object' && !Array.isArray(fired) ? fired : {}
   } catch {
     return {}
   }
@@ -27,37 +30,67 @@ function saveFired(map) {
   }
 }
 
-// Pure selector (unit-tested): tasks due now-or-earlier, still actionable, and
-// not already notified. `now` is a Date; `fired` is { [taskId]: timestamp }.
-// Dates are parsed as local time (no trailing Z) so reminders fire in the user's
-// timezone, not UTC.
+function pendingReminderTime(task, fired) {
+  if (
+    task.status !== 'needsAction' ||
+    typeof task.id !== 'string' ||
+    task.id.startsWith('optimistic-') ||
+    task.pendingSchedule
+  ) {
+    return null
+  }
+  const when = getTaskReminderTime(task)
+  if (when === null) return null
+  const previous = Object.hasOwn(fired, task.id) ? fired[task.id] : null
+  // Legacy entries stored the time the notification fired. New entries store
+  // the scheduled time, so moving a task can arm a new reminder.
+  if (typeof previous === 'number' ? when <= previous : when === previous?.scheduledAt) {
+    return null
+  }
+  return when
+}
+
 export function dueTasksToNotify(tasks, now, fired) {
   return (tasks || []).filter((t) => {
-    if (t.status !== 'needsAction') return false
-    if (fired[t.id]) return false
-    const when = t.due_at ? new Date(t.due_at) : t.due ? new Date(`${t.due}T00:00:00`) : null
-    if (!when) return false
-    return when.getTime() <= now.getTime()
+    const when = pendingReminderTime(t, fired)
+    return when !== null && when <= now.getTime()
   })
 }
 
-// One reminder pass over the tasks of every list. Fired ids are read from storage
-// on each pass, so two tabs of the same browser cannot notify twice for one task.
+// Read storage on each pass to pick up notifications from other desktop tabs.
 // Do Not Disturb is applied by the notification store (logged, no toast); under it
 // the taskbar does not flash either.
-export function fireDueReminders(tasks, now = new Date()) {
-  const fired = loadFired()
-  const due = dueTasksToNotify(tasks, now, fired)
-  if (due.length === 0) return 0
+export function fireDueReminders(tasks, now = new Date(), memory = Object.create(null)) {
+  const fired = Object.assign(Object.create(null), memory, loadFired())
   const { addNotification, doNotDisturb } = useNotificationStore.getState()
-  for (const t of due) {
-    addNotification({ title: 'Task due', message: t.title, type: 'warning' })
-    fired[t.id] = Date.now()
+  let count = 0
+  let changed = false
+  for (const task of tasks) {
+    const previous = fired[task.id]
+    const when = getTaskReminderTime(task)
+    const shouldMigrate =
+      task.status === 'needsAction' &&
+      !task.pendingSchedule &&
+      typeof previous === 'number' &&
+      when !== null &&
+      when <= previous
+    const pending = pendingReminderTime(task, fired)
+    const shouldNotify = pending !== null && pending <= now.getTime()
+    if (!shouldMigrate && !shouldNotify) continue
+
+    if (shouldNotify) {
+      addNotification({ title: 'Task due', message: task.title, type: 'warning' })
+      count += 1
+    }
+    const entry = { scheduledAt: when }
+    fired[task.id] = entry
+    memory[task.id] = entry
+    changed = true
   }
-  saveFired(fired)
+  if (changed) saveFired(fired)
   // A background Tasks window flashes its taskbar button, as on Windows 7.
-  if (!doNotDisturb) useWindowStore.getState().requestAttention?.('tasks')
-  return due.length
+  if (count && !doNotDisturb) useWindowStore.getState().requestAttention?.('tasks')
+  return count
 }
 
 // Desktop-level reminder service. Mount it once, while signed in and unlocked.
@@ -72,7 +105,7 @@ export function useTaskReminders() {
     refetchIntervalInBackground: false,
   })
 
-  const itemQueries = useQueries({
+  const tasks = useQueries({
     queries: lists.map((list) => ({
       queryKey: taskItemsKey(list.id, true),
       queryFn: () => fetchTaskItems(list.id, true),
@@ -80,23 +113,47 @@ export function useTaskReminders() {
       refetchInterval: POLL_INTERVAL_MS,
       refetchIntervalInBackground: false,
     })),
+    combine: combineItems,
   })
 
-  // A new fetch result (or a list appearing or disappearing) re-checks at once,
-  // instead of waiting for the next interval tick.
-  const dataStamp = itemQueries.map((q) => q.dataUpdatedAt).join(',')
   const tasksRef = useRef([])
+  const memory = useRef(Object.create(null))
+  const wake = useRef(null)
 
   useEffect(() => {
-    tasksRef.current = itemQueries.flatMap((q) => q.data ?? [])
-  })
-
-  useEffect(() => {
-    fireDueReminders(tasksRef.current)
-  }, [dataStamp])
-
-  useEffect(() => {
-    const id = setInterval(() => fireDueReminders(tasksRef.current), CHECK_INTERVAL_MS)
-    return () => clearInterval(id)
+    let timeout
+    const check = () => {
+      clearTimeout(timeout)
+      const now = new Date()
+      const tasks = tasksRef.current
+      fireDueReminders(tasks, now, memory.current)
+      const fired = Object.assign(Object.create(null), memory.current, loadFired())
+      let nextDelay = CHECK_INTERVAL_MS
+      for (const task of tasks) {
+        const next = pendingReminderTime(task, fired)
+        if (next !== null && next > now.getTime()) {
+          nextDelay = Math.min(nextDelay, next - now.getTime())
+        }
+      }
+      timeout = setTimeout(check, nextDelay)
+    }
+    const resume = () => {
+      if (!document.hidden) check()
+    }
+    wake.current = check
+    check()
+    window.addEventListener('focus', resume)
+    document.addEventListener('visibilitychange', resume)
+    return () => {
+      clearTimeout(timeout)
+      wake.current = null
+      window.removeEventListener('focus', resume)
+      document.removeEventListener('visibilitychange', resume)
+    }
   }, [])
+
+  useEffect(() => {
+    tasksRef.current = tasks
+    wake.current?.()
+  }, [tasks])
 }

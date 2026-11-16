@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, Reorder } from 'framer-motion'
-import { ChevronDown, ChevronRight, ListChecks } from 'lucide-react'
+import { ChevronDown, ChevronRight, ListChecks, Plus } from 'lucide-react'
 import { useTaskItems, useTaskMutations } from '../hooks/useTasks'
 import { between } from '../lib/position'
+import { formatLocalDate, getTaskDueDate, hasTimedDueDate } from '../lib/taskDateTime'
 import TaskRow from '../components/TaskRow'
 import TaskEditor from '../components/TaskEditor'
 import QuickAddBar from '../components/QuickAddBar'
@@ -79,33 +80,57 @@ function sortTasks(tasks, mode) {
   const copy = [...tasks]
   if (mode === 'date') {
     copy.sort((a, b) => {
-      const da = a.due_at || a.due || '9999'
-      const db = b.due_at || b.due || '9999'
+      const da = getTaskDueDate(a)?.getTime() ?? Infinity
+      const db = getTaskDueDate(b)?.getTime() ?? Infinity
       if (da === db) return (a.position || 0) - (b.position || 0)
       return da < db ? -1 : 1
     })
+  } else if (mode === 'title') {
+    copy.sort((a, b) =>
+      a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }),
+    )
   } else {
     copy.sort((a, b) => (a.position || 0) - (b.position || 0))
   }
   return copy
 }
 
+function dateGroups(tasks, now) {
+  const groups = { Past: [], Today: [], Upcoming: [], 'No date': [] }
+  const today = formatLocalDate(now)
+  for (const task of tasks) {
+    const due = getTaskDueDate(task)
+    const day = due && formatLocalDate(due)
+    if (!day) groups['No date'].push(task)
+    else if (day < today || (hasTimedDueDate(task) && due < now)) groups.Past.push(task)
+    else if (day === today) groups.Today.push(task)
+    else groups.Upcoming.push(task)
+  }
+  return Object.entries(groups).filter(([, tasks]) => tasks.length)
+}
+
+function taskOrigin(task, starredActive) {
+  return starredActive ? { taskListId: task.list_id } : {}
+}
+
 export default function TaskListView({
   listId,
   listName,
   lists = [],
-  sortMode,
+  sortMode = 'myorder',
   onSortModeChange,
   starredActive,
+  collectionQuery,
   rootRef,
   leading = null,
 }) {
-  const { data: items = [], isLoading, isError, refetch } = useTaskItems(listId, true)
+  const listQuery = useTaskItems(starredActive ? null : listId, true)
+  const { data: items = [], isLoading, isError, refetch } = collectionQuery ?? listQuery
   const { createTask, updateTask, moveTask, deleteTask, clearCompleted } = useTaskMutations(
     listId,
     true,
   )
-  const [editing, setEditing] = useState(null) // null | 'new' | task
+  const [editing, setEditing] = useState(null) // An existing task, or a new task draft.
   const [showCompleted, setShowCompleted] = useState(true)
   const [focusedTaskId, setFocusedTaskId] = useState(null)
   const [confirmClear, setConfirmClear] = useState(false)
@@ -125,17 +150,25 @@ export default function TaskListView({
   const { parents, childrenByParent, completed } = useMemo(() => {
     const active = visible.filter((t) => t.status === 'needsAction')
     const done = visible.filter((t) => t.status === 'completed')
-    const tops = sortTasks(
-      active.filter((t) => !t.parent_id),
-      sortMode,
-    )
-    const byParent = {}
-    for (const t of active.filter((t) => t.parent_id)) {
-      ;(byParent[t.parent_id] ||= []).push(t)
+    const activeIds = new Set(active.map((task) => task.id))
+    const byParent = Object.create(null)
+    const topLevel = []
+    for (const task of active) {
+      if (!starredActive && activeIds.has(task.parent_id)) {
+        ;(byParent[task.parent_id] ||= []).push(task)
+      } else {
+        topLevel.push(task)
+      }
     }
     for (const key of Object.keys(byParent)) byParent[key] = sortTasks(byParent[key], sortMode)
-    return { parents: tops, childrenByParent: byParent, completed: sortTasks(done, sortMode) }
-  }, [visible, sortMode])
+    return {
+      parents: sortTasks(topLevel, sortMode),
+      childrenByParent: byParent,
+      completed: sortTasks(done, sortMode),
+    }
+  }, [visible, sortMode, starredActive])
+  const canReorder =
+    !starredActive && sortMode === 'myorder' && !parents.some((task) => task.parent_id)
 
   // Keyboard shortcuts scoped to the Tasks window (Task 17).
   useEffect(() => {
@@ -158,23 +191,41 @@ export default function TaskListView({
         e.preventDefault()
         updateTask.mutate({
           id: task.id,
+          ...taskOrigin(task, starredActive),
           patch: { status: task.status === 'completed' ? 'needsAction' : 'completed' },
         })
       } else if (e.key === 's' && !e.metaKey && !e.ctrlKey && !isTyping(e.target) && task) {
         e.preventDefault()
-        updateTask.mutate({ id: task.id, patch: { starred: !task.starred } })
-      } else if ((e.metaKey || e.ctrlKey) && e.key === ']' && task && !task.parent_id) {
+        updateTask.mutate({
+          id: task.id,
+          ...taskOrigin(task, starredActive),
+          patch: { starred: !task.starred },
+        })
+      } else if (
+        canReorder &&
+        (e.metaKey || e.ctrlKey) &&
+        e.key === ']' &&
+        task &&
+        !task.parent_id
+      ) {
         // Indent: become a subtask of the nearest top-level task above.
         e.preventDefault()
         const tops = items.filter((t) => !t.parent_id && t.status === 'needsAction')
         const idx = tops.findIndex((t) => t.id === task.id)
         const above = idx > 0 ? tops[idx - 1] : null
         if (above) moveTask.mutate({ id: task.id, body: { parent_id: above.id } })
-      } else if ((e.metaKey || e.ctrlKey) && e.key === '[' && task && task.parent_id) {
+      } else if (
+        !starredActive &&
+        (e.metaKey || e.ctrlKey) &&
+        e.key === '[' &&
+        task &&
+        task.parent_id
+      ) {
         // Outdent: clear the parent (explicit null honored by exclude_unset).
         e.preventDefault()
         moveTask.mutate({ id: task.id, body: { parent_id: null } })
       } else if (
+        canReorder &&
         (e.metaKey || e.ctrlKey) &&
         (e.key === 'ArrowUp' || e.key === 'ArrowDown') &&
         task
@@ -211,31 +262,45 @@ export default function TaskListView({
     }
     el.addEventListener('keydown', onKey)
     return () => el.removeEventListener('keydown', onKey)
-  }, [rootRef, items, focusedTaskId, updateTask, moveTask])
+  }, [rootRef, items, focusedTaskId, updateTask, moveTask, starredActive, canReorder])
 
   const handleToggle = (task) =>
     updateTask.mutate({
       id: task.id,
+      ...taskOrigin(task, starredActive),
       patch: { status: task.status === 'completed' ? 'needsAction' : 'completed' },
     })
-  const handleStar = (task) => updateTask.mutate({ id: task.id, patch: { starred: !task.starred } })
+  const handleStar = (task) =>
+    updateTask.mutate({
+      id: task.id,
+      ...taskOrigin(task, starredActive),
+      patch: { starred: !task.starred },
+    })
   const subtaskCount = (task) => items.filter((t) => t.parent_id === task.id).length
   const hasNotes = (task) => Boolean(task.notes_encrypted || task.notes)
+  const removeTask = (task) =>
+    deleteTask.mutate(starredActive ? { id: task.id, ...taskOrigin(task, true) } : task.id)
   // A plain task deletes at once. A parent (which takes its subtasks with it) or a
   // task with notes (which cannot be recovered) asks first.
   const handleDelete = (task) => {
     if (subtaskCount(task) > 0 || hasNotes(task)) setPendingDelete(task)
-    else deleteTask.mutate(task.id)
+    else removeTask(task)
   }
   const handleAdd = ({ title, due, due_at, all_day }) =>
     createTask.mutate({ title, due, due_at: due_at ?? null, all_day: all_day ?? true })
   const handleSave = (payload) => {
-    if (editing && editing !== 'new') {
-      updateTask.mutate({ id: editing.id, patch: payload })
+    const onSuccess = () => setEditing((current) => (current === editing ? null : current))
+    if (editing?.id) {
+      updateTask.mutate(
+        { id: editing.id, ...taskOrigin(editing, starredActive), patch: payload },
+        { onSuccess },
+      )
     } else {
-      createTask.mutate(payload)
+      createTask.mutate(
+        { ...payload, ...(editing?.parent_id && { parent_id: editing.parent_id }) },
+        { onSuccess },
+      )
     }
-    setEditing(null)
   }
 
   // `inReorder` rows sit inside a drag-reorder <li>, so they render as <div>.
@@ -246,20 +311,45 @@ export default function TaskListView({
       depth={depth}
       asListItem={!inReorder}
       lists={lists}
+      listLabel={starredActive ? lists.find((list) => list.id === task.list_id)?.name : undefined}
       hasSubtasks={subtaskCount(task) > 0}
       onMoveToList={(targetListId) =>
-        moveTask.mutate({ id: task.id, body: { list_id: targetListId } })
+        moveTask.mutate({
+          id: task.id,
+          ...taskOrigin(task, starredActive),
+          body: { list_id: targetListId },
+        })
       }
       onToggle={handleToggle}
       onStar={handleStar}
       onEdit={setEditing}
       onDelete={handleDelete}
+      onAddSubtask={
+        !starredActive && task.status === 'needsAction' && !task.parent_id && !task.recurrence
+          ? () => setEditing({ parent_id: task.id, parentTitle: task.title })
+          : undefined
+      }
     />
+  )
+  const renderBranch = (task) => (
+    <>
+      {renderRow(task, 0, true)}
+      {childrenByParent[task.id]?.length > 0 && (
+        <ul role="list">{childrenByParent[task.id].map((child) => renderRow(child, 1))}</ul>
+      )}
+    </>
+  )
+  const renderBranches = (tasks) => (
+    <ul role="list" className="divide-y divide-border/60">
+      {tasks.map((task) => (
+        <li key={task.id}>{renderBranch(task)}</li>
+      ))}
+    </ul>
   )
 
   return (
     <section className="flex min-w-0 flex-1 flex-col bg-white">
-      <header className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 pt-3 pb-2">
+      <header className="w7-commandbar shrink-0 flex-wrap justify-between gap-x-3 gap-y-1 px-3 py-2">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {leading}
           <h2 className="w7-heading min-w-0 truncate">
@@ -272,38 +362,61 @@ export default function TaskListView({
             value={sortMode}
             onChange={(e) => onSortModeChange(e.target.value)}
             aria-label="Sort tasks"
+            className="pointer-coarse:min-h-11"
           >
-            <option value="myorder">My order</option>
+            {!starredActive && <option value="myorder">My order</option>}
             <option value="date">Date</option>
+            <option value="title">Title</option>
           </select>
         </label>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-3 pb-3">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-3 pb-3"
+        data-task-scroll
+      >
         {saveError && (
-          <p role="alert" className="w7-error mb-3">
+          <p role="alert" className="w7-error mb-3 wrap-anywhere">
             Couldn't save the change. {saveError}
           </p>
         )}
         {!starredActive && (
-          <div className="mb-3">
+          <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-border pb-3">
             <QuickAddBar onAdd={handleAdd} disabled={!listId} />
+            <button
+              type="button"
+              onClick={() => setEditing({})}
+              className="w7-toolbtn pointer-coarse:min-h-11"
+            >
+              <Plus size={14} aria-hidden="true" />
+              Add with details
+            </button>
           </div>
         )}
 
-        <AnimatePresence initial={false}>
-          {editing && (
-            <div className="mb-3">
-              <TaskEditor
-                initial={editing === 'new' ? null : editing}
-                onSave={handleSave}
-                onCancel={() => setEditing(null)}
-              />
-            </div>
-          )}
-        </AnimatePresence>
+        {editing && (
+          <div className="mb-3">
+            <TaskEditor
+              key={editing.id || editing.parent_id || 'new'}
+              initial={editing.id ? editing : null}
+              parentTitle={editing.parentTitle}
+              saving={Boolean(createTask.isPending || updateTask.isPending)}
+              onSave={handleSave}
+              onCancel={() => setEditing(null)}
+            />
+          </div>
+        )}
 
-        {isLoading ? (
+        {isError && items.length > 0 && (
+          <div role="status" className="w7-infobar mb-2 flex-wrap">
+            Some tasks couldn’t refresh.
+            <button type="button" className="w7-btn" onClick={() => refetch()}>
+              Try again
+            </button>
+          </div>
+        )}
+
+        {isLoading && items.length === 0 ? (
           <div
             role="status"
             className="flex flex-col items-center gap-2 py-8 text-muted-foreground"
@@ -317,7 +430,9 @@ export default function TaskListView({
           isError ? (
             <div className="flex flex-col items-center gap-3 py-12 text-center">
               <p role="alert" className="w7-error">
-                Couldn't load tasks for this list.
+                {starredActive
+                  ? 'Couldn’t load starred tasks.'
+                  : "Couldn't load tasks for this list."}
               </p>
               <button type="button" onClick={() => refetch()} className="w7-btn">
                 Try again
@@ -326,9 +441,7 @@ export default function TaskListView({
           ) : (
             <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
               <ListChecks size={28} className="text-[#3d5a80] opacity-60" aria-hidden="true" />
-              <p>
-                {starredActive ? 'No starred tasks in this list.' : 'No tasks yet. Add one above.'}
-              </p>
+              <p>{starredActive ? 'No starred tasks yet.' : 'No tasks yet. Add one above.'}</p>
             </div>
           )
         ) : (
@@ -338,21 +451,24 @@ export default function TaskListView({
               if (li) setFocusedTaskId(li.getAttribute('data-task-id'))
             }}
           >
-            <ReorderableTasks
-              tasks={parents}
-              renderRow={(t) => {
-                const children = childrenByParent[t.id] || []
-                return (
-                  <>
-                    {renderRow(t, 0, true)}
-                    {children.length > 0 && (
-                      <ul role="list">{children.map((c) => renderRow(c, 1))}</ul>
-                    )}
-                  </>
-                )
-              }}
-              onPersist={(id, position) => moveTask.mutate({ id, body: { position } })}
-            />
+            {canReorder ? (
+              <ReorderableTasks
+                tasks={parents}
+                renderRow={renderBranch}
+                onPersist={(id, position) => moveTask.mutate({ id, body: { position } })}
+              />
+            ) : sortMode === 'date' ? (
+              dateGroups(parents, new Date()).map(([label, tasks]) => (
+                <section key={label} className="mb-3">
+                  <h3 className="w7-subheading border-b border-border bg-w7-pane px-2 py-1.5">
+                    {label}
+                  </h3>
+                  {renderBranches(tasks)}
+                </section>
+              ))
+            ) : (
+              renderBranches(parents)
+            )}
           </div>
         )}
 
@@ -368,13 +484,15 @@ export default function TaskListView({
                 {showCompleted ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 Completed ({completed.length})
               </button>
-              <button
-                type="button"
-                onClick={() => setConfirmClear(true)}
-                className="w7-toolbtn w7-toolbtn--danger"
-              >
-                Clear completed
-              </button>
+              {!starredActive && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmClear(true)}
+                  className="w7-toolbtn w7-toolbtn--danger pointer-coarse:min-h-11"
+                >
+                  Clear completed
+                </button>
+              )}
             </div>
             {showCompleted && (
               <ul role="list" className="mt-1">
@@ -395,7 +513,7 @@ export default function TaskListView({
         confirmLabel="Delete"
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => {
-          deleteTask.mutate(pendingDelete.id)
+          removeTask(pendingDelete)
           setPendingDelete(null)
         }}
       />

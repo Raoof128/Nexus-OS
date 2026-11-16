@@ -1,13 +1,15 @@
 import { memo, useState } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
-import { TYPE_ICONS, getStatusNav } from '../../lib/mediaConfig'
+import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../lib/mediaConfig'
 import { SPRING } from '../../lib/motion'
 import ConfirmDialog from './ConfirmDialog'
 
 function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
   const mediaType = item.type || 'book'
+  const config = MEDIA_CONFIG[mediaType]
   const Icon = TYPE_ICONS[mediaType]
+  const summary = mediaType === 'job' ? item.sub_info : item.genre
   const { prev, next } = getStatusNav(mediaType, item.status)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -60,21 +62,46 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
       onClick={handleCardClick}
       layout="position"
       transition={SPRING.soft}
-      className="w7-card w7-item group relative cursor-pointer p-3 @sm:p-4"
+      className="w7-card w7-item relative min-w-0 cursor-pointer p-2.5"
     >
-      <div className="relative flex h-full flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="flex items-center justify-between gap-2">
           <Icon className="h-4 w-4 shrink-0 text-[#3d5a80]" aria-hidden="true" />
-          <span className="w7-badge">{item.status}</span>
+          <span className="w7-badge min-w-0 wrap-anywhere whitespace-normal">{item.status}</span>
         </div>
 
-        <h3 className="line-clamp-2 text-[13px] font-semibold text-foreground">{item.title}</h3>
+        <h3 className="min-w-0 text-[13px] leading-snug font-semibold text-foreground">
+          {onSelect ? (
+            <button
+              type="button"
+              aria-haspopup="dialog"
+              onClick={() => onSelect(item)}
+              title={item.title}
+              className="block w-full text-left hover:underline"
+            >
+              <span className="line-clamp-2 wrap-anywhere">{item.title}</span>
+            </button>
+          ) : (
+            <span className="line-clamp-2 wrap-anywhere">{item.title}</span>
+          )}
+        </h3>
         {item.creator && item.creator !== '—' && (
-          <p className="text-[12px] text-muted-foreground">{item.creator}</p>
+          <p title={item.creator} className="truncate text-[12px] text-muted-foreground">
+            {item.creator}
+          </p>
         )}
 
-        <div className="mt-auto flex flex-wrap items-center gap-1 border-t border-border pt-2">
-          {mediaType !== 'job' && item.genre && <span className="w7-badge">{item.genre}</span>}
+        {summary && (
+          <div className="min-w-0">
+            <span
+              className="w7-badge max-w-full"
+              title={mediaType === 'job' ? `${config.subInfoLabel}: ${summary}` : summary}
+            >
+              <span className="truncate">{summary}</span>
+            </span>
+          </div>
+        )}
+        <div className="flex flex-wrap items-center gap-1 border-t border-border pt-1">
           {mediaType !== 'job' && item.rating != null && item.rating > 0 && (
             <span className="text-[12px] text-[#8a5a00]">★ {item.rating}/5</span>
           )}
@@ -84,7 +111,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
               <button
                 type="button"
                 onClick={handleRevert}
-                className="w7-toolbtn px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                className="w7-toolbtn size-6 shrink-0 p-0 pointer-coarse:size-11"
                 title={`Back to ${prev}`}
                 aria-label={`Back to ${prev}`}
               >
@@ -95,7 +122,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
               <button
                 type="button"
                 onClick={handleAdvance}
-                className="w7-toolbtn px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                className="w7-toolbtn size-6 shrink-0 p-0 pointer-coarse:size-11"
                 title={`Move to ${next}`}
                 aria-label={`Move to ${next}`}
               >
@@ -105,7 +132,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
             <button
               type="button"
               onClick={handleEdit}
-              className="w7-toolbtn px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+              className="w7-toolbtn size-6 shrink-0 p-0 pointer-coarse:size-11"
               title="Edit"
               aria-label="Edit"
             >
@@ -114,7 +141,7 @@ function CyberCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
             <button
               type="button"
               onClick={handleDeleteClick}
-              className="w7-toolbtn w7-toolbtn--danger px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+              className="w7-toolbtn w7-toolbtn--danger size-6 shrink-0 p-0 pointer-coarse:size-11"
               title="Delete"
               aria-label="Delete"
             >

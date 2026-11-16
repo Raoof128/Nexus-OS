@@ -1,11 +1,12 @@
 import { memo, useCallback, useState } from 'react'
+import { createPortal } from 'react-dom'
 // Keyboard reorder: the focusable node must carry dnd-kit's attributes AND
 // listeners (KeyboardSensor only starts a drag when keydown targets the
 // activator node), so both are spread on the same element below.
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   KeyboardSensor,
   useSensor,
@@ -54,7 +55,6 @@ function SortableCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
-    touchAction: 'none',
   }
 
   return (
@@ -68,7 +68,7 @@ function SortableCard({ item, onUpdate, onDelete, onSelect, onEdit }) {
       role="group"
       aria-pressed={undefined}
       {...listeners}
-      className="cursor-grab active:cursor-grabbing"
+      className="min-w-0 cursor-grab active:cursor-grabbing"
     >
       <CyberCard
         item={item}
@@ -96,7 +96,8 @@ function KanbanBoard({
   const [activeItem, setActiveItem] = useState(null)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // A long press can drag on touch without blocking ordinary vertical swipes.
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
@@ -142,15 +143,6 @@ function KanbanBoard({
     setActiveItem(null)
   }, [])
 
-  // Derive column count from the config's status list so new statuses don't wrap.
-  const statusCount = statuses.length
-  const gridColsClass =
-    statusCount >= 4
-      ? '@md:grid-cols-2 @lg:grid-cols-4'
-      : statusCount === 3
-        ? '@md:grid-cols-3'
-        : '@md:grid-cols-2'
-
   return (
     <DndContext
       sensors={sensors}
@@ -160,7 +152,10 @@ function KanbanBoard({
       onDragCancel={handleDragCancel}
     >
       <div
-        className={`grid h-full auto-rows-min grid-cols-1 gap-3 @sm:grid-cols-2 @sm:gap-4 ${gridColsClass}`}
+        // Use window width for the layout and the available panel height for wide previews.
+        // Stacked sections share the panel's scroll, so a touch gesture can reach the next status.
+        style={{ '--library-columns': statuses.length }}
+        className="grid grid-cols-1 gap-2 @min-[42rem]:min-h-0 @min-[42rem]:flex-1 @min-[42rem]:auto-rows-[minmax(0,1fr)] @min-[42rem]:grid-cols-[repeat(var(--library-columns),minmax(0,1fr))] @min-[42rem]:gap-3"
       >
         {grouped.map(({ status, items: columnItems, total, hasMore }) => (
           <DroppableColumn
@@ -181,13 +176,17 @@ function KanbanBoard({
         ))}
       </div>
 
-      <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
-        {activeItem ? (
-          <div className="rotate-2 scale-105 opacity-90">
-            <CyberCard item={activeItem} />
-          </div>
-        ) : null}
-      </DragOverlay>
+      {/* The shell transforms and clips its windows; the drag preview uses viewport coordinates. */}
+      {createPortal(
+        <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
+          {activeItem && (
+            <div inert aria-hidden="true" className="opacity-95">
+              <CyberCard item={activeItem} />
+            </div>
+          )}
+        </DragOverlay>,
+        document.body,
+      )}
     </DndContext>
   )
 }
@@ -219,24 +218,24 @@ function DroppableColumn({
       ref={setNodeRef}
       role="region"
       aria-label={`${status} column, ${total} items`}
-      className={`relative flex max-h-[50dvh] flex-col gap-2 rounded-[3px] border p-2 transition-colors @sm:gap-3 @sm:p-3 ${
+      className={`relative flex min-h-0 min-w-0 flex-col gap-2 rounded-[3px] border p-2 transition-colors ${
         isOver ? 'border-w7-select-border bg-w7-select' : 'border-border bg-w7-pane'
       }`}
     >
-      <h2 className="w7-subheading min-w-0">
+      <h2 className="w7-subheading shrink-0">
         <button
           type="button"
           onClick={() => onHeaderClick?.(status, mediaType)}
           aria-label={`${status} — open vault`}
-          className="flex w-full items-center justify-between gap-2 px-1 text-left hover:opacity-80 pointer-coarse:min-h-11"
+          className="w7-toolbtn min-h-6 w-full justify-between gap-2 px-1 text-left text-[14px] text-w7-title pointer-coarse:min-h-11"
         >
-          <span className="truncate">{status}</span>
-          <span className="w7-badge tabular-nums">{total}</span>
+          <span className="wrap-anywhere">{status}</span>
+          <span className="w7-badge shrink-0 tabular-nums">{total}</span>
         </button>
       </h2>
 
       <SortableContext items={columnItems.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex-1 space-y-2 overflow-y-auto pr-1 @sm:space-y-3">
+        <div className="min-h-0 flex-1 space-y-2 @min-[42rem]:overflow-y-auto @min-[42rem]:px-0.5 @min-[42rem]:pb-0.5">
           {columnItems.map((item) => (
             <SortableCard
               key={item.id}
@@ -248,9 +247,9 @@ function DroppableColumn({
             />
           ))}
           {columnItems.length === 0 && (
-            <div className="flex h-28 flex-col items-center justify-center gap-2 rounded-[3px] border border-dashed border-[#c5cad3] bg-white p-4 text-center @sm:h-40 @sm:p-6">
-              <p className="text-[12px] text-muted-foreground">
-                No {plural} here yet. Add one, or drag one here from another column.
+            <div className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-[3px] border border-dashed border-border bg-white px-2 py-3 text-center">
+              <p className="text-[12px] leading-snug text-muted-foreground">
+                No {plural} here yet. Add one or move it here from another status.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {onAddRequest && (
@@ -276,17 +275,17 @@ function DroppableColumn({
               </div>
             </div>
           )}
-          {hasMore && (
-            <button
-              type="button"
-              onClick={() => onHeaderClick?.(status, mediaType)}
-              className="w7-btn w-full pointer-coarse:min-h-11"
-            >
-              Show {total - MAX_PREVIEW} more
-            </button>
-          )}
         </div>
       </SortableContext>
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => onHeaderClick?.(status, mediaType)}
+          className="w7-btn min-h-6 w-full shrink-0 pointer-coarse:min-h-11"
+        >
+          Show {total - MAX_PREVIEW} more
+        </button>
+      )}
     </div>
   )
 }

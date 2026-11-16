@@ -116,7 +116,7 @@ describe('TaskMenu', () => {
 
   it('shows the trigger at touch size and always visible on coarse pointers', () => {
     const { trigger } = renderMenu()
-    expect(trigger.className).toContain('pointer-coarse:h-11')
-    expect(trigger.className).toContain('pointer-coarse:opacity-100')
+    expect(trigger.className).toContain('pointer-coarse:size-11')
+    expect(trigger.className).not.toContain('opacity-0')
   })
 })

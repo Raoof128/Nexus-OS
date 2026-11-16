@@ -65,15 +65,21 @@ const PALE_MIX = 0.7
 const PALE_TARGET = [0xe6, 0xec, 0xf3]
 
 function normaliseAccent(key) {
-  return key && ACCENT_PRESETS[key] ? key : DEFAULT_ACCENT
+  return Object.hasOwn(ACCENT_PRESETS, key) ? key : DEFAULT_ACCENT
 }
 
 function normaliseWallpaper(key) {
-  return key && !_REMOVED_WALLPAPER_IDS.has(key) && WALLPAPER_PRESETS[key] ? key : DEFAULT_WALLPAPER
+  return !_REMOVED_WALLPAPER_IDS.has(key) && Object.hasOwn(WALLPAPER_PRESETS, key)
+    ? key
+    : DEFAULT_WALLPAPER
 }
 
 function normaliseWallpaperPosition(key) {
-  return key && WALLPAPER_POSITIONS[key] ? key : DEFAULT_WALLPAPER_POSITION
+  return Object.hasOwn(WALLPAPER_POSITIONS, key) ? key : DEFAULT_WALLPAPER_POSITION
+}
+
+function normaliseCustomFrame(value) {
+  return typeof value === 'string' && /^#[\da-f]{6}$/i.test(value) ? value.toLowerCase() : null
 }
 
 function normaliseColorIntensity(value) {
@@ -116,6 +122,7 @@ function saveToStorage(state) {
       STORAGE_KEY,
       JSON.stringify({
         accentColor: state.accentColor,
+        customFrame: state.customFrame,
         wallpaper: state.wallpaper,
         uiScale: state.uiScale,
         wallpaperPosition: state.wallpaperPosition,
@@ -134,13 +141,13 @@ function saveToStorage(state) {
  * transparency is off, and `data-transparency` lets stylesheets make the
  * frame fully opaque.
  */
-function applyAppearanceToDOM({ accentColor, colorIntensity, transparencyEnabled }) {
+function applyAppearanceToDOM({ accentColor, customFrame, colorIntensity, transparencyEnabled }) {
   if (typeof document === 'undefined' || !document.body) return
   const preset = ACCENT_PRESETS[accentColor]
   if (preset) {
     document.body.style.setProperty(
       '--w7-w-bg',
-      frameColor(preset.frame, normaliseColorIntensity(colorIntensity)),
+      frameColor(customFrame || preset.frame, colorIntensity),
     )
   }
   const glass = normaliseTransparency(transparencyEnabled)
@@ -160,6 +167,7 @@ function applyUiScaleToDOM(scale) {
 function normaliseSettings(raw) {
   return {
     accentColor: normaliseAccent(raw.accentColor),
+    customFrame: normaliseCustomFrame(raw.customFrame),
     wallpaper: normaliseWallpaper(raw.wallpaper),
     uiScale: raw.uiScale || 'default',
     wallpaperPosition: normaliseWallpaperPosition(raw.wallpaperPosition),
@@ -191,35 +199,37 @@ applyUiScaleToDOM(_persisted.uiScale ?? 'default')
 // ── Store ─────────────────────────────────────────────────────────────────────
 export const useSettingsStore = create((set, get) => ({
   accentColor: _boot.accentColor,
+  customFrame: _boot.customFrame,
   wallpaper: _boot.wallpaper,
+  wallpaperPreview: null,
   uiScale: _persisted.uiScale ?? 'default',
   wallpaperPosition: _boot.wallpaperPosition,
   colorIntensity: _boot.colorIntensity,
   transparencyEnabled: _boot.transparencyEnabled,
 
-  setWallpaper: (wallpaper) => {
-    const next = normaliseWallpaper(wallpaper)
-    // View Transitions give the wallpaper switch a cross-fade where supported.
-    // saveToStorage runs inside the callback so get() sees the new value.
-    if (document.startViewTransition) {
-      document.startViewTransition(() => {
-        set({ wallpaper: next })
-        saveToStorage(get())
-      })
-    } else {
-      set({ wallpaper: next })
-      saveToStorage(get())
-    }
-  },
-
-  setWallpaperPosition: (position) => {
-    set({ wallpaperPosition: normaliseWallpaperPosition(position) })
+  setWallpaper: (wallpaper) => get().setDesktopBackground(wallpaper, get().wallpaperPosition),
+  setWallpaperPosition: (position) => get().setDesktopBackground(get().wallpaper, position),
+  setWallpaperPreview: (preview) => set({ wallpaperPreview: preview }),
+  setDesktopBackground: (wallpaper, position) => {
+    set({
+      wallpaper: normaliseWallpaper(wallpaper),
+      wallpaperPosition: normaliseWallpaperPosition(position),
+      wallpaperPreview: null,
+    })
     saveToStorage(get())
   },
 
   setAccentColor: (color) => {
     const next = normaliseAccent(color)
-    set({ accentColor: next })
+    set({ accentColor: next, customFrame: null })
+    applyAppearanceToDOM(get())
+    saveToStorage(get())
+  },
+
+  setCustomFrame: (value) => {
+    const customFrame = normaliseCustomFrame(value)
+    if (!customFrame) return
+    set({ customFrame })
     applyAppearanceToDOM(get())
     saveToStorage(get())
   },
@@ -250,8 +260,9 @@ export const useSettingsStore = create((set, get) => ({
       const saved = JSON.parse(raw)
       if (!saved || typeof saved !== 'object') return
       const next = normaliseSettings(saved)
-      set({ ...next, uiScale: saved.uiScale || 'default' })
+      set(next)
       applyAppearanceToDOM(next)
+      applyUiScaleToDOM(next.uiScale)
     } catch {
       // Corrupt data
     }

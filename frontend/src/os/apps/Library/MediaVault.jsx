@@ -1,5 +1,4 @@
 import { memo, useMemo, useRef, useState } from 'react'
-import { motion as Motion } from 'framer-motion'
 import { ArrowLeft, ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react'
 import { MEDIA_CONFIG, TYPE_ICONS, getStatusNav } from '../../../lib/mediaConfig'
 import ConfirmDialog from '../../../components/ui/ConfirmDialog'
@@ -34,17 +33,18 @@ function MediaVault({
   const config = MEDIA_CONFIG[mediaType]
   const Icon = TYPE_ICONS[mediaType]
   const isJob = mediaType === 'job'
+  // Identical tracks and padding for the sticky heading and every row.
   const rowGrid = isJob
-    ? '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_72px]'
-    : '@sm:grid-cols-[2fr_1.5fr_1fr_0.8fr_0.5fr_72px]'
+    ? '@min-[42rem]:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_10.5rem_minmax(0,1.5fr)_6rem]'
+    : '@min-[42rem]:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_minmax(0,1.25fr)_10.5rem_3.25rem_6rem]'
 
   const filtered = useMemo(() => {
     let result = items
     if (filterStatus) {
       result = result.filter((item) => item.status === filterStatus)
     }
-    if (search.trim()) {
-      const q = search.toLowerCase()
+    const q = search.trim().toLowerCase()
+    if (q) {
       result = result.filter(
         (item) =>
           (item.title || '').toLowerCase().includes(q) ||
@@ -123,23 +123,27 @@ function MediaVault({
   const hasRows = visible.length > 0
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <div className="flex min-h-0 w-full flex-1 flex-col p-2 @min-[42rem]:p-3">
       {/* Header */}
-      <div className="flex shrink-0 flex-col gap-2 p-3 @sm:flex-row @sm:items-center @sm:justify-between @sm:p-4">
+      <div className="mb-2 flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="w7-toolbtn min-h-6 pointer-coarse:min-h-11"
+        >
+          <ArrowLeft size={14} aria-hidden="true" />
+          Back to overview
+        </button>
         <div className="flex min-w-0 items-center gap-2">
-          <button type="button" onClick={onBack} className="w7-toolbtn pointer-coarse:min-h-11">
-            <ArrowLeft size={14} aria-hidden="true" />
-            Back to overview
-          </button>
           <Icon size={16} className="shrink-0 text-[#3d5a80]" aria-hidden="true" />
-          <h2 className="w7-heading truncate">
+          <h2 className="w7-heading wrap-anywhere">
             {filterStatus || 'All'} — {label}
           </h2>
-          <span className="w7-badge tabular-nums">{filtered.length}</span>
+          <span className="w7-badge shrink-0 tabular-nums">{filtered.length}</span>
         </div>
 
         {/* Search: 7.css search box (type=search draws the magnifier) */}
-        <div className="w-full @sm:max-w-xs">
+        <div className="ml-auto w-full @min-[42rem]:max-w-56">
           <input
             type="search"
             value={search}
@@ -152,17 +156,13 @@ function MediaVault({
       </div>
 
       {/* List: a table-style list view (header row + selectable data rows) */}
-      <div className="w7-sunken mx-3 mb-3 flex min-h-0 flex-1 flex-col overflow-hidden @sm:mx-4 @sm:mb-4">
-        <div
-          role="table"
-          aria-label={`${label}, ${filterStatus || 'all statuses'}`}
-          className="flex min-h-0 flex-1 flex-col"
-        >
+      <div className="w7-sunken min-h-0 flex-1 overflow-y-auto">
+        <div role="table" aria-label={`${label}, ${filterStatus || 'all statuses'}`}>
           {/* Column headings */}
-          <div role="rowgroup" className="shrink-0">
+          <div role="rowgroup" className="sticky top-0 z-10">
             <div
               role="row"
-              className={`hidden border-b border-border bg-w7-pane px-3 py-1.5 text-[12px] text-muted-foreground @sm:grid @sm:items-center ${rowGrid}`}
+              className={`hidden border-b border-border bg-w7-pane px-2.5 py-1.5 text-[12px] text-muted-foreground @min-[42rem]:grid @min-[42rem]:items-center @min-[42rem]:gap-2 ${rowGrid}`}
             >
               <span role="columnheader">Title</span>
               <span role="columnheader">{config?.creatorLabel || 'Creator'}</span>
@@ -177,7 +177,7 @@ function MediaVault({
           </div>
 
           {/* Rows */}
-          <div ref={rowsRef} role="rowgroup" className="min-h-0 flex-1 overflow-y-auto p-1">
+          <div ref={rowsRef} role="rowgroup">
             {!hasRows && (
               // The empty message sits in a row/cell so the table keeps valid ARIA children.
               <div role="row" className="flex">
@@ -187,7 +187,7 @@ function MediaVault({
                 >
                   {search.trim() ? (
                     <>
-                      <p className="text-[12px] text-muted-foreground">
+                      <p className="wrap-anywhere text-[12px] text-muted-foreground">
                         No items match &ldquo;{search.trim()}&rdquo;.
                       </p>
                       <button type="button" onClick={() => setSearch('')} className="w7-btn">
@@ -208,27 +208,26 @@ function MediaVault({
               const isSelected = item.id === selectedId
               const { prev, next } = getStatusNav(mediaType, item.status)
               return (
-                <Motion.div
+                <div
                   key={item.id}
                   role="row"
                   tabIndex={item.id === tabStopId ? 0 : -1}
                   aria-selected={isSelected}
                   data-vault-row
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
                   onClick={() => onSelect?.(item)}
                   onFocus={(e) => {
                     if (e.target === e.currentTarget) setFocusedId(item.id)
                   }}
                   onKeyDown={(e) => handleRowKeyDown(e, index, item)}
-                  className={`w7-item group cursor-pointer px-2 py-1.5 @sm:grid @sm:items-center ${rowGrid}`}
+                  className={`w7-item cursor-pointer scroll-mt-9 space-y-1 border-b-border px-2 py-1.5 @min-[42rem]:grid @min-[42rem]:items-center @min-[42rem]:gap-2 @min-[42rem]:space-y-0 ${rowGrid}`}
                 >
                   {/* Title: a real button inside the row, so it opens from the keyboard too. */}
-                  <div role="cell" className="mb-0.5 min-w-0 @sm:mb-0 @sm:pr-3">
+                  <div role="cell" className="min-w-0">
                     <button
                       type="button"
                       aria-haspopup="dialog"
                       tabIndex={-1}
+                      title={item.title}
                       className="block w-full min-w-0 truncate text-left font-semibold text-foreground"
                     >
                       {item.title}
@@ -238,43 +237,46 @@ function MediaVault({
                   {/* Creator */}
                   <div
                     role="cell"
-                    className="mb-0.5 truncate text-muted-foreground @sm:mb-0 @sm:pr-3"
+                    title={item.creator}
+                    className="min-w-0 truncate text-muted-foreground"
                   >
-                    <span className="mr-1 text-[11px] @sm:hidden">{config?.creatorLabel}:</span>
+                    <span className="mr-1 text-[11px] @min-[42rem]:hidden">
+                      {config?.creatorLabel}:
+                    </span>
                     {item.creator !== '—' ? item.creator : ''}
                   </div>
 
                   {/* Genre */}
                   {!isJob && (
-                    <div role="cell" className="mb-0.5 @sm:mb-0">
-                      <span className="mr-1 text-[11px] text-muted-foreground @sm:hidden">
-                        Genre:
-                      </span>
-                      {item.genre && <span className="w7-badge">{item.genre}</span>}
+                    <div role="cell" className="min-w-0">
+                      {item.genre && (
+                        <span className="w7-badge max-w-full" title={item.genre}>
+                          <span className="truncate">{item.genre}</span>
+                        </span>
+                      )}
                     </div>
                   )}
 
                   {/* Status: disabled arrows stay visible and greyed (7.css :disabled) */}
-                  <div role="cell" className="mb-0.5 flex items-center gap-1 @sm:mb-0">
-                    <span className="mr-1 text-[11px] text-muted-foreground @sm:hidden">
-                      Status:
-                    </span>
+                  <div role="cell" className="flex min-w-0 flex-wrap items-center gap-1">
                     <button
                       type="button"
                       onClick={(e) => handleStatusChange(e, item, prev)}
                       disabled={!prev}
-                      className="w7-toolbtn px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                      className="w7-toolbtn size-6 shrink-0 p-0 pointer-coarse:size-11"
                       title={prev ? `Back to ${prev}` : 'No earlier status'}
                       aria-label={prev ? `Back to ${prev}` : 'No earlier status'}
                     >
                       <ChevronLeft size={12} aria-hidden="true" />
                     </button>
-                    <span className="w7-badge">{item.status}</span>
+                    <span className="w7-badge max-w-full wrap-anywhere whitespace-normal">
+                      {item.status}
+                    </span>
                     <button
                       type="button"
                       onClick={(e) => handleStatusChange(e, item, next)}
                       disabled={!next}
-                      className="w7-toolbtn px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                      className="w7-toolbtn size-6 shrink-0 p-0 pointer-coarse:size-11"
                       title={next ? `Advance to ${next}` : 'No later status'}
                       aria-label={next ? `Advance to ${next}` : 'No later status'}
                     >
@@ -284,31 +286,38 @@ function MediaVault({
 
                   {/* Rating */}
                   {!isJob && (
-                    <div role="cell" className="mb-0.5 text-[12px] text-[#8a5a00] @sm:mb-0">
-                      <span className="mr-1 text-[11px] text-muted-foreground @sm:hidden">
-                        Rating:
-                      </span>
-                      {item.rating != null && item.rating > 0 ? `★ ${item.rating}` : ''}
+                    <div role="cell" className="text-[12px] text-[#8a5a00]">
+                      {item.rating > 0 && (
+                        <span aria-label={`Rating: ${item.rating} of 5`}>★ {item.rating}</span>
+                      )}
                     </div>
                   )}
 
                   {/* Sub-info (job only, occupies the Salary/Location column in the grid) */}
                   {isJob && (
-                    <div role="cell" className="mb-0.5 text-muted-foreground @sm:mb-0">
-                      <span className="mr-1 text-[11px] @sm:hidden">{config?.subInfoLabel}:</span>
+                    <div
+                      role="cell"
+                      className="min-w-0 truncate text-muted-foreground"
+                      title={item.sub_info || undefined}
+                    >
+                      {item.sub_info && (
+                        <span className="mr-1 text-[11px] @min-[42rem]:hidden">
+                          {config?.subInfoLabel}:
+                        </span>
+                      )}
                       {item.sub_info || ''}
                     </div>
                   )}
 
                   {/* Actions */}
-                  <div role="cell" className="flex gap-0.5">
+                  <div role="cell" className="flex flex-wrap gap-0.5">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation()
                         onEdit?.(item)
                       }}
-                      className="w7-toolbtn px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                      className="w7-toolbtn size-6 shrink-0 p-0 pointer-coarse:size-11"
                       title="Edit"
                       aria-label="Edit"
                     >
@@ -317,14 +326,14 @@ function MediaVault({
                     <button
                       type="button"
                       onClick={(e) => handleDelete(e, item)}
-                      className="w7-toolbtn w7-toolbtn--danger px-1 pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                      className="w7-toolbtn w7-toolbtn--danger size-6 shrink-0 p-0 pointer-coarse:size-11"
                       title="Delete"
                       aria-label="Delete"
                     >
                       <Trash2 size={12} aria-hidden="true" />
                     </button>
                   </div>
-                </Motion.div>
+                </div>
               )
             })}
             {hiddenCount > 0 && (

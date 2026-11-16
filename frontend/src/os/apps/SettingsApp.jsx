@@ -40,11 +40,11 @@ export default function SettingsApp() {
   const active = CATEGORIES.find((c) => c.id === activeId) ?? CATEGORIES[0]
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-white text-[12px] text-foreground">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-white text-[12px] text-foreground @md:flex-row">
       {/* Category pane */}
       <nav
         aria-label="Control Panel categories"
-        className="w7-navpane flex w-[140px] shrink-0 flex-col gap-px p-1 @md:w-[180px]"
+        className="w7-navpane flex shrink-0 flex-wrap gap-px border-b border-border p-1 @md:w-[180px] @md:flex-col @md:flex-nowrap @md:border-b-0"
       >
         {CATEGORIES.map((cat) => {
           const Icon = cat.icon
@@ -55,7 +55,7 @@ export default function SettingsApp() {
               type="button"
               onClick={() => setActiveId(cat.id)}
               aria-current={isActive ? 'page' : undefined}
-              className="w7-item flex items-center gap-2 px-2 py-1 text-left"
+              className="w7-item flex items-center gap-2 px-2 py-1 text-left pointer-coarse:min-h-11"
             >
               <Icon size={16} aria-hidden="true" className="shrink-0 text-[#3d5a80]" />
               <span className="truncate">{cat.label}</span>
@@ -65,7 +65,7 @@ export default function SettingsApp() {
       </nav>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-3 @md:p-4">
         <h2 className="w7-heading mb-4">{active.heading}</h2>
         {activeId === 'personalization' && <PersonalizationPanel />}
         {activeId === 'storage' && <StoragePanel />}
