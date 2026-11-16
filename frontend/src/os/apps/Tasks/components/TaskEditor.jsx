@@ -5,6 +5,7 @@ import {
   formatLocalDate,
   formatLocalDateTimeWithOffset,
   formatLocalTime,
+  getBrowserTimeZone,
   getTaskDueDate,
   hasTimedDueDate,
   localDateTimeFromParts,
@@ -25,6 +26,8 @@ export default function TaskEditor({ initial, parentTitle, saving = false, onSav
   const titleRef = useRef(null)
   const uid = useId()
   const localDue = localDateTimeFromParts(due, time)
+  const scheduleChanged = !initial || due !== initialDate || time !== initialTime
+  const repeatZone = (!scheduleChanged && initial?.due_timezone) || getBrowserTimeZone()
   const invalidTime =
     localDue && (formatLocalDate(localDue) !== due || formatLocalTime(localDue) !== time)
 
@@ -42,10 +45,15 @@ export default function TaskEditor({ initial, parentTitle, saving = false, onSav
     }
     // Preserve the original instant when editing an unrelated field, including
     // tasks created in a different time zone and ambiguous times when clocks roll back.
-    if (!initial || due !== initialDate || time !== initialTime) {
+    if (scheduleChanged) {
       payload.due = due || null
       payload.due_at = localDue ? formatLocalDateTimeWithOffset(localDue) : null
+      payload.due_timezone = localDue ? repeatZone : null
       payload.all_day = !localDue
+    } else if (localDue && !initial.due_timezone) {
+      // Saving an old timed task can attach the displayed time zone without
+      // changing the previously stored instant.
+      payload.due_timezone = repeatZone
     }
     // Leave untouched notes out of an edit. The API returns null for a note it
     // cannot decrypt, so re-sending the blank field would erase the stored one.
@@ -159,7 +167,7 @@ export default function TaskEditor({ initial, parentTitle, saving = false, onSav
           due && (
             <p className="text-muted-foreground">
               {time
-                ? 'The time uses this device’s time zone.'
+                ? `Repeating times use ${repeatZone}.`
                 : 'Date-only reminders appear at 9:00 AM local time.'}
             </p>
           )

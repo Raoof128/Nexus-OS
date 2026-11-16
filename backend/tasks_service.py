@@ -23,6 +23,7 @@ from datetime import date, datetime, time, timezone
 
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrulestr
+from dateutil.tz import datetime_exists
 
 logger = logging.getLogger(__name__)
 
@@ -240,6 +241,14 @@ def next_occurrence(
 
     try:
         nxt = _next_occurrence_internal(recurrence, anchor)
+        # A recurring wall time may fall in a daylight-saving gap. Skip that
+        # occurrence and keep the configured clock time on subsequent dates.
+        for _ in range(8):
+            if nxt is None or nxt.tzinfo is None or datetime_exists(nxt):
+                break
+            nxt = _next_occurrence_internal(recurrence, nxt)
+        else:
+            return None
     except (OverflowError, ValueError, TypeError, IndexError):
         # IndexError: dateutil indexes its weekday tables with the BYDAY ordinal.
         logger.debug("Recurrence could not be evaluated: %r", recurrence)

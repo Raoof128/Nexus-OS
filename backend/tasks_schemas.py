@@ -10,6 +10,7 @@ from __future__ import annotations
 import unicodedata
 from datetime import date, datetime
 from typing import Annotated
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import (
     AfterValidator,
@@ -27,6 +28,19 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
 
 # Finite floats only: NaN and infinity would break position ordering.
 FiniteFloat = Annotated[float, AllowInfNan(False)]
+
+
+def _validate_time_zone(value: str) -> str:
+    try:
+        ZoneInfo(value)
+    except (ValueError, ZoneInfoNotFoundError):
+        raise ValueError("Use an IANA time zone such as Australia/Sydney") from None
+    return value
+
+
+DueTimeZone = Annotated[
+    str, Field(min_length=1, max_length=100), AfterValidator(_validate_time_zone)
+]
 
 _LINE_CONTROL_CATEGORY = "Cc"
 
@@ -87,6 +101,7 @@ class CreateTaskRequest(BaseModel):
     status: str = Field(default="needsAction", pattern="^(needsAction|completed)$")
     due: date | None = None
     due_at: datetime | None = None
+    due_timezone: DueTimeZone | None = None
     all_day: bool = True
     starred: bool = False
     recurrence: str | None = Field(default=None, max_length=300)
@@ -107,6 +122,7 @@ class UpdateTaskRequest(BaseModel):
     status: str | None = Field(default=None, pattern="^(needsAction|completed)$")
     due: date | None = None
     due_at: datetime | None = None
+    due_timezone: DueTimeZone | None = None
     all_day: bool | None = None
     starred: bool | None = None
     recurrence: str | None = Field(default=None, max_length=300)

@@ -75,6 +75,7 @@ def _chain(result):
     for method in (
         "select",
         "insert",
+        "upsert",
         "update",
         "delete",
         "eq",
@@ -201,11 +202,37 @@ def test_completing_recurring_task_spawns_next_occurrence(client):
     with patch(CREATE_CLIENT, return_value=_db(fetch, transition, positions, insert)):
         res = client.patch("/api/tasks/items/t9", json={"status": "completed"})
     assert res.status_code == HTTP_200_OK
-    inserted = insert.insert.call_args.args[0]
+    inserted = insert.upsert.call_args.args[0]
     # Anchored on the scheduled due date (2026-06-15), not on today.
     assert inserted["due"] == "2026-06-16"
     assert inserted["status"] == "needsAction"
     assert inserted["position"] == 2.0
+    assert inserted["previous_occurrence_id"] == "t9"
+    assert insert.upsert.call_args.kwargs == {
+        "on_conflict": "user_id,previous_occurrence_id",
+        "ignore_duplicates": True,
+    }
+
+
+def test_recurring_task_keeps_sydney_wall_time_across_dst(client):
+    # PostgREST returns UTC. October 3 at 9 AM Sydney is still UTC+10.
+    task = _task(
+        due="2026-10-03",
+        due_at="2026-10-02T23:00:00+00:00",
+        due_timezone="Australia/Sydney",
+        all_day=False,
+    )
+    fetch = _chain(FakeResp(data=task))
+    transition = _chain(FakeResp(data=[{**task, "status": "completed"}]))
+    positions = _chain(FakeResp(data=[]))
+    insert = _chain(FakeResp(data=[]))
+    with patch(CREATE_CLIENT, return_value=_db(fetch, transition, positions, insert)):
+        res = client.patch("/api/tasks/items/t9", json={"status": "completed"})
+    assert res.status_code == HTTP_200_OK
+    inserted = insert.upsert.call_args.args[0]
+    assert inserted["due"] == "2026-10-04"
+    assert inserted["due_at"] == "2026-10-04T09:00:00+11:00"
+    assert inserted["due_timezone"] == "Australia/Sydney"
 
 
 @pytest.mark.parametrize("pre_status", ["completed", "needsAction"])
@@ -220,7 +247,7 @@ def test_completion_that_does_not_transition_spawns_nothing(client, pre_status):
         res = client.patch("/api/tasks/items/t9", json={"status": "completed"})
     assert res.status_code == HTTP_200_OK
     assert db.from_.call_count == 3
-    assert not insert.insert.called
+    assert not insert.upsert.called
 
 
 def test_completion_with_title_change_applies_both(client):
@@ -254,7 +281,7 @@ def test_failed_field_write_leaves_completion_untouched(client):
         )
     assert res.status_code == HTTP_500_INTERNAL_SERVER_ERROR
     assert not transition.update.called
-    assert not insert.insert.called
+    assert not insert.upsert.called
 
 
 def test_uncompleting_task_writes_needs_action(client):
@@ -270,7 +297,7 @@ def test_uncompleting_task_writes_needs_action(client):
         "completed_at": None,
     }
     assert res.json()["status"] == "needsAction"
-    assert not insert.insert.called
+    assert not insert.upsert.called
 
 
 def test_update_with_zero_rows_returns_404_and_spawns_nothing(client):
@@ -289,7 +316,7 @@ def test_unparseable_anchor_logs_and_skips_spawn(client, caplog):
         with caplog.at_level(logging.WARNING):
             res = client.patch("/api/tasks/items/t9", json={"status": "completed"})
     assert res.status_code == HTTP_200_OK
-    assert not insert.insert.called
+    assert not insert.upsert.called
     assert "Recurrence anchor unparseable for task t9" in caplog.text
     # The log names the task id only, never the title or notes.
     assert "Standup" not in caplog.text

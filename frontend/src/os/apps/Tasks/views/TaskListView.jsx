@@ -286,8 +286,7 @@ export default function TaskListView({
     if (subtaskCount(task) > 0 || hasNotes(task)) setPendingDelete(task)
     else removeTask(task)
   }
-  const handleAdd = ({ title, due, due_at, all_day }) =>
-    createTask.mutate({ title, due, due_at: due_at ?? null, all_day: all_day ?? true })
+  const handleAdd = (payload) => createTask.mutate(payload)
   const handleSave = (payload) => {
     const onSuccess = () => setEditing((current) => (current === editing ? null : current))
     if (editing?.id) {

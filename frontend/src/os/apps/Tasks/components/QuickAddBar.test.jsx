@@ -49,7 +49,7 @@ describe('QuickAddBar time handling', () => {
   it('sends only fields the create endpoint accepts (no due_timezone)', () => {
     const onAdd = addTask('Call mom at 5pm')
     expect(Object.keys(onAdd.mock.calls[0][0]).sort()).toEqual(
-      ['all_day', 'due', 'due_at', 'title'].sort(),
+      ['all_day', 'due', 'due_at', 'due_timezone', 'title'].sort(),
     )
   })
 
@@ -59,6 +59,7 @@ describe('QuickAddBar time handling', () => {
       title: 'Pay rent',
       due: '2026-06-16',
       due_at: null,
+      due_timezone: null,
       all_day: true,
     })
   })

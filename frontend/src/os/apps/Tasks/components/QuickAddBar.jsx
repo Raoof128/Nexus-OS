@@ -3,8 +3,7 @@ import { parseQuickAdd } from '../lib/quickAddParse'
 
 // Single-line quick add. Parses a natural-language due date and optional time out
 // of the typed title ("Pay rent tomorrow", "Call mom at 5pm") and emits
-// { title, due, due_at, all_day }. `due_timezone` is parsed but not sent: the
-// create endpoint does not accept it.
+// The originating time zone travels with timed reminders.
 export default function QuickAddBar({ onAdd, disabled }) {
   const [value, setValue] = useState('')
 
@@ -16,6 +15,7 @@ export default function QuickAddBar({ onAdd, disabled }) {
       title: parsed.title,
       due: parsed.due,
       due_at: parsed.due_at,
+      due_timezone: parsed.due_timezone,
       all_day: parsed.all_day,
     })
     setValue('')

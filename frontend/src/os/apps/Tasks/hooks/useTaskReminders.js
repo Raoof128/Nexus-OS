@@ -1,159 +1,155 @@
 import { useEffect, useRef } from 'react'
-import { useQuery, useQueries } from '@tanstack/react-query'
+import { useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ownsLocalState, watchOwner } from '../../../../lib/localOwner'
 import { useNotificationStore } from '../../../stores/notificationStore'
 import { useWindowStore } from '../../../stores/windowStore'
 import { fetchTaskItems, fetchTaskLists, taskItemsKey, taskListsKey } from './useTasks'
-import { getTaskReminderTime } from '../lib/taskDateTime'
+import {
+  claimDueReminders,
+  getTaskReminder,
+  isReminderDue,
+  readReminderLedger,
+} from '../lib/taskReminderSchedule'
 
-const FIRED_KEY = 'nexus-os:tasks:reminders-fired'
-const CHECK_INTERVAL_MS = 60 * 1000
-// Server polling for the desktop service. Paused in background tabs by React Query.
-const POLL_INTERVAL_MS = 60 * 1000
-const STALE_MS = 30 * 1000
+const REFRESH_INTERVAL = 60_000
+const REMINDER_LOCK = 'nexus-os:task-reminder-delivery'
 const NO_LISTS = []
-const combineItems = (results) => results.flatMap((result) => result.data ?? [])
 
-function loadFired() {
-  try {
-    const fired = JSON.parse(localStorage.getItem(FIRED_KEY) || '{}')
-    return fired && typeof fired === 'object' && !Array.isArray(fired) ? fired : {}
-  } catch {
-    return {}
-  }
-}
+const itemData = (results) => results.map((query) => query.data)
+const itemQuery = (id) => ({
+  queryKey: taskItemsKey(id, true),
+  queryFn: () => fetchTaskItems(id, true),
+})
 
-function saveFired(map) {
-  try {
-    localStorage.setItem(FIRED_KEY, JSON.stringify(map))
-  } catch {
-    // storage full — ignore
-  }
-}
-
-function pendingReminderTime(task, fired) {
-  if (
-    task.status !== 'needsAction' ||
-    typeof task.id !== 'string' ||
-    task.id.startsWith('optimistic-') ||
-    task.pendingSchedule
-  ) {
-    return null
-  }
-  const when = getTaskReminderTime(task)
-  if (when === null) return null
-  const previous = Object.hasOwn(fired, task.id) ? fired[task.id] : null
-  // Legacy entries stored the time the notification fired. New entries store
-  // the scheduled time, so moving a task can arm a new reminder.
-  if (typeof previous === 'number' ? when <= previous : when === previous?.scheduledAt) {
-    return null
-  }
-  return when
-}
-
-export function dueTasksToNotify(tasks, now, fired) {
-  return (tasks || []).filter((t) => {
-    const when = pendingReminderTime(t, fired)
-    return when !== null && when <= now.getTime()
-  })
-}
-
-// Read storage on each pass to pick up notifications from other desktop tabs.
-// Do Not Disturb is applied by the notification store (logged, no toast); under it
-// the taskbar does not flash either.
-export function fireDueReminders(tasks, now = new Date(), memory = Object.create(null)) {
-  const fired = Object.assign(Object.create(null), memory, loadFired())
-  const { addNotification, doNotDisturb } = useNotificationStore.getState()
-  let count = 0
-  let changed = false
-  for (const task of tasks) {
-    const previous = fired[task.id]
-    const when = getTaskReminderTime(task)
-    const shouldMigrate =
-      task.status === 'needsAction' &&
-      !task.pendingSchedule &&
-      typeof previous === 'number' &&
-      when !== null &&
-      when <= previous
-    const pending = pendingReminderTime(task, fired)
-    const shouldNotify = pending !== null && pending <= now.getTime()
-    if (!shouldMigrate && !shouldNotify) continue
-
-    if (shouldNotify) {
-      addNotification({ title: 'Task due', message: task.title, type: 'warning' })
-      count += 1
-    }
-    const entry = { scheduledAt: when }
-    fired[task.id] = entry
-    memory[task.id] = entry
-    changed = true
-  }
-  if (changed) saveFired(fired)
-  // A background Tasks window flashes its taskbar button, as on Windows 7.
-  if (count && !doNotDisturb) useWindowStore.getState().requestAttention?.('tasks')
-  return count
-}
-
-// Desktop-level reminder service. Mount it once, while signed in and unlocked.
-// It watches every list (not only the open one) and works with the Tasks window
-// closed. Its queries share the cache keys used by the Tasks window.
 export function useTaskReminders() {
+  const client = useQueryClient()
   const { data: lists = NO_LISTS } = useQuery({
     queryKey: taskListsKey,
     queryFn: fetchTaskLists,
-    staleTime: STALE_MS,
-    refetchInterval: POLL_INTERVAL_MS,
+    staleTime: 30_000,
+    refetchInterval: REFRESH_INTERVAL,
     refetchIntervalInBackground: false,
   })
-
-  const tasks = useQueries({
-    queries: lists.map((list) => ({
-      queryKey: taskItemsKey(list.id, true),
-      queryFn: () => fetchTaskItems(list.id, true),
-      staleTime: STALE_MS,
-      refetchInterval: POLL_INTERVAL_MS,
+  const items = useQueries({
+    queries: lists.map(({ id }) => ({
+      ...itemQuery(id),
+      staleTime: 30_000,
+      refetchInterval: REFRESH_INTERVAL,
       refetchIntervalInBackground: false,
     })),
-    combine: combineItems,
+    combine: itemData,
   })
 
-  const tasksRef = useRef([])
-  const memory = useRef(Object.create(null))
   const wake = useRef(null)
+  const claims = useRef(Object.create(null))
 
   useEffect(() => {
-    let timeout
-    const check = () => {
-      clearTimeout(timeout)
-      const now = new Date()
-      const tasks = tasksRef.current
-      fireDueReminders(tasks, now, memory.current)
-      const fired = Object.assign(Object.create(null), memory.current, loadFired())
-      let nextDelay = CHECK_INTERVAL_MS
-      for (const task of tasks) {
-        const next = pendingReminderTime(task, fired)
-        if (next !== null && next > now.getTime()) {
-          nextDelay = Math.min(nextDelay, next - now.getTime())
+    let timer
+    let running = false
+    let runAgain = false
+    let stopped = false
+    const canDeliver = () => !stopped && !document.hidden && ownsLocalState()
+    const remindersFor = (id) =>
+      (client.getQueryData(taskItemsKey(id, true)) ?? []).map(getTaskReminder).filter(Boolean)
+
+    function deliver(reminders) {
+      if (!canDeliver()) return
+      const notifications = claimDueReminders(reminders, Date.now(), claims.current)
+      const { addNotification, doNotDisturb, panelOpen } = useNotificationStore.getState()
+      for (const notification of notifications) {
+        addNotification({ ...notification, silent: notification.silent || panelOpen })
+      }
+      if (!doNotDisturb && !panelOpen && notifications.some((n) => !n.silent)) {
+        useWindowStore.getState().requestAttention?.('tasks')
+      }
+    }
+
+    async function check() {
+      clearTimeout(timer)
+      if (!canDeliver()) return
+      if (running) {
+        runAgain = true
+        return
+      }
+      running = true
+      try {
+        const now = Date.now()
+        const ledger = readReminderLedger(claims.current)
+        const dueLists = lists.filter(({ id }) =>
+          remindersFor(id).some((reminder) => isReminderDue(reminder, now, ledger)),
+        )
+        if (dueLists.length) {
+          // Validate an about-to-fire schedule with the server. Another tab or
+          // device may have completed, deleted, or rescheduled the task.
+          const results = await Promise.allSettled(
+            dueLists.map(({ id }) =>
+              client.fetchQuery({ ...itemQuery(id), staleTime: 0, retry: false }),
+            ),
+          )
+          const freshLists = dueLists.filter((_, i) => results[i].status === 'fulfilled')
+          const claim = () => {
+            // An optimistic edit or deletion may have landed while waiting.
+            const current = new Set((client.getQueryData(taskListsKey) ?? []).map(({ id }) => id))
+            deliver(
+              freshLists.filter(({ id }) => current.has(id)).flatMap(({ id }) => remindersFor(id)),
+            )
+          }
+          if (canDeliver()) {
+            if (navigator.locks?.request) await navigator.locks.request(REMINDER_LOCK, claim)
+            else claim()
+          }
+        }
+      } finally {
+        running = false
+        if (canDeliver()) {
+          const now = Date.now()
+          const ledger = readReminderLedger(claims.current)
+          const next = lists
+            .flatMap(({ id }) => remindersFor(id))
+            .reduce((delay, reminder) => {
+              const remaining = reminder.scheduledAt - now
+              return remaining > 0 && remaining < delay ? remaining : delay
+            }, REFRESH_INTERVAL)
+          const pending =
+            runAgain &&
+            lists.some(({ id }) =>
+              remindersFor(id).some((reminder) => isReminderDue(reminder, now, ledger)),
+            )
+          runAgain = false
+          // Normal checks wake at the next deadline. Get back to the timer
+          // after errors rather than recursively retrying failed network work.
+          timer = setTimeout(wakeCheck, pending ? Math.min(next, 1000) : next)
         }
       }
-      timeout = setTimeout(check, nextDelay)
     }
-    const resume = () => {
-      if (!document.hidden) check()
+
+    const wakeCheck = () => {
+      void check().catch(() => {})
     }
-    wake.current = check
-    check()
-    window.addEventListener('focus', resume)
-    document.addEventListener('visibilitychange', resume)
+    const stopWatchingOwner = watchOwner(() => {
+      stopped = true
+      clearTimeout(timer)
+    })
+    wake.current = wakeCheck
+    wakeCheck()
+
+    window.addEventListener('focus', wakeCheck)
+    window.addEventListener('pageshow', wakeCheck)
+    window.addEventListener('online', wakeCheck)
+    document.addEventListener('visibilitychange', wakeCheck)
     return () => {
-      clearTimeout(timeout)
+      stopped = true
+      clearTimeout(timer)
+      stopWatchingOwner()
       wake.current = null
-      window.removeEventListener('focus', resume)
-      document.removeEventListener('visibilitychange', resume)
+      window.removeEventListener('focus', wakeCheck)
+      window.removeEventListener('pageshow', wakeCheck)
+      window.removeEventListener('online', wakeCheck)
+      document.removeEventListener('visibilitychange', wakeCheck)
     }
-  }, [])
+  }, [client, lists])
 
   useEffect(() => {
-    tasksRef.current = tasks
     wake.current?.()
-  }, [tasks])
+  }, [items])
 }

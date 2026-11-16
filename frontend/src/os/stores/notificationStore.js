@@ -1,12 +1,14 @@
 import { create } from 'zustand'
 import { nanoid } from 'nanoid'
 import { setAppBadge } from '../../lib/appBadge'
+import { ownsLocalState } from '../../lib/localOwner'
 
 const STORAGE_KEY = 'nexus-os:notifications'
 const SCHEMA_VERSION = 1
 const SAVE_DEBOUNCE_MS = 400
 const MAX_NOTIFICATIONS = 50
 const TOAST_TIMEOUT_MS = 5000
+export const MAX_TOASTS = 3
 
 function storageKeyForUser(userId) {
   return `${STORAGE_KEY}:${encodeURIComponent(userId)}`
@@ -28,27 +30,31 @@ export const useNotificationStore = create((set, get) => ({
   doNotDisturb: false,
   storageUserId: null,
 
-  addNotification: ({ title, message, type = 'info' }) => {
+  addNotification: ({ title, message, type = 'info', timestamp = Date.now(), silent = false }) => {
     const id = nanoid(8)
-    const dnd = get().doNotDisturb
-    set((state) => ({
-      notifications: [
-        {
-          id,
-          title,
-          message,
-          type,
-          timestamp: Date.now(),
-          read: false,
-          // Under Do Not Disturb we never surface a toast — the item is logged
-          // silently and still counts as unread in the centre + badge.
-          toastDismissed: dnd,
-        },
-        ...state.notifications,
-      ].slice(0, MAX_NOTIFICATIONS),
-    }))
+    const toastDismissed = silent || get().doNotDisturb
+    const toastUntil = Date.now() + TOAST_TIMEOUT_MS
+    const notification = {
+      id,
+      title,
+      message,
+      type,
+      timestamp,
+      read: false,
+      toastDismissed,
+      toastUntil,
+    }
+    set((state) => {
+      let slots = toastDismissed ? MAX_TOASTS : MAX_TOASTS - 1
+      const existing = state.notifications.map((n) => {
+        if (n.read || n.toastDismissed) return n
+        // Older entries stay in history without queuing more popups when one closes.
+        return slots-- > 0 ? n : { ...n, toastDismissed: true }
+      })
+      return { notifications: [notification, ...existing].slice(0, MAX_NOTIFICATIONS) }
+    })
     // Auto-hide the toast WITHOUT marking it read, so it persists in the centre.
-    if (!dnd) {
+    if (!toastDismissed) {
       setTimeout(() => get().dismissToast(id), TOAST_TIMEOUT_MS)
     }
     return id
@@ -61,6 +67,17 @@ export const useNotificationStore = create((set, get) => ({
         n.id === id ? { ...n, toastDismissed: true } : n,
       ),
     })),
+
+  expireToasts: () =>
+    set((state) => {
+      const now = Date.now()
+      if (!state.notifications.some((n) => !n.toastDismissed && n.toastUntil <= now)) return state
+      return {
+        notifications: state.notifications.map((n) =>
+          !n.toastDismissed && n.toastUntil <= now ? { ...n, toastDismissed: true } : n,
+        ),
+      }
+    }),
 
   markRead: (id) =>
     set((state) => ({
@@ -146,6 +163,7 @@ useNotificationStore.subscribe((state) => {
   lastDnd = state.doNotDisturb
   if (saveTimeout) clearTimeout(saveTimeout)
   saveTimeout = setTimeout(() => {
+    if (!ownsLocalState()) return
     try {
       localStorage.setItem(
         storageKeyForUser(state.storageUserId),

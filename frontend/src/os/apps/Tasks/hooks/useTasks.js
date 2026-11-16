@@ -98,7 +98,7 @@ export function useTaskMutations(listId, showCompleted = true) {
       const source = originKey(taskListId)
       await qc.cancelQueries({ queryKey: source })
       const previous = qc.getQueryData(source)
-      const pendingSchedule = ['due_at', 'due', 'all_day'].some((field) =>
+      const pendingSchedule = ['due_at', 'due', 'due_timezone', 'all_day'].some((field) =>
         Object.hasOwn(patch, field),
       )
       qc.setQueryData(source, (old = []) =>

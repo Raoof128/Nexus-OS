@@ -63,6 +63,20 @@ describe('notificationStore', () => {
     expect(n.read).toBe(false) // still counts toward the unread badge
   })
 
+  it('does not queue old popups or show missed reminders as a popup', () => {
+    const store = useNotificationStore.getState()
+    const first = store.addNotification({ title: 'First' })
+    for (let i = 0; i < 3; i++) store.addNotification({ title: `New ${i}` })
+    const missed = store.addNotification({ title: 'Missed', silent: true, timestamp: 123 })
+    const notifications = useNotificationStore.getState().notifications
+    expect(notifications.find((item) => item.id === first).toastDismissed).toBe(true)
+    expect(notifications.find((item) => item.id === missed)).toMatchObject({
+      timestamp: 123,
+      toastDismissed: true,
+      read: false,
+    })
+  })
+
   it('removeNotification and clearAll prune the list', () => {
     const id = useNotificationStore.getState().addNotification({ title: 'A' })
     useNotificationStore.getState().addNotification({ title: 'B' })

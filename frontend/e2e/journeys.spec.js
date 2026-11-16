@@ -230,6 +230,7 @@ test.describe('scheduled tasks', () => {
     await tasks.getByRole('button', { name: 'Add task', exact: true }).click()
     await expect(tasks.getByLabel('Task title')).toBeHidden()
     expect(scheduled.due_at).toBe('2026-11-08T10:02:00+11:00')
+    expect(scheduled.due_timezone).toBe('Australia/Sydney')
 
     await tasks.getByRole('button', { name: 'Minimize window' }).click()
     await page.clock.fastForward(2 * 60_000)
@@ -245,7 +246,7 @@ test.describe('scheduled tasks', () => {
     await tasks.getByRole('button', { name: /Call the studio Today/ }).click()
     await expect(tasks.getByLabel('Due time')).toHaveValue('10:02')
     await tasks.getByLabel('Due time').fill('10:04')
-    await tasks.getByRole('button', { name: 'Save', exact: true }).click()
+    await tasks.getByRole('button', { name: 'Save', exact: true }).press('Enter')
     await expect(tasks.getByLabel('Task title')).toBeHidden()
     expect(scheduled.due_at).toBe('2026-11-08T10:04:00+11:00')
 
@@ -256,6 +257,79 @@ test.describe('scheduled tasks', () => {
     await expect(
       page.getByRole('dialog', { name: 'Action Center' }).getByText('Call the studio'),
     ).toHaveCount(2)
+  })
+
+  test('claims a due reminder only once across two open Nexus tabs', async ({ page }) => {
+    const other = await page.context().newPage()
+    let checked = 0
+    let raceArmed = false
+    let release
+    const bothChecking = new Promise((resolve) => {
+      release = resolve
+    })
+
+    async function openReminderTab(tab) {
+      await mockApi(tab)
+      await tab.addInitScript(() => {
+        sessionStorage.setItem('nexus_booted', '1')
+        // Exercise the race when two windows remain visible on the desktop.
+        Object.defineProperty(document, 'hidden', { get: () => false })
+      })
+      await tab.clock.install({ time: new Date('2026-11-08T10:00:00+11:00') })
+      await tab.route('http://127.0.0.1:8799/api/tasks/lists', (route) =>
+        route.fulfill({ json: [{ id: 'home', name: 'Home' }] }),
+      )
+      let joinedRace = false
+      const itemsUrl = 'http://127.0.0.1:8799/api/tasks/lists/home/items?showCompleted=true'
+      await tab.route(itemsUrl, async (route) => {
+        if (raceArmed && !joinedRace) {
+          joinedRace = true
+          if (++checked === 2) release()
+          await bothChecking
+        }
+        await route.fulfill({
+          json: [
+            {
+              id: 'shared-reminder',
+              list_id: 'home',
+              status: 'needsAction',
+              title: 'Pick up the order',
+              due_at: '2026-11-07T23:00:45Z',
+              all_day: false,
+            },
+          ],
+        })
+      })
+      await tab.goto('/?app=tasks')
+      await expect(win(tab, 'Tasks').getByText('Pick up the order', { exact: true })).toBeVisible()
+    }
+
+    try {
+      await openReminderTab(page)
+      await openReminderTab(other)
+      raceArmed = true
+      await Promise.all([page.clock.fastForward(45_000), other.clock.fastForward(45_000)])
+      await Promise.all(
+        [page, other].map((tab) => tab.evaluate(() => window.dispatchEvent(new Event('focus')))),
+      )
+      await expect.poll(() => checked).toBe(2)
+      const toasts = [page, other].map((tab) =>
+        tab.getByRole('tooltip').filter({ hasText: 'Pick up the order' }),
+      )
+      await expect.poll(async () => (await toasts[0].count()) + (await toasts[1].count())).toBe(1)
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () =>
+              Object.keys(JSON.parse(localStorage.getItem('nexus-os:tasks:reminders-fired')).claims)
+                .length,
+          ),
+        )
+        .toBe(1)
+    } finally {
+      release()
+      await other.close()
+    }
   })
 })
 

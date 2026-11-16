@@ -1,7 +1,8 @@
+import { useEffect } from 'react'
 import { AnimatePresence, motion as Motion } from 'framer-motion'
 import { X, Info, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react'
 import { SPRING } from '../../lib/motion'
-import { useNotificationStore } from '../stores/notificationStore'
+import { MAX_TOASTS, useNotificationStore } from '../stores/notificationStore'
 
 // Icon colours are the Win7 balloon-tip palette, chosen to read on a light panel.
 const TYPE_CONFIG = {
@@ -70,10 +71,21 @@ function Toast({ notification }) {
 
 export default function NotificationToast() {
   const notifications = useNotificationStore((s) => s.notifications)
+  const expireToasts = useNotificationStore((s) => s.expireToasts)
+
+  useEffect(() => {
+    expireToasts()
+    window.addEventListener('pageshow', expireToasts)
+    document.addEventListener('visibilitychange', expireToasts)
+    return () => {
+      window.removeEventListener('pageshow', expireToasts)
+      document.removeEventListener('visibilitychange', expireToasts)
+    }
+  }, [expireToasts])
 
   // Show only the latest 3 toasts still live: unread AND not yet auto-/hand-
   // dismissed. Dismissed-but-unread items live on in the notification centre.
-  const visible = notifications.filter((n) => !n.read && !n.toastDismissed).slice(0, 3)
+  const visible = notifications.filter((n) => !n.read && !n.toastDismissed).slice(0, MAX_TOASTS)
 
   // One polite live region for the whole stack. It is always mounted so that
   // the first announcement is not lost. The 18px bottom padding on each item
