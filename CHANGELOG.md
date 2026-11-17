@@ -5,7 +5,7 @@
 **Raouf:**
 
 - **Scope:** Documentation and seed-file cleanup. No application code changed.
-- **Summary:** Removed a password and the owner's email address from `supabase/seed.sql`, `AGENTS.md`, `CLAUDE.md` and earlier log entries; the local seed user keeps `dev@example.com` with a local-only password. Replaced machine paths in the logs and plan documents with `<repo>`. The README gains a status paragraph that links the predecessor, Nexus Archive, and "hardened defensive posture" becomes "security measures".
+- **Summary:** Removed a password and the owner's email address from `supabase/seed.sql`, `AGENTS.md`, `CLAUDE.md` and earlier log entries; the local seed user keeps `dev@example.com` with a placeholder password that the developer replaces. Replaced the server's IP address with `<droplet-ip>` and machine paths in the logs and plan documents with `<repo>`. The README gains a status paragraph that links the predecessor, Nexus Archive, and "hardened defensive posture" becomes "security measures".
 - **Verification:** CI on the pull request.
 - **Follow-ups:** The removed values remain in the Git history. Any account that ever used that password needs a new one. On `main`, the Secret Scanning job fails because the pinned Gitleaks action cannot download its binary, and the Cloudflare Pages deploy fails with an authentication error; neither is addressed here.
 
@@ -337,7 +337,7 @@
 **Raouf:**
 
 - **Scope:** Full production deployment — backend (DigitalOcean) + frontend (Cloudflare Pages)
-- **Summary:** Deployed all changes from the current session (frontend audit, window system overhaul, auth 401 fix, wallpaper persistence, backend audit fixes) to production. Backend: rsync'd 9 changed files to droplet `170.64.167.95`, rebuilt Docker image from `python:3.12.11-slim`, stopped old container, launched new container on `127.0.0.1:8000`. Frontend: built production bundle with `VITE_API_URL=https://home-notes-app.uk/api` (2.08s, 30 assets), deployed to Cloudflare Pages project `nexus-archive` branch `codex/bootstrap`.
+- **Summary:** Deployed all changes from the current session (frontend audit, window system overhaul, auth 401 fix, wallpaper persistence, backend audit fixes) to production. Backend: rsync'd 9 changed files to droplet `<droplet-ip>`, rebuilt Docker image from `python:3.12.11-slim`, stopped old container, launched new container on `127.0.0.1:8000`. Frontend: built production bundle with `VITE_API_URL=https://home-notes-app.uk/api` (2.08s, 30 assets), deployed to Cloudflare Pages project `nexus-archive` branch `codex/bootstrap`.
 - **Files Changed:** No source changes — deployment only.
 - **Verification:** `https://home-notes-app.uk` → HTTP 200. `https://home-notes-app.uk/api/healthz` → `{"status":"ok"}`. Cloudflare Pages preview: `https://fb8b5a5a.nexus-archive.pages.dev`.
 - **Follow-ups:** None.
@@ -416,7 +416,7 @@
 **Raouf:**
 
 - **Scope:** CI/CD Build Error Resolution, Environment Configuration & Droplet Deployment
-- **Summary:** Fixed frontend CI/CD build issues by correcting broken relative imports. Resolved a runtime issue (`Uncaught Error: Missing required environment variable: VITE_SUPABASE_URL`) by supplying production credentials (`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`) during Vite compilation and deploying the compiled asset bundle to Cloudflare Pages. Created a root `.env` for droplet keys, a `frontend/.env` for client environment variables, and updated `CLAUDE.md` deployment commands. Synced and updated the backend container onto the DigitalOcean droplet (`170.64.167.95`) using `sshpass` and `rsync`.
+- **Summary:** Fixed frontend CI/CD build issues by correcting broken relative imports. Resolved a runtime issue (`Uncaught Error: Missing required environment variable: VITE_SUPABASE_URL`) by supplying production credentials (`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`) during Vite compilation and deploying the compiled asset bundle to Cloudflare Pages. Created a root `.env` for droplet keys, a `frontend/.env` for client environment variables, and updated `CLAUDE.md` deployment commands. Synced and updated the backend container onto the DigitalOcean droplet (`<droplet-ip>`) using `sshpass` and `rsync`.
 - **Files Changed:**
   - `frontend/src/os/apps/Library/LibraryApp.jsx` [MODIFY] - Corrected import path of `LazyAICmdPalette`.
   - `frontend/src/components/ui/CyberCard.jsx` [MODIFY] - Corrected import path of `ConfirmDialog`.
