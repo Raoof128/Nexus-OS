@@ -5,6 +5,15 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 
 # Agent Rules
 
+### 2026-11-17 (Australia/Sydney) — Docs: project status, placeholder seed account, machine paths removed
+
+**Raouf:**
+
+- **Scope:** Documentation and seed-file cleanup. No application code changed.
+- **Summary:** Removed a password and the owner's email address from `supabase/seed.sql`, `AGENTS.md`, `CLAUDE.md` and earlier log entries; the local seed user keeps `dev@example.com` with a local-only password. Replaced machine paths in the logs and plan documents with `<repo>`. The README gains a status paragraph that links the predecessor, Nexus Archive, and "hardened defensive posture" becomes "security measures".
+- **Verification:** CI on the pull request.
+- **Follow-ups:** The removed values remain in the Git history. Any account that ever used that password needs a new one. On `main`, the Secret Scanning job fails because the pinned Gitleaks action cannot download its binary, and the Cloudflare Pages deploy fails with an authentication error; neither is addressed here.
+
 ### 2026-11-08 (Australia/Sydney) — Merge feat/notes-app into the Windows 7 branch (Windows 7 wins conflicts)
 
 **Raouf:**
@@ -599,7 +608,7 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 **Raouf:**
 
 - **Scope:** Fix Production Account + Password Reset Redirect
-- **Summary:** Fixed two production issues. (1) Production Supabase user `raoof.r12@gmail.com` password was out of sync — reset to `Dev@Nexus2026` via Supabase Admin API. (2) Password reset email link was redirecting to root `/` instead of `/reset-password` — updated Supabase recovery email template via Management API to use `{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&type=recovery`. Updated frontend `recoveryTokens.js` to also parse `token_hash` from URL params (in addition to `access_token`). Updated `ResetPasswordPage.jsx` to accept `tokenHash` prop and exchange it for a session via `realtimeClient.auth.verifyOtp()` before showing the password form.
+- **Summary:** Fixed two production issues. (1) Production Supabase user `the owner account` password was out of sync — reset via the Supabase Admin API. (2) Password reset email link was redirecting to root `/` instead of `/reset-password` — updated Supabase recovery email template via Management API to use `{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&type=recovery`. Updated frontend `recoveryTokens.js` to also parse `token_hash` from URL params (in addition to `access_token`). Updated `ResetPasswordPage.jsx` to accept `tokenHash` prop and exchange it for a session via `realtimeClient.auth.verifyOtp()` before showing the password form.
 - **Files Changed:** `lib/recoveryTokens.js`, `components/features/ResetPasswordPage.jsx`, `App.jsx`.
 - **Verification:** Lint 0 errors, test 17/17, build clean, deployed to Cloudflare Pages.
 - **Follow-ups:** Test the full password reset flow end-to-end by requesting a recovery email and clicking the link.
@@ -680,7 +689,7 @@ description: Foundational agent rules for the Gemini + LiteStar + React project.
 **Raouf:**
 
 - **Scope:** CLI Application — Supabase Stack Restart, DB Seed, Local Dev Env
-- **Summary:** Applied all three bug-fix changes using the Supabase CLI. `supabase start` picked up the updated `config.toml`. `supabase db reset` applied 4 migrations and seeded `raoof.r12@gmail.com`. Added `.env.local` overlay support to `backend/config.py`; created `backend/.env.local` with local stack credentials.
+- **Summary:** Applied all three bug-fix changes using the Supabase CLI. `supabase start` picked up the updated `config.toml`. `supabase db reset` applied 4 migrations and seeded `the owner account`. Added `.env.local` overlay support to `backend/config.py`; created `backend/.env.local` with local stack credentials.
 - **Files Changed:** `backend/config.py`, `backend/.env.local` (new, gitignored).
 - **Verification:** DB reset succeeded, both `auth.users` + `auth.identities` rows confirmed, ruff clean, pytest 34/34 pass.
 - **Follow-ups:** Regenerate `.env.local` after stack restarts if JWT secret rotates. Create prod user via Supabase Auth dashboard only.

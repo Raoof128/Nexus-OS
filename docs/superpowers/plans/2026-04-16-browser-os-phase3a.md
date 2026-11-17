@@ -116,7 +116,7 @@ describe('settingsStore', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/stores/__tests__/settingsStore.test.js
+cd <repo>/frontend && npx vitest run src/os/stores/__tests__/settingsStore.test.js
 ```
 
 - [ ] **Step 3: Create the settings store**
@@ -213,13 +213,13 @@ export const useSettingsStore = create((set, get) => ({
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/stores/__tests__/settingsStore.test.js
+cd <repo>/frontend && npx vitest run src/os/stores/__tests__/settingsStore.test.js
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/stores/settingsStore.js frontend/src/os/stores/__tests__/settingsStore.test.js
+cd <repo> && git add frontend/src/os/stores/settingsStore.js frontend/src/os/stores/__tests__/settingsStore.test.js
 git commit -m "feat: add settings store with accent colors, UI scale, and wallpaper toggles"
 ```
 
@@ -484,13 +484,13 @@ export default function SettingsApp() {
 - [ ] **Step 2: Verify build**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build
+cd <repo>/frontend && npm run build
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/apps/SettingsApp.jsx
+cd <repo> && git add frontend/src/os/apps/SettingsApp.jsx
 git commit -m "feat: add Settings app with theme colors, UI scale, and wallpaper toggles"
 ```
 
@@ -678,7 +678,7 @@ export default function SystemMonitorApp() {
 - [ ] **Step 2: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/apps/SystemMonitorApp.jsx
+cd <repo> && git add frontend/src/os/apps/SystemMonitorApp.jsx
 git commit -m "feat: add System Monitor app with API health, session, and performance panels"
 ```
 
@@ -740,7 +740,7 @@ describe('NotesApp', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/apps/__tests__/NotesApp.test.jsx
+cd <repo>/frontend && npx vitest run src/os/apps/__tests__/NotesApp.test.jsx
 ```
 
 - [ ] **Step 3: Create the Notes app**
@@ -890,13 +890,13 @@ export default function NotesApp({ windowId }) {
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/apps/__tests__/NotesApp.test.jsx
+cd <repo>/frontend && npx vitest run src/os/apps/__tests__/NotesApp.test.jsx
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/apps/NotesApp.jsx frontend/src/os/apps/__tests__/NotesApp.test.jsx
+cd <repo> && git add frontend/src/os/apps/NotesApp.jsx frontend/src/os/apps/__tests__/NotesApp.test.jsx
 git commit -m "feat: add Notes app with markdown preview and localStorage persistence"
 ```
 
@@ -984,25 +984,25 @@ With:
 - [ ] **Step 3: Verify build**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build
+cd <repo>/frontend && npm run build
 ```
 
 - [ ] **Step 4: Run all tests**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run test
+cd <repo>/frontend && npm run test
 ```
 
 - [ ] **Step 5: Run lint**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run lint
+cd <repo>/frontend && npm run lint
 ```
 
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/stores/appRegistry.js frontend/src/os/Desktop.jsx
+cd <repo> && git add frontend/src/os/stores/appRegistry.js frontend/src/os/Desktop.jsx
 git commit -m "feat: wire Settings, System Monitor, and Notes into app registry"
 ```
 
@@ -1013,13 +1013,13 @@ git commit -m "feat: wire Settings, System Monitor, and Notes into app registry"
 - [ ] **Step 1: Run full test suite**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run test
+cd <repo>/frontend && npm run test
 ```
 
 - [ ] **Step 2: Run build + lint**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build && npm run lint
+cd <repo>/frontend && npm run build && npm run lint
 ```
 
 - [ ] **Step 3: Fix any issues**
@@ -1027,7 +1027,7 @@ cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build && npm run lin
 - [ ] **Step 4: Commit and push**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add -A && git commit -m "chore: Phase 3a complete — Settings, System Monitor, Notes apps"
+cd <repo> && git add -A && git commit -m "chore: Phase 3a complete — Settings, System Monitor, Notes apps"
 git push nexus-os codex/bootstrap
 ```
 

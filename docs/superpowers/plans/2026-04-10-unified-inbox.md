@@ -159,12 +159,12 @@ alter publication supabase_realtime add table public.nexus_emails;
 
 - [ ] **Step 2: Apply migration locally**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && supabase db reset`
+Run: `cd <repo> && supabase db reset`
 Expected: Migration applies without errors, tables visible in Supabase dashboard.
 
 - [ ] **Step 3: Verify tables exist**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && supabase db lint`
+Run: `cd <repo> && supabase db lint`
 Expected: No lint errors for new tables.
 
 - [ ] **Step 4: Commit**
@@ -236,7 +236,7 @@ def test_settings_email_fields_optional_in_dev(monkeypatch):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_email_config.py -v`
+Run: `cd <repo> && python3 -m pytest tests/test_email_config.py -v`
 Expected: FAIL — `BackendSettings` has no field `google_oauth_client_id`.
 
 - [ ] **Step 3: Add fields to BackendSettings dataclass**
@@ -266,7 +266,7 @@ In `backend/config.py`, add these lines inside the `get_settings()` function's `
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_email_config.py -v`
+Run: `cd <repo> && python3 -m pytest tests/test_email_config.py -v`
 Expected: PASS
 
 - [ ] **Step 6: Commit**
@@ -372,7 +372,7 @@ def test_label_email_request():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_email_schemas.py -v`
+Run: `cd <repo> && python3 -m pytest tests/test_email_schemas.py -v`
 Expected: FAIL — cannot import `email_schemas`.
 
 - [ ] **Step 3: Write the schemas**
@@ -466,7 +466,7 @@ class AISummarizeRequest(BaseModel):
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_email_schemas.py -v`
+Run: `cd <repo> && python3 -m pytest tests/test_email_schemas.py -v`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -566,7 +566,7 @@ class TestEmailMessage:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_email_service.py::TestTokenEncryption -v`
+Run: `cd <repo> && python3 -m pytest tests/test_email_service.py::TestTokenEncryption -v`
 Expected: FAIL — cannot import `email_service`.
 
 - [ ] **Step 3: Write the email service module**
@@ -812,7 +812,7 @@ def _extract_gmail_attachments(payload: dict) -> list[dict]:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_email_service.py -v`
+Run: `cd <repo> && python3 -m pytest tests/test_email_service.py -v`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -891,7 +891,7 @@ class TestGraphProvider:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_email_service.py::TestGmailProvider -v`
+Run: `cd <repo> && python3 -m pytest tests/test_email_service.py::TestGmailProvider -v`
 Expected: FAIL — `GmailProvider` has no `fetch_message_ids` method yet (or is not fully implemented).
 
 - [ ] **Step 3: Implement GmailProvider and GraphProvider**
@@ -1154,7 +1154,7 @@ def _extract_gmail_html(payload: dict) -> str:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_email_service.py -v`
+Run: `cd <repo> && python3 -m pytest tests/test_email_service.py -v`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -1217,7 +1217,7 @@ def test_connect_returns_redirect_for_google(monkeypatch):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_oauth_controller.py -v`
+Run: `cd <repo> && python3 -m pytest tests/test_oauth_controller.py -v`
 Expected: FAIL — cannot import `oauth_controller`.
 
 - [ ] **Step 3: Implement the OAuth controller**
@@ -1442,7 +1442,7 @@ def _get_callback_url(settings) -> str:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_oauth_controller.py -v`
+Run: `cd <repo> && python3 -m pytest tests/test_oauth_controller.py -v`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -1487,7 +1487,7 @@ def test_email_controller_has_expected_routes():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_email_controller.py -v`
+Run: `cd <repo> && python3 -m pytest tests/test_email_controller.py -v`
 Expected: FAIL — cannot import `email_controller`.
 
 - [ ] **Step 3: Implement the email controller**
@@ -1732,7 +1732,7 @@ def _get_provider_id(request, email_id: str) -> str:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_email_controller.py -v`
+Run: `cd <repo> && python3 -m pytest tests/test_email_controller.py -v`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -1779,7 +1779,7 @@ async def test_detect_ghost_emails_no_ghosts():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_email_poller.py -v`
+Run: `cd <repo> && python3 -m pytest tests/test_email_poller.py -v`
 Expected: FAIL — cannot import `email_poller`.
 
 - [ ] **Step 3: Implement the poller**
@@ -1954,7 +1954,7 @@ async def start_email_poller(app) -> None:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest tests/test_email_poller.py -v`
+Run: `cd <repo> && python3 -m pytest tests/test_email_poller.py -v`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
@@ -1998,7 +1998,7 @@ app = Litestar(
 
 - [ ] **Step 3: Verify the app starts**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -c "from backend.app import app; print('Routes:', [r.path for r in app.routes[:5]], '...')"`
+Run: `cd <repo> && python3 -c "from backend.app import app; print('Routes:', [r.path for r in app.routes[:5]], '...')"`
 Expected: No import errors, routes printed.
 
 - [ ] **Step 4: Commit**
@@ -2116,7 +2116,7 @@ describe('handleEmailRealtimeDelete', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run test -- --run src/hooks/useEmails.test.js`
+Run: `cd <repo>/frontend && npm run test -- --run src/hooks/useEmails.test.js`
 Expected: FAIL — cannot import `useEmails`.
 
 - [ ] **Step 3: Write useEmailAccounts hook**
@@ -2420,7 +2420,7 @@ export function useEmailActions(session, folder = 'inbox', accountId = null) {
 
 - [ ] **Step 6: Run test to verify it passes**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run test -- --run src/hooks/useEmails.test.js`
+Run: `cd <repo>/frontend && npm run test -- --run src/hooks/useEmails.test.js`
 Expected: PASS
 
 - [ ] **Step 7: Commit**
@@ -2796,7 +2796,7 @@ export default memo(EmailReader)
 
 - [ ] **Step 3: Install DOMPurify**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm install dompurify`
+Run: `cd <repo>/frontend && npm install dompurify`
 
 - [ ] **Step 4: Commit**
 
@@ -3209,7 +3209,7 @@ In the main content conditional rendering (around line 228), add a case for `act
 
 - [ ] **Step 7: Verify the app compiles**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build`
+Run: `cd <repo>/frontend && npm run build`
 Expected: Build succeeds with no errors.
 
 - [ ] **Step 8: Commit**
@@ -3325,7 +3325,7 @@ describe('EmailInbox', () => {
 
 - [ ] **Step 2: Run the test**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run test -- --run src/components/features/EmailInbox.test.jsx`
+Run: `cd <repo>/frontend && npm run test -- --run src/components/features/EmailInbox.test.jsx`
 Expected: PASS
 
 - [ ] **Step 3: Commit**
@@ -3349,26 +3349,26 @@ Add `httpx>=0.27` to the project dependencies in `pyproject.toml`.
 
 - [ ] **Step 2: Install**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && pip install httpx`
+Run: `cd <repo> && pip install httpx`
 
 - [ ] **Step 3: Run all backend tests**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python3 -m pytest -v`
+Run: `cd <repo> && python3 -m pytest -v`
 Expected: All tests pass (existing + new email tests).
 
 - [ ] **Step 4: Run all frontend tests**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run test -- --run`
+Run: `cd <repo>/frontend && npm run test -- --run`
 Expected: All tests pass.
 
 - [ ] **Step 5: Run frontend build**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build`
+Run: `cd <repo>/frontend && npm run build`
 Expected: Build succeeds.
 
 - [ ] **Step 6: Run linting**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && make lint`
+Run: `cd <repo> && make lint`
 Expected: No new lint errors.
 
 - [ ] **Step 7: Commit**

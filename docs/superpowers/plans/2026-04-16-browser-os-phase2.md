@@ -134,7 +134,7 @@ describe('cycleWindow', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/stores/__tests__/windowStore.test.js
+cd <repo>/frontend && npx vitest run src/os/stores/__tests__/windowStore.test.js
 ```
 
 Expected: FAIL — `snapWindow` and `cycleWindow` are not functions.
@@ -190,7 +190,7 @@ In `frontend/src/os/stores/windowStore.js`, add these two actions inside the `cr
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/stores/__tests__/windowStore.test.js
+cd <repo>/frontend && npx vitest run src/os/stores/__tests__/windowStore.test.js
 ```
 
 Expected: All tests PASS.
@@ -198,7 +198,7 @@ Expected: All tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/stores/windowStore.js frontend/src/os/stores/__tests__/windowStore.test.js
+cd <repo> && git add frontend/src/os/stores/windowStore.js frontend/src/os/stores/__tests__/windowStore.test.js
 git commit -m "feat: add snapWindow and cycleWindow actions to window store"
 ```
 
@@ -355,7 +355,7 @@ Note: You need to add `const TASKBAR_HEIGHT = 48` at the top of the test file (o
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/stores/__tests__/windowStore.test.js
+cd <repo>/frontend && npx vitest run src/os/stores/__tests__/windowStore.test.js
 ```
 
 Expected: FAIL — `hydrateFromStorage` is not a function.
@@ -475,7 +475,7 @@ Change `const TASKBAR_HEIGHT = 48` to `export const TASKBAR_HEIGHT = 48`.
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/stores/__tests__/windowStore.test.js
+cd <repo>/frontend && npx vitest run src/os/stores/__tests__/windowStore.test.js
 ```
 
 Expected: All tests PASS.
@@ -483,7 +483,7 @@ Expected: All tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/stores/windowStore.js frontend/src/os/stores/__tests__/windowStore.test.js
+cd <repo> && git add frontend/src/os/stores/windowStore.js frontend/src/os/stores/__tests__/windowStore.test.js
 git commit -m "feat: add localStorage persistence with hydration, clamping, and mobile guard"
 ```
 
@@ -532,7 +532,7 @@ it('calls restoreWindow on title bar pointer down when snapped', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/components/__tests__/Window.test.jsx
+cd <repo>/frontend && npx vitest run src/os/components/__tests__/Window.test.jsx
 ```
 
 - [ ] **Step 3: Update Window.jsx for snapped state rendering**
@@ -619,13 +619,13 @@ const displayStyle = isSnapped
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/components/__tests__/Window.test.jsx
+cd <repo>/frontend && npx vitest run src/os/components/__tests__/Window.test.jsx
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/components/Window.jsx frontend/src/os/components/__tests__/Window.test.jsx
+cd <repo> && git add frontend/src/os/components/Window.jsx frontend/src/os/components/__tests__/Window.test.jsx
 git commit -m "feat: add CSS percentage rendering for snapped window states"
 ```
 
@@ -734,13 +734,13 @@ Add `onDrag={handleDrag}` to the `Motion.div`.
 - [ ] **Step 2: Verify build works**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build
+cd <repo>/frontend && npm run build
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/Desktop.jsx frontend/src/os/components/Window.jsx
+cd <repo> && git add frontend/src/os/Desktop.jsx frontend/src/os/components/Window.jsx
 git commit -m "feat: add snap preview overlay and edge-snap detection on drag"
 ```
 
@@ -892,7 +892,7 @@ describe('useGlobalShortcuts', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/hooks/__tests__/useGlobalShortcuts.test.js
+cd <repo>/frontend && npx vitest run src/os/hooks/__tests__/useGlobalShortcuts.test.js
 ```
 
 - [ ] **Step 3: Implement useGlobalShortcuts**
@@ -1025,13 +1025,13 @@ useGlobalShortcuts()
 - [ ] **Step 5: Run tests to verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/hooks/__tests__/useGlobalShortcuts.test.js
+cd <repo>/frontend && npx vitest run src/os/hooks/__tests__/useGlobalShortcuts.test.js
 ```
 
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/hooks/useGlobalShortcuts.js frontend/src/os/hooks/__tests__/useGlobalShortcuts.test.js frontend/src/os/Desktop.jsx
+cd <repo> && git add frontend/src/os/hooks/useGlobalShortcuts.js frontend/src/os/hooks/__tests__/useGlobalShortcuts.test.js frontend/src/os/Desktop.jsx
 git commit -m "feat: add Alt-key global shortcuts for window management"
 ```
 
@@ -1083,7 +1083,7 @@ it('shows no matches message when nothing matches', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/components/__tests__/AppLauncher.test.jsx
+cd <repo>/frontend && npx vitest run src/os/components/__tests__/AppLauncher.test.jsx
 ```
 
 - [ ] **Step 3: Update AppLauncher with search**
@@ -1216,13 +1216,13 @@ export default memo(AppLauncher)
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/components/__tests__/AppLauncher.test.jsx
+cd <repo>/frontend && npx vitest run src/os/components/__tests__/AppLauncher.test.jsx
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/components/AppLauncher.jsx frontend/src/os/components/__tests__/AppLauncher.test.jsx
+cd <repo> && git add frontend/src/os/components/AppLauncher.jsx frontend/src/os/components/__tests__/AppLauncher.test.jsx
 git commit -m "feat: add search filter to app launcher with Spotlight-style Enter"
 ```
 
@@ -1267,13 +1267,13 @@ useEffect(() => {
 - [ ] **Step 2: Verify build**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build
+cd <repo>/frontend && npm run build
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/Desktop.jsx
+cd <repo> && git add frontend/src/os/Desktop.jsx
 git commit -m "feat: hydrate window layout from localStorage on desktop mount"
 ```
 
@@ -1288,25 +1288,25 @@ git commit -m "feat: hydrate window layout from localStorage on desktop mount"
 - [ ] **Step 1: Run full test suite**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run test
+cd <repo>/frontend && npm run test
 ```
 
 - [ ] **Step 2: Run build**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build
+cd <repo>/frontend && npm run build
 ```
 
 - [ ] **Step 3: Run lint**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run lint
+cd <repo>/frontend && npm run lint
 ```
 
 - [ ] **Step 4: Manual smoke test**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run dev
+cd <repo>/frontend && npm run dev
 ```
 
 Manual checks:
@@ -1333,7 +1333,7 @@ Manual checks:
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add -A
+cd <repo> && git add -A
 git commit -m "chore: Phase 2 complete — window manager hardening"
 ```
 

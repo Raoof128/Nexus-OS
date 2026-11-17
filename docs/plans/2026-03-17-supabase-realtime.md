@@ -166,7 +166,7 @@ This single change flows through to ALL endpoints that call `_build_session_resp
 
 **Step 3: Run backend tests (if any)**
 
-Run: `cd /Users/raoof.r12/Desktop/Raouf/Nexus && python -m pytest backend/ -v 2>/dev/null || echo "No backend tests configured"`
+Run: `cd <repo> && python -m pytest backend/ -v 2>/dev/null || echo "No backend tests configured"`
 Expected: Tests pass or no tests to run
 
 **Step 4: Commit**

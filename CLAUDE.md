@@ -106,7 +106,7 @@ frontend/src/
   components/layout/Navbar.jsx     # Top bar shown on the auth/login screen only
 supabase/
   config.toml          # Local Supabase config (auth redirect URLs)
-  seed.sql             # Dev user: raoof.r12@gmail.com / Dev@Nexus2026
+  seed.sql             # Dev user: dev@example.com (local development only)
   migrations/          # 4 migrations: books → unified media → chat → realtime
 ```
 

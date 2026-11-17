@@ -132,7 +132,7 @@ describe('TerminalApp', () => {
 - [ ] **Step 2: Run tests — verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/apps/__tests__/TerminalApp.test.jsx
+cd <repo>/frontend && npx vitest run src/os/apps/__tests__/TerminalApp.test.jsx
 ```
 
 - [ ] **Step 3: Create the Terminal app**
@@ -391,13 +391,13 @@ export default function TerminalApp({ windowId }) {
 - [ ] **Step 4: Run tests — verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/apps/__tests__/TerminalApp.test.jsx
+cd <repo>/frontend && npx vitest run src/os/apps/__tests__/TerminalApp.test.jsx
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/apps/TerminalApp.jsx frontend/src/os/apps/__tests__/TerminalApp.test.jsx
+cd <repo> && git add frontend/src/os/apps/TerminalApp.jsx frontend/src/os/apps/__tests__/TerminalApp.test.jsx
 git commit -m "feat: add Terminal app with command parser, history, and API commands"
 ```
 
@@ -500,7 +500,7 @@ describe('fileSystemStore', () => {
 - [ ] **Step 2: Run tests — verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/stores/__tests__/fileSystemStore.test.js
+cd <repo>/frontend && npx vitest run src/os/stores/__tests__/fileSystemStore.test.js
 ```
 
 - [ ] **Step 3: Create the file system store**
@@ -657,13 +657,13 @@ useFileSystemStore.subscribe((state) => {
 - [ ] **Step 4: Run tests — verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/stores/__tests__/fileSystemStore.test.js
+cd <repo>/frontend && npx vitest run src/os/stores/__tests__/fileSystemStore.test.js
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/stores/fileSystemStore.js frontend/src/os/stores/__tests__/fileSystemStore.test.js
+cd <repo> && git add frontend/src/os/stores/fileSystemStore.js frontend/src/os/stores/__tests__/fileSystemStore.test.js
 git commit -m "feat: add virtual filesystem store with CRUD, persistence, and hydration"
 ```
 
@@ -966,13 +966,13 @@ export default function FileManagerApp() {
 - [ ] **Step 2: Verify build**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build
+cd <repo>/frontend && npm run build
 ```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/apps/FileManagerApp.jsx
+cd <repo> && git add frontend/src/os/apps/FileManagerApp.jsx
 git commit -m "feat: add File Manager app with virtual filesystem, folder navigation, and file viewer"
 ```
 
@@ -1003,13 +1003,13 @@ const FileManagerApp = lazy(() => import('../apps/FileManagerApp'))
 - [ ] **Step 2: Run full test suite**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run test
+cd <repo>/frontend && npm run test
 ```
 
 - [ ] **Step 3: Run build + lint**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build && npm run lint
+cd <repo>/frontend && npm run build && npm run lint
 ```
 
 - [ ] **Step 4: Fix any issues**
@@ -1017,7 +1017,7 @@ cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build && npm run lin
 - [ ] **Step 5: Commit and push**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add -A && git commit -m "feat: wire Terminal and File Manager into registry — all 8 apps complete"
+cd <repo> && git add -A && git commit -m "feat: wire Terminal and File Manager into registry — all 8 apps complete"
 git push nexus-os codex/bootstrap
 ```
 

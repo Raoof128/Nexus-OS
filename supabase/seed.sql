@@ -27,7 +27,8 @@ END $$;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- -----------------------------------------------------------------------------
--- Dev user: dev@example.com  /  password: Dev@Nexus2026
+-- Dev user: dev@example.com  /  password: nexus-local-dev
+-- Local development only. Never run this file against a hosted project.
 -- Fixed UUID for reproducible references across resets.
 -- -----------------------------------------------------------------------------
 DO $$
@@ -59,7 +60,7 @@ BEGIN
     'authenticated',
     'authenticated',
     _email,
-    crypt('Dev@Nexus2026', gen_salt('bf')),
+    crypt('nexus-local-dev', gen_salt('bf')),
     NOW(),
     '{"provider":"email","providers":["email"]}',
     '{}',
