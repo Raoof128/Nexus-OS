@@ -3,6 +3,9 @@ const RECOVERY_PARAM_KEYS = ['type', 'access_token', 'refresh_token', 'token_has
 let pendingRecoveryTokens = null
 
 function parseRecoveryTokens(params) {
+  if (params.get('type') === 'verify' && params.get('token')) {
+    return { verificationToken: params.get('token') }
+  }
   if (params.get('type') !== 'recovery') return null
 
   if (params.get('token')) return { recoveryToken: params.get('token') }

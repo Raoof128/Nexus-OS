@@ -1,0 +1,8 @@
+name = "nexus-account-mail"
+main = "index.js"
+compatibility_date = "2026-11-17"
+workers_dev = true
+
+[[send_email]]
+name = "NEXUS_MAIL"
+allowed_sender_addresses = ["account@auth-mail.home-notes-app.uk"]

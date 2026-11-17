@@ -48,6 +48,7 @@ _PUBLIC_ROUTES: Final[frozenset[tuple[str, str]]] = frozenset(
         ("POST", "/auth/register"),
         ("POST", "/auth/forgot-password"),
         ("POST", "/auth/reset-password"),
+        ("POST", "/auth/verify-email"),
         ("GET", "/auth/session"),
     }
 )

@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import AuthPanel from './os/apps/Auth/AuthPanel'
 import ResetPasswordPage from './os/apps/Auth/ResetPasswordPage'
+import VerifyEmailPage from './os/apps/Auth/VerifyEmailPage'
 import { UserTile } from './os/apps/Auth/LogonParts'
 import { brandClass, bodyTextClass, scrimClass } from './os/apps/Auth/logonStyles'
 import Navbar from './components/layout/Navbar'
@@ -51,6 +52,10 @@ function UnreachableScreen({ onRetry }) {
 function App() {
   const { session, loading: authLoading, unreachable, retrySession } = useAuth()
   const [recoveryTokens, dismissTokens] = useRecoveryTokens()
+
+  if (recoveryTokens?.verificationToken) {
+    return <VerifyEmailPage token={recoveryTokens.verificationToken} onComplete={dismissTokens} />
+  }
 
   if (recoveryTokens) {
     return (

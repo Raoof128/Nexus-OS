@@ -283,3 +283,17 @@ class StandaloneAuthController(Controller):
                 status_code=400, detail="Recovery link is invalid or has expired"
             )
         return _reply({"ok": True})
+
+    @post("/verify-email")
+    async def verify_email(self, request: Request) -> Response:
+        _enforce_request_origin(request)
+        await _enforce_limit(f"verify:{_client_ip(request)}")
+        token = request.headers.get("x-recovery-access-token", "")
+        if not re.fullmatch(r"[A-Za-z0-9_.-]{1,2048}", token):
+            raise PermissionDeniedException("Missing or invalid verification token")
+        upstream = await _request(request, "GET", f"verify-email?token={token}")
+        if not upstream.is_success:
+            raise HTTPException(
+                status_code=400, detail="Verification link expired or invalid"
+            )
+        return _reply({"ok": True})

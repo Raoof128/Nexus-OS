@@ -30,7 +30,7 @@ from backend.idempotency import (
 
 KEY = "0f8fad5b-d9cb-469f-a165-70867728950e"
 BODY = {"to": ["alice@example.com"], "subject": "Hello", "body_html": "<p>Hi</p>"}
-FP = request_fingerprint("POST", "/api/email/send", BODY)
+FP = "a" * 64
 
 
 class FakeClock:
@@ -134,15 +134,18 @@ def test_fingerprint_ignores_key_order_and_is_stable():
         "subject": "Hello",
         "to": ["alice@example.com"],
     }
-    assert request_fingerprint("POST", "/api/email/send", reordered) == FP
-    assert len(FP) == 64
+    fingerprint = request_fingerprint("POST", "/api/email/send", BODY)
+    assert request_fingerprint("POST", "/api/email/send", reordered) == fingerprint
+    assert len(fingerprint) == 64
 
 
 def test_fingerprint_changes_with_body_or_path():
+    fingerprint = request_fingerprint("POST", "/api/email/send", BODY)
     assert (
-        request_fingerprint("POST", "/api/email/send", {**BODY, "subject": "X"}) != FP
+        request_fingerprint("POST", "/api/email/send", {**BODY, "subject": "X"})
+        != fingerprint
     )
-    assert request_fingerprint("POST", "/api/email/e1/reply", BODY) != FP
+    assert request_fingerprint("POST", "/api/email/e1/reply", BODY) != fingerprint
 
 
 def test_fingerprint_does_not_contain_the_message():

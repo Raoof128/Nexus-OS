@@ -1,0 +1,12 @@
+{
+  "name": "nexus-standalone-auth",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "dependencies": {
+    "bcryptjs": "3.0.3",
+    "better-auth": "1.7.23",
+    "pg": "8.23.0"
+  }
+}
