@@ -79,7 +79,9 @@ docker run --rm --network none --memory 768m --memory-swap 768m --cpus 1.5 \
   -m scripts.nexus_migration.rehearsal.app_e2e --pg-bin /usr/lib/postgresql/17/bin
 ```
 
-## Remaining gates
+## Pre-cutover gates
+
+See the [production cutover log](production-cutover.md) for the final outcome and follow-up.
 
 - Validate Linux x86-64 resource budgets with a representative Nexus workload and a backup running together. The local PostgreSQL 17.12 synthetic run provides the initial compatibility and memory measurements.
 - Finish the production source inventory and write the reviewed source-to-target table and identity mapping for the full primary project. Test actual encrypted fields, role separation, MFA and linked identity handling, and the external SMTP recovery flow.

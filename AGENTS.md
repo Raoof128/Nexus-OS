@@ -8,7 +8,7 @@ A Windows 7 Aero-style **browser "OS"**: a windowing desktop shell (draggable/re
 
 - **Frontend:** React 19 + Vite + Tailwind CSS v4 + React Query + Framer Motion
 - **Backend:** Python 3.12 + Litestar + Pydantic v2
-- **Database/Auth:** Supabase (Postgres + Auth; Realtime is enabled on the DB but the app opens no channels)
+- **Database/Auth:** Standalone PostgreSQL 17 and Better Auth in production. Legacy Supabase mode remains available for local testing and rollback.
 - **AI:** Google Gemini (recommendations + chat)
 - **Deploy:** Cloudflare Pages (frontend), DigitalOcean droplet (backend API)
 
@@ -40,7 +40,7 @@ supabase db reset               # Apply migrations + seed
 supabase stop                   # Stop local stack
 
 # Deploy frontend (MUST override VITE_API_URL for production)
-cd frontend && VITE_API_URL=https://home-notes-app.uk/api npm run build && wrangler pages deploy dist --project-name nexus-archive --branch codex/bootstrap --commit-dirty=true
+cd frontend && VITE_API_URL=https://home-notes-app.uk/api VITE_NEXUS_AUTH=standalone npm run build && wrangler pages deploy dist --project-name nexus-archive --branch codex/bootstrap --commit-dirty=true
 ```
 
 ## Architecture
@@ -115,7 +115,7 @@ supabase/
 
 ### Auth: Zero-trust cookie model
 
-Backend manages HttpOnly cookies. Frontend never touches tokens directly. `apiClient.js` handles 401 → silent refresh → retry automatically. The Supabase JS SDK is NOT used for Nexus auth; the only client (`realtimeClient.js`) exchanges password-recovery OTPs and opens no Realtime channels.
+The backend manages HttpOnly Better Auth session cookies and passes the verified user UUID into PostgreSQL row-level security. `apiClient.js` handles session refresh. The legacy browser client in `realtimeClient.js` supports older Supabase recovery links in legacy builds.
 
 ### Data flow: Optimistic updates + bounded polling
 
@@ -147,13 +147,12 @@ The UI is Windows 7 (Aero glass frames/taskbar, light app windows, Segoe UI 9pt)
 
 ### Backend (`backend/.env`)
 
-Required: `SUPABASE_URL`, `SUPABASE_AUTH_KEY`, `SUPABASE_JWT_SECRET`, `GEMINI_API_KEY`, `AUDIT_LOG_SALT`
-Optional: `TAKEAWAY_ENCRYPTION_KEY` (Fernet key for at-rest encryption), `REDIS_URL`, `TRUSTED_PROXY_IPS`
+Production standalone mode requires `NEXUS_DATABASE_URL`, `NEXUS_AUTH_URL`, `AUDIT_LOG_SALT`, and `TAKEAWAY_ENCRYPTION_KEY`. Use `NEXUS_MAIL_DATABASE_URL` when email polling is configured. `GEMINI_API_KEY` enables AI generation. Legacy mode uses `SUPABASE_URL`, `SUPABASE_AUTH_KEY`, and `SUPABASE_JWT_SECRET`.
 Local override: `backend/.env.local` (gitignored, loaded second with override=True)
 
 ### Frontend (`frontend/.env`)
 
-Required: `VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+Production standalone builds set `VITE_API_URL` and `VITE_NEXUS_AUTH=standalone`. Legacy recovery builds use `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`
 
 ## Gotchas
@@ -162,7 +161,7 @@ Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`
 - **`sanitize()` is not needed in JSX** — React already escapes text interpolation. A prior `sanitize()` function was double-encoding HTML entities (`<3` → `&lt;3`). It was removed; don't re-add it.
 - **Browser-local data is per account** — File Manager tree, OPFS blobs, notes and window layout are wiped by `claimLocalState` when a different account signs in. New private localStorage keys must use the `nexus-os:filesystem` / `nexus-os:window-layout` keys or the `nexus-os:note-` / `nexus-os:notes:` prefixes (see `lib/privateState.js`), or they will leak across accounts.
 - **`backend/.env.local`** overrides `backend/.env` for local Supabase credentials. Regenerate after `supabase stop && supabase start` if JWT keys rotate.
-- **Seed SQL is local-only** — `supabase/seed.sql` creates a dev user. Never run against production. Production accounts go through Supabase Auth dashboard.
+- **Seed SQL is local-only** — `supabase/seed.sql` creates a dev user. Run it only on a local Supabase database. Production accounts use Better Auth.
 - **Frontend env vars must start with `VITE_`** — Vite only exposes prefixed vars to client code. Both `realtimeClient.js` and `apiClient.js` validate their required vars at import time.
 - **AuthPanel registration** uses `signIn()` after successful signup, NOT `window.location.reload()`.
 - **CyberCard is memoized** (name kept for history; it renders a Win7 card) with a custom comparator on item fields. If you add a new displayable field to the media model, add it to the comparator in `CyberCard.jsx`.
@@ -182,21 +181,6 @@ Optional: `VITE_SENTRY_DSN`, `VITE_SENTRY_TRACES_SAMPLE_RATE`
 
 ## Deploy
 
-- **Frontend → Cloudflare Pages:** Ensure production environment variables (`VITE_API_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) are defined in the gitignored `frontend/.env` file. Build using `npm run build` in the `frontend` directory, then deploy with `wrangler pages deploy dist --project-name nexus-archive --branch codex/bootstrap --commit-dirty=true`. Production branch is `codex/bootstrap` (NOT `main`). Domains: `home-notes-app.uk`, `www.home-notes-app.uk`.
-- **Backend → DigitalOcean:** Docker container on droplet `170.64.167.95`, behind Nginx reverse proxy (ports 80 + 443 with Cloudflare Origin Cert). DNS: `api.home-notes-app.uk` → droplet (Cloudflare-proxied). Cloudflare Worker proxies `home-notes-app.uk/api/*` → `https://api.home-notes-app.uk`. Healthcheck at `/healthz`.
-- **Droplet Deployment Commands:** Deployment credentials are stored in the gitignored root `.env` file. To sync code and rebuild the backend container, execute:
-
-  ```bash
-  # Load credentials
-  source .env
-
-  # Sync backend files to droplet
-  sshpass -p "$DROPLET_PASSWORD" rsync -avz --delete --exclude 'venv' --exclude '.env.production' --exclude '__pycache__' --exclude '.git' --exclude 'node_modules' --exclude '.DS_Store' --exclude '._*' -e "ssh -o StrictHostKeyChecking=no" ./backend/ "$DROPLET_USER@$DROPLET_IP:/opt/nexus/backend/"
-  sshpass -p "$DROPLET_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./pyproject.toml ./README.md ./LICENSE "$DROPLET_USER@$DROPLET_IP:/opt/nexus/"
-
-  # Rebuild and run docker container on droplet
-  sshpass -p "$DROPLET_PASSWORD" ssh -o StrictHostKeyChecking=no "$DROPLET_USER@$DROPLET_IP" "docker build -t nexus-api -f /opt/nexus/backend/Dockerfile /opt/nexus && docker stop nexus-api && docker rm nexus-api && docker run -d --name nexus-api -p 127.0.0.1:8000:8000 --restart unless-stopped --env-file /opt/nexus/.env.production nexus-api:latest"
-  ```
-
-- **Deploy order (since the 2026-11 backend audit):** deploy the Worker (`worker/`, `wrangler deploy`) **before** the backend. The backend now rejects cookie-authenticated POST/PUT/PATCH/DELETE without `X-Requested-With: XMLHttpRequest`, and only the updated Worker forwards that header. The backend also refuses to boot on invalid production env (see `docs/backend-audit.md` → Deploy checklist).
+- **Frontend → Cloudflare Pages:** Set `VITE_API_URL=https://home-notes-app.uk/api` and `VITE_NEXUS_AUTH=standalone`. Deploy to project `nexus-archive` and Pages production branch `codex/bootstrap`. GitHub Actions reads `NEXUS_AUTH_MODE` for standalone builds.
+- **Backend → DigitalOcean:** The `nexus-api` container uses `/opt/nexus/standalone-release/api.env` and the `nexus-standalone` network. Nginx routes the public API to `127.0.0.1:8000`. Check `/healthz` after a release. [Production cutover and rollback](docs/migrations/supabase-to-droplet/production-cutover.md)
 - **Security headers** (CSP, X-Frame-Options, etc.) live in `frontend/public/_headers`, which Cloudflare Pages applies. The old `vercel.json` is gone.
