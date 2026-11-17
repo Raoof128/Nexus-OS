@@ -2,8 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 // E2E + visual checks for the Windows 7 desktop. The backend is never
 // contacted: e2e/fixtures.js intercepts every API call with canned data, and
-// the Supabase values below are inert placeholders (Realtime simply fails to
-// connect).
+// the Supabase recovery client uses inert placeholders.
 //
 // Suites:
 //   npm run test:e2e      functional journeys + privacy + PWA launch (CI gate)
@@ -106,8 +105,6 @@ export default defineConfig({
       VITE_API_URL: 'http://127.0.0.1:8799',
       VITE_SUPABASE_URL: 'http://127.0.0.1:8798',
       VITE_SUPABASE_ANON_KEY: 'e2e-placeholder-anon-key', // gitleaks:allow (fake e2e placeholder)
-      VITE_AION_SUPABASE_URL: 'http://127.0.0.1:8798',
-      VITE_AION_SUPABASE_ANON_KEY: 'e2e-placeholder-anon-key', // gitleaks:allow (fake e2e placeholder)
     },
   },
 })

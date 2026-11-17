@@ -12,13 +12,15 @@ import json
 import logging
 import re
 from collections.abc import Awaitable, Callable
-from typing import Any
+from datetime import datetime
+from typing import Annotated, Any
 from urllib.parse import quote
+from uuid import UUID
 
 import httpx
 from litestar import Controller, Request, Response, delete, get, patch, post
 from litestar.exceptions import HTTPException
-from litestar.params import FromPath, JSONBody
+from litestar.params import FromPath, FromQuery, JSONBody, QueryParameter
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 
 if __package__:
@@ -114,7 +116,11 @@ def _require_auth(request: Request) -> tuple[str, str]:
     """Return ``(user_id, access_token)`` or raise 401."""
 
     settings = get_settings()
-    access_token = request.cookies.get(settings.access_cookie_name)
+    access_token = (
+        getattr(request.state, "access_token", None)
+        if settings.standalone
+        else request.cookies.get(settings.access_cookie_name)
+    )
     user_id = getattr(request.state, "user_id", None)
     if not access_token or not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -385,6 +391,67 @@ class EmailController(Controller):
 
     path = "/api/email"
 
+    @get("/messages")
+    async def list_messages(
+        self,
+        request: Request,
+        folder: Annotated[str, QueryParameter(max_length=64)] = "inbox",
+        account_id: FromQuery[UUID | None] = None,
+        search: Annotated[str, QueryParameter(max_length=250)] = "",
+        cursor_date: FromQuery[datetime | None] = None,
+        cursor_id: FromQuery[UUID | None] = None,
+        limit: Annotated[int, QueryParameter(ge=1, le=100)] = 50,
+    ) -> dict:
+        """List owned cached messages without exposing provider tokens or bodies."""
+        user_id, identity = _require_auth(request)
+        if (cursor_date is None) != (cursor_id is None) or (
+            cursor_date is not None and cursor_date.tzinfo is None
+        ):
+            raise HTTPException(status_code=400, detail="Invalid email cursor")
+        query = (
+            _db(identity)
+            .from_("nexus_emails")
+            .select(
+                "id,account_id,folder,labels,from_address,from_name,to_addresses,"
+                "cc_addresses,subject,snippet,is_read,is_starred,has_attachments,"
+                "attachments_meta,provider_date"
+            )
+            .eq("user_id", user_id)
+        )
+        if folder == "starred":
+            query.eq("is_starred", True)
+        else:
+            query.eq("folder", folder)
+        if account_id is not None:
+            query.eq("account_id", str(account_id))
+        standalone = get_settings().standalone
+        if term := search.strip():
+            if standalone:
+                query.inbox_search(term)
+            else:
+                literal = re.sub(r"([\\%_*])", r"\\\1", term)
+                query.ilike("subject", f"%{literal}%")
+        if cursor_date is not None and cursor_id is not None:
+            stamp, message_id = cursor_date.isoformat(), str(cursor_id)
+            if standalone:
+                query.inbox_cursor(stamp, message_id)
+            else:
+                query.or_(
+                    f"provider_date.lt.{stamp},and(provider_date.eq.{stamp},id.lt.{message_id})"
+                )
+        query.order("provider_date", desc=True).order("id", desc=True).limit(limit + 1)
+        try:
+            response = await run_blocking(query.execute)
+        except Exception as exc:
+            logger.exception("Failed to list cached email")
+            raise HTTPException(status_code=502, detail="Failed to list email") from exc
+        rows = response.data or []
+        items = rows[:limit]
+        next_cursor = None
+        if len(rows) > limit:
+            next_cursor = {key: items[-1][key] for key in ("provider_date", "id")}
+        return {"items": items, "next_cursor": next_cursor}
+
     # ------------------------------------------------------------------
     # Account management
     # ------------------------------------------------------------------
@@ -407,7 +474,7 @@ class EmailController(Controller):
             raise HTTPException(
                 status_code=502, detail="Failed to list accounts"
             ) from exc
-        return resp.data or []
+        return [{**row, "email": row["email_address"]} for row in (resp.data or [])]
 
     @delete("/accounts/{account_id:str}", status_code=204)
     async def disconnect_account(

@@ -376,7 +376,31 @@ class SuggestionPayload:
     source: str = "local"
 
 
-def create_supabase_user_client(access_token: str) -> SyncPostgrestClient:
+@lru_cache(maxsize=2)
+def _direct_pool(dsn: str):
+    from .postgres_data import connection_pool
+
+    return connection_pool(dsn)
+
+
+def open_direct_pools() -> None:
+    settings = get_settings()
+    if settings.standalone:
+        for dsn in (settings.nexus_database_url, settings.nexus_mail_database_url):
+            if dsn:
+                _direct_pool(dsn).open(wait=True, timeout=6)
+
+
+def close_direct_pools() -> None:
+    settings = get_settings()
+    if settings.standalone:
+        for dsn in (settings.nexus_database_url, settings.nexus_mail_database_url):
+            if dsn:
+                _direct_pool(dsn).close()
+        _direct_pool.cache_clear()
+
+
+def create_supabase_user_client(access_token: Any) -> Any:
     """Return a PostgREST client bound to the caller token so RLS is enforced.
 
     The caller owns the returned client and its HTTP session; call
@@ -384,6 +408,14 @@ def create_supabase_user_client(access_token: str) -> SyncPostgrestClient:
     """
 
     settings = get_settings()
+    if settings.standalone:
+        from .postgres_data import DatabaseIdentity, PostgresDataClient
+
+        if not isinstance(access_token, DatabaseIdentity):
+            raise ValueError("Standalone data access requires a verified session")
+        return PostgresDataClient(
+            _direct_pool(settings.nexus_database_url), access_token
+        )
     rest_url = f"{settings.supabase_url.rstrip('/')}/rest/v1"
     return SyncPostgrestClient(
         rest_url,
@@ -416,6 +448,14 @@ def create_supabase_service_client() -> Client:
     """
 
     settings = get_settings()
+    if settings.standalone:
+        from .postgres_data import PostgresDataClient
+
+        if not settings.nexus_mail_database_url:
+            raise RuntimeError("NEXUS_MAIL_DATABASE_URL is required for mail polling")
+        return PostgresDataClient(
+            _direct_pool(settings.nexus_mail_database_url), None, mail=True
+        )
     key = settings.supabase_service_role_key
     if not key:
         raise RuntimeError(

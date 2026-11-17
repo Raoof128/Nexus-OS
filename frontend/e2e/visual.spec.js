@@ -192,7 +192,6 @@ const APPS = [
   { id: 'sysmon', title: 'System Monitor', ready: 'Performance' },
   { id: 'notes', title: 'Notes' },
   { id: 'tasks', title: 'Tasks', ready: 'Renew passport' },
-  { id: 'aion', title: 'Aion' },
 ]
 
 test.describe('app windows at 1366x768', () => {

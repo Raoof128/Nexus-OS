@@ -13,7 +13,6 @@ const APPS = [
   ['sysmon', 'System Monitor'],
   ['notes', 'Notes'],
   ['tasks', 'Tasks'],
-  ['aion', 'Aion'],
 ]
 
 test('desktop and Start menu', async ({ page }) => {

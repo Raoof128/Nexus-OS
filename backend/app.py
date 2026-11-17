@@ -31,6 +31,7 @@ try:
     from .oauth_controller import OAuthController
     from .observability import configure_observability
     from .security import SecurityHeadersMiddleware
+    from .services import close_direct_pools, open_direct_pools
     from .tasks_controller import TasksController
 except ImportError:  # pragma: no cover - supports backend cwd execution
     from auth import SupabaseAuthMiddleware
@@ -50,17 +51,29 @@ except ImportError:  # pragma: no cover - supports backend cwd execution
     from oauth_controller import OAuthController
     from observability import configure_observability
     from security import SecurityHeadersMiddleware
+    from services import close_direct_pools, open_direct_pools
     from tasks_controller import TasksController
 
 configure_logging()
 configure_observability()
 settings = get_settings()
+if settings.standalone:
+    from .standalone_auth import StandaloneAuthController as ActiveAuthController
+else:
+    ActiveAuthController = AuthController
 
 cors_config = CORSConfig(
     allow_origins=list(settings.allowed_origins),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Idempotency-Key",
+        "X-Requested-With",
+        "X-Recovery-Access-Token",
+        "X-Recovery-Refresh-Token",
+    ],
     # Let browser code read the correlation ID for support and bug reports.
     expose_headers=["X-Request-ID"],
     # Cache CORS preflight (OPTIONS) responses in the browser so each PUT/PATCH/
@@ -104,7 +117,7 @@ _openapi_config: OpenAPIConfig | None = build_openapi_config(settings.environmen
 app = Litestar(
     route_handlers=[
         healthcheck,
-        AuthController,
+        ActiveAuthController,
         ChatController,
         MediaController,
         NotesController,
@@ -124,8 +137,8 @@ app = Litestar(
     openapi_config=_openapi_config,
     # Logs uncaught exceptions, because logging_config=None disables Litestar's own.
     exception_handlers={Exception: log_unhandled_exception},
-    on_startup=[start_email_poller],
-    on_shutdown=[stop_email_poller],
+    on_startup=[open_direct_pools, start_email_poller],
+    on_shutdown=[stop_email_poller, close_direct_pools],
     # Disabled on purpose: configure_logging() owns root logging. Litestar's
     # default config would replace its handlers and format.
     logging_config=None,

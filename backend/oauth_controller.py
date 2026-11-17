@@ -501,8 +501,12 @@ class OAuthController(Controller):
                 status_code=502, detail="Failed to retrieve account email"
             )
 
-        access_cookie = request.cookies.get(settings.access_cookie_name)
-        if not access_cookie:
+        data_identity = (
+            getattr(request.state, "access_token", None)
+            if settings.standalone
+            else request.cookies.get(settings.access_cookie_name)
+        )
+        if not data_identity:
             raise HTTPException(status_code=401, detail="Not authenticated")
 
         token_expires_at = (
@@ -525,7 +529,7 @@ class OAuthController(Controller):
             row["refresh_token_enc"] = encrypt_oauth_token(tokens.refresh_token)
 
         try:
-            db = create_supabase_user_client(access_cookie)
+            db = create_supabase_user_client(data_identity)
             builder = db.from_("email_accounts").upsert(
                 row,
                 on_conflict="user_id,provider,email_address",

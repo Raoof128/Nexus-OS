@@ -264,10 +264,10 @@ describe('window work area', () => {
     vi.unstubAllGlobals()
   })
 
-  it('opens Aion at 768x1024 with the whole frame and its caption buttons on screen', () => {
+  it('opens Media Vault at 768x1024 with the whole frame and caption buttons on screen', () => {
     vi.stubGlobal('innerWidth', 768)
     vi.stubGlobal('innerHeight', 1024)
-    useWindowStore.getState().openApp('aion')
+    useWindowStore.getState().openApp('media')
     const win = frameOf(onlyId())
     expect(win.position.x).toBeGreaterThanOrEqual(0)
     expect(win.position.x + win.size.width).toBeLessThanOrEqual(768)
@@ -275,14 +275,33 @@ describe('window work area', () => {
   })
 
   it('keeps the caption buttons reachable when the app minimum is wider than the screen', () => {
-    vi.stubGlobal('innerWidth', 600)
+    vi.stubGlobal('innerWidth', 560)
     vi.stubGlobal('innerHeight', 800)
-    useWindowStore.getState().openApp('aion') // minSize 700 wide
+    useWindowStore.getState().openApp('media') // minSize 600 wide
     const win = frameOf(onlyId())
-    expect(win.size.width).toBe(700)
+    expect(win.size.width).toBe(600)
     // Right edge aligned with the screen: the close button is the rightmost control.
-    expect(win.position.x + win.size.width).toBe(600)
+    expect(win.position.x + win.size.width).toBe(560)
     expect(win.position.y).toBeGreaterThanOrEqual(0)
+  })
+
+  it('restores Nexus windows when the saved active window belongs to a retired app', () => {
+    const common = { position: { x: 20, y: 30 }, size: { width: 650, height: 440 } }
+    localStorage.setItem(
+      'nexus-os:window-layout',
+      JSON.stringify({
+        schemaVersion: 1,
+        windows: {
+          media: { appId: 'media', ...common },
+          aion: { appId: 'aion', ...common },
+        },
+        zStack: ['media', 'aion'],
+        activeWindowId: 'aion',
+      }),
+    )
+    useWindowStore.getState().hydrateFromStorage()
+    expect(Object.keys(useWindowStore.getState().windows)).toEqual(['media'])
+    expect(useWindowStore.getState().activeWindowId).toBe('media')
   })
 
   it('fits a restored rect saved on a bigger screen', () => {

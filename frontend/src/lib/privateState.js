@@ -24,7 +24,7 @@ const PRIVATE_KEYS = [
   'nexus-os:window-layout',
   // Which task reminders already fired (task ids and times).
   'nexus-os:tasks:reminders-fired',
-  // Aion's anonymous companion session must not carry over between accounts.
+  // Clear the retired companion's legacy credential on an account change.
   'aion.supabase.auth',
 ]
 // Note bodies (per window today, per note in future) and anything else note-scoped.

@@ -246,6 +246,18 @@ class SupabaseAuthMiddleware(MiddlewareProtocol):
             return
 
         connection = ASGIConnection(scope)
+        if get_settings().standalone:
+            from .standalone_auth import verify_identity
+
+            if method in _UNSAFE_METHODS:
+                _require_csrf_header(connection, method, path)
+            identity = await verify_identity(connection)
+            state = scope.setdefault("state", {})
+            state["user_id"] = str(identity.user_id)
+            state["access_token"] = identity
+            await self.app(scope, receive, send)
+            return
+
         token, from_cookie = _extract_token(connection)
 
         if not token:

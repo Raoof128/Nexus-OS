@@ -541,6 +541,7 @@ def test_create_supabase_service_client_is_cached(monkeypatch) -> None:
         lambda: SimpleNamespace(
             supabase_url="https://example.supabase.co",
             supabase_service_role_key="service-key",
+            standalone=False,
         ),
     )
     monkeypatch.setattr(services, "create_client", _fake_create_client)
@@ -564,6 +565,7 @@ def test_create_supabase_service_client_requires_key(monkeypatch) -> None:
         lambda: SimpleNamespace(
             supabase_url="https://example.supabase.co",
             supabase_service_role_key="",
+            standalone=False,
         ),
     )
     services.create_supabase_service_client.cache_clear()

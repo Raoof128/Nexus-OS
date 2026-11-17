@@ -19,7 +19,6 @@ from litestar import Controller, Request, delete, get, patch, post
 from litestar.di import NamedDependency, Provide
 from litestar.exceptions import HTTPException
 from litestar.params import FromPath, FromQuery, JSONBody
-from postgrest import SyncPostgrestClient
 from postgrest.exceptions import APIError
 
 try:
@@ -72,8 +71,8 @@ def _require_auth(request: Request) -> tuple[str, str]:
     return user_id, access_token
 
 
-async def _provide_db(request: Request) -> AsyncGenerator[SyncPostgrestClient, None]:
-    """Yield a per-request PostgREST client and close its HTTP session afterwards."""
+async def _provide_db(request: Request) -> AsyncGenerator[Any, None]:
+    """Yield a caller-scoped database client and release it after the request."""
 
     _, access_token = _require_auth(request)
     client = create_supabase_user_client(access_token)
@@ -122,7 +121,7 @@ async def _next_position_for(builder: Any) -> float:
     return next_position([r.get("position", 0.0) for r in (resp.data or [])])
 
 
-async def _load_task(db: SyncPostgrestClient, user_id: str, task_id: str) -> dict:
+async def _load_task(db: Any, user_id: str, task_id: str) -> dict:
     resp = await _execute(
         db.from_("nexus_tasks")
         .select("*")
@@ -135,9 +134,7 @@ async def _load_task(db: SyncPostgrestClient, user_id: str, task_id: str) -> dic
     return resp.data
 
 
-async def _validate_parent(
-    db: SyncPostgrestClient, user_id: str, parent_id: str, list_id: str
-) -> None:
+async def _validate_parent(db: Any, user_id: str, parent_id: str, list_id: str) -> None:
     """Enforce the subtask rules for a parent that will hold a task in ``list_id``.
 
     Subtasks are single-level, and a subtask lives in its parent's list.
@@ -165,7 +162,7 @@ async def _validate_parent(
         )
 
 
-async def _has_subtasks(db: SyncPostgrestClient, user_id: str, task_id: str) -> bool:
+async def _has_subtasks(db: Any, user_id: str, task_id: str) -> bool:
     resp = await _execute(
         db.from_("nexus_tasks")
         .select("id")
@@ -205,7 +202,7 @@ def _parse_anchor(task: dict) -> date | datetime | None:
 
 
 async def _spawn_next_occurrence(
-    db: SyncPostgrestClient, user_id: str, task: dict, recurrence: str
+    db: Any, user_id: str, task: dict, recurrence: str
 ) -> None:
     """Insert the next occurrence of a recurring task.
 
@@ -257,7 +254,7 @@ async def _spawn_next_occurrence(
 
 
 async def _restore_completion(
-    db: SyncPostgrestClient, user_id: str, task_id: str, before: dict
+    db: Any, user_id: str, task_id: str, before: dict
 ) -> None:
     """Undo a completion whose next occurrence was definitively rejected.
 
@@ -291,7 +288,7 @@ class TasksController(Controller):
     # ---- Lists -------------------------------------------------------
     @get("/lists")
     async def list_lists(
-        self, db: NamedDependency[SyncPostgrestClient], request: Request
+        self, db: NamedDependency[Any], request: Request
     ) -> list[dict[str, Any]]:
         user_id, _ = _require_auth(request)
         builder = (
@@ -308,7 +305,7 @@ class TasksController(Controller):
     async def create_list(
         self,
         data: JSONBody[TaskListCreateRequest],
-        db: NamedDependency[SyncPostgrestClient],
+        db: NamedDependency[Any],
         request: Request,
     ) -> dict[str, Any]:
         user_id, _ = _require_auth(request)
@@ -329,7 +326,7 @@ class TasksController(Controller):
         self,
         list_id: FromPath[str],
         data: JSONBody[TaskListUpdateRequest],
-        db: NamedDependency[SyncPostgrestClient],
+        db: NamedDependency[Any],
         request: Request,
     ) -> dict[str, Any]:
         user_id, _ = _require_auth(request)
@@ -351,7 +348,7 @@ class TasksController(Controller):
     async def delete_list(
         self,
         list_id: FromPath[str],
-        db: NamedDependency[SyncPostgrestClient],
+        db: NamedDependency[Any],
         request: Request,
     ) -> None:
         user_id, _ = _require_auth(request)
@@ -368,7 +365,7 @@ class TasksController(Controller):
     async def list_items(
         self,
         list_id: FromPath[str],
-        db: NamedDependency[SyncPostgrestClient],
+        db: NamedDependency[Any],
         request: Request,
         showCompleted: FromQuery[bool] = True,
     ) -> list[dict[str, Any]]:
@@ -389,7 +386,7 @@ class TasksController(Controller):
         self,
         list_id: FromPath[str],
         data: JSONBody[CreateTaskRequest],
-        db: NamedDependency[SyncPostgrestClient],
+        db: NamedDependency[Any],
         request: Request,
     ) -> dict[str, Any]:
         user_id, _ = _require_auth(request)
@@ -430,7 +427,7 @@ class TasksController(Controller):
         self,
         task_id: FromPath[str],
         data: JSONBody[UpdateTaskRequest],
-        db: NamedDependency[SyncPostgrestClient],
+        db: NamedDependency[Any],
         request: Request,
     ) -> dict[str, Any]:
         user_id, _ = _require_auth(request)
@@ -521,7 +518,7 @@ class TasksController(Controller):
         self,
         task_id: FromPath[str],
         data: JSONBody[MoveTaskRequest],
-        db: NamedDependency[SyncPostgrestClient],
+        db: NamedDependency[Any],
         request: Request,
     ) -> dict[str, Any]:
         user_id, _ = _require_auth(request)
@@ -585,7 +582,7 @@ class TasksController(Controller):
     async def delete_item(
         self,
         task_id: FromPath[str],
-        db: NamedDependency[SyncPostgrestClient],
+        db: NamedDependency[Any],
         request: Request,
     ) -> None:
         user_id, _ = _require_auth(request)
@@ -598,7 +595,7 @@ class TasksController(Controller):
     async def clear_completed(
         self,
         list_id: FromPath[str],
-        db: NamedDependency[SyncPostgrestClient],
+        db: NamedDependency[Any],
         request: Request,
     ) -> dict[str, int]:
         user_id, _ = _require_auth(request)

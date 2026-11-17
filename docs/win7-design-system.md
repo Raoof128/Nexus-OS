@@ -75,7 +75,7 @@ Light content, glass shell. Defined on `:root` in `index.css`; exposed as Tailwi
 
 **Typography**: Segoe UI 9pt (12px) for all UI (`font: var(--w7-font)` / inherited from
 `<body>`). Use `text-[12px]` for body UI text, `text-[13px]`–`text-[15px]` only for reading
-content (email bodies, chat messages, Bible text), `.w7-heading` (12pt `#003399`, 7.css `.instruction-primary`) for a page or
+content (email bodies and chat messages), `.w7-heading` (12pt `#003399`, 7.css `.instruction-primary`) for a page or
 dialog title, `.w7-subheading` (10pt) for group titles. Monospace (`font-mono` = Consolas) **only**
 for code, terminal output and file sizes. Sentence case everywhere. **No** `uppercase`,
 `tracking-*`, Orbitron/Oxanium/JetBrains Mono, letter-spaced labels or `//` prefixes.

@@ -61,7 +61,11 @@ MAX_LABEL_NAME_LENGTH = 50
 
 def _require_auth(request: Request) -> tuple[str, str]:
     settings = get_settings()
-    access_token = request.cookies.get(settings.access_cookie_name)
+    access_token = (
+        getattr(request.state, "access_token", None)
+        if settings.standalone
+        else request.cookies.get(settings.access_cookie_name)
+    )
     user_id = getattr(request.state, "user_id", None)
     if not access_token or not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")

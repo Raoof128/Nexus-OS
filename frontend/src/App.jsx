@@ -58,6 +58,7 @@ function App() {
         accessToken={recoveryTokens.accessToken}
         refreshToken={recoveryTokens.refreshToken}
         tokenHash={recoveryTokens.tokenHash}
+        recoveryToken={recoveryTokens.recoveryToken}
         onComplete={dismissTokens}
       />
     )

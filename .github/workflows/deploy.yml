@@ -28,8 +28,6 @@ jobs:
       VITE_API_URL: ${{ secrets.VITE_API_URL }}
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      VITE_AION_SUPABASE_URL: ${{ secrets.VITE_AION_SUPABASE_URL }}
-      VITE_AION_SUPABASE_ANON_KEY: ${{ secrets.VITE_AION_SUPABASE_ANON_KEY }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 

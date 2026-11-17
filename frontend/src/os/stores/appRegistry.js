@@ -6,7 +6,6 @@ import {
   ListChecks,
   Mail,
   MessageSquare,
-  ScrollText,
   Settings,
   StickyNote,
   TerminalSquare,
@@ -22,7 +21,6 @@ const SystemMonitorApp = lazy(() => import('../apps/SystemMonitorApp'))
 const NotesApp = lazy(() => import('../apps/NotesApp'))
 const TerminalApp = lazy(() => import('../apps/TerminalApp'))
 const FileManagerApp = lazy(() => import('../apps/FileManagerApp'))
-const AionApp = lazy(() => import('../apps/Aion/AionApp'))
 const TasksApp = lazy(() => import('../apps/Tasks/TasksApp'))
 
 /**
@@ -131,17 +129,6 @@ export const APP_REGISTRY = {
     minSize: { width: 420, height: 400 },
     component: TasksApp,
   },
-  aion: {
-    id: 'aion',
-    tint: ['#c79cf2', '#6a3aa8'],
-    description: 'Bible reader and companion',
-    title: 'Aion',
-    icon: ScrollText,
-    singleton: true,
-    defaultSize: { width: 900, height: 650 },
-    minSize: { width: 700, height: 500 },
-    component: AionApp,
-  },
 }
 
 /** Ordered list of app IDs for the launcher grid */
@@ -155,5 +142,4 @@ export const APP_ORDER = [
   'sysmon',
   'notes',
   'tasks',
-  'aion',
 ]

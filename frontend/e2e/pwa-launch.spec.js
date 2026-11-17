@@ -10,6 +10,16 @@ test('deep link opens its app on top of a restored layout (dev StrictMode)', asy
   await expect(page.getByRole('region', { name: 'File Manager' })).toBeVisible()
   await expect(page.getByRole('region', { name: 'Media Vault' })).toBeVisible()
 })
+
+test('a retired deep link opens the Nexus desktop without an app shortcut', async ({ page }) => {
+  await page.goto('/?app=aion')
+  await expect(page.getByRole('region', { name: 'Media Vault' })).toBeVisible()
+  await expect(page.getByRole('option', { name: 'Aion', exact: true })).toHaveCount(0)
+  await expect(page).not.toHaveURL(/app=aion/)
+  await page.getByRole('button', { name: 'Start', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Start menu' })).toBeVisible()
+  await expect(page.getByRole('option', { name: 'Aion', exact: true })).toHaveCount(0)
+})
 test('share target opens Notes with the shared text', async ({ page }) => {
   await mockApi(page)
   await page.goto('/?share-target=1&title=Hi&text=Hello%20there')

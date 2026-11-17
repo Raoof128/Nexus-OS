@@ -1,9 +1,11 @@
-const RECOVERY_PARAM_KEYS = ['type', 'access_token', 'refresh_token', 'token_hash']
+const RECOVERY_PARAM_KEYS = ['type', 'access_token', 'refresh_token', 'token_hash', 'token']
 
 let pendingRecoveryTokens = null
 
 function parseRecoveryTokens(params) {
   if (params.get('type') !== 'recovery') return null
+
+  if (params.get('token')) return { recoveryToken: params.get('token') }
 
   // Standard flow: access_token is directly in the URL
   if (params.get('access_token')) {

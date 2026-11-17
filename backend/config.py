@@ -124,6 +124,13 @@ class BackendSettings:
     microsoft_oauth_client_id: str = ""
     microsoft_oauth_client_secret: str = field(default="", repr=False)
     email_poll_interval_seconds: int = 60
+    nexus_database_url: str = field(default="", repr=False)
+    nexus_mail_database_url: str = field(default="", repr=False)
+    nexus_auth_url: str = ""
+
+    @property
+    def standalone(self) -> bool:
+        return bool(self.nexus_database_url)
 
 
 # ── Raw environment helpers ───────────────────────────────────────────────────
@@ -354,9 +361,11 @@ def _derive_allowed_hosts(
 
     hosts: set[str] = {"localhost", "127.0.0.1"} if include_loopback else set()
     for origin in origins:
-        hostname = urlparse(origin).hostname
-        if hostname:
-            hosts.add(hostname)
+        parsed = urlparse(origin)
+        if parsed.hostname:
+            hosts.add(parsed.hostname)
+            if parsed.port is not None:
+                hosts.add(parsed.netloc.lower())
     return tuple(sorted(hosts))
 
 
@@ -417,7 +426,9 @@ def _validate_production(settings: BackendSettings) -> None:
         )
 
     supabase = urlparse(settings.supabase_url)
-    if supabase.scheme != "https" or not supabase.hostname:
+    if not settings.standalone and (
+        supabase.scheme != "https" or not supabase.hostname
+    ):
         raise ImproperlyConfiguredException(
             "SUPABASE_URL must be an https URL with a host in non-development "
             "environments; it carries the JWKS fetch and service-role traffic."
@@ -441,7 +452,11 @@ def _validate_production(settings: BackendSettings) -> None:
     oauth_enabled = bool(
         settings.google_oauth_client_id or settings.microsoft_oauth_client_id
     )
-    if oauth_enabled and not settings.supabase_service_role_key:
+    if (
+        oauth_enabled
+        and not settings.standalone
+        and not settings.supabase_service_role_key
+    ):
         raise ImproperlyConfiguredException(
             "SUPABASE_SERVICE_ROLE_KEY is required when Google or Microsoft OAuth "
             "is enabled; the email poller cannot write without it."
@@ -510,8 +525,10 @@ def _warn_development(settings: BackendSettings) -> None:
             "ALLOWED_ORIGINS uses development defaults (localhost). "
             "Set ALLOWED_ORIGINS before deploying to production."
         )
-    if not settings.supabase_service_role_key and (
-        settings.google_oauth_client_id or settings.microsoft_oauth_client_id
+    if (
+        not settings.standalone
+        and not settings.supabase_service_role_key
+        and (settings.google_oauth_client_id or settings.microsoft_oauth_client_id)
     ):
         logger.warning(
             "OAuth client IDs are set but SUPABASE_SERVICE_ROLE_KEY is empty. "
@@ -521,6 +538,32 @@ def _warn_development(settings: BackendSettings) -> None:
 
 def _validate_settings(settings: BackendSettings) -> None:
     """Apply environment-specific checks to fully built settings."""
+
+    if settings.standalone:
+        auth = urlparse(settings.nexus_auth_url)
+        if (
+            auth.scheme not in {"http", "https"}
+            or not auth.hostname
+            or auth.username is not None
+            or auth.path not in {"", "/"}
+            or auth.params
+            or auth.query
+            or auth.fragment
+        ):
+            raise ImproperlyConfiguredException(
+                "NEXUS_AUTH_URL must be an internal HTTP origin."
+            )
+        if (settings.google_oauth_client_id or settings.microsoft_oauth_client_id) and (
+            not settings.nexus_mail_database_url
+            or settings.nexus_mail_database_url == settings.nexus_database_url
+        ):
+            raise ImproperlyConfiguredException(
+                "OAuth requires a separate Nexus mail role DSN."
+            )
+    elif settings.nexus_auth_url or settings.nexus_mail_database_url:
+        raise ImproperlyConfiguredException(
+            "NEXUS_DATABASE_URL is required for standalone mode."
+        )
 
     if settings.password_reset_redirect_url:
         _validate_password_reset_url(
@@ -576,10 +619,18 @@ def get_settings() -> BackendSettings:
         _validate_origin_syntax(origin)
 
     cookie_default_secure = environment != DEVELOPMENT
+    nexus_database_url = _get_env("NEXUS_DATABASE_URL") or ""
     settings = BackendSettings(
-        supabase_url=_require_env("SUPABASE_URL"),
-        supabase_auth_key=_require_env("SUPABASE_AUTH_KEY"),
-        supabase_jwt_secret=_require_env("SUPABASE_JWT_SECRET"),
+        supabase_url="" if nexus_database_url else _require_env("SUPABASE_URL"),
+        supabase_auth_key=""
+        if nexus_database_url
+        else _require_env("SUPABASE_AUTH_KEY"),
+        supabase_jwt_secret=""
+        if nexus_database_url
+        else _require_env("SUPABASE_JWT_SECRET"),
+        nexus_database_url=nexus_database_url,
+        nexus_mail_database_url=_get_env("NEXUS_MAIL_DATABASE_URL") or "",
+        nexus_auth_url=_get_env("NEXUS_AUTH_URL") or "",
         audit_log_salt=_require_env("AUDIT_LOG_SALT"),
         gemini_api_key=_get_env("GEMINI_API_KEY"),
         environment=environment,

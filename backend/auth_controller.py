@@ -9,9 +9,6 @@ body, so page JavaScript cannot read it. The ``access_token`` field stays in
 the response model and is always ``null``, so older clients still parse the
 body.
 
-The Aion companion app uses its own anonymous Supabase session, not this
-token. Realtime subscriptions in the main app do not use this token either.
-
 Error mapping
 -------------
 A credential rejection from Supabase (status 400, 401, 403 or 422) maps to a

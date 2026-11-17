@@ -11,7 +11,7 @@
  *
  * Bump CACHE_VERSION to invalidate old caches on the next activation.
  */
-const CACHE_VERSION = 'v2'
+const CACHE_VERSION = 'v3'
 const SHELL_CACHE = `nexus-os-shell-${CACHE_VERSION}`
 const RUNTIME_CACHE = `nexus-os-runtime-${CACHE_VERSION}`
 
@@ -43,7 +43,12 @@ self.addEventListener('activate', (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== SHELL_CACHE && key !== RUNTIME_CACHE)
+            .filter(
+              (key) =>
+                (key.startsWith('nexus-os-shell-') || key.startsWith('nexus-os-runtime-')) &&
+                key !== SHELL_CACHE &&
+                key !== RUNTIME_CACHE,
+            )
             .map((key) => caches.delete(key)),
         ),
       )

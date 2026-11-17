@@ -23,7 +23,7 @@ COPY pyproject.toml README.md LICENSE ./
 COPY backend/*.py ./backend/
 
 RUN pip install --upgrade pip && \
-    pip install .
+    pip install '.[standalone]'
 
 # Application code stays root-owned and read-only to the runtime user.
 # Runtime writes would land in the container's writable layer and vanish on

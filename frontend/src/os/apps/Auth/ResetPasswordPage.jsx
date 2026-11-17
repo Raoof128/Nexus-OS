@@ -20,6 +20,9 @@ import {
 // (lib/realtimeClient.js). The Supabase module loads only when a recovery link is
 // opened. A rejected link rejects this promise.
 function exchangeRecoveryToken(tokenHash) {
+  if (import.meta.env.VITE_NEXUS_AUTH === 'standalone') {
+    return Promise.reject(new Error('Request a new password reset link.'))
+  }
   return import('../../../lib/realtimeClient')
     .then(({ verifyRecoveryOtp }) => verifyRecoveryOtp(tokenHash))
     .then(({ data, error }) => {
@@ -34,6 +37,7 @@ export default function ResetPasswordPage({
   accessToken: initialAccessToken,
   refreshToken: initialRefreshToken,
   tokenHash,
+  recoveryToken,
   onComplete,
 }) {
   const [accessToken, setAccessToken] = useState(initialAccessToken || '')
@@ -49,16 +53,17 @@ export default function ResetPasswordPage({
   // One exchange per link, shared by the StrictMode double effect (a second
   // verify of a consumed token would wrongly report the link as expired).
   const exchangeRef = useRef(null)
+  const resetToken = recoveryToken || accessToken
 
   // Escape cancels when the form is active
   useEffect(() => {
-    if (!accessToken || exchanging) return
+    if (!resetToken || exchanging) return
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onComplete()
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [accessToken, exchanging, onComplete])
+  }, [resetToken, exchanging, onComplete])
 
   // Exchange token_hash for a session (isolated client, see exchangeRecoveryToken)
   useEffect(() => {
@@ -100,7 +105,7 @@ export default function ResetPasswordPage({
     )
   }
 
-  if (expired || (!accessToken && !tokenHash)) {
+  if (expired || (!resetToken && !tokenHash)) {
     return (
       <div className="nx-wallpaper-aero relative flex min-h-screen flex-col">
         <Navbar />
@@ -144,7 +149,7 @@ export default function ResetPasswordPage({
       await authFetch('/auth/reset-password', {
         method: 'POST',
         headers: {
-          'x-recovery-access-token': accessToken,
+          'x-recovery-access-token': resetToken,
           'x-recovery-refresh-token': refreshToken || '',
         },
         body: {
