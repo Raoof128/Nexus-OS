@@ -180,8 +180,25 @@ def _parse_interval(raw: str | None) -> int | None:
     return value
 
 
+def _next_simple_occurrence(
+    freq: str, interval: int, start: datetime, cutoff: datetime
+) -> datetime:
+    days = (cutoff.date() - start.date()).days
+    months = (cutoff.year - start.year) * 12 + cutoff.month - start.month
+    elapsed = {
+        "DAILY": days,
+        "WEEKLY": days // 7,
+        "MONTHLY": months,
+        "YEARLY": cutoff.year - start.year,
+    }[freq]
+    cycles = max(1, elapsed // interval)
+    step = _SIMPLE_STEP[freq]
+    candidate = start + step(cycles * interval)
+    return candidate if candidate > cutoff else start + step((cycles + 1) * interval)
+
+
 def _next_occurrence_internal(
-    recurrence: str, anchor: date | datetime
+    recurrence: str, dtstart: datetime, cutoff: datetime
 ) -> datetime | None:
     """Compute the next occurrence as a datetime (naive midnight for date anchors)."""
 
@@ -199,9 +216,6 @@ def _next_occurrence_internal(
     if not _monthday_pairs_exist(parts):
         return None
 
-    is_date_only = isinstance(anchor, date) and not isinstance(anchor, datetime)
-    dtstart = datetime.combine(anchor, time.min) if is_date_only else anchor
-
     until: date | datetime | None = None
     if "UNTIL" in parts:
         until = _parse_until(parts["UNTIL"], dtstart)
@@ -209,11 +223,10 @@ def _next_occurrence_internal(
             return None
 
     if not any(key in _BY_KEYS for key in parts):
-        # Fast path: a plain frequency clamps with relativedelta.
-        nxt: datetime | None = dtstart + _SIMPLE_STEP[freq](interval)
+        nxt = _next_simple_occurrence(freq, interval, dtstart, cutoff)
     else:
         rule = rrulestr(_horizon_rule(parts, dtstart), dtstart=dtstart)
-        nxt = rule.after(dtstart, inc=False)
+        nxt = rule.after(cutoff, inc=False)
 
     if nxt is None:
         return None
@@ -225,28 +238,35 @@ def _next_occurrence_internal(
 def next_occurrence(
     recurrence: str | None,
     anchor: date | datetime | None,
+    *,
+    after: date | datetime | None = None,
 ) -> date | datetime | None:
-    """Return the next occurrence strictly after ``anchor`` for an RRULE.
+    """Return the next date on the original schedule, after the cutoff if given.
 
-    Schedule-based: the next instance is computed from the scheduled due date
-    (``anchor``), never from a completion timestamp. Returns ``None`` when there
-    is no anchor, the rule is unsupported or malformed, the rule has run past its
-    UNTIL, or the arithmetic leaves the representable date range. Callers skip
-    regeneration in every one of those cases. This function never raises for
-    user-supplied rules.
+    The anchor defines the cadence. Completion can advance the cutoff beyond
+    missed occurrences. The caller supplies the cutoff in the schedule's zone
+    for timed tasks, or the completion's local date for all-day tasks.
     """
 
     if anchor is None or not recurrence:
         return None
 
     try:
-        nxt = _next_occurrence_internal(recurrence, anchor)
+        timed = isinstance(anchor, datetime)
+        dtstart = anchor if timed else datetime.combine(anchor, time.min)
+        if after is None:
+            cutoff = dtstart
+        elif timed and isinstance(after, datetime):
+            cutoff = max(dtstart, after)
+        else:
+            cutoff = max(dtstart, datetime.combine(after, time.min, dtstart.tzinfo))
         # A recurring wall time may fall in a daylight-saving gap. Skip that
         # occurrence and keep the configured clock time on subsequent dates.
         for _ in range(8):
+            nxt = _next_occurrence_internal(recurrence, dtstart, cutoff)
             if nxt is None or nxt.tzinfo is None or datetime_exists(nxt):
                 break
-            nxt = _next_occurrence_internal(recurrence, nxt)
+            cutoff = nxt
         else:
             return None
     except (OverflowError, ValueError, TypeError, IndexError):
@@ -255,9 +275,7 @@ def next_occurrence(
         return None
     if nxt is None:
         return None
-    if isinstance(anchor, date) and not isinstance(anchor, datetime):
-        return nxt.date()
-    return nxt
+    return nxt if timed else nxt.date()
 
 
 def validate_recurrence(value: str | None) -> str | None:

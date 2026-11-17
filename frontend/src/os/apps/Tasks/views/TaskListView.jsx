@@ -3,7 +3,12 @@ import { AnimatePresence, Reorder } from 'framer-motion'
 import { ChevronDown, ChevronRight, ListChecks, Plus } from 'lucide-react'
 import { useTaskItems, useTaskMutations } from '../hooks/useTasks'
 import { between } from '../lib/position'
-import { formatLocalDate, getTaskDueDate, hasTimedDueDate } from '../lib/taskDateTime'
+import {
+  formatLocalDate,
+  getBrowserTimeZone,
+  getTaskDueDate,
+  hasTimedDueDate,
+} from '../lib/taskDateTime'
 import TaskRow from '../components/TaskRow'
 import TaskEditor from '../components/TaskEditor'
 import QuickAddBar from '../components/QuickAddBar'
@@ -113,6 +118,14 @@ function taskOrigin(task, starredActive) {
   return starredActive ? { taskListId: task.list_id } : {}
 }
 
+function completionPatch(task) {
+  if (task.status === 'completed') return { status: 'needsAction' }
+  return {
+    status: 'completed',
+    ...(task.recurrence && { completion_timezone: getBrowserTimeZone() }),
+  }
+}
+
 export default function TaskListView({
   listId,
   listName,
@@ -132,6 +145,8 @@ export default function TaskListView({
   )
   const [editing, setEditing] = useState(null) // An existing task, or a new task draft.
   const [showCompleted, setShowCompleted] = useState(true)
+  const [showUpcoming, setShowUpcoming] = useState(false)
+  const [scheduleClock, setScheduleClock] = useState(Date.now)
   const [focusedTaskId, setFocusedTaskId] = useState(null)
   const [confirmClear, setConfirmClear] = useState(false)
   // Row deletes that lose work (subtasks, notes) wait for confirmation here.
@@ -147,13 +162,27 @@ export default function TaskListView({
     [items, starredActive],
   )
 
-  const { parents, childrenByParent, completed } = useMemo(() => {
+  const { parents, childrenByParent, completed, upcoming, nextDue } = useMemo(() => {
     const active = visible.filter((t) => t.status === 'needsAction')
     const done = visible.filter((t) => t.status === 'completed')
-    const activeIds = new Set(active.map((task) => task.id))
+    const future = []
+    const current = []
+    let next = Infinity
+    for (const task of active) {
+      if (task.recurrence && (task.previous_occurrence_id || task.generated_from_task_id)) {
+        const due = getTaskDueDate(task)?.getTime()
+        if (due > scheduleClock) {
+          future.push(task)
+          next = Math.min(next, due)
+          continue
+        }
+      }
+      current.push(task)
+    }
+    const activeIds = new Set(current.map((task) => task.id))
     const byParent = Object.create(null)
     const topLevel = []
-    for (const task of active) {
+    for (const task of current) {
       if (!starredActive && activeIds.has(task.parent_id)) {
         ;(byParent[task.parent_id] ||= []).push(task)
       } else {
@@ -165,8 +194,21 @@ export default function TaskListView({
       parents: sortTasks(topLevel, sortMode),
       childrenByParent: byParent,
       completed: sortTasks(done, sortMode),
+      upcoming: sortTasks(future, 'date'),
+      nextDue: next,
     }
-  }, [visible, sortMode, starredActive])
+  }, [visible, sortMode, starredActive, scheduleClock])
+  useEffect(() => {
+    if (!Number.isFinite(nextDue)) return undefined
+    const advance = () => setScheduleClock(Date.now())
+    const delay = Math.min(2_147_483_647, Math.max(1, nextDue - Date.now()))
+    const timer = setTimeout(advance, delay)
+    window.addEventListener('focus', advance)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('focus', advance)
+    }
+  }, [nextDue, scheduleClock])
   const canReorder =
     !starredActive && sortMode === 'myorder' && !parents.some((task) => task.parent_id)
 
@@ -192,7 +234,7 @@ export default function TaskListView({
         updateTask.mutate({
           id: task.id,
           ...taskOrigin(task, starredActive),
-          patch: { status: task.status === 'completed' ? 'needsAction' : 'completed' },
+          patch: completionPatch(task),
         })
       } else if (e.key === 's' && !e.metaKey && !e.ctrlKey && !isTyping(e.target) && task) {
         e.preventDefault()
@@ -231,10 +273,9 @@ export default function TaskListView({
         task
       ) {
         e.preventDefault()
-        const siblings = items
-          .filter(
-            (t) => (t.parent_id || null) === (task.parent_id || null) && t.status === 'needsAction',
-          )
+        const group = childrenByParent[task.parent_id] ?? parents
+        const siblings = group
+          .filter((t) => (t.parent_id || null) === (task.parent_id || null))
           .sort((a, b) => (a.position || 0) - (b.position || 0))
         const i = siblings.findIndex((t) => t.id === task.id)
         if (i === -1) return
@@ -262,13 +303,23 @@ export default function TaskListView({
     }
     el.addEventListener('keydown', onKey)
     return () => el.removeEventListener('keydown', onKey)
-  }, [rootRef, items, focusedTaskId, updateTask, moveTask, starredActive, canReorder])
+  }, [
+    rootRef,
+    items,
+    focusedTaskId,
+    updateTask,
+    moveTask,
+    starredActive,
+    canReorder,
+    parents,
+    childrenByParent,
+  ])
 
   const handleToggle = (task) =>
     updateTask.mutate({
       id: task.id,
       ...taskOrigin(task, starredActive),
-      patch: { status: task.status === 'completed' ? 'needsAction' : 'completed' },
+      patch: completionPatch(task),
     })
   const handleStar = (task) =>
     updateTask.mutate({
@@ -425,7 +476,7 @@ export default function TaskListView({
               <p className="text-center text-[12px]">Loading tasks…</p>
             </div>
           </div>
-        ) : parents.length === 0 && completed.length === 0 ? (
+        ) : parents.length === 0 && completed.length === 0 && upcoming.length === 0 ? (
           isError ? (
             <div className="flex flex-col items-center gap-3 py-12 text-center">
               <p role="alert" className="w7-error">
@@ -468,6 +519,21 @@ export default function TaskListView({
             ) : (
               renderBranches(parents)
             )}
+          </div>
+        )}
+
+        {upcoming.length > 0 && (
+          <div className="mt-4 border-t border-border pt-1">
+            <button
+              type="button"
+              onClick={() => setShowUpcoming((value) => !value)}
+              aria-expanded={showUpcoming}
+              className="w7-toolbtn pointer-coarse:min-h-11"
+            >
+              {showUpcoming ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              Upcoming repeats ({upcoming.length})
+            </button>
+            {showUpcoming && renderBranches(upcoming)}
           </div>
         )}
 

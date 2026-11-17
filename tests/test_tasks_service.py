@@ -57,6 +57,19 @@ def test_next_occurrence_is_anchored_on_due_date_not_completion():
     assert next_occurrence("FREQ=DAILY", date(2026, 6, 10)) == date(2026, 6, 11)
 
 
+def test_overdue_repeat_preserves_interval_phase():
+    assert next_occurrence(
+        "FREQ=DAILY;INTERVAL=2", date(2026, 6, 10), after=date(2026, 6, 15)
+    ) == date(2026, 6, 16)
+
+
+def test_overdue_repeat_keeps_weekdays_and_stops_at_until():
+    rule = "FREQ=WEEKLY;BYDAY=MO,FR;UNTIL=20261120"
+    anchor = date(2026, 6, 15)
+    assert next_occurrence(rule, anchor, after=date(2026, 11, 17)) == date(2026, 11, 20)
+    assert next_occurrence(rule, anchor, after=date(2026, 11, 20)) is None
+
+
 def test_datetime_anchor_preserves_time():
     anchor = datetime(2026, 6, 15, 9, 0, tzinfo=timezone.utc)
     assert next_occurrence("FREQ=DAILY", anchor) == datetime(

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import AsyncGenerator
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -173,7 +173,7 @@ async def _has_subtasks(db: Any, user_id: str, task_id: str) -> bool:
     return bool(resp.data)
 
 
-def _parse_anchor(task: dict) -> date | datetime | None:
+def _parse_anchor(task: dict, zone: ZoneInfo | None) -> date | datetime | None:
     """Return the scheduled due date or time that recurrence is anchored on."""
 
     raw = task.get("due_at") or task.get("due")
@@ -185,13 +185,14 @@ def _parse_anchor(task: dict) -> date | datetime | None:
         if "T" not in raw:
             return date.fromisoformat(raw)
         instant = datetime.fromisoformat(raw)
-        if (zone := task.get("due_timezone")) and instant.tzinfo is not None:
+        if zone is not None:
             # PostgREST normalizes timestamptz to UTC. Recover the original wall
             # clock before applying the repeat rule so DST does not move it.
-            try:
-                return instant.astimezone(ZoneInfo(zone))
-            except (TypeError, ValueError, ZoneInfoNotFoundError):
-                pass
+            return (
+                instant.astimezone(zone)
+                if instant.tzinfo
+                else instant.replace(tzinfo=zone)
+            )
         return instant
     except ValueError:
         logger.warning(
@@ -201,19 +202,48 @@ def _parse_anchor(task: dict) -> date | datetime | None:
         return None
 
 
+def next_task_schedule(task: dict, completion_timezone: str | None) -> dict | None:
+    zone = None
+    for name in (task.get("due_timezone"), completion_timezone):
+        if name:
+            try:
+                zone = ZoneInfo(name)
+                break
+            except (TypeError, ValueError, ZoneInfoNotFoundError):
+                continue
+    anchor = _parse_anchor(task, zone)
+    after = None
+    if anchor is not None and (completed_at := task.get("completed_at")):
+        completion = datetime.fromisoformat(completed_at)
+        if isinstance(anchor, datetime):
+            after = completion.astimezone(anchor.tzinfo or timezone.utc)
+            if anchor.tzinfo is None:
+                after = after.replace(tzinfo=None)
+        else:
+            after = completion.astimezone(zone or timezone.utc).date()
+    nxt = next_occurrence(task.get("recurrence"), anchor, after=after)
+    if nxt is None:
+        return None
+    timed = isinstance(nxt, datetime)
+    return {
+        "due": (nxt.date() if timed else nxt).isoformat(),
+        "due_at": nxt.isoformat() if timed else None,
+        "due_timezone": zone.key if timed and zone else None,
+    }
+
+
 async def _spawn_next_occurrence(
-    db: Any, user_id: str, task: dict, recurrence: str
+    db: Any, user_id: str, task: dict, completion_timezone: str | None
 ) -> None:
     """Insert the next occurrence of a recurring task.
 
-    Anchored on the scheduled due date, never the completion time. Database errors
-    propagate as raw ``APIError`` so the caller can undo the completion.
+    Keep the scheduled cadence and skip dates already passed at completion.
+    Database errors propagate so the caller can undo the completion.
     """
 
     task_id = task.get("id")
-    # The rule is evaluated off the event loop; next_occurrence is CPU-bound.
-    nxt = await run_blocking(next_occurrence, recurrence, _parse_anchor(task))
-    if nxt is None:
+    schedule = await run_blocking(next_task_schedule, task, completion_timezone)
+    if schedule is None:
         logger.warning("No next occurrence computed for recurring task %s", task_id)
         return
 
@@ -228,7 +258,6 @@ async def _spawn_next_occurrence(
     )
     next_pos = next_position([r.get("position", 0.0) for r in (positions.data or [])])
 
-    is_dt = isinstance(nxt, datetime)
     await _run(
         db.from_("nexus_tasks").upsert(
             {
@@ -239,12 +268,10 @@ async def _spawn_next_occurrence(
                 "title": task["title"],
                 "notes_encrypted": task.get("notes_encrypted"),
                 "status": "needsAction",
-                "due": (nxt.date() if is_dt else nxt).isoformat(),
-                "due_at": nxt.isoformat() if is_dt else None,
-                "due_timezone": task.get("due_timezone") if is_dt else None,
+                **schedule,
                 "all_day": task.get("all_day", True),
                 "starred": task.get("starred", False),
-                "recurrence": recurrence,
+                "recurrence": task["recurrence"],
                 "position": next_pos,
             },
             on_conflict="user_id,previous_occurrence_id",
@@ -502,10 +529,9 @@ class TasksController(Controller):
         if row is None:
             row = await _load_task(db, user_id, task_id)
 
-        recurrence = row.get("recurrence")
-        if transitioned and recurrence:
+        if transitioned and row.get("recurrence"):
             try:
-                await _spawn_next_occurrence(db, user_id, row, recurrence)
+                await _spawn_next_occurrence(db, user_id, row, data.completion_timezone)
             except APIError:
                 await _restore_completion(db, user_id, task_id, existing)
                 raise

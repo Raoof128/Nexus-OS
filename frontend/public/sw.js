@@ -11,7 +11,7 @@
  *
  * Bump CACHE_VERSION to invalidate old caches on the next activation.
  */
-const CACHE_VERSION = 'v3'
+const CACHE_VERSION = 'v4'
 const SHELL_CACHE = `nexus-os-shell-${CACHE_VERSION}`
 const RUNTIME_CACHE = `nexus-os-runtime-${CACHE_VERSION}`
 

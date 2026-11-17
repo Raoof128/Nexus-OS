@@ -235,6 +235,27 @@ def test_recurring_task_keeps_sydney_wall_time_across_dst(client):
     assert inserted["due_timezone"] == "Australia/Sydney"
 
 
+def test_overdue_legacy_repeat_skips_missed_dates_after_completion(client):
+    task = _task(due="2026-06-27", due_at="2026-06-27T23:00:00+00:00", all_day=False)
+    completed = "2026-11-17T02:31:19+00:00"
+    fetch = _chain(FakeResp(data=task))
+    transition = _chain(
+        FakeResp(data=[{**task, "status": "completed", "completed_at": completed}])
+    )
+    positions = _chain(FakeResp(data=[]))
+    insert = _chain(FakeResp(data=[]))
+    with patch(CREATE_CLIENT, return_value=_db(fetch, transition, positions, insert)):
+        response = client.patch(
+            "/api/tasks/items/t9",
+            json={"status": "completed", "completion_timezone": "Australia/Sydney"},
+        )
+    assert response.status_code == HTTP_200_OK
+    inserted = insert.upsert.call_args.args[0]
+    assert inserted["due"] == "2026-11-18"
+    assert inserted["due_at"] == "2026-11-18T09:00:00+11:00"
+    assert inserted["due_timezone"] == "Australia/Sydney"
+
+
 @pytest.mark.parametrize("pre_status", ["completed", "needsAction"])
 def test_completion_that_does_not_transition_spawns_nothing(client, pre_status):
     """A repeat PATCH, or a completion that lost a race, gets no rows back."""

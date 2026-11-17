@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useRef } from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { act, render, screen, fireEvent } from '@testing-library/react'
 
 // Shared mutable mock state (hoisted so the vi.mock factories can read it).
 const m = vi.hoisted(() => ({
@@ -80,6 +80,41 @@ describe('TaskListView', () => {
     const { container } = render(<Harness />)
     expect(container.querySelectorAll('li > li')).toHaveLength(0)
     expect(container.querySelector('li[data-task-id="d1"]').parentElement.tagName).toBe('UL')
+  })
+
+  it('keeps a generated repeat collapsed until it becomes due', () => {
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(new Date('2026-11-17T02:00:00Z'))
+      m.items = [
+        {
+          ...base,
+          id: 'next',
+          title: 'Daily repeat',
+          status: 'needsAction',
+          previous_occurrence_id: 'done',
+          recurrence: 'FREQ=DAILY',
+          due_at: '2026-11-17T02:00:01Z',
+          all_day: false,
+        },
+      ]
+      render(<Harness />)
+      const repeat = { name: 'Complete "Daily repeat"' }
+      const toggle = screen.getByRole('button', { name: 'Upcoming repeats (1)' })
+      expect(screen.queryByRole('checkbox', repeat)).toBeNull()
+      fireEvent.click(toggle)
+      fireEvent.click(screen.getByRole('checkbox', repeat))
+      expect(m.update.mutate).toHaveBeenCalledWith({
+        id: 'next',
+        patch: { status: 'completed', completion_timezone: expect.any(String) },
+      })
+      fireEvent.click(toggle)
+      act(() => vi.advanceTimersByTime(1000))
+      expect(screen.queryByRole('button', { name: 'Upcoming repeats (1)' })).toBeNull()
+      expect(screen.getByRole('checkbox', repeat)).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('does not toggle a task when Space lands on one of its row buttons', () => {

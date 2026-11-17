@@ -9,9 +9,10 @@ import tempfile
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
+from zoneinfo import ZoneInfo
 
 import httpx
 import psycopg
@@ -145,7 +146,7 @@ def exercise_tasks(owner: httpx.Client, other: httpx.Client) -> None:
     lists = "/api/tasks/lists"
     task_list = call(owner, "POST", lists, 201, json={"name": "Rehearsal"}).json()
     items = f"{lists}/{task_list['id']}/items"
-    due = "2026-11-17T23:15:00+11:00"
+    due = "2026-06-27T23:00:00+00:00"
     task = call(
         owner,
         "POST",
@@ -154,9 +155,8 @@ def exercise_tasks(owner: httpx.Client, other: httpx.Client) -> None:
         json={
             "title": "Rehearsal recurring meeting",
             "notes": "Private task note",
-            "due": "2026-11-17",
+            "due": "2026-06-27",
             "due_at": due,
-            "due_timezone": "Australia/Sydney",
             "all_day": False,
             "recurrence": "FREQ=DAILY",
         },
@@ -168,10 +168,11 @@ def exercise_tasks(owner: httpx.Client, other: httpx.Client) -> None:
     expect(call(other, "GET", lists, 200).json() == [], "Tasks RLS leaked a list")
     path = f"/api/tasks/items/{task['id']}"
     call(other, "PATCH", path, 404, json={"status": "completed"})
+    completion = {"status": "completed", "completion_timezone": "Australia/Sydney"}
     with ThreadPoolExecutor(max_workers=4) as executor:
         results = list(
             executor.map(
-                lambda _: call(owner, "PATCH", path, 200, json={"status": "completed"}),
+                lambda _: call(owner, "PATCH", path, 200, json=completion),
                 range(4),
             )
         )
@@ -179,10 +180,17 @@ def exercise_tasks(owner: httpx.Client, other: httpx.Client) -> None:
     rows = call(owner, "GET", items, 200, params={"showCompleted": "true"}).json()
     successors = [row for row in rows if row["id"] != task["id"]]
     expect(len(successors) == 1, "Completing four times must produce one successor")
+    completed_at = datetime.fromisoformat(results[0].json()["completed_at"]).astimezone(
+        ZoneInfo("Australia/Sydney")
+    )
+    next_due = completed_at.replace(hour=9, minute=0, second=0, microsecond=0)
+    if next_due <= completed_at:
+        next_due += timedelta(days=1)
     expect(
-        successors[0]["due"] == "2026-11-18"
+        datetime.fromisoformat(successors[0]["due_at"]) == next_due
+        and successors[0]["due"] == next_due.date().isoformat()
         and successors[0]["due_timezone"] == "Australia/Sydney",
-        "Incorrect recurrence",
+        "Recurrence did not skip the backlog and preserve its local time",
     )
 
 

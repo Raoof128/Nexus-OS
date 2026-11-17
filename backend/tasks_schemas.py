@@ -123,6 +123,7 @@ class UpdateTaskRequest(BaseModel):
     due: date | None = None
     due_at: datetime | None = None
     due_timezone: DueTimeZone | None = None
+    completion_timezone: DueTimeZone | None = None
     all_day: bool | None = None
     starred: bool | None = None
     recurrence: str | None = Field(default=None, max_length=300)
