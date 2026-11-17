@@ -136,7 +136,7 @@ def snapshot(profile: Path, identity: Path, output: Path) -> None:
     print(f"Verified encrypted snapshot of {total} records and one owner.")
 
 
-def restore(payload: dict) -> None:
+def restore(payload: dict, canary_id: UUID | None) -> None:
     tables, owner = validate(payload)
     require(os.environ.get("POSTGRES_DB") == "nexus", "Unexpected target database")
     with psycopg.connect(
@@ -147,10 +147,9 @@ def restore(payload: dict) -> None:
         connect_timeout=5,
     ) as conn:
         conn.execute("SET LOCAL TIME ZONE 'UTC'")
-        require(
-            conn.execute("SELECT count(*) FROM auth.users").fetchone()[0] == 0,
-            "The destination auth database is not empty",
-        )
+        existing = {row[0] for row in conn.execute("SELECT id FROM auth.users")}
+        allowed = {canary_id} if canary_id is not None else set()
+        require(existing == allowed, "Destination contains unexpected accounts")
         conn.execute(
             """INSERT INTO auth.users
                 (id, email, name, "emailVerified", "createdAt", "updatedAt")
@@ -198,14 +197,15 @@ def main() -> None:
     backup.add_argument("--profile", type=Path, required=True)
     backup.add_argument("--identity", type=Path, required=True)
     backup.add_argument("--output", type=Path, required=True)
-    mode.add_parser("restore")
+    restore_parser = mode.add_parser("restore")
+    restore_parser.add_argument("--canary-id", type=UUID)
     args = parser.parse_args()
     os.umask(0o077)
     try:
         if args.mode == "snapshot":
             snapshot(args.profile, args.identity, args.output)
         else:
-            restore(json.load(sys.stdin))
+            restore(json.load(sys.stdin), args.canary_id)
     except (
         KeyError,
         TypeError,

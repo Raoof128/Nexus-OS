@@ -26,6 +26,7 @@ jobs:
       has_token: ${{ steps.check.outputs.has_token }}
     env:
       VITE_API_URL: ${{ secrets.VITE_API_URL }}
+      VITE_NEXUS_AUTH: ${{ vars.NEXUS_AUTH_MODE }}
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
     steps:
