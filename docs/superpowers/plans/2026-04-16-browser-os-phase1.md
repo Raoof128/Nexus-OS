@@ -60,7 +60,7 @@
 - [ ] **Step 1: Install zustand and nanoid**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm install zustand nanoid
+cd <repo>/frontend && npm install zustand nanoid
 ```
 
 - [ ] **Step 2: Add modal-root div to index.html**
@@ -89,7 +89,7 @@ manualChunks: {
 - [ ] **Step 4: Verify build still works**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build
+cd <repo>/frontend && npm run build
 ```
 
 Expected: Build succeeds with no errors.
@@ -97,7 +97,7 @@ Expected: Build succeeds with no errors.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/package.json frontend/package-lock.json frontend/index.html frontend/vite.config.js
+cd <repo> && git add frontend/package.json frontend/package-lock.json frontend/index.html frontend/vite.config.js
 git commit -m "chore: add zustand, nanoid deps and modal-root div for OS shell"
 ```
 
@@ -376,7 +376,7 @@ describe('windowStore', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/stores/__tests__/windowStore.test.js
+cd <repo>/frontend && npx vitest run src/os/stores/__tests__/windowStore.test.js
 ```
 
 Expected: FAIL — module `../windowStore` not found.
@@ -622,7 +622,7 @@ export const useWindowStore = create((set, get) => ({
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/stores/__tests__/windowStore.test.js
+cd <repo>/frontend && npx vitest run src/os/stores/__tests__/windowStore.test.js
 ```
 
 Expected: All tests PASS.
@@ -630,7 +630,7 @@ Expected: All tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/stores/windowStore.js frontend/src/os/stores/__tests__/windowStore.test.js
+cd <repo> && git add frontend/src/os/stores/windowStore.js frontend/src/os/stores/__tests__/windowStore.test.js
 git commit -m "feat: add Zustand window store (OS kernel) with full test coverage"
 ```
 
@@ -781,7 +781,7 @@ Note: `MediaApp` doesn't exist yet — it will be created in Task 6 as a wrapper
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/stores/appRegistry.js frontend/src/os/components/PlaceholderApp.jsx
+cd <repo> && git add frontend/src/os/stores/appRegistry.js frontend/src/os/components/PlaceholderApp.jsx
 git commit -m "feat: add app registry with 8 manifests and placeholder component"
 ```
 
@@ -908,7 +908,7 @@ describe('Window', () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/components/__tests__/Window.test.jsx
+cd <repo>/frontend && npx vitest run src/os/components/__tests__/Window.test.jsx
 ```
 
 Expected: FAIL — `../Window` not found.
@@ -1212,7 +1212,7 @@ export default memo(Window)
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/components/__tests__/Window.test.jsx
+cd <repo>/frontend && npx vitest run src/os/components/__tests__/Window.test.jsx
 ```
 
 Expected: All tests PASS.
@@ -1220,7 +1220,7 @@ Expected: All tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/components/Window.jsx frontend/src/os/components/__tests__/Window.test.jsx
+cd <repo> && git add frontend/src/os/components/Window.jsx frontend/src/os/components/__tests__/Window.test.jsx
 git commit -m "feat: add Window component with drag, resize, maximize, and mobile mode"
 ```
 
@@ -1394,7 +1394,7 @@ describe('AppLauncher', () => {
 - [ ] **Step 3: Run tests to verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/components/__tests__/Taskbar.test.jsx src/os/components/__tests__/AppLauncher.test.jsx
+cd <repo>/frontend && npx vitest run src/os/components/__tests__/Taskbar.test.jsx src/os/components/__tests__/AppLauncher.test.jsx
 ```
 
 Expected: FAIL — modules not found.
@@ -1625,7 +1625,7 @@ export default memo(AppLauncher)
 - [ ] **Step 6: Run tests to verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/components/__tests__/Taskbar.test.jsx src/os/components/__tests__/AppLauncher.test.jsx
+cd <repo>/frontend && npx vitest run src/os/components/__tests__/Taskbar.test.jsx src/os/components/__tests__/AppLauncher.test.jsx
 ```
 
 Expected: All tests PASS.
@@ -1633,7 +1633,7 @@ Expected: All tests PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/os/components/Taskbar.jsx frontend/src/os/components/AppLauncher.jsx frontend/src/os/components/__tests__/Taskbar.test.jsx frontend/src/os/components/__tests__/AppLauncher.test.jsx
+cd <repo> && git add frontend/src/os/components/Taskbar.jsx frontend/src/os/components/AppLauncher.jsx frontend/src/os/components/__tests__/Taskbar.test.jsx frontend/src/os/components/__tests__/AppLauncher.test.jsx
 git commit -m "feat: add Taskbar and AppLauncher components with cyberpunk styling"
 ```
 
@@ -1950,7 +1950,7 @@ describe('Desktop', () => {
 - [ ] **Step 3: Run tests to verify they fail**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/components/__tests__/Desktop.test.jsx
+cd <repo>/frontend && npx vitest run src/os/components/__tests__/Desktop.test.jsx
 ```
 
 Expected: FAIL — `../../Desktop` not found.
@@ -2056,7 +2056,7 @@ export default function Desktop() {
 - [ ] **Step 5: Run tests to verify they pass**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npx vitest run src/os/components/__tests__/Desktop.test.jsx
+cd <repo>/frontend && npx vitest run src/os/components/__tests__/Desktop.test.jsx
 ```
 
 Expected: All tests PASS.
@@ -2064,7 +2064,7 @@ Expected: All tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/components/features/MediaApp.jsx frontend/src/os/Desktop.jsx frontend/src/os/components/__tests__/Desktop.test.jsx
+cd <repo> && git add frontend/src/components/features/MediaApp.jsx frontend/src/os/Desktop.jsx frontend/src/os/components/__tests__/Desktop.test.jsx
 git commit -m "feat: add Desktop shell, MediaApp wrapper, and Desktop tests"
 ```
 
@@ -2212,7 +2212,7 @@ export default App
 - [ ] **Step 2: Verify build works**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build
+cd <repo>/frontend && npm run build
 ```
 
 Expected: Build succeeds. (The app won't fully render in browser until modal portals are migrated, but it should compile.)
@@ -2220,7 +2220,7 @@ Expected: Build succeeds. (The app won't fully render in browser until modal por
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/App.jsx
+cd <repo> && git add frontend/src/App.jsx
 git commit -m "feat: wire Desktop shell into App.jsx, replace tab navigation"
 ```
 
@@ -2415,7 +2415,7 @@ With:
 - [ ] **Step 7: Verify build works**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build
+cd <repo>/frontend && npm run build
 ```
 
 Expected: Build succeeds.
@@ -2423,7 +2423,7 @@ Expected: Build succeeds.
 - [ ] **Step 8: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/components/features/MediaDetailModal.jsx frontend/src/components/features/EditMediaDialog.jsx frontend/src/components/features/AddMediaDialog.jsx frontend/src/components/features/ComposeModal.jsx frontend/src/components/features/AICmdPalette.jsx frontend/src/components/features/ConfirmDialog.jsx
+cd <repo> && git add frontend/src/components/features/MediaDetailModal.jsx frontend/src/components/features/EditMediaDialog.jsx frontend/src/components/features/AddMediaDialog.jsx frontend/src/components/features/ComposeModal.jsx frontend/src/components/features/AICmdPalette.jsx frontend/src/components/features/ConfirmDialog.jsx
 git commit -m "fix: migrate all modals to portal rendering for window transform compatibility"
 ```
 
@@ -2552,7 +2552,7 @@ In `frontend/src/components/features/ChatLayout.jsx`:
 - [ ] **Step 5: Verify build works**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build
+cd <repo>/frontend && npm run build
 ```
 
 Expected: Build succeeds.
@@ -2560,7 +2560,7 @@ Expected: Build succeeds.
 - [ ] **Step 6: Run existing tests**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run test
+cd <repo>/frontend && npm run test
 ```
 
 Expected: All tests pass (container query class changes don't affect test logic since tests don't evaluate CSS).
@@ -2568,7 +2568,7 @@ Expected: All tests pass (container query class changes don't affect test logic 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add frontend/src/components/features/KanbanBoard.jsx frontend/src/components/features/MediaVault.jsx frontend/src/components/features/EmailInbox.jsx frontend/src/components/features/ChatLayout.jsx
+cd <repo> && git add frontend/src/components/features/KanbanBoard.jsx frontend/src/components/features/MediaVault.jsx frontend/src/components/features/EmailInbox.jsx frontend/src/components/features/ChatLayout.jsx
 git commit -m "refactor: migrate viewport breakpoints to container queries for windowed rendering"
 ```
 
@@ -2584,7 +2584,7 @@ git commit -m "refactor: migrate viewport breakpoints to container queries for w
 - [ ] **Step 1: Run the full test suite**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run test
+cd <repo>/frontend && npm run test
 ```
 
 Expected: All tests pass.
@@ -2592,7 +2592,7 @@ Expected: All tests pass.
 - [ ] **Step 2: Run the build**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run build
+cd <repo>/frontend && npm run build
 ```
 
 Expected: Build succeeds with no errors.
@@ -2600,7 +2600,7 @@ Expected: Build succeeds with no errors.
 - [ ] **Step 3: Run lint**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run lint
+cd <repo>/frontend && npm run lint
 ```
 
 Expected: No lint errors. Fix any that appear.
@@ -2608,7 +2608,7 @@ Expected: No lint errors. Fix any that appear.
 - [ ] **Step 4: Start dev server and manual smoke test**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus/frontend && npm run dev
+cd <repo>/frontend && npm run dev
 ```
 
 Manual checks:
@@ -2638,7 +2638,7 @@ Address any visual or functional issues. Common things to watch:
 - [ ] **Step 6: Final commit**
 
 ```bash
-cd /Users/raoof.r12/Desktop/Raouf/Nexus && git add -A
+cd <repo> && git add -A
 git commit -m "chore: Phase 1 complete — Nexus browser OS shell with windowed apps"
 ```
 

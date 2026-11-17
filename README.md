@@ -2,6 +2,8 @@
 
 Nexus OS is a personal media vault, job tracker, mail client, task manager and AI assistant presented as a **Windows 7 Aero-style web desktop**. It combines a React frontend, a Litestar API, and Supabase-backed identity and persistence to manage books, movies, anime, job applications, ratings, takeaways and AI-assisted recommendations.
 
+**Status:** a personal project under active development. It grew out of [Nexus Archive](https://github.com/Raoof128/Nexus_Archive), the original single-page tracker, and keeps that project's backend and data model behind a desktop-style interface. It is a tracker and personal workspace: it stores titles, ratings and notes, and does not host, stream or link to any media.
+
 ## Visual Aesthetic
 
 The interface recreates the Windows 7 Aero experience with [7.css](https://khang-nd.github.io/7.css/):
@@ -15,7 +17,7 @@ See [`docs/win7-design-system.md`](docs/win7-design-system.md) for the design co
 
 ## Security Upgrade Highlights
 
-This repository includes a hardened defensive posture:
+Security measures in this repository:
 
 - **Backend-Mediated Auth**: API credentials live exclusively in `HttpOnly`
   cookies. Auth responses return identity metadata, not bearer tokens, and

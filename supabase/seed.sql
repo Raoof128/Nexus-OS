@@ -27,7 +27,9 @@ END $$;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- -----------------------------------------------------------------------------
--- Dev user: dev@example.com  /  password: Dev@Nexus2026
+-- Dev user: dev@example.com. Local development only: never run this file
+-- against a hosted project. Replace CHANGE-ME-local-only below with a password
+-- of your own before running `supabase db reset`.
 -- Fixed UUID for reproducible references across resets.
 -- -----------------------------------------------------------------------------
 DO $$
@@ -59,7 +61,7 @@ BEGIN
     'authenticated',
     'authenticated',
     _email,
-    crypt('Dev@Nexus2026', gen_salt('bf')),
+    crypt('CHANGE-ME-local-only', gen_salt('bf')),
     NOW(),
     '{"provider":"email","providers":["email"]}',
     '{}',
